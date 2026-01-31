@@ -1,5 +1,5 @@
 import { createClient } from './client'
-import type { Assessment, AssessmentInsert } from '@/types/database'
+import type { Assessment, AssessmentInsert, Profile } from '@/types/database'
 
 interface MediaUploadResult {
   url: string

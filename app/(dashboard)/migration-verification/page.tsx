@@ -206,7 +206,7 @@ export default function MigrationVerificationPage() {
 
         for (const table of pricingTables) {
           try {
-            const { data: _data2, error } = await supabase
+            const { data: insertedData, error } = await supabase
               .from(table.name)
               .insert(table.testData)
               .select()
@@ -226,10 +226,12 @@ export default function MigrationVerificationPage() {
               })
 
               // Clean up test data
-              await supabase
-                .from(table.name)
-                .delete()
-                .eq('id', data.id)
+              if (insertedData?.id) {
+                await supabase
+                  .from(table.name)
+                  .delete()
+                  .eq('id', insertedData.id)
+              }
             }
           } catch (err) {
             pricingResults.push({
@@ -242,7 +244,7 @@ export default function MigrationVerificationPage() {
 
         // Test pricing_settings table (unique constraint)
         try {
-          const { data: _data3, error } = await supabase
+          const { data: settingsData, error } = await supabase
             .from('pricing_settings')
             .insert({
               organization_id: organization.id,
@@ -267,10 +269,12 @@ export default function MigrationVerificationPage() {
             })
 
             // Clean up
-            await supabase
-              .from('pricing_settings')
-              .delete()
-              .eq('id', data.id)
+            if (settingsData?.id) {
+              await supabase
+                .from('pricing_settings')
+                .delete()
+                .eq('id', settingsData.id)
+            }
           }
         } catch (err) {
           pricingResults.push({

@@ -76,10 +76,11 @@ export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFo
     setFormData((prev: any) => ({ ...prev, [field]: value }))
   }
 
-  const _handleAccessIssueChange = (_issue: string, _checked: boolean) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleAccessIssueChange = (issue: string, checked: boolean) => {
     setFormData((prev: any) => ({
       ...prev,
-      access_issues: checked 
+      access_issues: checked
         ? [...prev.access_issues, issue]
         : prev.access_issues.filter((i: string) => i !== issue)
     }))
