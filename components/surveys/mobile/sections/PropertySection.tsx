@@ -11,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
 import { useSurveyStore } from '@/lib/stores/survey-store'
 import {
   BuildingType,

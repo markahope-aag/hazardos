@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils'
 import { useSurveyStore } from '@/lib/stores/survey-store'
-import { SURVEY_SECTIONS, SECTION_LABELS, SurveySection } from '@/lib/stores/survey-types'
+import { SURVEY_SECTIONS, SECTION_LABELS } from '@/lib/stores/survey-types'
 import { Check } from 'lucide-react'
 
 interface WizardNavigationProps {

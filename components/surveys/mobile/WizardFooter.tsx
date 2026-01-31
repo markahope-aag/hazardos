@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useSurveyStore } from '@/lib/stores/survey-store'
-import { SURVEY_SECTIONS, SurveySection } from '@/lib/stores/survey-types'
+import { SURVEY_SECTIONS } from '@/lib/stores/survey-types'
 import { ChevronLeft, ChevronRight, Check, Send } from 'lucide-react'
 
 interface WizardFooterProps {
@@ -12,7 +12,7 @@ interface WizardFooterProps {
   onSaveDraft?: () => void
 }
 
-export function WizardFooter({ className, onSubmit, onSaveDraft }: WizardFooterProps) {
+export function WizardFooter({ className, onSubmit, onSaveDraft: _onSaveDraft }: WizardFooterProps) {
   const { currentSection, setCurrentSection, validateSection, validateAll } = useSurveyStore()
 
   const currentIndex = SURVEY_SECTIONS.indexOf(currentSection)
@@ -28,7 +28,7 @@ export function WizardFooter({ className, onSubmit, onSaveDraft }: WizardFooterP
 
   const handleNext = () => {
     // Validate current section before moving forward
-    const validation = validateSection(currentSection)
+    const _validation = validateSection(currentSection)
 
     if (!isLastSection) {
       setCurrentSection(SURVEY_SECTIONS[currentIndex + 1])

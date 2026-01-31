@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Save, MapPin, Camera, AlertCircle, CheckCircle } from 'lucide-react'
+import { Save, MapPin, Camera, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,7 +21,7 @@ interface SiteSurveyFormProps {
 export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFormProps) {
   const router = useRouter()
   const { toast } = useToast()
-  const { user, profile, organization } = useMultiTenantAuth()
+  const { user, profile: _profile, organization } = useMultiTenantAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDraft, setIsDraft] = useState(true)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
@@ -76,7 +76,7 @@ export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFo
     setFormData((prev: any) => ({ ...prev, [field]: value }))
   }
 
-  const handleAccessIssueChange = (issue: string, checked: boolean) => {
+  const _handleAccessIssueChange = (_issue: string, _checked: boolean) => {
     setFormData((prev: any) => ({
       ...prev,
       access_issues: checked 
@@ -195,7 +195,7 @@ export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFo
     }
   }
 
-  const accessIssueOptions = [
+  const _accessIssueOptions = [
     'Limited parking',
     'Narrow access',
     'Stairs only',

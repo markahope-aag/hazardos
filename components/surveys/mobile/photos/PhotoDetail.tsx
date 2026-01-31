@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,7 +18,7 @@ import {
 } from '@/components/ui/dialog'
 import { useSurveyStore } from '@/lib/stores/survey-store'
 import { PhotoData, PhotoCategory, PHOTO_REQUIREMENTS } from '@/lib/stores/survey-types'
-import { Trash2, MapPin, Calendar, X } from 'lucide-react'
+import { Trash2, MapPin, Calendar } from 'lucide-react'
 
 interface PhotoDetailProps {
   photo: PhotoData | null

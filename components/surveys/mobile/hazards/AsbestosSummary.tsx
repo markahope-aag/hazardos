@@ -71,7 +71,7 @@ export function AsbestosSummary() {
       containmentLevel,
       epaNotificationRequired,
     }
-  }, [asbestos?.materials])
+  }, [asbestos])
 
   if (!asbestos || !calculations) return null
 

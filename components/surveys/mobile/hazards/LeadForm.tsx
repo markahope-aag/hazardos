@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
 import { useSurveyStore } from '@/lib/stores/survey-store'
 import { LeadWorkScope } from '@/lib/stores/survey-types'
 import { LeadComponentCard } from './LeadComponentCard'

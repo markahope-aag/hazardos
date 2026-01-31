@@ -51,7 +51,7 @@ export function MoldSummary() {
       hasPorousMaterial,
       sizeCategory,
     }
-  }, [mold?.affectedAreas, mold?.hvacContaminated])
+  }, [mold])
 
   if (!mold || !calculations) return null
 

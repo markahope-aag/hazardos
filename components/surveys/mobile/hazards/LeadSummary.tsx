@@ -76,7 +76,7 @@ export function LeadSummary() {
       rrpRuleApplies,
       isPre1978,
     }
-  }, [lead?.components, yearBuilt])
+  }, [lead, yearBuilt])
 
   if (!lead || !calculations) return null
 

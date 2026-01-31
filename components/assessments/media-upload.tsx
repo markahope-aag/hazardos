@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
-import { Camera, Video, Upload, X, Play, Pause, RotateCcw, AlertCircle } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Camera, Video, Upload, X, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
@@ -36,7 +36,7 @@ export function MediaUpload({
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingProgress, setProcessingProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const _videoRef = useRef<HTMLVideoElement>(null)
 
   // Compress image files
   const compressImage = async (file: File): Promise<File> => {

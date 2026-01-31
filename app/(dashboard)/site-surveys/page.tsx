@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Plus, Search, MapPin, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -21,9 +21,9 @@ export default function SiteSurveysPage() {
     if (organization?.id) {
       loadSiteSurveys()
     }
-  }, [organization?.id])
+  }, [organization?.id, loadSiteSurveys])
 
-  const loadSiteSurveys = async () => {
+  const loadSiteSurveys = useCallback(async () => {
     try {
       setLoading(true)
       const data = await SiteSurveyService.getSiteSurveys(organization!.id)
@@ -33,7 +33,7 @@ export default function SiteSurveysPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [organization])
 
   const filteredSiteSurveys = siteSurveys.filter(siteSurvey => {
     const matchesSearch = 

@@ -14,7 +14,6 @@ import {
   VoiceNoteIconButton,
 } from '../inputs'
 import { AlertTriangle, Droplets, Thermometer } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 const MOISTURE_ISSUE_OPTIONS: Array<{ value: MoistureIssue; label: string }> = [
   { value: 'none_observed', label: 'None observed' },

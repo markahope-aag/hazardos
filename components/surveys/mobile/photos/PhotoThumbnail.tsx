@@ -1,6 +1,5 @@
 'use client'
 
-import { cn } from '@/lib/utils'
 import { PhotoData } from '@/lib/stores/survey-types'
 import { MapPin } from 'lucide-react'
 

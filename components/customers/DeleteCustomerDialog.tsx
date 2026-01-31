@@ -45,7 +45,7 @@ export default function DeleteCustomerDialog({
           if (!error) {
             setSurveysCount(count || 0)
           }
-        } catch (error) {
+        } catch {
           setSurveysCount(0)
         } finally {
           setIsLoadingSurveys(false)

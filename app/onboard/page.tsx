@@ -12,7 +12,7 @@ import { useToast } from '@/components/ui/use-toast'
 
 export default function OnboardPage() {
   const [loading, setLoading] = useState(false)
-  const [step, setStep] = useState(1)
+  const [_step, _setStep] = useState(1)
   const [formData, setFormData] = useState({
     // Organization details
     organizationName: '',

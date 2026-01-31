@@ -7,7 +7,6 @@ import { Plus, MapPin, Calendar, Eye } from 'lucide-react'
 import { format } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import type { SiteSurvey } from '@/types/database'
 
 interface CustomerSurveysListProps {
   customerId: string

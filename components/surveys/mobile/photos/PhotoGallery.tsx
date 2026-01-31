@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useSurveyStore } from '@/lib/stores/survey-store'
-import { PhotoData, PhotoCategory, PHOTO_REQUIREMENTS } from '@/lib/stores/survey-types'
+import { PhotoData, PhotoCategory } from '@/lib/stores/survey-types'
 import { PhotoCategoryGroup } from './PhotoCategoryGroup'
 import { PhotoDetail } from './PhotoDetail'
 

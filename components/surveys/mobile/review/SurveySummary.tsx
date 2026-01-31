@@ -73,7 +73,24 @@ export function SurveySummary() {
       hasRestrictions: access.hasRestrictions,
       restrictionCount: access.restrictions.length,
     }
-  }, [formData])
+  }, [
+    formData,
+    property.address,
+    property.city,
+    property.state,
+    property.zip,
+    property.buildingType,
+    property.yearBuilt,
+    property.squareFootage,
+    property.stories,
+    access.hasRestrictions,
+    access.restrictions.length,
+    hazards.types,
+    hazards.asbestos?.materials.length,
+    hazards.lead?.components.length,
+    hazards.mold,
+    photos.photos
+  ])
 
   const formattedStartTime = startedAt
     ? new Date(startedAt).toLocaleString()

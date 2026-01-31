@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils'
 import { useSurveyStore } from '@/lib/stores/survey-store'
 import { HazardType } from '@/lib/stores/survey-types'
-import { Check, AlertTriangle, Bug, Paintbrush, Zap } from 'lucide-react'
+import { Check } from 'lucide-react'
 
 interface HazardTypeOption {
   value: HazardType

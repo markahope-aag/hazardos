@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Edit, Trash2, MapPin, Calendar } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, MapPin } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
 import { SimpleSiteSurveyForm } from '@/components/assessments/simple-site-survey-form'
 import { SiteSurveyService } from '@/lib/supabase/site-survey-service'
@@ -27,9 +27,9 @@ export default function SiteSurveyDetailPage() {
     if (siteSurveyId && organization?.id) {
       loadSiteSurvey()
     }
-  }, [siteSurveyId, organization?.id])
+  }, [siteSurveyId, organization?.id, loadSiteSurvey])
 
-  const loadSiteSurvey = async () => {
+  const loadSiteSurvey = useCallback(async () => {
     try {
       setLoading(true)
       const data = await SiteSurveyService.getSiteSurvey(siteSurveyId)
@@ -57,7 +57,7 @@ export default function SiteSurveyDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [siteSurveyId, toast, router])
 
   const handleDelete = async () => {
     if (!siteSurvey) return

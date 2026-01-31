@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, XCircle, AlertCircle, Database, Upload, Users, FileText } from 'lucide-react'
+import { CheckCircle, XCircle, AlertCircle, Database } from 'lucide-react'
 import { SiteSurveyService } from '@/lib/supabase/site-survey-service'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import { createClient } from '@/lib/supabase/client'
@@ -21,7 +21,7 @@ export default function DatabaseTestPage() {
   const [isRunning, setIsRunning] = useState(false)
   const supabase = createClient()
 
-  const runTests = async () => {
+  const runTests = useCallback(async () => {
     setIsRunning(true)
     const results: TestResult[] = []
 
@@ -73,14 +73,14 @@ export default function DatabaseTestPage() {
 
     // Test 4: Site Surveys Table Structure
     try {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('site_surveys')
         .select('id')
         .limit(1)
 
       if (error) {
         // Check if old assessments table still exists
-        const { data: oldData, error: oldError } = await supabase
+        const { data: _oldData, error: oldError } = await supabase
           .from('assessments')
           .select('id')
           .limit(1)
@@ -116,14 +116,14 @@ export default function DatabaseTestPage() {
 
     // Test 5: Site Survey Photos Table
     try {
-      const { data, error } = await supabase
+      const { data: _data2, error } = await supabase
         .from('site_survey_photos')
         .select('id')
         .limit(1)
 
       if (error) {
         // Check if old assessment_photos table still exists
-        const { data: oldData, error: oldError } = await supabase
+        const { data: _oldData, error: oldError } = await supabase
           .from('assessment_photos')
           .select('id')
           .limit(1)
@@ -160,7 +160,7 @@ export default function DatabaseTestPage() {
 
     // Test 6: Storage Bucket Access
     try {
-      const { data, error } = await supabase.storage
+      const { data: _data3, error } = await supabase.storage
         .from('assessment-media')
         .list('', { limit: 1 })
 
@@ -230,13 +230,13 @@ export default function DatabaseTestPage() {
 
     setTests(results)
     setIsRunning(false)
-  }
+  }, [user, profile, organization, supabase])
 
   useEffect(() => {
     if (user && profile) {
       runTests()
     }
-  }, [user, profile, organization])
+  }, [user, profile, organization, runTests])
 
   const getStatusIcon = (status: string) => {
     switch (status) {

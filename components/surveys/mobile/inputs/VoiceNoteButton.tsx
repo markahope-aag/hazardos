@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { Mic, MicOff, Square } from 'lucide-react'
+import { Mic, Square } from 'lucide-react'
 import { useState } from 'react'
 
 interface VoiceNoteButtonProps {
@@ -12,7 +12,7 @@ interface VoiceNoteButtonProps {
 }
 
 export function VoiceNoteButton({
-  onRecordingComplete,
+  onRecordingComplete: _onRecordingComplete,
   className,
   disabled = false,
 }: VoiceNoteButtonProps) {
@@ -35,10 +35,10 @@ export function VoiceNoteButton({
       // TODO: Implement actual voice recording
       // Start duration timer
       const startTime = Date.now()
-      const interval = setInterval(() => {
+      const _interval = setInterval(() => {
         setRecordingDuration(Math.floor((Date.now() - startTime) / 1000))
       }, 1000)
-      // Store interval ID for cleanup
+      // Store interval ID for cleanup (TODO: implement cleanup)
     }
   }
 
@@ -84,7 +84,7 @@ interface VoiceNoteIconButtonProps {
 }
 
 export function VoiceNoteIconButton({
-  onRecordingComplete,
+  onRecordingComplete: _onRecordingComplete,
   className,
   disabled = false,
 }: VoiceNoteIconButtonProps) {

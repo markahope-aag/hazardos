@@ -20,7 +20,7 @@ interface VerificationCategory {
 }
 
 export default function MigrationVerificationPage() {
-  const { user, profile, organization } = useMultiTenantAuth()
+  const { user: _user, profile: _profile, organization } = useMultiTenantAuth()
   const [verificationResults, setVerificationResults] = useState<VerificationCategory[]>([])
   const [isRunning, setIsRunning] = useState(false)
   const supabase = createClient()
@@ -48,7 +48,7 @@ export default function MigrationVerificationPage() {
 
       for (const tableName of requiredTables) {
         try {
-          const { data, error } = await supabase
+          const { data: _data, error } = await supabase
             .from(tableName)
             .select('*')
             .limit(1)
@@ -157,7 +157,7 @@ export default function MigrationVerificationPage() {
     if (organization) {
       try {
         // Check if customer_id field exists in site_surveys
-        const { data: surveys, error: surveyError } = await supabase
+        const { data: _surveys, error: surveyError } = await supabase
           .from('site_surveys')
           .select('customer_id, scheduled_date, scheduled_time_start, scheduled_time_end, assigned_to, appointment_status')
           .limit(1)
@@ -206,7 +206,7 @@ export default function MigrationVerificationPage() {
 
         for (const table of pricingTables) {
           try {
-            const { data, error } = await supabase
+            const { data: _data2, error } = await supabase
               .from(table.name)
               .insert(table.testData)
               .select()
@@ -242,7 +242,7 @@ export default function MigrationVerificationPage() {
 
         // Test pricing_settings table (unique constraint)
         try {
-          const { data, error } = await supabase
+          const { data: _data3, error } = await supabase
             .from('pricing_settings')
             .insert({
               organization_id: organization.id,

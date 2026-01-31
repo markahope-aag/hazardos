@@ -2,11 +2,9 @@
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
 import { useSurveyStore } from '@/lib/stores/survey-store'
 import { AsbestosMaterialCard } from './AsbestosMaterialCard'
 import { AsbestosSummary } from './AsbestosSummary'
-import { NumericStepper } from '../inputs'
 import { Plus } from 'lucide-react'
 
 export function AsbestosForm() {

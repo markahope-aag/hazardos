@@ -55,7 +55,7 @@ export default function LoginForm() {
         router.push('/dashboard')
         router.refresh()
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Error',
         description: 'An unexpected error occurred',
