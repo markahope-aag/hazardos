@@ -79,11 +79,26 @@ export default function DatabaseTestPage() {
         .limit(1)
 
       if (error) {
-        results.push({
-          name: 'Site Surveys Table',
-          status: 'error',
-          message: `Table access error: ${error.message}`
-        })
+        // Check if old assessments table still exists
+        const { data: oldData, error: oldError } = await supabase
+          .from('assessments')
+          .select('id')
+          .limit(1)
+
+        if (!oldError) {
+          results.push({
+            name: 'Site Surveys Table',
+            status: 'error',
+            message: 'Migration not run - still using old "assessments" table',
+            details: 'Run docs/database/10-rename-assessments-to-site-surveys.sql'
+          })
+        } else {
+          results.push({
+            name: 'Site Surveys Table',
+            status: 'error',
+            message: `Table access error: ${error.message}`
+          })
+        }
       } else {
         results.push({
           name: 'Site Surveys Table',
@@ -107,11 +122,27 @@ export default function DatabaseTestPage() {
         .limit(1)
 
       if (error) {
-        results.push({
-          name: 'Site Survey Photos Table',
-          status: 'error',
-          message: `Table access error: ${error.message}`
-        })
+        // Check if old assessment_photos table still exists
+        const { data: oldData, error: oldError } = await supabase
+          .from('assessment_photos')
+          .select('id')
+          .limit(1)
+
+        if (!oldError) {
+          results.push({
+            name: 'Site Survey Photos Table',
+            status: 'error',
+            message: 'Migration not run - still using old "assessment_photos" table',
+            details: 'Run docs/database/10-rename-assessments-to-site-surveys.sql'
+          })
+        } else {
+          results.push({
+            name: 'Site Survey Photos Table',
+            status: 'error',
+            message: `Table access error: ${error.message}`,
+            details: 'May need to create table first with 08-assessment-photos-table-only.sql'
+          })
+        }
       } else {
         results.push({
           name: 'Site Survey Photos Table',
