@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const assessmentSchema = z.object({
+export const siteSurveySchema = z.object({
   // Basic Information
   job_name: z.string().min(1, 'Job name is required').max(100, 'Job name too long'),
   customer_name: z.string().min(1, 'Customer name is required').max(100, 'Customer name too long'),
@@ -40,9 +40,13 @@ export const assessmentSchema = z.object({
   notes: z.string().optional(),
 })
 
-export type AssessmentFormData = z.infer<typeof assessmentSchema>
+export type SiteSurveyFormData = z.infer<typeof siteSurveySchema>
 
-export const defaultAssessmentValues: Partial<AssessmentFormData> = {
+// Legacy alias for backward compatibility
+export type AssessmentFormData = SiteSurveyFormData
+export const assessmentSchema = siteSurveySchema
+
+export const defaultSiteSurveyValues: Partial<SiteSurveyFormData> = {
   hazard_type: 'asbestos',
   containment_level: 1,
   occupied: false,
@@ -50,3 +54,6 @@ export const defaultAssessmentValues: Partial<AssessmentFormData> = {
   regulatory_notifications_needed: false,
   access_issues: [],
 }
+
+// Legacy alias for backward compatibility
+export const defaultAssessmentValues = defaultSiteSurveyValues

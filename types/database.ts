@@ -2,7 +2,9 @@
 // These types match the Supabase schema
 
 export type HazardType = 'asbestos' | 'mold' | 'lead' | 'vermiculite' | 'other'
-export type AssessmentStatus = 'draft' | 'submitted' | 'estimated' | 'quoted' | 'scheduled' | 'completed'
+export type SiteSurveyStatus = 'draft' | 'submitted' | 'estimated' | 'quoted' | 'scheduled' | 'completed'
+// Legacy alias for backward compatibility
+export type AssessmentStatus = SiteSurveyStatus
 export type UserRole = 'platform_owner' | 'platform_admin' | 'tenant_owner' | 'admin' | 'estimator' | 'technician' | 'viewer'
 export type OrganizationStatus = 'active' | 'suspended' | 'cancelled' | 'trial'
 export type SubscriptionTier = 'trial' | 'starter' | 'professional' | 'enterprise'
@@ -103,7 +105,7 @@ export interface Database {
           updated_at?: string
         }
       }
-      assessments: {
+      site_surveys: {
         Row: {
           id: string
           organization_id: string
@@ -133,7 +135,7 @@ export interface Database {
           clearance_lab: string | null
           regulatory_notifications_needed: boolean
           notes: string | null
-          status: AssessmentStatus
+          status: SiteSurveyStatus
         }
         Insert: {
           id?: string
@@ -164,7 +166,7 @@ export interface Database {
           clearance_lab?: string | null
           regulatory_notifications_needed?: boolean
           notes?: string | null
-          status?: AssessmentStatus
+          status?: SiteSurveyStatus
         }
         Update: {
           id?: string
@@ -195,7 +197,7 @@ export interface Database {
           clearance_lab?: string | null
           regulatory_notifications_needed?: boolean
           notes?: string | null
-          status?: AssessmentStatus
+          status?: SiteSurveyStatus
         }
       }
       photos: {
@@ -573,10 +575,10 @@ export interface Database {
           created_at?: string
         }
       }
-      assessment_photos: {
+      site_survey_photos: {
         Row: {
           id: string
-          assessment_id: string
+          site_survey_id: string
           file_name: string
           file_path: string
           file_size: number
@@ -588,7 +590,7 @@ export interface Database {
         }
         Insert: {
           id?: string
-          assessment_id: string
+          site_survey_id: string
           file_name: string
           file_path: string
           file_size: number
@@ -600,7 +602,7 @@ export interface Database {
         }
         Update: {
           id?: string
-          assessment_id?: string
+          site_survey_id?: string
           file_name?: string
           file_path?: string
           file_size?: number
@@ -620,7 +622,7 @@ export interface Database {
     }
     Enums: {
       hazard_type: HazardType
-      assessment_status: AssessmentStatus
+      site_survey_status: SiteSurveyStatus
       user_role: UserRole
       organization_status: OrganizationStatus
       subscription_tier: SubscriptionTier
@@ -631,8 +633,11 @@ export interface Database {
 // Helper types for common operations
 export type Organization = Database['public']['Tables']['organizations']['Row']
 export type Profile = Database['public']['Tables']['profiles']['Row']
-export type Assessment = Database['public']['Tables']['assessments']['Row']
-export type AssessmentPhoto = Database['public']['Tables']['assessment_photos']['Row']
+export type SiteSurvey = Database['public']['Tables']['site_surveys']['Row']
+export type SiteSurveyPhoto = Database['public']['Tables']['site_survey_photos']['Row']
+// Legacy aliases for backward compatibility
+export type Assessment = SiteSurvey
+export type AssessmentPhoto = SiteSurveyPhoto
 export type Photo = Database['public']['Tables']['photos']['Row']
 export type EquipmentItem = Database['public']['Tables']['equipment_catalog']['Row']
 export type MaterialItem = Database['public']['Tables']['materials_catalog']['Row']
@@ -646,7 +651,9 @@ export type TenantInvitation = Database['public']['Tables']['tenant_invitations'
 // Insert types
 export type OrganizationInsert = Database['public']['Tables']['organizations']['Insert']
 export type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
-export type AssessmentInsert = Database['public']['Tables']['assessments']['Insert']
+export type SiteSurveyInsert = Database['public']['Tables']['site_surveys']['Insert']
+// Legacy alias for backward compatibility
+export type AssessmentInsert = SiteSurveyInsert
 export type PhotoInsert = Database['public']['Tables']['photos']['Insert']
 export type EquipmentItemInsert = Database['public']['Tables']['equipment_catalog']['Insert']
 export type MaterialItemInsert = Database['public']['Tables']['materials_catalog']['Insert']

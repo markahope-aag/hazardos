@@ -1,5 +1,5 @@
 import { createClient } from './client'
-import type { Database, Assessment, AssessmentInsert, Profile } from '@/types/database'
+import type { Database, SiteSurvey, SiteSurveyInsert, Profile, Assessment, AssessmentInsert } from '@/types/database'
 
 interface MediaUploadResult {
   url: string
@@ -61,8 +61,8 @@ export class DatabaseService {
     return data
   }
 
-  // Assessment operations
-  static async getAssessments(organizationId: string) {
+  // Site Survey operations (formerly Assessment operations)
+  static async getSiteSurveys(organizationId: string) {
     if (!supabase) {
       throw new Error('Supabase client not available')
     }

@@ -9,16 +9,16 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
 import { MediaUpload } from './media-upload'
-import { DatabaseService } from '@/lib/supabase/database'
+import { SiteSurveyService } from '@/lib/supabase/site-survey-service'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
-import type { AssessmentStatus, HazardType } from '@/types/database'
+import type { SiteSurveyStatus, HazardType } from '@/types/database'
 
-interface AssessmentFormProps {
-  assessmentId?: string
+interface SiteSurveyFormProps {
+  siteSurveyId?: string
   initialData?: any
 }
 
-export function SimpleAssessmentForm({ assessmentId, initialData }: AssessmentFormProps) {
+export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const { user, profile, organization } = useMultiTenantAuth()
@@ -28,7 +28,7 @@ export function SimpleAssessmentForm({ assessmentId, initialData }: AssessmentFo
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [mediaFiles, setMediaFiles] = useState<any[]>([])
 
-  // Form state
+  // Site Survey form state
   const [formData, setFormData] = useState({
     job_name: '',
     customer_name: '',
@@ -100,11 +100,11 @@ export function SimpleAssessmentForm({ assessmentId, initialData }: AssessmentFo
     setIsSubmitting(true)
 
     try {
-      const assessmentData = {
+      const siteSurveyData = {
         ...formData,
         organization_id: organization.id,
         estimator_id: user.id,
-        status: (isDraft ? 'draft' : 'submitted') as AssessmentStatus,
+        status: (isDraft ? 'draft' : 'submitted') as SiteSurveyStatus,
         site_location: location ? { lat: location.lat, lng: location.lng } : null,
         area_sqft: formData.area_sqft ? parseFloat(formData.area_sqft) : null,
         linear_ft: formData.linear_ft ? parseFloat(formData.linear_ft) : null,
@@ -112,25 +112,25 @@ export function SimpleAssessmentForm({ assessmentId, initialData }: AssessmentFo
       }
 
       let result
-      let currentAssessmentId = assessmentId
+      let currentSiteSurveyId = siteSurveyId
 
-      // Create or update assessment first
-      if (assessmentId) {
-        result = await DatabaseService.updateAssessment(assessmentId, assessmentData)
+      // Create or update site survey first
+      if (siteSurveyId) {
+        result = await SiteSurveyService.updateSiteSurvey(siteSurveyId, siteSurveyData)
       } else {
-        result = await DatabaseService.createAssessment(assessmentData)
-        currentAssessmentId = result.id
+        result = await SiteSurveyService.createSiteSurvey(siteSurveyData)
+        currentSiteSurveyId = result.id
         // Update URL without page reload
-        window.history.replaceState(null, '', `/assessments/${result.id}`)
+        window.history.replaceState(null, '', `/site-surveys/${result.id}`)
       }
 
       // Upload media files if any
-      if (mediaFiles.length > 0 && currentAssessmentId) {
+      if (mediaFiles.length > 0 && currentSiteSurveyId) {
         const uploadPromises = mediaFiles.map(async (mediaFile) => {
           try {
-            return await DatabaseService.uploadMediaFile(
+            return await SiteSurveyService.uploadMediaFile(
               mediaFile.file,
-              currentAssessmentId!,
+              currentSiteSurveyId!,
               organization.id
             )
           } catch (error) {
@@ -156,14 +156,14 @@ export function SimpleAssessmentForm({ assessmentId, initialData }: AssessmentFo
       }
 
       toast({
-        title: isDraft ? 'Draft saved' : 'Assessment submitted',
+        title: isDraft ? 'Draft saved' : 'Site Survey submitted',
         description: isDraft 
-          ? 'Your assessment has been saved as a draft'
-          : 'Your assessment has been submitted successfully',
+          ? 'Your site survey has been saved as a draft'
+          : 'Your site survey has been submitted successfully',
       })
 
       if (!isDraft) {
-        router.push('/assessments')
+        router.push('/site-surveys')
       } else {
         setLastSaved(new Date())
       }
@@ -171,7 +171,7 @@ export function SimpleAssessmentForm({ assessmentId, initialData }: AssessmentFo
       console.error('Error saving assessment:', error)
       toast({
         title: 'Error',
-        description: 'Failed to save assessment. Please try again.',
+        description: 'Failed to save site survey. Please try again.',
         variant: 'destructive',
       })
     } finally {
@@ -181,7 +181,7 @@ export function SimpleAssessmentForm({ assessmentId, initialData }: AssessmentFo
 
   const handleSaveDraft = () => {
     setIsDraft(true)
-    const form = document.getElementById('assessment-form') as HTMLFormElement
+    const form = document.getElementById('site-survey-form') as HTMLFormElement
     if (form) {
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     }
@@ -189,7 +189,7 @@ export function SimpleAssessmentForm({ assessmentId, initialData }: AssessmentFo
 
   const handleSubmitFinal = () => {
     setIsDraft(false)
-    const form = document.getElementById('assessment-form') as HTMLFormElement
+    const form = document.getElementById('site-survey-form') as HTMLFormElement
     if (form) {
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     }
@@ -206,7 +206,7 @@ export function SimpleAssessmentForm({ assessmentId, initialData }: AssessmentFo
   ]
 
   return (
-    <form id="assessment-form" onSubmit={onSubmit} className="space-y-6">
+    <form id="site-survey-form" onSubmit={onSubmit} className="space-y-6">
       {/* Status Bar */}
       <div className="bg-white border-b sticky top-0 z-10 p-4 -mx-4">
         <div className="flex items-center justify-between">
@@ -413,7 +413,7 @@ export function SimpleAssessmentForm({ assessmentId, initialData }: AssessmentFo
             <span>Photos & Videos</span>
           </CardTitle>
           <CardDescription>
-            Document site conditions with photos and videos
+            Document site conditions with photos and videos for your survey
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -446,7 +446,7 @@ export function SimpleAssessmentForm({ assessmentId, initialData }: AssessmentFo
             disabled={isSubmitting}
             className="flex-1"
           >
-            {isSubmitting && !isDraft ? 'Submitting...' : 'Submit Assessment'}
+            {isSubmitting && !isDraft ? 'Submitting...' : 'Submit Site Survey'}
           </Button>
         </div>
         
