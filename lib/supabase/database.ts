@@ -17,6 +17,11 @@ export const supabase = getSupabaseClient()
 export class DatabaseService {
   // Profile operations
   static async getProfile(userId: string): Promise<Profile | null> {
+    if (!supabase) {
+      console.error('Supabase client not available')
+      return null
+    }
+
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -32,6 +37,10 @@ export class DatabaseService {
   }
 
   static async updateProfile(userId: string, updates: Partial<Profile>) {
+    if (!supabase) {
+      throw new Error('Supabase client not available')
+    }
+
     const { data, error } = await supabase
       .from('profiles')
       .update(updates)
@@ -48,6 +57,10 @@ export class DatabaseService {
 
   // Assessment operations
   static async getAssessments(organizationId: string) {
+    if (!supabase) {
+      throw new Error('Supabase client not available')
+    }
+
     const { data, error } = await supabase
       .from('assessments')
       .select(`
@@ -75,6 +88,10 @@ export class DatabaseService {
   }
 
   static async getAssessment(id: string) {
+    if (!supabase) {
+      throw new Error('Supabase client not available')
+    }
+
     const { data, error } = await supabase
       .from('assessments')
       .select(`
@@ -110,6 +127,10 @@ export class DatabaseService {
   }
 
   static async createAssessment(assessment: AssessmentInsert) {
+    if (!supabase) {
+      throw new Error('Supabase client not available')
+    }
+
     const { data, error } = await supabase
       .from('assessments')
       .insert(assessment)
@@ -124,6 +145,10 @@ export class DatabaseService {
   }
 
   static async updateAssessment(id: string, updates: Partial<Assessment>) {
+    if (!supabase) {
+      throw new Error('Supabase client not available')
+    }
+
     const { data, error } = await supabase
       .from('assessments')
       .update(updates)
@@ -139,6 +164,10 @@ export class DatabaseService {
   }
 
   static async deleteAssessment(id: string) {
+    if (!supabase) {
+      throw new Error('Supabase client not available')
+    }
+
     const { error } = await supabase
       .from('assessments')
       .delete()
@@ -151,6 +180,10 @@ export class DatabaseService {
 
   // Photo operations
   static async uploadPhoto(file: File, assessmentId: string) {
+    if (!supabase) {
+      throw new Error('Supabase client not available')
+    }
+
     const fileExt = file.name.split('.').pop()
     const fileName = `${assessmentId}/${Date.now()}.${fileExt}`
 
@@ -189,6 +222,10 @@ export class DatabaseService {
 
   // Equipment and Materials catalog
   static async getEquipmentCatalog(organizationId: string) {
+    if (!supabase) {
+      throw new Error('Supabase client not available')
+    }
+
     const { data, error } = await supabase
       .from('equipment_catalog')
       .select('*')
@@ -204,6 +241,10 @@ export class DatabaseService {
   }
 
   static async getMaterialsCatalog(organizationId: string) {
+    if (!supabase) {
+      throw new Error('Supabase client not available')
+    }
+
     const { data, error } = await supabase
       .from('materials_catalog')
       .select('*')

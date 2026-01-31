@@ -117,9 +117,9 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
     }
   }, [])
 
-  const isPlatformUser = profile?.is_platform_user || false
+  const isPlatformUser = profile?.is_platform_user ?? false
   const canAccessPlatformAdmin = isPlatformUser && ['platform_owner', 'platform_admin'].includes(profile?.role || '')
-  const canAccessTenantAdmin = profile?.role && ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'].includes(profile.role)
+  const canAccessTenantAdmin = Boolean(profile?.role && ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'].includes(profile.role))
 
   return {
     user,
