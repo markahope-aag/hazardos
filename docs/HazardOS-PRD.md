@@ -32,13 +32,13 @@
 
 ### Product Vision
 
-HazardOS is an operating system for environmental remediation and abatement companies, providing a complete business management platform that connects field operations with office workflows. The platform enables small to medium-sized companies to digitize their operations—from on-site assessment through invoicing—in a single, integrated system.
+HazardOS is an operating system for environmental remediation and abatement companies, providing a complete business management platform that connects field operations with office workflows. The platform enables small to medium-sized companies to digitize their operations—from on-site surveys through invoicing—in a single, integrated system.
 
 ### Problem Statement
 
 Environmental remediation companies providing asbestos, vermiculite, mold, lead paint, and other hazardous material abatement services face operational challenges:
 
-- **Manual processes**: Field assessments captured on paper, transcribed later in office
+- **Manual processes**: Field site surveys captured on paper, transcribed later in office
 - **Disconnected systems**: Estimating, scheduling, and invoicing happen in separate tools (or spreadsheets)
 - **Knowledge loss**: Experienced estimators' judgment exists only in their heads
 - **Mobile limitations**: Existing software is desktop-first, unusable at job sites
@@ -49,10 +49,10 @@ Environmental remediation companies providing asbestos, vermiculite, mold, lead 
 
 HazardOS provides:
 
-1. **Mobile field assessment tool**: Estimators capture site conditions on their phones/tablets, even offline
-2. **Office management platform**: Converts assessments into estimates, proposals, schedules, and invoices
+1. **Mobile field site survey tool**: Estimators capture site conditions on their phones/tablets, even offline
+2. **Office management platform**: Converts site surveys into estimates, proposals, schedules, and invoices
 3. **Learning system**: Analyzes historical job data to improve future estimate accuracy
-4. **Unified workflow**: Single platform from initial assessment through final payment
+4. **Unified workflow**: Single platform from initial site survey through final payment
 
 ### Target Market
 
@@ -74,10 +74,10 @@ HazardOS provides:
 ### Core Value Proposition
 
 **For field estimators:**  
-"Create accurate site assessments on your phone, even without internet, and let the office handle the rest."
+"Create accurate site surveys on your phone, even without internet, and let the office handle the rest."
 
 **For office staff:**  
-"Turn field assessments into proposals, schedules, and invoices with a few clicks—no more re-entering data."
+"Turn field site surveys into proposals, schedules, and invoices with a few clicks—no more re-entering data."
 
 **For business owners:**  
 "See every job in real-time, understand what drives costs, and keep your team's knowledge in the system."
@@ -99,7 +99,7 @@ HazardOS provides:
 │                                                               │
 │  ┌──────────────────┐              ┌──────────────────┐    │
 │  │  Mobile Field    │              │  Office          │    │
-│  │  Assessment      │◄────Sync────►│  Management      │    │
+│  │  Site Survey     │◄────Sync────►│  Management      │    │
 │  │                  │              │                  │    │
 │  │  • Site audit    │              │  • Estimating    │    │
 │  │  • Photos        │              │  • Proposals     │    │
@@ -133,7 +133,7 @@ HazardOS provides:
 - **Work context**: On job sites, wearing PPE, limited connectivity
 
 **Goals:**
-- Create accurate assessments quickly
+- Create accurate site surveys quickly
 - Capture all necessary site information
 - Avoid paperwork and double-entry
 - Get paid properly for their expertise

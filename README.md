@@ -1,177 +1,269 @@
-# Supabase CLI
+# HazardOS
 
-[![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=main)](https://coveralls.io/github/supabase/cli?branch=main) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)
-](https://gitlab.com/sweatybridge/setup-cli/-/pipelines)
+**The Operating System for Environmental Remediation Companies**
 
-[Supabase](https://supabase.io) is an open source Firebase alternative. We're building the features of Firebase using enterprise-grade open source tools.
+[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green)](https://supabase.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8)](https://tailwindcss.com/)
 
-This repository contains all the functionality for Supabase CLI.
+Mobile-first business management platform for asbestos, mold, lead paint, and hazardous material abatement services.
 
-- [x] Running Supabase locally
-- [x] Managing database migrations
-- [x] Creating and deploying Supabase Functions
-- [x] Generating types directly from your database schema
-- [x] Making authenticated HTTP requests to [Management API](https://supabase.com/docs/reference/api/introduction)
+## 🚀 Quick Start
 
-## Getting started
+### Prerequisites
 
-### Install the CLI
+- Node.js 18+
+- npm or pnpm
+- Supabase account
 
-Available via [NPM](https://www.npmjs.com) as dev dependency. To install:
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/markahope-aag/hazardos.git
+   cd hazardos
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables:**
+   ```bash
+   cp .env.example .env.local
+   ```
+   
+   Edit `.env.local` and add your Supabase credentials:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+4. **Set up the database:**
+   
+   **Option A: Using Supabase CLI (Recommended)**
+   ```bash
+   npx supabase db push
+   ```
+   
+   **Option B: Manual Setup**
+   - Run migrations in `supabase/migrations/` in chronological order
+   - See [Migration Guide](./docs/MIGRATION-GUIDE.md) for details
+
+5. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+
+6. **Open [http://localhost:3000](http://localhost:3000)**
+
+## 📱 Mobile Testing
+
+The app is built mobile-first. To test on your phone:
+
+1. **Get your local IP:** `ipconfig` (Windows) or `ifconfig` (Mac/Linux)
+2. **Visit `http://YOUR_IP:3000` from your phone**
+3. **Or use ngrok:** `npx ngrok http 3000`
+
+## 🏗️ Project Structure
+
+```
+hazardos/
+├── app/                    # Next.js App Router
+│   ├── (auth)/            # Authentication pages
+│   ├── (dashboard)/       # Main application
+│   │   ├── site-surveys/  # Site survey management
+│   │   ├── database-status/ # DB verification tools
+│   │   └── layout.tsx     # Dashboard layout
+│   ├── (platform)/       # Platform admin
+│   └── api/               # API routes
+├── components/            # React components
+│   ├── assessments/       # Site survey forms & media upload
+│   ├── auth/             # Authentication forms
+│   ├── layout/           # Navigation & headers
+│   ├── proposals/        # PDF proposal generation
+│   └── ui/               # Base UI components (shadcn/ui)
+├── lib/                  # Utilities & services
+│   ├── supabase/         # Database clients & services
+│   ├── hooks/            # Custom React hooks
+│   ├── pdf/              # PDF templates
+│   └── validations/      # Zod schemas
+├── supabase/             # Database migrations
+│   ├── migrations/       # Timestamped SQL migrations
+│   └── config.toml       # Supabase configuration
+├── types/                # TypeScript type definitions
+├── docs/                 # Project documentation
+└── public/               # Static assets & PWA files
+```
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Framework** | Next.js 16 (App Router, Turbopack) |
+| **Language** | TypeScript 5.9 (strict mode) |
+| **Database** | Supabase (PostgreSQL) |
+| **Authentication** | Supabase Auth |
+| **State Management** | Zustand, TanStack Query |
+| **Forms** | React Hook Form + Zod |
+| **UI Components** | Tailwind CSS 4, Radix UI, shadcn/ui |
+| **PDF Generation** | @react-pdf/renderer |
+| **PWA** | next-pwa |
+| **Deployment** | Vercel |
+
+## 🏢 Multi-Tenant Architecture
+
+HazardOS is built as a multi-tenant SaaS platform:
+
+- **Organizations**: Each company is a separate tenant
+- **Row Level Security (RLS)**: Database-level data isolation
+- **Role-Based Access**: Admin, Estimator, Technician, Viewer roles
+- **Platform Administration**: Super-admin interface for managing tenants
+
+### Platform Owner Setup
+
+The platform owner (Mark Hope, mark.hope@asymmetric.pro) has super-admin access to:
+- Manage all organizations
+- View system-wide analytics
+- Configure platform settings
+- Access tenant administration tools
+
+## 📋 Key Features
+
+### ✅ Implemented
+- **Multi-tenant authentication** with organization isolation
+- **Site Survey forms** (formerly assessments) with mobile-optimized UI
+- **Photo/Video upload** with client-side compression
+- **PDF proposal generation** with professional templates
+- **Database verification tools** for migration status
+- **Responsive design** optimized for mobile field use
+- **PWA support** for offline functionality
+
+### 🚧 In Development
+- Advanced scheduling system
+- Equipment & materials catalog
+- Job tracking & completion
+- Pattern learning (Ralph Wiggum Loop)
+- API integrations
+
+## 🗄️ Database
+
+### Migration System
+
+We use proper Supabase CLI migrations for version control:
 
 ```bash
-npm i supabase --save-dev
+# Apply all pending migrations
+npx supabase db push
+
+# Check migration status
+npx supabase db status
 ```
 
-When installing with yarn 4, you need to disable experimental fetch with the following nodejs config.
+### Key Tables
+- `organizations` - Multi-tenant company data
+- `profiles` - User profiles with roles
+- `site_surveys` - Field assessment data (renamed from assessments)
+- `site_survey_photos` - Media files with metadata
+- `estimates` - Cost calculations
+- `jobs` - Project tracking
 
-```
-NODE_OPTIONS=--no-experimental-fetch yarn add supabase
-```
+See [Migration Guide](./docs/MIGRATION-GUIDE.md) for complete database setup.
 
-> **Note**
-For Bun versions below v1.0.17, you must add `supabase` as a [trusted dependency](https://bun.sh/guides/install/trusted) before running `bun add -D supabase`.
+## 🔧 Development
 
-<details>
-  <summary><b>macOS</b></summary>
-
-  Available via [Homebrew](https://brew.sh). To install:
-
-  ```sh
-  brew install supabase/tap/supabase
-  ```
-
-  To install the beta release channel:
-  
-  ```sh
-  brew install supabase/tap/supabase-beta
-  brew link --overwrite supabase-beta
-  ```
-  
-  To upgrade:
-
-  ```sh
-  brew upgrade supabase
-  ```
-</details>
-
-<details>
-  <summary><b>Windows</b></summary>
-
-  Available via [Scoop](https://scoop.sh). To install:
-
-  ```powershell
-  scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-  scoop install supabase
-  ```
-
-  To upgrade:
-
-  ```powershell
-  scoop update supabase
-  ```
-</details>
-
-<details>
-  <summary><b>Linux</b></summary>
-
-  Available via [Homebrew](https://brew.sh) and Linux packages.
-
-  #### via Homebrew
-
-  To install:
-
-  ```sh
-  brew install supabase/tap/supabase
-  ```
-
-  To upgrade:
-
-  ```sh
-  brew upgrade supabase
-  ```
-
-  #### via Linux packages
-
-  Linux packages are provided in [Releases](https://github.com/supabase/cli/releases). To install, download the `.apk`/`.deb`/`.rpm`/`.pkg.tar.zst` file depending on your package manager and run the respective commands.
-
-  ```sh
-  sudo apk add --allow-untrusted <...>.apk
-  ```
-
-  ```sh
-  sudo dpkg -i <...>.deb
-  ```
-
-  ```sh
-  sudo rpm -i <...>.rpm
-  ```
-
-  ```sh
-  sudo pacman -U <...>.pkg.tar.zst
-  ```
-</details>
-
-<details>
-  <summary><b>Other Platforms</b></summary>
-
-  You can also install the CLI via [go modules](https://go.dev/ref/mod#go-install) without the help of package managers.
-
-  ```sh
-  go install github.com/supabase/cli@latest
-  ```
-
-  Add a symlink to the binary in `$PATH` for easier access:
-
-  ```sh
-  ln -s "$(go env GOPATH)/bin/cli" /usr/bin/supabase
-  ```
-
-  This works on other non-standard Linux distros.
-</details>
-
-<details>
-  <summary><b>Community Maintained Packages</b></summary>
-
-  Available via [pkgx](https://pkgx.sh/). Package script [here](https://github.com/pkgxdev/pantry/blob/main/projects/supabase.com/cli/package.yml).
-  To install in your working directory:
-
-  ```bash
-  pkgx install supabase
-  ```
-
-  Available via [Nixpkgs](https://nixos.org/). Package script [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/supabase-cli/default.nix).
-</details>
-
-### Run the CLI
+### Available Scripts
 
 ```bash
-supabase bootstrap
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
+npm run type-check   # Run TypeScript compiler
 ```
 
-Or using npx:
+### Code Quality
+
+- **TypeScript**: Strict mode enabled
+- **ESLint**: Flat config with Next.js rules
+- **Prettier**: Code formatting (via ESLint)
+- **Pre-commit hooks**: Type checking, linting, build verification
+
+### Testing Database Changes
+
+Visit `/database-status` to verify:
+- Migration completion status
+- Table structure integrity
+- RLS policy functionality
+- Storage configuration
+
+## 🚀 Deployment
+
+### Automatic Deployment
+
+Push to main branch triggers Vercel deployment:
 
 ```bash
-npx supabase bootstrap
+git push origin main
 ```
 
-The bootstrap command will guide you through the process of setting up a Supabase project using one of the [starter](https://github.com/supabase-community/supabase-samples/blob/main/samples.json) templates.
+### Environment Variables
 
-## Docs
+Required in Vercel:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_APP_URL`
 
-Command & config reference can be found [here](https://supabase.com/docs/reference/cli/about).
+### Production URLs
+- **App**: https://hazardos.app
+- **Repository**: https://github.com/markahope-aag/hazardos
+- **Supabase**: https://inzwwbbbdookxkkotbxj.supabase.co
 
-## Breaking changes
+## 📚 Documentation
 
-We follow semantic versioning for changes that directly impact CLI commands, flags, and configurations.
+- **[Project Overview](./docs/HazardOS-Project-Overview.md)** - Vision, goals, and business model
+- **[Product Requirements](./docs/HazardOS-PRD.md)** - Detailed feature specifications
+- **[Migration Guide](./docs/MIGRATION-GUIDE.md)** - Database setup and migrations
+- **[Multi-Tenant Setup](./docs/MULTI_TENANT_SETUP.md)** - Architecture and configuration
+- **[Site Survey UI Spec](./docs/hazardos-site-survey-ui-spec.md)** - Mobile form design
+- **[Database Setup Checklist](./docs/DATABASE-SETUP-CHECKLIST.md)** - Verification steps
 
-However, due to dependencies on other service images, we cannot guarantee that schema migrations, seed.sql, and generated types will always work for the same CLI major version. If you need such guarantees, we encourage you to pin a specific version of CLI in package.json.
+## 🎯 Target Market
 
-## Developing
+Mid-sized environmental remediation companies (10-50 employees) who are:
+- Too big for spreadsheets and paper forms
+- Too small for enterprise ERPs like ServiceTitan
+- Looking for mobile-first solutions
+- Want to retain institutional knowledge as experienced estimators retire
 
-To run from source:
+## 💰 Business Model
 
-```sh
-# Go >= 1.22
-go run . help
-```
+**SaaS Subscription Pricing:**
+- **Starter**: $99/mo - 1 user, basic estimates & quotes
+- **Professional**: $299/mo - 5 users, scheduling, pattern learning
+- **Enterprise**: $799/mo - Unlimited users, API access, white-label
+
+## 🤝 Contributing
+
+This is a proprietary project by Asymmetric Marketing LLC. For development access:
+
+1. Contact mark.hope@asymmetric.pro
+2. Follow the development setup above
+3. Create feature branches from `main`
+4. Submit pull requests for review
+
+## 📄 License
+
+Proprietary - Asymmetric Marketing LLC
+
+## 🆘 Support
+
+- **Issues**: GitHub Issues for bug reports
+- **Documentation**: Check `/docs` folder first
+- **Contact**: mark.hope@asymmetric.pro
+
+---
+
+**HazardOS** - Transforming how environmental remediation companies manage their business, one site survey at a time. 🏗️✨

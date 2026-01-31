@@ -200,10 +200,10 @@ export interface Database {
           status?: SiteSurveyStatus
         }
       }
-      photos: {
+      site_survey_photos: {
         Row: {
           id: string
-          assessment_id: string
+          site_survey_id: string
           url: string
           thumbnail_url: string | null
           caption: string | null
@@ -214,7 +214,7 @@ export interface Database {
         }
         Insert: {
           id?: string
-          assessment_id: string
+          site_survey_id: string
           url: string
           thumbnail_url?: string | null
           caption?: string | null
@@ -225,7 +225,7 @@ export interface Database {
         }
         Update: {
           id?: string
-          assessment_id?: string
+          site_survey_id?: string
           url?: string
           thumbnail_url?: string | null
           caption?: string | null
@@ -305,7 +305,7 @@ export interface Database {
       estimates: {
         Row: {
           id: string
-          assessment_id: string
+          site_survey_id: string
           created_at: string
           created_by: string | null
           estimated_duration_days: number
@@ -327,7 +327,7 @@ export interface Database {
         }
         Insert: {
           id?: string
-          assessment_id: string
+          site_survey_id: string
           created_at?: string
           created_by?: string | null
           estimated_duration_days: number
@@ -349,7 +349,7 @@ export interface Database {
         }
         Update: {
           id?: string
-          assessment_id?: string
+          site_survey_id?: string
           created_at?: string
           created_by?: string | null
           estimated_duration_days?: number
