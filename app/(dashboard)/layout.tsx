@@ -1,6 +1,7 @@
 'use client'
 
 import { LogoHorizontal } from '@/components/ui/logo'
+import { UserMenu } from '@/components/layout/user-menu'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
@@ -64,19 +65,7 @@ export default function DashboardLayout({
               </a>
             )}
             
-            <div className="flex items-center space-x-2">
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-900">
-                  {profile.first_name} {profile.last_name}
-                </div>
-                <div className="text-xs text-gray-500 capitalize">
-                  {profile.role.replace('_', ' ')}
-                </div>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
-                {profile.first_name?.charAt(0) || user.email?.charAt(0).toUpperCase()}
-              </div>
-            </div>
+            <UserMenu user={user} profile={profile} />
           </div>
         </div>
       </header>

@@ -1,4 +1,4 @@
-import { LogoHorizontal } from '@/components/ui/logo'
+import { PlatformHeader } from '@/components/layout/platform-header'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
@@ -28,23 +28,7 @@ export default async function PlatformLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="border-b bg-white shadow-sm">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <LogoHorizontal size="md" />
-            <div className="h-6 w-px bg-gray-300" />
-            <h1 className="text-lg font-semibold text-gray-900">Platform Admin</h1>
-          </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600">
-              {profile.role === 'platform_owner' ? 'Platform Owner' : 'Platform Admin'}
-            </span>
-            <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
-              {user.email?.charAt(0).toUpperCase()}
-            </div>
-          </div>
-        </div>
-      </header>
+      <PlatformHeader userEmail={user.email || ''} userRole={profile.role} />
 
       <div className="container py-8">
         <nav className="mb-8">
