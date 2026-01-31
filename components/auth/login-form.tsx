@@ -12,6 +12,23 @@ export default function LoginForm() {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  
+  // Check if Supabase is configured
+  const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  if (!isSupabaseConfigured) {
+    return (
+      <div className="space-y-4">
+        <div className="p-4 rounded-md bg-yellow-50 text-yellow-800 border border-yellow-200">
+          <p className="text-sm">
+            <strong>Setup Required:</strong> Supabase environment variables are not configured. 
+            Please add your Supabase credentials to continue.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   const supabase = createClient()
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {

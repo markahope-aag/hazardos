@@ -1,8 +1,17 @@
 import { createClient } from './client'
 import type { Database, Assessment, AssessmentInsert, Profile } from '@/types/database'
 
-// Create a typed Supabase client
-export const supabase = createClient()
+// Create a typed Supabase client (only if environment variables are available)
+function getSupabaseClient() {
+  try {
+    return createClient()
+  } catch (error) {
+    console.warn('Supabase client not available:', error)
+    return null
+  }
+}
+
+export const supabase = getSupabaseClient()
 
 // Database helper functions
 export class DatabaseService {
@@ -211,6 +220,13 @@ export class DatabaseService {
 
   // Test connection
   static async testConnection() {
+    if (!supabase) {
+      return { 
+        success: false, 
+        message: 'Supabase client not configured. Please check your environment variables.' 
+      }
+    }
+
     try {
       const { data, error } = await supabase
         .from('profiles')

@@ -18,18 +18,19 @@ export const metadata: Metadata = {
   title: 'HazardOS - Environmental Remediation Management',
   description: 'The Operating System for Hazardous Materials Companies',
   manifest: '/manifest.json',
-  themeColor: '#FF6B35',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'HazardOS',
   },
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#FF6B35',
 }
 
 export default function RootLayout({
