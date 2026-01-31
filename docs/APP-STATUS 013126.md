@@ -31,15 +31,19 @@ hazardos/
 │   ├── (auth)/login/          # Authentication pages
 │   ├── (dashboard)/           # Main app pages
 │   │   ├── site-surveys/      # Site Survey CRUD (renamed from assessments)
+│   │   ├── customers/         # Customer management CRUD
 │   │   ├── database-status/   # DB verification tools
 │   │   ├── page.tsx           # Dashboard home
 │   │   └── layout.tsx         # Dashboard layout
 │   ├── (platform)/            # Platform admin
 │   │   └── platform-admin/    # Tenant management
 │   └── api/
+│       ├── customers/         # Customer CRUD API endpoints
 │       └── proposals/generate # PDF generation endpoint
 ├── components/
 │   ├── assessments/           # Site Survey form components (legacy name)
+│   ├── customers/             # Customer management components
+│   ├── surveys/               # Mobile survey wizard components
 │   ├── auth/                  # Login form
 │   ├── layout/                # Navigation, headers, user menus
 │   ├── proposals/             # Proposal generator UI
