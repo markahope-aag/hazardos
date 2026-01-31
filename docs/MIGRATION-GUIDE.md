@@ -2,19 +2,17 @@
 
 ## 📁 Migration File Locations
 
-We have database migrations in **two locations** for different purposes:
+### `/supabase/migrations/` - **Official Supabase CLI Migrations** ⭐
+- **Purpose**: Official versioned migrations managed by Supabase CLI
+- **Format**: `<timestamp>_<descriptive_name>.sql` (e.g., `20260201120000_add_user_preferences.sql`)
+- **Usage**: Production deployments, version control, team collaboration
+- **This is the ONLY location** used by Supabase CLI for migrations
 
-### 1. `/supabase/migrations/` - **Official Supabase CLI Migrations** ⭐
-- **Purpose**: Proper versioned migrations managed by Supabase CLI
-- **Format**: Timestamped files (e.g., `20260131131600_rename_assessments_to_site_surveys.sql`)
-- **Usage**: For production deployments and version control
-- **Recommended**: Use these for all database changes going forward
-
-### 2. `/docs/database/` - **Manual SQL Scripts** 📖
-- **Purpose**: Documentation, one-off scripts, and manual database setup
-- **Format**: Descriptive names (e.g., `10-rename-assessments-to-site-surveys.sql`)
-- **Usage**: For manual execution in Supabase Dashboard or understanding schema changes
-- **Legacy**: These were created before proper Supabase CLI setup
+### `/docs/database/` - **Legacy Documentation** 📖
+- **Purpose**: Documentation, reference materials, and historical scripts
+- **Status**: **Legacy/Reference Only** - Not used by Supabase CLI
+- **Usage**: Understanding schema evolution, manual reference
+- **Note**: These files are NOT automatically applied by `supabase db push`
 
 ## 🚀 Current Migration Status
 
@@ -28,28 +26,42 @@ We have database migrations in **two locations** for different purposes:
    - **Supabase CLI**: `supabase/migrations/20260131131600_rename_assessments_to_site_surveys.sql`
    - **Manual**: `docs/database/10-rename-assessments-to-site-surveys.sql`
 
-## 🛠️ How to Run Migrations
+## 🛠️ How to Create and Run Migrations
 
-### Option A: Using Supabase CLI (Recommended)
+### Creating New Migrations
 
+**Using Supabase CLI (Recommended)**:
 ```bash
-# If you have Supabase CLI installed
-supabase db push
+# Create a new migration
+.\supabase.exe migration new add_user_preferences
 
-# This will apply all pending migrations in /supabase/migrations/
+# This creates: supabase/migrations/20260201HHMMSS_add_user_preferences.sql
+# Edit the generated file with your SQL changes
 ```
 
-### Option B: Manual Execution in Supabase Dashboard
+**Manual Creation** (if CLI not available):
+```bash
+# Create file with timestamp format: YYYYMMDDHHMMSS_description.sql
+# Example: supabase/migrations/20260201120000_add_user_preferences.sql
+```
 
+### Applying Migrations
+
+**Option A: Using Supabase CLI (Recommended)**
+```bash
+# Apply all pending migrations
+.\supabase.exe db push
+
+# Check migration status
+.\supabase.exe db status
+```
+
+**Option B: Manual Execution** (Emergency/Troubleshooting Only)
 1. **Go to**: Supabase Dashboard → Your Project → SQL Editor
-2. **Run migrations in order**:
-   ```sql
-   -- First, run this if assessment_photos table doesn't exist:
-   -- Copy/paste content from: supabase/migrations/20260131131550_add_assessment_photos_table.sql
-   
-   -- Then, run the main migration:
-   -- Copy/paste content from: supabase/migrations/20260131131600_rename_assessments_to_site_surveys.sql
-   ```
+2. **Copy/paste** the SQL content from the migration file
+3. **Execute** the SQL manually
+
+⚠️ **Important**: Manual execution bypasses migration tracking and should only be used for troubleshooting.
 
 ## 🔍 Verification
 
@@ -107,12 +119,39 @@ supabase db push
 3. **Test thoroughly** after migration using `/database-status` page
 4. **The app expects the new table names** - migration is required for functionality
 
-## 🔄 Going Forward
+## 🔄 Migration Best Practices
 
-- **Use `/supabase/migrations/`** for all future database changes
-- **Keep `/docs/database/`** for documentation and reference
-- **Always create timestamped migrations** for proper version control
-- **Test migrations locally** before applying to production
+### Always Use Supabase CLI
+```bash
+# Create migration
+.\supabase.exe migration new descriptive_name
+
+# Apply migrations
+.\supabase.exe db push
+
+# Check status
+.\supabase.exe db status
+```
+
+### Migration Naming Convention
+- **Format**: `YYYYMMDDHHMMSS_descriptive_name.sql`
+- **Examples**: 
+  - `20260201120000_add_user_preferences.sql`
+  - `20260201130000_create_notifications_table.sql`
+  - `20260201140000_update_user_roles.sql`
+
+### Development Workflow
+1. **Create migration** using Supabase CLI
+2. **Write SQL** in the generated file
+3. **Test locally** if possible
+4. **Apply to production** with `supabase db push`
+5. **Commit migration file** to version control
+
+### Important Notes
+- **Only `/supabase/migrations/` files** are processed by Supabase CLI
+- **Migration order** is determined by timestamp in filename
+- **Never modify** existing migration files after they've been applied
+- **Always backup** before running migrations on production
 
 ## 📞 Troubleshooting
 

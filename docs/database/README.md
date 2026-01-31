@@ -1,6 +1,19 @@
-# HazardOS Database Setup Guide
+# HazardOS Database Documentation (Legacy)
 
-This guide will walk you through setting up the Supabase database for HazardOS.
+⚠️ **Important**: This folder contains **legacy documentation and reference materials only**.
+
+**For actual database migrations**, use `/supabase/migrations/` with the Supabase CLI:
+```bash
+.\supabase.exe db push
+```
+
+See the [Migration Guide](../MIGRATION-GUIDE.md) for current database setup procedures.
+
+---
+
+## Legacy Database Setup Guide
+
+This guide documents the historical manual setup process for reference.
 
 ## Prerequisites
 

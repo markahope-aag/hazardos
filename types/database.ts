@@ -373,7 +373,7 @@ export interface Database {
       jobs: {
         Row: {
           id: string
-          assessment_id: string
+          site_survey_id: string
           estimate_id: string
           organization_id: string
           job_number: string
@@ -393,7 +393,7 @@ export interface Database {
         }
         Insert: {
           id?: string
-          assessment_id: string
+          site_survey_id: string
           estimate_id: string
           organization_id: string
           job_number: string
@@ -413,7 +413,7 @@ export interface Database {
         }
         Update: {
           id?: string
-          assessment_id?: string
+          site_survey_id?: string
           estimate_id?: string
           organization_id?: string
           job_number?: string
@@ -575,44 +575,6 @@ export interface Database {
           created_at?: string
         }
       }
-      site_survey_photos: {
-        Row: {
-          id: string
-          site_survey_id: string
-          file_name: string
-          file_path: string
-          file_size: number
-          file_type: string
-          url: string
-          caption: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          site_survey_id: string
-          file_name: string
-          file_path: string
-          file_size: number
-          file_type: string
-          url: string
-          caption?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          site_survey_id?: string
-          file_name?: string
-          file_path?: string
-          file_size?: number
-          file_type?: string
-          url?: string
-          caption?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
     }
     Views: {
       [_ in never]: never
@@ -638,7 +600,7 @@ export type SiteSurveyPhoto = Database['public']['Tables']['site_survey_photos']
 // Legacy aliases for backward compatibility
 export type Assessment = SiteSurvey
 export type AssessmentPhoto = SiteSurveyPhoto
-export type Photo = Database['public']['Tables']['photos']['Row']
+export type Photo = SiteSurveyPhoto
 export type EquipmentItem = Database['public']['Tables']['equipment_catalog']['Row']
 export type MaterialItem = Database['public']['Tables']['materials_catalog']['Row']
 export type Estimate = Database['public']['Tables']['estimates']['Row']
@@ -654,7 +616,8 @@ export type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
 export type SiteSurveyInsert = Database['public']['Tables']['site_surveys']['Insert']
 // Legacy alias for backward compatibility
 export type AssessmentInsert = SiteSurveyInsert
-export type PhotoInsert = Database['public']['Tables']['photos']['Insert']
+export type SiteSurveyPhotoInsert = Database['public']['Tables']['site_survey_photos']['Insert']
+export type PhotoInsert = SiteSurveyPhotoInsert
 export type EquipmentItemInsert = Database['public']['Tables']['equipment_catalog']['Insert']
 export type MaterialItemInsert = Database['public']['Tables']['materials_catalog']['Insert']
 export type EstimateInsert = Database['public']['Tables']['estimates']['Insert']
@@ -666,7 +629,8 @@ export type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
 export type SiteSurveyUpdate = Database['public']['Tables']['site_surveys']['Update']
 // Legacy alias for backward compatibility
 export type AssessmentUpdate = SiteSurveyUpdate
-export type PhotoUpdate = Database['public']['Tables']['photos']['Update']
+export type SiteSurveyPhotoUpdate = Database['public']['Tables']['site_survey_photos']['Update']
+export type PhotoUpdate = SiteSurveyPhotoUpdate
 export type EquipmentItemUpdate = Database['public']['Tables']['equipment_catalog']['Update']
 export type MaterialItemUpdate = Database['public']['Tables']['materials_catalog']['Update']
 export type EstimateUpdate = Database['public']['Tables']['estimates']['Update']

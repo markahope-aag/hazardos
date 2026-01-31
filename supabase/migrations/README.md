@@ -1,46 +1,76 @@
 # Supabase Migrations
 
-This folder contains the official Supabase CLI migrations for HazardOS.
+This folder contains the **official Supabase CLI migrations** for HazardOS.
 
-## Migration Files
+⚠️ **Important**: This is the ONLY location used by Supabase CLI. The `/docs/database/` folder is for documentation only.
 
-### Initial Schema (Applied)
+## Creating New Migrations
+
+```bash
+# Create a new migration
+.\supabase.exe migration new descriptive_name
+
+# This creates: supabase/migrations/YYYYMMDDHHMMSS_descriptive_name.sql
+# Edit the generated file with your SQL changes
+```
+
+## Applying Migrations
+
+```bash
+# Apply all pending migrations
+.\supabase.exe db push
+
+# Check migration status
+.\supabase.exe db status
+```
+
+## Current Migration Files
+
+### Applied Migrations
 - `20260131170746_initial_schema.sql` - Base database schema with organizations, profiles, assessments, etc.
 - `20260131170912_rls_policies.sql` - Row Level Security policies for multi-tenancy
 
-### Site Survey Migration (Pending)
-- `20260131131550_add_assessment_photos_table.sql` - Adds assessment_photos table if missing
-- `20260131131600_rename_assessments_to_site_surveys.sql` - Renames assessments → site_surveys
+### Pending Migrations
+- `20260131180000_rename_assessments_to_site_surveys.sql` - Renames assessments → site_surveys with full schema update
 
-## How to Apply Migrations
+## Migration Workflow
 
-### Using Supabase CLI (Recommended)
+### 1. Create Migration
 ```bash
-# Apply all pending migrations
-supabase db push
-
-# Check migration status
-supabase db status
+.\supabase.exe migration new add_feature_name
 ```
 
-### Manual Application
-Copy/paste the SQL content from each file into Supabase Dashboard → SQL Editor in chronological order.
+### 2. Edit Generated File
+Add your SQL changes to the generated file in `supabase/migrations/`
 
-## Migration Status
+### 3. Apply Migration
+```bash
+.\supabase.exe db push
+```
 
-To check if migrations have been applied, visit:
-- **App**: `/database-status` page
-- **SQL**: Run verification queries in the migration files
+### 4. Verify Success
+- Use `.\supabase.exe db status` to check migration status
+- Visit `/database-status` page in the app for health checks
+
+## Migration Naming Convention
+
+**Format**: `YYYYMMDDHHMMSS_descriptive_name.sql`
+
+**Examples**:
+- `20260201120000_add_user_preferences.sql`
+- `20260201130000_create_notifications_table.sql`
+- `20260201140000_update_user_roles.sql`
 
 ## Important Notes
 
-1. **Order matters** - Apply migrations in chronological order (by timestamp)
-2. **Backup first** - Supabase provides daily backups, but consider manual backup for critical data
-3. **Test after** - Use the `/database-status` page to verify successful application
-4. **Site Survey migration is required** - The app code expects the new table names
+1. **Only this folder** is used by Supabase CLI
+2. **Timestamp order** determines execution sequence
+3. **Never modify** applied migrations - create new ones instead
+4. **Always backup** before applying to production
+5. **Commit migrations** to version control after creation
 
 ## Related Documentation
 
-- `docs/MIGRATION-GUIDE.md` - Complete migration guide with both CLI and manual options
-- `docs/database/` - Legacy manual SQL scripts (for reference)
-- `docs/DATABASE-SETUP-CHECKLIST.md` - Database setup verification steps
+- `../docs/MIGRATION-GUIDE.md` - Complete migration workflow guide
+- `../docs/DATABASE-SETUP-CHECKLIST.md` - Database verification steps
+- `../docs/database/` - Legacy reference materials (not used by CLI)

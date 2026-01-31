@@ -43,14 +43,18 @@ Mobile-first business management platform for asbestos, mold, lead paint, and ha
 
 4. **Set up the database:**
    
-   **Option A: Using Supabase CLI (Recommended)**
+   **Using Supabase CLI (Recommended)**
    ```bash
-   npx supabase db push
+   # Apply all migrations
+   .\supabase.exe db push
+   
+   # Check migration status
+   .\supabase.exe db status
    ```
    
-   **Option B: Manual Setup**
-   - Run migrations in `supabase/migrations/` in chronological order
-   - See [Migration Guide](./docs/MIGRATION-GUIDE.md) for details
+   **Manual Setup** (if CLI not available)
+   - Copy/paste SQL from `supabase/migrations/` files into Supabase Dashboard
+   - See [Migration Guide](./docs/MIGRATION-GUIDE.md) for detailed instructions
 
 5. **Run the development server:**
    ```bash
@@ -155,12 +159,17 @@ The platform owner (Mark Hope, mark.hope@asymmetric.pro) has super-admin access 
 We use proper Supabase CLI migrations for version control:
 
 ```bash
+# Create new migration
+.\supabase.exe migration new descriptive_name
+
 # Apply all pending migrations
-npx supabase db push
+.\supabase.exe db push
 
 # Check migration status
-npx supabase db status
+.\supabase.exe db status
 ```
+
+**Migration Location**: All migrations are stored in `/supabase/migrations/` with timestamp-based naming.
 
 ### Key Tables
 - `organizations` - Multi-tenant company data
