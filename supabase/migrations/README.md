@@ -26,12 +26,26 @@ This folder contains the **official Supabase CLI migrations** for HazardOS.
 
 ## Current Migration Files
 
-### Applied Migrations
-- `20260131170746_initial_schema.sql` - Base database schema with organizations, profiles, assessments, etc.
-- `20260131170912_rls_policies.sql` - Row Level Security policies for multi-tenancy
+### ✅ Applied Migrations (In Chronological Order)
 
-### Pending Migrations
-- `20260131180000_rename_assessments_to_site_surveys.sql` - Renames assessments → site_surveys with full schema update
+1. `20260131170746_initial_schema.sql` - Base database schema with organizations, profiles, assessments, etc.
+2. `20260131170912_rls_policies.sql` - Row Level Security policies for multi-tenancy  
+3. `20260131135419_create_customers_table.sql` - Customer contact and relationship management
+4. `20260131135551_add_customer_linkage_to_site_surveys.sql` - Links site surveys to customer records
+5. `20260131135626_add_scheduling_fields_to_site_surveys.sql` - Scheduling and appointment status fields
+6. `20260131135724_create_pricing_settings_tables.sql` - Pricing tables (labor, equipment, materials, etc.)
+7. `20260131180000_rename_assessments_to_site_surveys.sql` - Renames assessments → site_surveys
+8. `20260131200000_add_mobile_survey_fields.sql` - Mobile survey wizard JSONB fields
+9. `20260131210000_fix_rls_infinite_recursion.sql` - Fixed RLS infinite recursion issue
+
+### 📊 Migration Status: **COMPLETE** ✅
+
+All migrations have been successfully applied. Database is production-ready with:
+- Complete customer management system
+- Site survey scheduling capabilities  
+- Comprehensive pricing tables
+- Mobile survey support
+- Secure RLS policies
 
 ## Migration Workflow
 

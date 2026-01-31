@@ -21,9 +21,15 @@
 - **[Site Survey Terminology Update](./SITE-SURVEY-TERMINOLOGY-UPDATE.md)** - Migration from "Assessments" to "Site Surveys"
 
 ### 🗄️ Database
-- **[Database Migrations](./database/README.md)** - SQL migration files and documentation
+- **[Database Migrations](./database/README.md)** - SQL migration files and documentation (legacy)
 - **[Migration Guide](./MIGRATION-GUIDE.md)** - How to run database migrations
 - **[Structure Verification](./database/11-site-survey-structure-verification.sql)** - Database health check queries
+
+### 👥 Customer Management
+- **[Customer Management Guide](./CUSTOMER-MANAGEMENT.md)** - Complete CRM functionality documentation
+
+### 🔌 API Documentation
+- **[API Reference](./API-REFERENCE.md)** - Complete REST API documentation with examples
 
 ## 📖 Quick Navigation
 
@@ -49,15 +55,19 @@
 ### ✅ Completed Core Features
 - Multi-tenant authentication and authorization
 - Site Survey management (mobile-optimized forms)
+- Customer Management with full CRM functionality
 - Photo/video upload with compression
 - PDF proposal generation
 - Database migrations and verification tools
 - PWA support with offline capability
+- Scheduling system for site surveys
+- Comprehensive pricing tables for estimates
 
 ### 🚧 In Development
+- Mobile survey wizard with photo categorization
 - User registration and invitation system
-- Estimate builder interface
-- Job scheduling and tracking
+- Estimate builder interface using pricing tables
+- Job scheduling calendar interface
 - Advanced reporting and analytics
 
 ## 🔄 Documentation Maintenance

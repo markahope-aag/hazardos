@@ -16,15 +16,43 @@
 
 ## 🚀 Current Migration Status
 
-### Required Migrations (In Order):
+### ✅ Applied Migrations (In Order):
 
-1. **Add Assessment Photos Table** (if missing)
-   - **Supabase CLI**: `supabase/migrations/20260131131550_add_assessment_photos_table.sql`
-   - **Manual**: `docs/database/08-assessment-photos-table-only.sql`
+1. **Initial Schema** - `20260131170746_initial_schema.sql`
+   - Base database schema with organizations, profiles, assessments, etc.
 
-2. **Rename to Site Surveys** (main migration)
-   - **Supabase CLI**: `supabase/migrations/20260131131600_rename_assessments_to_site_surveys.sql`
-   - **Manual**: `docs/database/10-rename-assessments-to-site-surveys.sql`
+2. **RLS Policies** - `20260131170912_rls_policies.sql`  
+   - Row Level Security policies for multi-tenancy
+
+3. **Rename to Site Surveys** - `20260131180000_rename_assessments_to_site_surveys.sql`
+   - Renames assessments → site_surveys with full schema update
+
+4. **Customer Management** - `20260131135419_create_customers_table.sql`
+   - Customer contact and relationship management
+
+5. **Customer Linkage** - `20260131135551_add_customer_linkage_to_site_surveys.sql`
+   - Links site surveys to customer records
+
+6. **Scheduling Fields** - `20260131135626_add_scheduling_fields_to_site_surveys.sql`
+   - Adds scheduling and appointment status to site surveys
+
+7. **Pricing Tables** - `20260131135724_create_pricing_settings_tables.sql`
+   - Labor rates, equipment rates, material costs, disposal fees, travel rates, pricing settings
+
+8. **Mobile Survey Fields** - `20260131200000_add_mobile_survey_fields.sql`
+   - JSONB fields for mobile survey wizard data
+
+9. **RLS Fix** - `20260131210000_fix_rls_infinite_recursion.sql`
+   - Fixed infinite recursion in RLS policies with safe helper functions
+
+### 📊 Database Status: **HEALTHY** ✅
+
+All migrations have been successfully applied. The database includes:
+- 11/11 required tables exist
+- All enums working correctly
+- RLS policies active and functioning
+- Storage bucket accessible
+- Query performance optimal
 
 ## 🛠️ How to Create and Run Migrations
 

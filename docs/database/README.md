@@ -11,6 +11,29 @@ See the [Migration Guide](../MIGRATION-GUIDE.md) for current database setup proc
 
 ---
 
+## File Status
+
+### 🗑️ Obsolete Files (Historical Reference Only)
+- `00-full-migration.sql` - Replaced by individual Supabase CLI migrations
+- `01-schema.sql` - Replaced by `20260131170746_initial_schema.sql`
+- `02-rls-policies.sql` - Replaced by `20260131170912_rls_policies.sql` and RLS fix
+- `03-sample-data.sql` - Legacy sample data (not used)
+- `04-multi-tenant-schema.sql` - Merged into initial schema
+- `05-multi-tenant-rls.sql` - Merged into RLS policies
+- `06-setup-platform-owner.sql` - Manual setup (not automated)
+- `07-media-storage.sql` - Storage policies now in main migrations
+- `08-assessment-photos-table-only.sql` - Replaced by site survey migrations
+- `08-storage-policies-only.sql` - Merged into main migrations
+- `10-rename-assessments-to-site-surveys.sql` - Replaced by `20260131180000_rename_assessments_to_site_surveys.sql`
+
+### ✅ Still Useful Files
+- `09-structure-verification.sql` - Database health check queries
+- `11-site-survey-structure-verification.sql` - Site survey specific checks
+- `12-migration-verification.sql` - Migration status verification
+- `13-simple-migration-check.sql` - Quick migration status check
+
+---
+
 ## Legacy Database Setup Guide
 
 This guide documents the historical manual setup process for reference.

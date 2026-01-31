@@ -45,19 +45,24 @@ HazardOS is a **mobile-first SaaS platform** for environmental remediation compa
 | Category | Features |
 |----------|----------|
 | **Authentication** | Multi-tenant login, role-based access, secure logout |
-| **Site Surveys** | Mobile forms, photo/video upload, GPS capture, auto-save |
+| **Site Surveys** | Mobile forms, photo/video upload, GPS capture, auto-save, scheduling |
+| **Customer Management** | Full CRM with lead tracking, contact management, survey relationships |
+| **Pricing System** | Labor rates, equipment costs, materials, disposal fees, travel rates |
 | **Data Management** | Organization isolation, user profiles, database verification |
 | **Proposals** | PDF generation, professional templates, dynamic content |
 | **Infrastructure** | PWA support, offline capability, proper migrations |
+| **API** | RESTful APIs for customers, proposals with comprehensive documentation |
 
 ### 🚧 Planned Features
 | Priority | Feature | Description |
 |----------|---------|-------------|
+| High | Mobile Survey Wizard | Complete mobile survey interface with photo categorization |
+| High | Estimate Builder | Visual interface for creating cost estimates using pricing tables |
 | High | User Registration | Self-service signup and invitation system |
-| High | Estimate Builder | Visual interface for creating cost estimates |
-| Medium | Job Scheduling | Calendar integration for project management |
-| Medium | Equipment Catalog | Reusable pricing for equipment and materials |
+| Medium | Job Scheduling Calendar | Calendar integration for project management |
+| Medium | Equipment/Materials Catalog UI | Management interface for pricing catalogs |
 | Low | Advanced Reports | Business intelligence and analytics |
+| Low | Customer Portal | Self-service portal for customers |
 
 ---
 
@@ -114,10 +119,14 @@ npm run dev                 # Start development server
 5. **[Product Requirements](./HazardOS-PRD.md)** - Detailed specifications
 6. **[Site Survey UI Spec](./hazardos-site-survey-ui-spec.md)** - Mobile interface design
 
+### Feature Documentation
+7. **[Customer Management](./CUSTOMER-MANAGEMENT.md)** - Complete CRM functionality
+8. **[API Reference](./API-REFERENCE.md)** - REST API documentation
+
 ### Technical Documentation
-7. **[Multi-Tenant Setup](./MULTI_TENANT_SETUP.md)** - Architecture guide
-8. **[Database Checklist](./DATABASE-SETUP-CHECKLIST.md)** - Verification steps
-9. **[Database Migrations](./database/README.md)** - SQL files and procedures
+9. **[Multi-Tenant Setup](./MULTI_TENANT_SETUP.md)** - Architecture guide
+10. **[Database Checklist](./DATABASE-SETUP-CHECKLIST.md)** - Verification steps
+11. **[Database Migrations](./database/README.md)** - SQL files and procedures
 
 ---
 
