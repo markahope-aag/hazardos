@@ -1,71 +1,181 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { Plus, Search, MapPin, Calendar } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { Plus, MapPin, Calendar, User, Eye, MoreHorizontal, Smartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
-import { SiteSurveyService } from '@/lib/supabase/site-survey-service'
-import { SiteSurvey } from '@/types/database'
+import { createClient } from '@/lib/supabase/client'
+import { SurveyStatusBadge, HazardTypeBadge } from '@/components/surveys/survey-status-badge'
+import { SurveyFilters } from './survey-filters'
+import { CreateSurveyButton } from './create-survey-modal'
+import { format } from 'date-fns'
+
+interface SurveyWithRelations {
+  id: string
+  job_name: string
+  customer_name: string
+  customer_id: string | null
+  site_address: string
+  site_city: string
+  site_state: string
+  status: string
+  hazard_type: string
+  scheduled_date: string | null
+  scheduled_time_start: string | null
+  assigned_to: string | null
+  created_at: string
+  customer?: {
+    id: string
+    company_name: string | null
+    first_name: string
+    last_name: string
+  } | null
+  technician?: {
+    id: string
+    first_name: string | null
+    last_name: string | null
+  } | null
+}
 
 export default function SiteSurveysPage() {
   const { organization } = useMultiTenantAuth()
-  const [siteSurveys, setSiteSurveys] = useState<SiteSurvey[]>([])
+  const searchParams = useSearchParams()
+  const [surveys, setSurveys] = useState<SurveyWithRelations[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
 
-  useEffect(() => {
-    if (organization?.id) {
-      loadSiteSurveys()
-    }
-  }, [organization?.id, loadSiteSurveys])
+  // Parse search params
+  const filters = useMemo(() => ({
+    search: searchParams.get('search') || '',
+    status: searchParams.get('status') || 'all',
+    technician: searchParams.get('technician') || 'all',
+    from: searchParams.get('from') || '',
+    to: searchParams.get('to') || '',
+  }), [searchParams])
 
-  const loadSiteSurveys = useCallback(async () => {
+  const loadSurveys = useCallback(async () => {
+    if (!organization?.id) return
+
     try {
       setLoading(true)
-      const data = await SiteSurveyService.getSiteSurveys(organization!.id)
-      setSiteSurveys(data)
+      const supabase = createClient()
+
+      let query = supabase
+        .from('site_surveys')
+        .select(`
+          id,
+          job_name,
+          customer_name,
+          customer_id,
+          site_address,
+          site_city,
+          site_state,
+          status,
+          hazard_type,
+          scheduled_date,
+          scheduled_time_start,
+          assigned_to,
+          created_at,
+          customer:customers(id, company_name, first_name, last_name),
+          technician:profiles!assigned_to(id, first_name, last_name)
+        `)
+        .eq('organization_id', organization.id)
+        .order('created_at', { ascending: false })
+
+      // Apply filters
+      if (filters.status && filters.status !== 'all') {
+        query = query.eq('status', filters.status)
+      }
+      if (filters.technician && filters.technician !== 'all') {
+        query = query.eq('assigned_to', filters.technician)
+      }
+      if (filters.from) {
+        query = query.gte('scheduled_date', filters.from)
+      }
+      if (filters.to) {
+        query = query.lte('scheduled_date', filters.to)
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+
+      // Transform data to flatten relations (Supabase returns arrays)
+      const transformedData = (data || []).map(survey => ({
+        ...survey,
+        customer: Array.isArray(survey.customer) ? survey.customer[0] || null : survey.customer,
+        technician: Array.isArray(survey.technician) ? survey.technician[0] || null : survey.technician,
+      })) as SurveyWithRelations[]
+
+      // Client-side search filter
+      let filteredData = transformedData
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase()
+        filteredData = filteredData.filter(survey =>
+          survey.job_name?.toLowerCase().includes(searchLower) ||
+          survey.customer_name?.toLowerCase().includes(searchLower) ||
+          survey.site_address?.toLowerCase().includes(searchLower)
+        )
+      }
+
+      setSurveys(filteredData)
     } catch (error) {
-      console.error('Error loading site surveys:', error)
+      console.error('Error loading surveys:', error)
     } finally {
       setLoading(false)
     }
-  }, [organization])
+  }, [organization?.id, filters])
 
-  const filteredSiteSurveys = siteSurveys.filter(siteSurvey => {
-    const matchesSearch = 
-      siteSurvey.job_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      siteSurvey.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      siteSurvey.site_address.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    const matchesStatus = statusFilter === 'all' || siteSurvey.status === statusFilter
+  useEffect(() => {
+    loadSurveys()
+  }, [loadSurveys])
 
-    return matchesSearch && matchesStatus
-  })
+  // Calculate status counts
+  const statusCounts = useMemo(() => {
+    return surveys.reduce((acc, survey) => {
+      acc[survey.status] = (acc[survey.status] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+  }, [surveys])
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft': return 'bg-gray-100 text-gray-800'
-      case 'submitted': return 'bg-blue-100 text-blue-800'
-      case 'estimated': return 'bg-yellow-100 text-yellow-800'
-      case 'quoted': return 'bg-purple-100 text-purple-800'
-      case 'scheduled': return 'bg-green-100 text-green-800'
-      case 'completed': return 'bg-gray-100 text-gray-600'
-      default: return 'bg-gray-100 text-gray-800'
+  const getCustomerDisplayName = (survey: SurveyWithRelations) => {
+    if (survey.customer) {
+      return survey.customer.company_name ||
+        `${survey.customer.first_name} ${survey.customer.last_name}`
     }
+    return survey.customer_name
   }
 
-  const getHazardTypeColor = (hazardType: string) => {
-    switch (hazardType) {
-      case 'asbestos': return 'bg-red-100 text-red-800'
-      case 'mold': return 'bg-green-100 text-green-800'
-      case 'lead': return 'bg-orange-100 text-orange-800'
-      case 'vermiculite': return 'bg-purple-100 text-purple-800'
-      default: return 'bg-gray-100 text-gray-800'
+  const getTechnicianName = (survey: SurveyWithRelations) => {
+    if (survey.technician) {
+      return `${survey.technician.first_name || ''} ${survey.technician.last_name || ''}`.trim() || 'Unassigned'
     }
+    return 'Unassigned'
+  }
+
+  const formatScheduledDate = (survey: SurveyWithRelations) => {
+    if (!survey.scheduled_date) return '-'
+    const date = format(new Date(survey.scheduled_date), 'MMM d, yyyy')
+    if (survey.scheduled_time_start) {
+      return `${date} at ${survey.scheduled_time_start}`
+    }
+    return date
   }
 
   if (loading) {
@@ -74,25 +184,13 @@ export default function SiteSurveysPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Site Surveys</h1>
-            <p className="text-gray-600">Manage your field site surveys</p>
+            <p className="text-muted-foreground">Manage and review site survey assessments</p>
           </div>
         </div>
-        
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map(i => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="h-3 bg-gray-200 rounded"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+
+        <div className="animate-pulse space-y-4">
+          <div className="h-10 bg-gray-200 rounded w-full max-w-md"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
         </div>
       </div>
     )
@@ -104,159 +202,181 @@ export default function SiteSurveysPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Site Surveys</h1>
-          <p className="text-gray-600">Manage your field site surveys</p>
+          <p className="text-muted-foreground">Manage and review site survey assessments</p>
         </div>
-        
-        <Link href="/site-surveys/new">
-          <Button className="w-full sm:w-auto">
-            <Plus className="mr-2 h-4 w-4" />
-            New Site Survey
-          </Button>
-        </Link>
-      </div>
 
-      {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Search site surveys..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+        <div className="flex items-center gap-2">
+          <Link href="/site-surveys/mobile">
+            <Button variant="outline">
+              <Smartphone className="h-4 w-4 mr-2" />
+              Mobile Survey
+            </Button>
+          </Link>
+          <CreateSurveyButton />
         </div>
-        
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-        >
-          <option value="all">All Status</option>
-          <option value="draft">Draft</option>
-          <option value="submitted">Submitted</option>
-          <option value="estimated">Estimated</option>
-          <option value="quoted">Quoted</option>
-          <option value="scheduled">Scheduled</option>
-          <option value="completed">Completed</option>
-        </select>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-primary">
-              {siteSurveys.filter(s => s.status === 'draft').length}
+            <div className="text-2xl font-bold text-gray-900">
+              {surveys.length}
             </div>
-            <p className="text-sm text-gray-600">Draft</p>
+            <p className="text-sm text-muted-foreground">Total</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-blue-600">
-              {siteSurveys.filter(s => s.status === 'submitted').length}
+              {statusCounts['scheduled'] || 0}
             </div>
-            <p className="text-sm text-gray-600">Submitted</p>
+            <p className="text-sm text-muted-foreground">Scheduled</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-indigo-600">
+              {statusCounts['in_progress'] || 0}
+            </div>
+            <p className="text-sm text-muted-foreground">In Progress</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-yellow-600">
-              {siteSurveys.filter(s => s.status === 'estimated').length}
+              {statusCounts['submitted'] || 0}
             </div>
-            <p className="text-sm text-gray-600">Estimated</p>
+            <p className="text-sm text-muted-foreground">Awaiting Review</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-green-600">
-              {siteSurveys.filter(s => s.status === 'scheduled').length}
+              {statusCounts['reviewed'] || 0}
             </div>
-            <p className="text-sm text-gray-600">Scheduled</p>
+            <p className="text-sm text-muted-foreground">Reviewed</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Site Surveys List */}
-      {filteredSiteSurveys.length === 0 ? (
+      {/* Filters */}
+      <SurveyFilters />
+
+      {/* Surveys Table */}
+      {surveys.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
               <Plus className="h-8 w-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchQuery || statusFilter !== 'all' ? 'No site surveys found' : 'No site surveys yet'}
+              {filters.search || filters.status !== 'all' ? 'No surveys found' : 'No surveys yet'}
             </h3>
-            <p className="text-gray-600 mb-4">
-              {searchQuery || statusFilter !== 'all' 
+            <p className="text-muted-foreground mb-4">
+              {filters.search || filters.status !== 'all'
                 ? 'Try adjusting your search or filters'
-                : 'Get started by creating your first field site survey'
+                : 'Get started by scheduling your first site survey'
               }
             </p>
-            {!searchQuery && statusFilter === 'all' && (
-              <Link href="/site-surveys/new">
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Site Survey
-                </Button>
-              </Link>
+            {!filters.search && filters.status === 'all' && (
+              <CreateSurveyButton />
             )}
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredSiteSurveys.map((siteSurvey) => (
-            <Link key={siteSurvey.id} href={`/site-surveys/${siteSurvey.id}`}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1 flex-1">
-                      <CardTitle className="text-base line-clamp-1">
-                        {siteSurvey.job_name}
-                      </CardTitle>
-                      <CardDescription className="line-clamp-1">
-                        {siteSurvey.customer_name}
-                      </CardDescription>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(siteSurvey.status)}`}>
-                        {siteSurvey.status}
-                      </span>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getHazardTypeColor(siteSurvey.hazard_type)}`}>
-                        {siteSurvey.hazard_type}
-                      </span>
-                    </div>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="pt-0">
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                      <span className="line-clamp-1">
-                        {siteSurvey.site_address}, {siteSurvey.site_city}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                      <span>
-                        {new Date(siteSurvey.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-
-                    {siteSurvey.area_sqft && (
-                      <div className="text-xs text-gray-500">
-                        {siteSurvey.area_sqft.toLocaleString()} sq ft
-                      </div>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Survey</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Address</TableHead>
+                <TableHead>Scheduled</TableHead>
+                <TableHead>Technician</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {surveys.map((survey) => (
+                <TableRow key={survey.id}>
+                  <TableCell>
+                    <Link
+                      href={`/site-surveys/${survey.id}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {survey.job_name || `Survey #${survey.id.slice(0, 8)}`}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    {survey.customer_id ? (
+                      <Link
+                        href={`/customers/${survey.customer_id}`}
+                        className="hover:underline"
+                      >
+                        {getCustomerDisplayName(survey)}
+                      </Link>
+                    ) : (
+                      getCustomerDisplayName(survey)
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <MapPin className="h-3 w-3" />
+                      <span className="truncate max-w-[200px]">
+                        {survey.site_address}, {survey.site_city}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      {formatScheduledDate(survey)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <User className="h-3 w-3" />
+                      {getTechnicianName(survey)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <SurveyStatusBadge status={survey.status} />
+                  </TableCell>
+                  <TableCell>
+                    <HazardTypeBadge hazardType={survey.hazard_type} />
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/site-surveys/${survey.id}`}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Details
+                          </Link>
+                        </DropdownMenuItem>
+                        {survey.status === 'reviewed' && (
+                          <DropdownMenuItem asChild>
+                            <Link href={`/estimates/new?survey=${survey.id}`}>
+                              Generate Estimate
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   )

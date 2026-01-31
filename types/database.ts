@@ -2,7 +2,7 @@
 // These types match the Supabase schema
 
 export type HazardType = 'asbestos' | 'mold' | 'lead' | 'vermiculite' | 'other'
-export type SiteSurveyStatus = 'draft' | 'submitted' | 'estimated' | 'quoted' | 'scheduled' | 'completed'
+export type SiteSurveyStatus = 'draft' | 'scheduled' | 'in_progress' | 'submitted' | 'reviewed' | 'estimated' | 'quoted' | 'completed' | 'cancelled'
 // Legacy alias for backward compatibility
 export type AssessmentStatus = SiteSurveyStatus
 export type UserRole = 'platform_owner' | 'platform_admin' | 'tenant_owner' | 'admin' | 'estimator' | 'technician' | 'viewer'
