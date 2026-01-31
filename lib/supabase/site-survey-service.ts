@@ -1,5 +1,5 @@
 import { createClient } from './client'
-import type { Database, SiteSurvey, SiteSurveyInsert, Profile } from '@/types/database'
+import type { SiteSurvey, SiteSurveyInsert } from '@/types/database'
 
 interface MediaUploadResult {
   url: string
@@ -168,7 +168,7 @@ export class SiteSurveyService {
     const fileName = `${organizationId}/${siteSurveyId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
     
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: _uploadData, error: uploadError } = await supabase.storage
       .from('assessment-media')
       .upload(fileName, file, {
         cacheControl: '3600',
@@ -265,7 +265,7 @@ export class SiteSurveyService {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('site_surveys')
         .select('count')
         .limit(1)

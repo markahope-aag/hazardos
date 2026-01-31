@@ -61,7 +61,7 @@ export function PhotoCapture({ category, onCapture }: PhotoCaptureProps) {
       const timestamp = new Date().toISOString()
 
       // Add to survey store for immediate UI display
-      const photoId = addPhoto({
+      const _photoId = addPhoto({
         blob: file,
         dataUrl,
         timestamp,

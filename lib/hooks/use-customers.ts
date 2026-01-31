@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { CustomersService } from '@/lib/supabase/customers'
 import { useMultiTenantAuth } from './use-multi-tenant-auth'
 import { useToast } from '@/components/ui/use-toast'
-import type { Customer, CustomerInsert, CustomerUpdate, CustomerStatus, CustomerSource } from '@/types/database'
+import type { CustomerInsert, CustomerUpdate, CustomerStatus, CustomerSource } from '@/types/database'
 
 interface UseCustomersOptions {
   search?: string
@@ -23,7 +23,7 @@ export function useCustomers(options: UseCustomersOptions = {}) {
         throw new Error('No organization found')
       }
 
-      const { search, status, source, page = 1, pageSize = 25 } = options
+      const { search, status, source: _source, page = 1, pageSize = 25 } = options
       const offset = (page - 1) * pageSize
 
       return CustomersService.getCustomers(organization.id, {

@@ -29,7 +29,7 @@ export function useLogout() {
         router.refresh()
         return true
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Error',
         description: 'An unexpected error occurred while signing out.',
