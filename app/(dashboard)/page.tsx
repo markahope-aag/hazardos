@@ -1,13 +1,29 @@
+'use client'
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 
 export default function DashboardPage() {
+  const { profile, organization, canAccessPlatformAdmin } = useMultiTenantAuth()
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {canAccessPlatformAdmin ? 'Platform Dashboard' : 'Dashboard'}
+        </h1>
         <p className="text-gray-600">
-          Welcome to HazardOS - Your Environmental Remediation Command Center
+          {organization 
+            ? `Welcome to ${organization.name} - Your Environmental Remediation Command Center`
+            : 'Welcome to HazardOS - Your Environmental Remediation Command Center'
+          }
         </p>
+        {profile?.role === 'platform_owner' && (
+          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-800">
+              <strong>Platform Owner Access:</strong> You have full access to all platform features and tenant management.
+            </p>
+          </div>
+        )}
       </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -3,7 +3,9 @@
 
 export type HazardType = 'asbestos' | 'mold' | 'lead' | 'vermiculite' | 'other'
 export type AssessmentStatus = 'draft' | 'submitted' | 'estimated' | 'quoted' | 'scheduled' | 'completed'
-export type UserRole = 'admin' | 'estimator' | 'technician' | 'viewer'
+export type UserRole = 'platform_owner' | 'platform_admin' | 'tenant_owner' | 'admin' | 'estimator' | 'technician' | 'viewer'
+export type OrganizationStatus = 'active' | 'suspended' | 'cancelled' | 'trial'
+export type SubscriptionTier = 'trial' | 'starter' | 'professional' | 'enterprise'
 
 export interface Database {
   public: {
@@ -20,6 +22,14 @@ export interface Database {
           email: string | null
           website: string | null
           license_number: string | null
+          status: OrganizationStatus
+          subscription_tier: SubscriptionTier
+          trial_ends_at: string | null
+          max_users: number
+          max_assessments_per_month: number
+          features: unknown // JSONB
+          billing_email: string | null
+          billing_address: unknown | null // JSONB
           created_at: string
           updated_at: string
         }
@@ -62,6 +72,9 @@ export interface Database {
           phone: string | null
           role: UserRole
           is_active: boolean
+          is_platform_user: boolean
+          last_login_at: string | null
+          login_count: number
           created_at: string
           updated_at: string
         }
@@ -417,6 +430,149 @@ export interface Database {
           updated_at?: string
         }
       }
+      platform_settings: {
+        Row: {
+          id: string
+          key: string
+          value: unknown // JSONB
+          description: string | null
+          updated_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          key: string
+          value: unknown
+          description?: string | null
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          key?: string
+          value?: unknown
+          description?: string | null
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      tenant_usage: {
+        Row: {
+          id: string
+          organization_id: string
+          month_year: string
+          assessments_created: number
+          photos_uploaded: number
+          storage_used_mb: number
+          api_calls: number
+          active_users: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          month_year: string
+          assessments_created?: number
+          photos_uploaded?: number
+          storage_used_mb?: number
+          api_calls?: number
+          active_users?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          month_year?: string
+          assessments_created?: number
+          photos_uploaded?: number
+          storage_used_mb?: number
+          api_calls?: number
+          active_users?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      audit_log: {
+        Row: {
+          id: string
+          organization_id: string | null
+          user_id: string | null
+          action: string
+          resource_type: string | null
+          resource_id: string | null
+          old_values: unknown | null // JSONB
+          new_values: unknown | null // JSONB
+          ip_address: string | null
+          user_agent: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id?: string | null
+          user_id?: string | null
+          action: string
+          resource_type?: string | null
+          resource_id?: string | null
+          old_values?: unknown | null
+          new_values?: unknown | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string | null
+          user_id?: string | null
+          action?: string
+          resource_type?: string | null
+          resource_id?: string | null
+          old_values?: unknown | null
+          new_values?: unknown | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+      }
+      tenant_invitations: {
+        Row: {
+          id: string
+          organization_id: string
+          email: string
+          role: UserRole
+          invited_by: string
+          token: string
+          expires_at: string
+          accepted_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          email: string
+          role: UserRole
+          invited_by: string
+          token: string
+          expires_at: string
+          accepted_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          email?: string
+          role?: UserRole
+          invited_by?: string
+          token?: string
+          expires_at?: string
+          accepted_at?: string | null
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -428,6 +584,8 @@ export interface Database {
       hazard_type: HazardType
       assessment_status: AssessmentStatus
       user_role: UserRole
+      organization_status: OrganizationStatus
+      subscription_tier: SubscriptionTier
     }
   }
 }
@@ -441,6 +599,10 @@ export type EquipmentItem = Database['public']['Tables']['equipment_catalog']['R
 export type MaterialItem = Database['public']['Tables']['materials_catalog']['Row']
 export type Estimate = Database['public']['Tables']['estimates']['Row']
 export type Job = Database['public']['Tables']['jobs']['Row']
+export type PlatformSetting = Database['public']['Tables']['platform_settings']['Row']
+export type TenantUsage = Database['public']['Tables']['tenant_usage']['Row']
+export type AuditLog = Database['public']['Tables']['audit_log']['Row']
+export type TenantInvitation = Database['public']['Tables']['tenant_invitations']['Row']
 
 // Insert types
 export type OrganizationInsert = Database['public']['Tables']['organizations']['Insert']
