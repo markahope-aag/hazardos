@@ -66,7 +66,7 @@ export function ReviewSection() {
           <Label htmlFor="final-notes" className="text-base">
             Final Notes & Observations
           </Label>
-          <VoiceNoteButton size="sm" />
+          <VoiceNoteButton />
         </div>
         <Textarea
           id="final-notes"
