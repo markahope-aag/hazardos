@@ -20,11 +20,14 @@ import {
   DEFAULT_LEAD_DATA,
   HazardType,
 } from './survey-types'
+import { mapStoreToDb, mapDbToStore, createInitialDbRecord } from './survey-mappers'
+import { createClient } from '@/lib/supabase/client'
 
 interface SurveyState {
   // Survey identification
   currentSurveyId: string | null
   customerId: string | null
+  organizationId: string | null
 
   // Form data
   formData: SurveyFormData
@@ -36,6 +39,8 @@ interface SurveyState {
   isDirty: boolean
   lastSavedAt: string | null
   startedAt: string | null
+  isSyncing: boolean
+  syncError: string | null
 
   // Validation state per section
   sectionValidation: Record<SurveySection, { isValid: boolean; errors: string[] }>
@@ -43,6 +48,7 @@ interface SurveyState {
   // Actions
   setCurrentSurveyId: (id: string | null) => void
   setCustomerId: (id: string | null) => void
+  setOrganizationId: (id: string | null) => void
   setCurrentSection: (section: SurveySection) => void
 
   // Form data updates
@@ -80,6 +86,12 @@ interface SurveyState {
   resetSurvey: () => void
   loadSurvey: (id: string, data: Partial<SurveyFormData>) => void
 
+  // Database sync
+  createSurveyInDb: () => Promise<string | null>
+  loadSurveyFromDb: (surveyId: string) => Promise<boolean>
+  saveDraft: () => Promise<boolean>
+  submitSurvey: () => Promise<boolean>
+
   // Validation
   validateSection: (section: SurveySection) => { isValid: boolean; errors: string[] }
   validateAll: () => boolean
@@ -104,16 +116,20 @@ export const useSurveyStore = create<SurveyState>()(
       // Initial state
       currentSurveyId: null,
       customerId: null,
+      organizationId: null,
       formData: DEFAULT_SURVEY_FORM_DATA,
       currentSection: 'property',
       isDirty: false,
       lastSavedAt: null,
       startedAt: null,
+      isSyncing: false,
+      syncError: null,
       sectionValidation: initialSectionValidation,
 
       // Basic setters
       setCurrentSurveyId: (id) => set({ currentSurveyId: id }),
       setCustomerId: (id) => set({ customerId: id }),
+      setOrganizationId: (id) => set({ organizationId: id }),
       setCurrentSection: (section) => set({ currentSection: section }),
 
       // Property updates
@@ -468,11 +484,14 @@ export const useSurveyStore = create<SurveyState>()(
         set({
           currentSurveyId: null,
           customerId: null,
+          // Keep organizationId as it's typically session-persistent
           formData: DEFAULT_SURVEY_FORM_DATA,
           currentSection: 'property',
           isDirty: false,
           lastSavedAt: null,
           startedAt: null,
+          isSyncing: false,
+          syncError: null,
           sectionValidation: initialSectionValidation,
         }),
 
@@ -491,6 +510,195 @@ export const useSurveyStore = create<SurveyState>()(
           isDirty: false,
           startedAt: new Date().toISOString(),
         }),
+
+      // Database sync
+      createSurveyInDb: async () => {
+        const state = get()
+        const { organizationId, customerId } = state
+
+        if (!organizationId) {
+          console.error('Cannot create survey: organizationId is required')
+          return null
+        }
+
+        set({ isSyncing: true, syncError: null })
+
+        try {
+          const supabase = createClient()
+          const initialRecord = createInitialDbRecord(organizationId, customerId || undefined)
+
+          const { data, error } = await supabase
+            .from('site_surveys')
+            .insert(initialRecord)
+            .select('id')
+            .single()
+
+          if (error) throw error
+
+          set({
+            currentSurveyId: data.id,
+            isSyncing: false,
+            startedAt: new Date().toISOString(),
+          })
+
+          return data.id
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to create survey'
+          set({ isSyncing: false, syncError: message })
+          console.error('Create survey error:', error)
+          return null
+        }
+      },
+
+      loadSurveyFromDb: async (surveyId: string) => {
+        set({ isSyncing: true, syncError: null })
+
+        try {
+          const supabase = createClient()
+          const { data, error } = await supabase
+            .from('site_surveys')
+            .select('*')
+            .eq('id', surveyId)
+            .single()
+
+          if (error) throw error
+
+          const storeData = mapDbToStore(data)
+
+          set({
+            currentSurveyId: storeData.currentSurveyId || surveyId,
+            customerId: storeData.customerId || null,
+            formData: storeData.formData || DEFAULT_SURVEY_FORM_DATA,
+            startedAt: storeData.startedAt || null,
+            isDirty: false,
+            isSyncing: false,
+            lastSavedAt: data.updated_at,
+          })
+
+          return true
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to load survey'
+          set({ isSyncing: false, syncError: message })
+          console.error('Load survey error:', error)
+          return false
+        }
+      },
+
+      saveDraft: async () => {
+        const state = get()
+        const { currentSurveyId, organizationId } = state
+
+        // Always save to localStorage first (offline-first)
+        // This is handled by zustand persist middleware
+
+        // If no survey ID yet, create one first
+        if (!currentSurveyId) {
+          const newId = await get().createSurveyInDb()
+          if (!newId) return false
+        }
+
+        // If offline, just mark as saved locally
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          set({ isDirty: false, lastSavedAt: new Date().toISOString() })
+          return true
+        }
+
+        // Sync to Supabase
+        if (!organizationId) {
+          console.warn('Cannot sync to database: organizationId is required')
+          set({ isDirty: false, lastSavedAt: new Date().toISOString() })
+          return true
+        }
+
+        set({ isSyncing: true, syncError: null })
+
+        try {
+          const supabase = createClient()
+          const dbData = mapStoreToDb(
+            {
+              currentSurveyId: get().currentSurveyId,
+              customerId: get().customerId,
+              formData: get().formData,
+              startedAt: get().startedAt,
+            },
+            organizationId,
+            { status: 'draft' }
+          )
+
+          const { error } = await supabase
+            .from('site_surveys')
+            .update(dbData)
+            .eq('id', get().currentSurveyId)
+
+          if (error) throw error
+
+          set({
+            isDirty: false,
+            isSyncing: false,
+            lastSavedAt: new Date().toISOString(),
+          })
+
+          return true
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to save draft'
+          set({ isSyncing: false, syncError: message })
+          console.error('Save draft error:', error)
+          return false
+        }
+      },
+
+      submitSurvey: async () => {
+        const state = get()
+        const { currentSurveyId, organizationId } = state
+
+        if (!currentSurveyId || !organizationId) {
+          console.error('Cannot submit: surveyId and organizationId are required')
+          return false
+        }
+
+        // Validate all sections first
+        if (!get().validateAll()) {
+          console.error('Cannot submit: validation failed')
+          return false
+        }
+
+        set({ isSyncing: true, syncError: null })
+
+        try {
+          const supabase = createClient()
+          const submittedAt = new Date().toISOString()
+          const dbData = mapStoreToDb(
+            {
+              currentSurveyId,
+              customerId: state.customerId,
+              formData: state.formData,
+              startedAt: state.startedAt,
+            },
+            organizationId,
+            { status: 'submitted', submittedAt }
+          )
+
+          const { error } = await supabase
+            .from('site_surveys')
+            .update(dbData)
+            .eq('id', currentSurveyId)
+
+          if (error) throw error
+
+          set({
+            isDirty: false,
+            isSyncing: false,
+            lastSavedAt: submittedAt,
+          })
+
+          return true
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to submit survey'
+          set({ isSyncing: false, syncError: message })
+          console.error('Submit survey error:', error)
+          return false
+        }
+      },
 
       // Validation
       validateSection: (section) => {
@@ -571,6 +779,7 @@ export const useSurveyStore = create<SurveyState>()(
       partialize: (state) => ({
         currentSurveyId: state.currentSurveyId,
         customerId: state.customerId,
+        organizationId: state.organizationId,
         formData: state.formData,
         currentSection: state.currentSection,
         startedAt: state.startedAt,

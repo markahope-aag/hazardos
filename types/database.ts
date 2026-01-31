@@ -15,6 +15,104 @@ export type CustomerSource = 'phone' | 'website' | 'mail' | 'referral' | 'other'
 export type AppointmentStatus = 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
 export type DisposalHazardType = 'asbestos_friable' | 'asbestos_non_friable' | 'mold' | 'lead' | 'other'
 
+// Mobile survey JSONB types
+export interface SurveyAccessInfo {
+  hasRestrictions: boolean | null
+  restrictions: string[]
+  restrictionNotes: string
+  parkingAvailable: boolean | null
+  loadingZoneAvailable: boolean | null
+  equipmentAccess: 'adequate' | 'limited' | 'difficult' | null
+  equipmentAccessNotes: string
+  elevatorAvailable: boolean | null
+  minDoorwayWidth: number
+}
+
+export interface SurveyEnvironmentInfo {
+  temperature: number | null
+  humidity: number | null
+  moistureIssues: string[]
+  moistureNotes: string
+  hasStructuralConcerns: boolean | null
+  structuralConcerns: string[]
+  structuralNotes: string
+  utilityShutoffsLocated: boolean | null
+}
+
+export interface SurveyAsbestosMaterial {
+  id: string
+  materialType: string | null
+  quantity: number | null
+  unit: string
+  location: string
+  condition: string | null
+  friable: boolean
+  pipeDiameter: number | null
+  pipeThickness: number | null
+  notes: string
+}
+
+export interface SurveyMoldArea {
+  id: string
+  location: string
+  squareFootage: number | null
+  materialType: string | null
+  materialsAffected: string[]
+  severity: string | null
+  moistureReading: number | null
+}
+
+export interface SurveyLeadComponent {
+  id: string
+  componentType: string | null
+  location: string
+  quantity: number | null
+  unit: string
+  condition: string | null
+}
+
+export interface SurveyHazardAssessments {
+  types: ('asbestos' | 'mold' | 'lead' | 'other')[]
+  asbestos: {
+    materials: SurveyAsbestosMaterial[]
+    estimatedWasteVolume: number | null
+    containmentLevel: number | null
+    epaNotificationRequired: boolean
+  } | null
+  mold: {
+    moistureSourceIdentified: boolean | null
+    moistureSourceTypes: string[]
+    moistureSourceStatus: string | null
+    moistureSourceNotes: string
+    affectedAreas: SurveyMoldArea[]
+    hvacContaminated: boolean | null
+    odorLevel: string | null
+    sizeCategory: string | null
+  } | null
+  lead: {
+    childrenUnder6Present: boolean | null
+    workScope: string | null
+    components: SurveyLeadComponent[]
+    rrpRuleApplies: boolean
+    workMethod: string | null
+    totalWorkArea: number
+  } | null
+  other: {
+    description: string
+    notes: string
+  } | null
+}
+
+export interface SurveyPhotoMetadata {
+  id: string
+  url: string
+  category: string
+  location: string
+  caption: string
+  gpsCoordinates: { latitude: number; longitude: number } | null
+  timestamp: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -216,6 +314,23 @@ export interface Database {
           scheduled_time_end: string | null
           assigned_to: string | null
           appointment_status: AppointmentStatus | null
+          // Mobile survey extended fields
+          building_type: string | null
+          year_built: number | null
+          building_sqft: number | null
+          stories: number | null
+          construction_type: string | null
+          occupancy_status: string | null
+          owner_name: string | null
+          owner_phone: string | null
+          owner_email: string | null
+          access_info: SurveyAccessInfo | null
+          environment_info: SurveyEnvironmentInfo | null
+          hazard_assessments: SurveyHazardAssessments | null
+          photo_metadata: SurveyPhotoMetadata[] | null
+          technician_notes: string | null
+          started_at: string | null
+          submitted_at: string | null
         }
         Insert: {
           id?: string
@@ -253,6 +368,23 @@ export interface Database {
           scheduled_time_end?: string | null
           assigned_to?: string | null
           appointment_status?: AppointmentStatus | null
+          // Mobile survey extended fields
+          building_type?: string | null
+          year_built?: number | null
+          building_sqft?: number | null
+          stories?: number | null
+          construction_type?: string | null
+          occupancy_status?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          owner_email?: string | null
+          access_info?: SurveyAccessInfo | null
+          environment_info?: SurveyEnvironmentInfo | null
+          hazard_assessments?: SurveyHazardAssessments | null
+          photo_metadata?: SurveyPhotoMetadata[] | null
+          technician_notes?: string | null
+          started_at?: string | null
+          submitted_at?: string | null
         }
         Update: {
           id?: string
@@ -290,6 +422,23 @@ export interface Database {
           scheduled_time_end?: string | null
           assigned_to?: string | null
           appointment_status?: AppointmentStatus | null
+          // Mobile survey extended fields
+          building_type?: string | null
+          year_built?: number | null
+          building_sqft?: number | null
+          stories?: number | null
+          construction_type?: string | null
+          occupancy_status?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          owner_email?: string | null
+          access_info?: SurveyAccessInfo | null
+          environment_info?: SurveyEnvironmentInfo | null
+          hazard_assessments?: SurveyHazardAssessments | null
+          photo_metadata?: SurveyPhotoMetadata[] | null
+          technician_notes?: string | null
+          started_at?: string | null
+          submitted_at?: string | null
         }
       }
       site_survey_photos: {

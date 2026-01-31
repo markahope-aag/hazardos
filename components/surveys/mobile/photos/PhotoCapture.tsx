@@ -3,6 +3,8 @@
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useSurveyStore } from '@/lib/stores/survey-store'
+import { usePhotoQueueStore } from '@/lib/stores/photo-queue-store'
+import { processPhotoQueue } from '@/lib/services/photo-upload-service'
 import { PhotoCategory } from '@/lib/stores/survey-types'
 import { Camera, Loader2 } from 'lucide-react'
 
@@ -12,7 +14,8 @@ interface PhotoCaptureProps {
 }
 
 export function PhotoCapture({ category, onCapture }: PhotoCaptureProps) {
-  const { addPhoto } = useSurveyStore()
+  const { addPhoto, currentSurveyId } = useSurveyStore()
+  const { addPhoto: addToQueue } = usePhotoQueueStore()
   const inputRef = useRef<HTMLInputElement>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -27,7 +30,7 @@ export function PhotoCapture({ category, onCapture }: PhotoCaptureProps) {
     setIsProcessing(true)
 
     try {
-      // Convert to data URL for storage
+      // Convert to data URL for local storage/preview
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = () => resolve(reader.result as string)
@@ -55,15 +58,38 @@ export function PhotoCapture({ category, onCapture }: PhotoCaptureProps) {
         }
       }
 
-      addPhoto({
+      const timestamp = new Date().toISOString()
+
+      // Add to survey store for immediate UI display
+      const photoId = addPhoto({
         blob: file,
         dataUrl,
-        timestamp: new Date().toISOString(),
+        timestamp,
         gpsCoordinates,
         category,
         location: '',
         caption: '',
       })
+
+      // If we have a survey ID, also add to upload queue
+      if (currentSurveyId) {
+        addToQueue({
+          surveyId: currentSurveyId,
+          localUri: dataUrl,
+          category,
+          location: '',
+          caption: '',
+          gpsCoordinates,
+          fileSize: file.size,
+          fileType: file.type,
+        })
+
+        // Trigger queue processing if online
+        if (navigator.onLine) {
+          // Process queue in background
+          setTimeout(() => processPhotoQueue(), 100)
+        }
+      }
 
       onCapture?.()
     } catch (error) {
