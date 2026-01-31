@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, XCircle, AlertCircle, Database, Upload, Users, FileText } from 'lucide-react'
-import { DatabaseService } from '@/lib/supabase/database'
+import { SiteSurveyService } from '@/lib/supabase/site-survey-service'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import { createClient } from '@/lib/supabase/client'
 
@@ -27,7 +27,7 @@ export default function DatabaseTestPage() {
 
     // Test 1: Database Connection
     try {
-      const connectionTest = await DatabaseService.testConnection()
+      const connectionTest = await SiteSurveyService.testConnection()
       results.push({
         name: 'Database Connection',
         status: connectionTest.success ? 'success' : 'error',
@@ -71,57 +71,57 @@ export default function DatabaseTestPage() {
       })
     }
 
-    // Test 4: Assessment Table Structure
+    // Test 4: Site Surveys Table Structure
     try {
       const { data, error } = await supabase
-        .from('assessments')
+        .from('site_surveys')
         .select('id')
         .limit(1)
 
       if (error) {
         results.push({
-          name: 'Assessments Table',
+          name: 'Site Surveys Table',
           status: 'error',
           message: `Table access error: ${error.message}`
         })
       } else {
         results.push({
-          name: 'Assessments Table',
+          name: 'Site Surveys Table',
           status: 'success',
           message: 'Table accessible and properly configured'
         })
       }
     } catch (error) {
       results.push({
-        name: 'Assessments Table',
+        name: 'Site Surveys Table',
         status: 'error',
         message: `Table test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       })
     }
 
-    // Test 5: Assessment Photos Table
+    // Test 5: Site Survey Photos Table
     try {
       const { data, error } = await supabase
-        .from('assessment_photos')
+        .from('site_survey_photos')
         .select('id')
         .limit(1)
 
       if (error) {
         results.push({
-          name: 'Assessment Photos Table',
+          name: 'Site Survey Photos Table',
           status: 'error',
           message: `Table access error: ${error.message}`
         })
       } else {
         results.push({
-          name: 'Assessment Photos Table',
+          name: 'Site Survey Photos Table',
           status: 'success',
           message: 'Media table accessible and properly configured'
         })
       }
     } catch (error) {
       results.push({
-        name: 'Assessment Photos Table',
+        name: 'Site Survey Photos Table',
         status: 'error',
         message: `Table test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       })
@@ -155,13 +155,13 @@ export default function DatabaseTestPage() {
       })
     }
 
-    // Test 7: Assessment Creation (if user has organization)
+    // Test 7: Site Survey Creation (if user has organization)
     if (organization && user) {
       try {
-        const testAssessment = {
+        const testSiteSurvey = {
           organization_id: organization.id,
           estimator_id: user.id,
-          job_name: 'Database Test Assessment',
+          job_name: 'Database Test Site Survey',
           customer_name: 'Test Customer',
           customer_email: 'test@example.com',
           site_address: '123 Test Street',
@@ -176,21 +176,21 @@ export default function DatabaseTestPage() {
           status: 'draft' as const
         }
 
-        const result = await DatabaseService.createAssessment(testAssessment)
+        const result = await SiteSurveyService.createSiteSurvey(testSiteSurvey)
         
-        // Clean up test assessment
+        // Clean up test site survey
         if (result?.id) {
-          await DatabaseService.deleteAssessment(result.id)
+          await SiteSurveyService.deleteSiteSurvey(result.id)
         }
 
         results.push({
-          name: 'Assessment CRUD Operations',
+          name: 'Site Survey CRUD Operations',
           status: 'success',
-          message: 'Can create, read, and delete assessments successfully'
+          message: 'Can create, read, and delete site surveys successfully'
         })
       } catch (error) {
         results.push({
-          name: 'Assessment CRUD Operations',
+          name: 'Site Survey CRUD Operations',
           status: 'error',
           message: `CRUD test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         })

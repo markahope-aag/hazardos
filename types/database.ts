@@ -663,7 +663,9 @@ export type JobInsert = Database['public']['Tables']['jobs']['Insert']
 // Update types
 export type OrganizationUpdate = Database['public']['Tables']['organizations']['Update']
 export type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
-export type AssessmentUpdate = Database['public']['Tables']['assessments']['Update']
+export type SiteSurveyUpdate = Database['public']['Tables']['site_surveys']['Update']
+// Legacy alias for backward compatibility
+export type AssessmentUpdate = SiteSurveyUpdate
 export type PhotoUpdate = Database['public']['Tables']['photos']['Update']
 export type EquipmentItemUpdate = Database['public']['Tables']['equipment_catalog']['Update']
 export type MaterialItemUpdate = Database['public']['Tables']['materials_catalog']['Update']

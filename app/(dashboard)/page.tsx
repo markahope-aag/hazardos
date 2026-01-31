@@ -33,13 +33,13 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Active Assessments
+              Active Site Surveys
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-gray-500">
-              No active assessments
+              No active site surveys
             </p>
           </CardContent>
         </Card>
@@ -92,7 +92,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>
-              Your latest assessments and updates
+              Your latest site surveys and updates
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -110,17 +110,17 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Link href="/assessments/new" className="block">
+            <Link href="/site-surveys/new" className="block">
               <Button className="w-full justify-start" variant="outline">
                 <Plus className="mr-2 h-4 w-4" />
-                Create New Assessment
+                Create New Site Survey
               </Button>
             </Link>
             
-            <Link href="/assessments" className="block">
+            <Link href="/site-surveys" className="block">
               <Button className="w-full justify-start" variant="outline">
                 <FileText className="mr-2 h-4 w-4" />
-                View All Assessments
+                View All Site Surveys
               </Button>
             </Link>
             

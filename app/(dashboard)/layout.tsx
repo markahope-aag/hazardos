@@ -90,15 +90,15 @@ export default function DashboardLayout({
             </Link>
             
             <Link
-              href="/assessments"
+              href="/site-surveys"
               className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
-                pathname.startsWith('/assessments')
+                pathname.startsWith('/site-surveys')
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
               <FileText className="h-4 w-4" />
-              <span>Assessments</span>
+              <span>Site Surveys</span>
             </Link>
             
             <Link
