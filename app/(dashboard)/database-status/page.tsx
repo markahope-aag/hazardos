@@ -425,14 +425,30 @@ export default function DatabaseStatusPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-sm text-red-800">
-              <p className="font-medium mb-2">Required Steps:</p>
-              <ol className="list-decimal list-inside space-y-1">
-                <li>If assessment_photos table doesn't exist: Run <code>docs/database/08-assessment-photos-table-only.sql</code></li>
-                <li>Run the migration: <code>docs/database/10-rename-assessments-to-site-surveys.sql</code></li>
-                <li>Create storage bucket: <code>assessment-media</code> (private)</li>
-                <li>Add storage policies from: <code>docs/database/08-storage-policies-only.sql</code></li>
-                <li>Re-run this check to verify</li>
-              </ol>
+              <p className="font-medium mb-3">🎯 <strong>Recommended: Use Supabase CLI Migrations</strong></p>
+              <div className="bg-white p-3 rounded border border-red-300 mb-4">
+                <p className="font-medium mb-2">Option A: Supabase CLI (Recommended)</p>
+                <ol className="list-decimal list-inside space-y-1 text-sm">
+                  <li>Run: <code className="bg-gray-100 px-1 rounded">supabase db push</code></li>
+                  <li>This applies: <code>supabase/migrations/20260131131550_add_assessment_photos_table.sql</code></li>
+                  <li>Then applies: <code>supabase/migrations/20260131131600_rename_assessments_to_site_surveys.sql</code></li>
+                </ol>
+              </div>
+              
+              <div className="bg-white p-3 rounded border border-red-300">
+                <p className="font-medium mb-2">Option B: Manual in Supabase Dashboard</p>
+                <ol className="list-decimal list-inside space-y-1 text-sm">
+                  <li>Go to Supabase Dashboard → SQL Editor</li>
+                  <li>If assessment_photos missing: Run <code>supabase/migrations/20260131131550_add_assessment_photos_table.sql</code></li>
+                  <li>Run main migration: <code>supabase/migrations/20260131131600_rename_assessments_to_site_surveys.sql</code></li>
+                  <li>Create storage bucket: <code>assessment-media</code> (private)</li>
+                  <li>Add storage policies from: <code>docs/database/08-storage-policies-only.sql</code></li>
+                </ol>
+              </div>
+              
+              <p className="text-xs mt-3 italic">
+                📖 See <code>docs/MIGRATION-GUIDE.md</code> for complete instructions
+              </p>
             </div>
           </CardContent>
         </Card>
