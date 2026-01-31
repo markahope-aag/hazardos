@@ -12,10 +12,9 @@ export function AsbestosSummary() {
   const { formData, updateHazards } = useSurveyStore()
   const asbestos = formData.hazards.asbestos
 
-  if (!asbestos) return null
-
   // Calculate totals and containment level
   const calculations = useMemo(() => {
+    if (!asbestos) return null
     let totalSqFt = 0
     let totalLinearFt = 0
     let totalCuFt = 0
@@ -72,7 +71,9 @@ export function AsbestosSummary() {
       containmentLevel,
       epaNotificationRequired,
     }
-  }, [asbestos.materials])
+  }, [asbestos?.materials])
+
+  if (!asbestos || !calculations) return null
 
   const containmentLevelInfo: Record<ContainmentLevel, { label: string; color: string; bgColor: string }> = {
     1: { label: 'Level 1 - Minimal', color: 'text-green-700', bgColor: 'bg-green-100' },

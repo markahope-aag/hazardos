@@ -19,14 +19,14 @@ export function MoldSummary() {
   const { formData, updateHazards } = useSurveyStore()
   const mold = formData.hazards.mold
 
-  if (!mold) return null
-
   const update = (data: Partial<typeof mold>) => {
+    if (!mold) return
     updateHazards({ mold: { ...mold, ...data } })
   }
 
   // Calculate totals and size category
   const calculations = useMemo(() => {
+    if (!mold) return null
     let totalSqFt = 0
     let hasHeavySeverity = false
     let hasPorousMaterial = false
@@ -51,7 +51,9 @@ export function MoldSummary() {
       hasPorousMaterial,
       sizeCategory,
     }
-  }, [mold.affectedAreas, mold.hvacContaminated])
+  }, [mold?.affectedAreas, mold?.hvacContaminated])
+
+  if (!mold || !calculations) return null
 
   const sizeCategoryInfo: Record<MoldSizeCategory, { label: string; color: string; bgColor: string }> = {
     small: { label: 'Small (<10 sq ft)', color: 'text-green-700', bgColor: 'bg-green-100' },

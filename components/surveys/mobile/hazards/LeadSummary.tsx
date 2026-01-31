@@ -19,14 +19,14 @@ export function LeadSummary() {
   const lead = formData.hazards.lead
   const yearBuilt = formData.property.yearBuilt
 
-  if (!lead) return null
-
   const update = (data: Partial<typeof lead>) => {
+    if (!lead) return
     updateHazards({ lead: { ...lead, ...data } })
   }
 
   // Calculate totals and RRP requirements
   const calculations = useMemo(() => {
+    if (!lead) return null
     let totalInteriorSqFt = 0
     let totalExteriorSqFt = 0
     let hasDeteriorated = false
@@ -76,7 +76,9 @@ export function LeadSummary() {
       rrpRuleApplies,
       isPre1978,
     }
-  }, [lead.components, yearBuilt])
+  }, [lead?.components, yearBuilt])
+
+  if (!lead || !calculations) return null
 
   return (
     <div className="space-y-4 p-4 bg-muted rounded-xl">
