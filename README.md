@@ -79,12 +79,17 @@ hazardos/
 │   ├── (auth)/            # Authentication pages
 │   ├── (dashboard)/       # Main application
 │   │   ├── site-surveys/  # Site survey management
+│   │   ├── customers/     # Customer management
 │   │   ├── database-status/ # DB verification tools
 │   │   └── layout.tsx     # Dashboard layout
 │   ├── (platform)/       # Platform admin
 │   └── api/               # API routes
+│       ├── customers/     # Customer CRUD API
+│       └── proposals/     # PDF generation
 ├── components/            # React components
 │   ├── assessments/       # Site survey forms & media upload
+│   ├── customers/         # Customer management components
+│   ├── surveys/           # Mobile survey wizard components
 │   ├── auth/             # Authentication forms
 │   ├── layout/           # Navigation & headers
 │   ├── proposals/        # PDF proposal generation
@@ -139,16 +144,20 @@ The platform owner (Mark Hope, mark.hope@asymmetric.pro) has super-admin access 
 ### ✅ Implemented
 - **Multi-tenant authentication** with organization isolation
 - **Site Survey forms** (formerly assessments) with mobile-optimized UI
+- **Customer Management** with full CRUD operations and relationship tracking
 - **Photo/Video upload** with client-side compression
 - **PDF proposal generation** with professional templates
 - **Database verification tools** for migration status
 - **Responsive design** optimized for mobile field use
 - **PWA support** for offline functionality
+- **Scheduling fields** for site surveys with appointment status tracking
+- **Pricing tables** for labor rates, equipment, materials, disposal, and travel
 
 ### 🚧 In Development
-- Advanced scheduling system
-- Equipment & materials catalog
-- Job tracking & completion
+- Mobile survey wizard with photo categorization
+- Advanced scheduling calendar interface
+- Equipment & materials catalog UI
+- Job tracking & completion workflows
 - Pattern learning (Ralph Wiggum Loop)
 - API integrations
 
@@ -176,8 +185,15 @@ We use proper Supabase CLI migrations for version control:
 - `profiles` - User profiles with roles
 - `site_surveys` - Field assessment data (renamed from assessments)
 - `site_survey_photos` - Media files with metadata
-- `estimates` - Cost calculations
-- `jobs` - Project tracking
+- `customers` - Customer management with contact info and relationship tracking
+- `labor_rates` - Hourly labor pricing by role and organization
+- `equipment_rates` - Equipment rental and usage pricing
+- `material_costs` - Material pricing and supplier information
+- `disposal_fees` - Hazardous material disposal costs by type
+- `travel_rates` - Mileage and travel time pricing
+- `pricing_settings` - Organization-specific markup and pricing rules
+- `estimates` - Cost calculations (schema ready)
+- `jobs` - Project tracking (schema ready)
 
 See [Migration Guide](./docs/MIGRATION-GUIDE.md) for complete database setup.
 

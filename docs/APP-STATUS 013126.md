@@ -66,6 +66,13 @@ hazardos/
 | `profiles` | User accounts (extends Supabase auth) | ✅ Production |
 | `site_surveys` | Field assessment records (renamed from assessments) | ✅ Production |
 | `site_survey_photos` | Photo/video attachments with metadata | ✅ Production |
+| `customers` | Customer contact info and relationship management | ✅ Production |
+| `labor_rates` | Hourly labor pricing by role and organization | ✅ Production |
+| `equipment_rates` | Equipment rental and usage pricing | ✅ Production |
+| `material_costs` | Material pricing and supplier information | ✅ Production |
+| `disposal_fees` | Hazardous material disposal costs by type | ✅ Production |
+| `travel_rates` | Mileage and travel time pricing | ✅ Production |
+| `pricing_settings` | Organization-specific markup and pricing rules | ✅ Production |
 | `estimates` | Cost estimates for assessments | ✅ Schema Ready |
 | `jobs` | Scheduled/active remediation jobs | ✅ Schema Ready |
 | `equipment_catalog` | Reusable equipment pricing | ✅ Schema Ready |
@@ -84,6 +91,10 @@ hazardos/
 
 - `hazard_type`: asbestos, mold, lead, vermiculite, other
 - `site_survey_status`: draft, submitted, estimated, quoted, scheduled, completed (renamed from assessment_status)
+- `customer_status`: lead, prospect, customer, inactive
+- `customer_source`: referral, website, advertising, cold_call, trade_show, other
+- `appointment_status`: scheduled, confirmed, in_progress, completed, cancelled, rescheduled
+- `disposal_hazard_type`: asbestos, mold, lead, vermiculite, mixed, other
 - `user_role`: platform_owner, platform_admin, tenant_owner, admin, estimator, technician, viewer
 - `organization_status`: active, suspended, cancelled, trial
 - `subscription_tier`: trial, starter, professional, enterprise
@@ -107,6 +118,21 @@ hazardos/
 | Photo/Video Upload | ✅ Complete | Client-side compression, Supabase Storage |
 | GPS Location Capture | ✅ Complete | Automatic location detection |
 | Field Validation | ✅ Complete | Zod schemas with error handling |
+| Scheduling Fields | ✅ Complete | Date/time scheduling with appointment status |
+| Customer Linkage | ✅ Complete | Link surveys to customer records |
+| **Customer Management** |
+| Customer List | ✅ Complete | Search, filter by status and source |
+| Customer Create/Edit | ✅ Complete | Full contact info and relationship tracking |
+| Customer Detail View | ✅ Complete | Customer info, surveys, and activity feed |
+| Customer Status Management | ✅ Complete | Lead → Prospect → Customer workflow |
+| Customer-Survey Relationship | ✅ Complete | Link customers to site surveys |
+| **Pricing Management** |
+| Labor Rates | ✅ Complete | Role-based hourly pricing by organization |
+| Equipment Rates | ✅ Complete | Equipment rental and usage pricing |
+| Material Costs | ✅ Complete | Material pricing with supplier tracking |
+| Disposal Fees | ✅ Complete | Hazardous material disposal costs by type |
+| Travel Rates | ✅ Complete | Mileage and travel time pricing |
+| Pricing Settings | ✅ Complete | Organization markup and pricing rules |
 | **Dashboard & Navigation** |
 | Main Dashboard | ✅ Complete | Stats, quick actions, recent activity |
 | Mobile Navigation | ✅ Complete | User menu, logout, responsive design |
