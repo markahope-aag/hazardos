@@ -20,13 +20,19 @@ Verify these tables exist in Supabase Dashboard > Table Editor:
 
 - [ ] `organizations` - Company/tenant data
 - [ ] `profiles` - User profiles with roles
-- [ ] `assessments` - Field assessment data
-- [ ] `assessment_photos` - Media file metadata
-- [ ] `photos` - Legacy photo table (if exists)
-- [ ] `equipment_catalog` - Equipment items
-- [ ] `materials_catalog` - Material items
-- [ ] `estimates` - Cost estimates
-- [ ] `jobs` - Scheduled work
+- [ ] `site_surveys` - Field assessment data (renamed from assessments)
+- [ ] `site_survey_photos` - Media file metadata (renamed from assessment_photos)
+- [ ] `customers` - Customer contact and relationship management
+- [ ] `labor_rates` - Hourly labor pricing by role and organization
+- [ ] `equipment_rates` - Equipment rental and usage pricing
+- [ ] `material_costs` - Material pricing and supplier information
+- [ ] `disposal_fees` - Hazardous material disposal costs by type
+- [ ] `travel_rates` - Mileage and travel time pricing
+- [ ] `pricing_settings` - Organization-specific markup and pricing rules
+- [ ] `equipment_catalog` - Equipment items (schema ready)
+- [ ] `materials_catalog` - Material items (schema ready)
+- [ ] `estimates` - Cost estimates (schema ready)
+- [ ] `jobs` - Scheduled work (schema ready)
 - [ ] `platform_settings` - Global platform config
 - [ ] `tenant_usage` - Usage tracking
 - [ ] `audit_log` - Activity logging
@@ -34,12 +40,13 @@ Verify these tables exist in Supabase Dashboard > Table Editor:
 
 ## ✅ **Critical Table Structures**
 
-### **assessments table should have:**
+### **site_surveys table should have:**
 - [ ] `id` (UUID, Primary Key)
 - [ ] `organization_id` (UUID, Foreign Key)
 - [ ] `estimator_id` (UUID, Foreign Key)
+- [ ] `customer_id` (UUID, Foreign Key) - Links to customers table
 - [ ] `job_name` (TEXT)
-- [ ] `customer_name` (TEXT)
+- [ ] `customer_name` (TEXT) - Deprecated, use customer_id instead
 - [ ] `site_address`, `site_city`, `site_state`, `site_zip` (TEXT)
 - [ ] `hazard_type` (ENUM: asbestos, mold, lead, vermiculite, other)
 - [ ] `containment_level` (INTEGER)
@@ -47,6 +54,11 @@ Verify these tables exist in Supabase Dashboard > Table Editor:
 - [ ] `occupied`, `clearance_required` (BOOLEAN)
 - [ ] `status` (ENUM: draft, submitted, estimated, quoted, scheduled, completed)
 - [ ] `site_location` (POINT - PostGIS)
+- [ ] `scheduled_date` (DATE) - When survey is scheduled
+- [ ] `scheduled_time_start`, `scheduled_time_end` (TIME) - Time slots
+- [ ] `assigned_to` (UUID) - Assigned technician/estimator
+- [ ] `appointment_status` (ENUM: scheduled, confirmed, in_progress, completed, cancelled, rescheduled)
+- [ ] Mobile survey fields for hazard assessments (JSONB)
 - [ ] `created_at`, `updated_at` (TIMESTAMPTZ)
 
 ### **assessment_photos table should have:**
