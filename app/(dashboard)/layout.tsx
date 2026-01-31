@@ -3,8 +3,10 @@
 import { LogoHorizontal } from '@/components/ui/logo'
 import { UserMenu } from '@/components/layout/user-menu'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
+import Link from 'next/link'
+import { Home, FileText, Calculator, Calendar, Settings } from 'lucide-react'
 
 export default function DashboardLayout({
   children,
@@ -13,6 +15,7 @@ export default function DashboardLayout({
 }) {
   const { user, profile, organization, loading, canAccessPlatformAdmin } = useMultiTenantAuth()
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     if (!loading && !user) {
@@ -69,6 +72,74 @@ export default function DashboardLayout({
           </div>
         </div>
       </header>
+      
+      {/* Navigation */}
+      <nav className="border-b bg-white">
+        <div className="container">
+          <div className="flex space-x-8 overflow-x-auto">
+            <Link
+              href="/dashboard"
+              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
+                pathname === '/dashboard'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Home className="h-4 w-4" />
+              <span>Dashboard</span>
+            </Link>
+            
+            <Link
+              href="/assessments"
+              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
+                pathname.startsWith('/assessments')
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              <span>Assessments</span>
+            </Link>
+            
+            <Link
+              href="/estimates"
+              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
+                pathname.startsWith('/estimates')
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Calculator className="h-4 w-4" />
+              <span>Estimates</span>
+            </Link>
+            
+            <Link
+              href="/schedules"
+              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
+                pathname.startsWith('/schedules')
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Calendar className="h-4 w-4" />
+              <span>Schedules</span>
+            </Link>
+            
+            <Link
+              href="/settings"
+              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
+                pathname.startsWith('/settings')
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Settings className="h-4 w-4" />
+              <span>Settings</span>
+            </Link>
+          </div>
+        </div>
+      </nav>
+
       <main className="container py-6">
         {children}
       </main>

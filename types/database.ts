@@ -573,6 +573,44 @@ export interface Database {
           created_at?: string
         }
       }
+      assessment_photos: {
+        Row: {
+          id: string
+          assessment_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          url: string
+          caption: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          assessment_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          url: string
+          caption?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          assessment_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string
+          url?: string
+          caption?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -594,6 +632,7 @@ export interface Database {
 export type Organization = Database['public']['Tables']['organizations']['Row']
 export type Profile = Database['public']['Tables']['profiles']['Row']
 export type Assessment = Database['public']['Tables']['assessments']['Row']
+export type AssessmentPhoto = Database['public']['Tables']['assessment_photos']['Row']
 export type Photo = Database['public']['Tables']['photos']['Row']
 export type EquipmentItem = Database['public']['Tables']['equipment_catalog']['Row']
 export type MaterialItem = Database['public']['Tables']['materials_catalog']['Row']

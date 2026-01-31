@@ -1,6 +1,12 @@
 import { createClient } from './client'
 import type { Database, Assessment, AssessmentInsert, Profile } from '@/types/database'
 
+interface MediaUploadResult {
+  url: string
+  path: string
+  size: number
+}
+
 // Create a typed Supabase client (only if environment variables are available)
 function getSupabaseClient() {
   try {
@@ -284,6 +290,108 @@ export class DatabaseService {
         success: false, 
         message: `Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
       }
+    }
+  }
+
+  // Media upload operations
+  static async uploadMediaFile(
+    file: File, 
+    assessmentId: string, 
+    organizationId: string
+  ): Promise<MediaUploadResult> {
+    if (!supabase) {
+      throw new Error('Supabase client not available')
+    }
+
+    // Generate unique filename
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${organizationId}/${assessmentId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+    
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('assessment-media')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+
+    if (uploadError) {
+      throw new Error(`Failed to upload file: ${uploadError.message}`)
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('assessment-media')
+      .getPublicUrl(fileName)
+
+    // Save media record to database
+    const { error: dbError } = await supabase
+      .from('assessment_photos')
+      .insert({
+        assessment_id: assessmentId,
+        file_name: file.name,
+        file_path: fileName,
+        file_size: file.size,
+        file_type: file.type,
+        url: urlData.publicUrl
+      })
+
+    if (dbError) {
+      // If database insert fails, try to clean up the uploaded file
+      await supabase.storage
+        .from('assessment-media')
+        .remove([fileName])
+      
+      throw new Error(`Failed to save media record: ${dbError.message}`)
+    }
+
+    return {
+      url: urlData.publicUrl,
+      path: fileName,
+      size: file.size
+    }
+  }
+
+  static async getAssessmentMedia(assessmentId: string) {
+    if (!supabase) {
+      throw new Error('Supabase client not available')
+    }
+
+    const { data, error } = await supabase
+      .from('assessment_photos')
+      .select('*')
+      .eq('assessment_id', assessmentId)
+      .order('created_at')
+
+    if (error) {
+      throw new Error(`Failed to fetch assessment media: ${error.message}`)
+    }
+
+    return data
+  }
+
+  static async deleteMediaFile(photoId: string, filePath: string) {
+    if (!supabase) {
+      throw new Error('Supabase client not available')
+    }
+
+    // Delete from storage
+    const { error: storageError } = await supabase.storage
+      .from('assessment-media')
+      .remove([filePath])
+
+    if (storageError) {
+      console.error('Failed to delete file from storage:', storageError)
+    }
+
+    // Delete from database
+    const { error: dbError } = await supabase
+      .from('assessment_photos')
+      .delete()
+      .eq('id', photoId)
+
+    if (dbError) {
+      throw new Error(`Failed to delete media record: ${dbError.message}`)
     }
   }
 }

@@ -1,5 +1,8 @@
 'use client'
 
+import Link from 'next/link'
+import { Plus, FileText, Calculator, Calendar } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 
@@ -106,16 +109,30 @@ export default function DashboardPage() {
               Common tasks and workflows
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-sm text-gray-600">
-              • Create new assessment
-            </p>
-            <p className="text-sm text-gray-600">
-              • Generate estimate
-            </p>
-            <p className="text-sm text-gray-600">
-              • Schedule job
-            </p>
+          <CardContent className="space-y-3">
+            <Link href="/assessments/new" className="block">
+              <Button className="w-full justify-start" variant="outline">
+                <Plus className="mr-2 h-4 w-4" />
+                Create New Assessment
+              </Button>
+            </Link>
+            
+            <Link href="/assessments" className="block">
+              <Button className="w-full justify-start" variant="outline">
+                <FileText className="mr-2 h-4 w-4" />
+                View All Assessments
+              </Button>
+            </Link>
+            
+            <Button className="w-full justify-start" variant="outline" disabled>
+              <Calculator className="mr-2 h-4 w-4" />
+              Generate Estimate (Coming Soon)
+            </Button>
+            
+            <Button className="w-full justify-start" variant="outline" disabled>
+              <Calendar className="mr-2 h-4 w-4" />
+              Schedule Job (Coming Soon)
+            </Button>
           </CardContent>
         </Card>
       </div>
