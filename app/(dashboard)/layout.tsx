@@ -1,3 +1,5 @@
+import { LogoHorizontal } from '@/components/ui/logo'
+
 export default function DashboardLayout({
   children,
 }: {
@@ -9,7 +11,7 @@ export default function DashboardLayout({
         <div className="container flex h-14 items-center">
           <div className="mr-4 flex">
             <a className="mr-6 flex items-center space-x-2" href="/dashboard">
-              <span className="font-bold text-primary">HazardOS</span>
+              <LogoHorizontal size="md" />
             </a>
           </div>
         </div>

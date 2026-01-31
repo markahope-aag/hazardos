@@ -1,10 +1,18 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import QueryProvider from '@/components/providers/query-provider'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ 
+  subsets: ['latin'],
+  variable: '--font-inter'
+})
+
+const geistMono = Geist_Mono({ 
+  subsets: ['latin'],
+  variable: '--font-geist-mono'
+})
 
 export const metadata: Metadata = {
   title: 'HazardOS - Environmental Remediation Management',
@@ -32,10 +40,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/logos/favicon-32.png" />
+        <link rel="shortcut icon" href="/logos/favicon-32.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/logos/icon-192-color.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/logos/icon-192-color.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/logos/icon-512-color.png" />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${geistMono.variable} font-sans`}>
         <QueryProvider>
           {children}
           <Toaster />
