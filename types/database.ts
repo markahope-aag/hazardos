@@ -8,6 +8,10 @@ export type AssessmentStatus = SiteSurveyStatus
 export type UserRole = 'platform_owner' | 'platform_admin' | 'tenant_owner' | 'admin' | 'estimator' | 'technician' | 'viewer'
 export type OrganizationStatus = 'active' | 'suspended' | 'cancelled' | 'trial'
 export type SubscriptionTier = 'trial' | 'starter' | 'professional' | 'enterprise'
+export type CustomerStatus = 'lead' | 'prospect' | 'customer' | 'inactive'
+export type CustomerSource = 'phone' | 'website' | 'mail' | 'referral' | 'other'
+export type AppointmentStatus = 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
+export type DisposalHazardType = 'asbestos_friable' | 'asbestos_non_friable' | 'mold' | 'lead' | 'other'
 
 export interface Database {
   public: {
@@ -64,6 +68,74 @@ export interface Database {
           updated_at?: string
         }
       }
+      customers: {
+        Row: {
+          id: string
+          organization_id: string
+          name: string
+          company_name: string | null
+          email: string | null
+          phone: string | null
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          state: string | null
+          zip: string | null
+          status: CustomerStatus
+          source: CustomerSource | null
+          communication_preferences: unknown // JSONB
+          marketing_consent: boolean
+          marketing_consent_date: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          name: string
+          company_name?: string | null
+          email?: string | null
+          phone?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          state?: string | null
+          zip?: string | null
+          status?: CustomerStatus
+          source?: CustomerSource | null
+          communication_preferences?: unknown
+          marketing_consent?: boolean
+          marketing_consent_date?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          name?: string
+          company_name?: string | null
+          email?: string | null
+          phone?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          state?: string | null
+          zip?: string | null
+          status?: CustomerStatus
+          source?: CustomerSource | null
+          communication_preferences?: unknown
+          marketing_consent?: boolean
+          marketing_consent_date?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+      }
       profiles: {
         Row: {
           id: string
@@ -110,6 +182,7 @@ export interface Database {
           id: string
           organization_id: string
           estimator_id: string | null
+          customer_id: string | null
           created_at: string
           updated_at: string
           job_name: string
@@ -136,11 +209,17 @@ export interface Database {
           regulatory_notifications_needed: boolean
           notes: string | null
           status: SiteSurveyStatus
+          scheduled_date: string | null
+          scheduled_time_start: string | null
+          scheduled_time_end: string | null
+          assigned_to: string | null
+          appointment_status: AppointmentStatus | null
         }
         Insert: {
           id?: string
           organization_id: string
           estimator_id?: string | null
+          customer_id?: string | null
           created_at?: string
           updated_at?: string
           job_name: string
@@ -167,11 +246,17 @@ export interface Database {
           regulatory_notifications_needed?: boolean
           notes?: string | null
           status?: SiteSurveyStatus
+          scheduled_date?: string | null
+          scheduled_time_start?: string | null
+          scheduled_time_end?: string | null
+          assigned_to?: string | null
+          appointment_status?: AppointmentStatus | null
         }
         Update: {
           id?: string
           organization_id?: string
           estimator_id?: string | null
+          customer_id?: string | null
           created_at?: string
           updated_at?: string
           job_name?: string
@@ -198,6 +283,11 @@ export interface Database {
           regulatory_notifications_needed?: boolean
           notes?: string | null
           status?: SiteSurveyStatus
+          scheduled_date?: string | null
+          scheduled_time_start?: string | null
+          scheduled_time_end?: string | null
+          assigned_to?: string | null
+          appointment_status?: AppointmentStatus | null
         }
       }
       site_survey_photos: {
@@ -575,6 +665,210 @@ export interface Database {
           created_at?: string
         }
       }
+      labor_rates: {
+        Row: {
+          id: string
+          organization_id: string
+          name: string
+          rate_per_hour: number
+          description: string | null
+          is_default: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          name: string
+          rate_per_hour: number
+          description?: string | null
+          is_default?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          name?: string
+          rate_per_hour?: number
+          description?: string | null
+          is_default?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      equipment_rates: {
+        Row: {
+          id: string
+          organization_id: string
+          name: string
+          rate_per_day: number
+          description: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          name: string
+          rate_per_day: number
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          name?: string
+          rate_per_day?: number
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      material_costs: {
+        Row: {
+          id: string
+          organization_id: string
+          name: string
+          cost_per_unit: number
+          unit: string
+          description: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          name: string
+          cost_per_unit: number
+          unit: string
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          name?: string
+          cost_per_unit?: number
+          unit?: string
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      disposal_fees: {
+        Row: {
+          id: string
+          organization_id: string
+          hazard_type: DisposalHazardType
+          cost_per_cubic_yard: number
+          description: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          hazard_type: DisposalHazardType
+          cost_per_cubic_yard: number
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          hazard_type?: DisposalHazardType
+          cost_per_cubic_yard?: number
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      travel_rates: {
+        Row: {
+          id: string
+          organization_id: string
+          min_miles: number
+          max_miles: number | null
+          flat_fee: number | null
+          per_mile_rate: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          min_miles: number
+          max_miles?: number | null
+          flat_fee?: number | null
+          per_mile_rate?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          min_miles?: number
+          max_miles?: number | null
+          flat_fee?: number | null
+          per_mile_rate?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      pricing_settings: {
+        Row: {
+          id: string
+          organization_id: string
+          default_markup_percent: number | null
+          minimum_markup_percent: number | null
+          maximum_markup_percent: number | null
+          office_address_line1: string | null
+          office_address_line2: string | null
+          office_city: string | null
+          office_state: string | null
+          office_zip: string | null
+          office_lat: number | null
+          office_lng: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          default_markup_percent?: number | null
+          minimum_markup_percent?: number | null
+          maximum_markup_percent?: number | null
+          office_address_line1?: string | null
+          office_address_line2?: string | null
+          office_city?: string | null
+          office_state?: string | null
+          office_zip?: string | null
+          office_lat?: number | null
+          office_lng?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          default_markup_percent?: number | null
+          minimum_markup_percent?: number | null
+          maximum_markup_percent?: number | null
+          office_address_line1?: string | null
+          office_address_line2?: string | null
+          office_city?: string | null
+          office_state?: string | null
+          office_zip?: string | null
+          office_lat?: number | null
+          office_lng?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -595,6 +889,7 @@ export interface Database {
 // Helper types for common operations
 export type Organization = Database['public']['Tables']['organizations']['Row']
 export type Profile = Database['public']['Tables']['profiles']['Row']
+export type Customer = Database['public']['Tables']['customers']['Row']
 export type SiteSurvey = Database['public']['Tables']['site_surveys']['Row']
 export type SiteSurveyPhoto = Database['public']['Tables']['site_survey_photos']['Row']
 // Legacy aliases for backward compatibility
@@ -609,10 +904,17 @@ export type PlatformSetting = Database['public']['Tables']['platform_settings'][
 export type TenantUsage = Database['public']['Tables']['tenant_usage']['Row']
 export type AuditLog = Database['public']['Tables']['audit_log']['Row']
 export type TenantInvitation = Database['public']['Tables']['tenant_invitations']['Row']
+export type LaborRate = Database['public']['Tables']['labor_rates']['Row']
+export type EquipmentRate = Database['public']['Tables']['equipment_rates']['Row']
+export type MaterialCost = Database['public']['Tables']['material_costs']['Row']
+export type DisposalFee = Database['public']['Tables']['disposal_fees']['Row']
+export type TravelRate = Database['public']['Tables']['travel_rates']['Row']
+export type PricingSettings = Database['public']['Tables']['pricing_settings']['Row']
 
 // Insert types
 export type OrganizationInsert = Database['public']['Tables']['organizations']['Insert']
 export type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
+export type CustomerInsert = Database['public']['Tables']['customers']['Insert']
 export type SiteSurveyInsert = Database['public']['Tables']['site_surveys']['Insert']
 // Legacy alias for backward compatibility
 export type AssessmentInsert = SiteSurveyInsert
@@ -622,10 +924,17 @@ export type EquipmentItemInsert = Database['public']['Tables']['equipment_catalo
 export type MaterialItemInsert = Database['public']['Tables']['materials_catalog']['Insert']
 export type EstimateInsert = Database['public']['Tables']['estimates']['Insert']
 export type JobInsert = Database['public']['Tables']['jobs']['Insert']
+export type LaborRateInsert = Database['public']['Tables']['labor_rates']['Insert']
+export type EquipmentRateInsert = Database['public']['Tables']['equipment_rates']['Insert']
+export type MaterialCostInsert = Database['public']['Tables']['material_costs']['Insert']
+export type DisposalFeeInsert = Database['public']['Tables']['disposal_fees']['Insert']
+export type TravelRateInsert = Database['public']['Tables']['travel_rates']['Insert']
+export type PricingSettingsInsert = Database['public']['Tables']['pricing_settings']['Insert']
 
 // Update types
 export type OrganizationUpdate = Database['public']['Tables']['organizations']['Update']
 export type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
+export type CustomerUpdate = Database['public']['Tables']['customers']['Update']
 export type SiteSurveyUpdate = Database['public']['Tables']['site_surveys']['Update']
 // Legacy alias for backward compatibility
 export type AssessmentUpdate = SiteSurveyUpdate
@@ -635,6 +944,12 @@ export type EquipmentItemUpdate = Database['public']['Tables']['equipment_catalo
 export type MaterialItemUpdate = Database['public']['Tables']['materials_catalog']['Update']
 export type EstimateUpdate = Database['public']['Tables']['estimates']['Update']
 export type JobUpdate = Database['public']['Tables']['jobs']['Update']
+export type LaborRateUpdate = Database['public']['Tables']['labor_rates']['Update']
+export type EquipmentRateUpdate = Database['public']['Tables']['equipment_rates']['Update']
+export type MaterialCostUpdate = Database['public']['Tables']['material_costs']['Update']
+export type DisposalFeeUpdate = Database['public']['Tables']['disposal_fees']['Update']
+export type TravelRateUpdate = Database['public']['Tables']['travel_rates']['Update']
+export type PricingSettingsUpdate = Database['public']['Tables']['pricing_settings']['Update']
 
 // Structured types for JSONB fields
 export interface EquipmentNeeded {
