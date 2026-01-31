@@ -1,0 +1,138 @@
+# HazardOS Development Rules
+
+## Database Migrations
+
+Migrations should be stored in:
+- `/supabase/migrations/` - This is the official location for Supabase CLI migrations.
+- Format: `<timestamp>_<descriptive_name>.sql`
+- Example: `20260201120000_add_user_preferences.sql`
+
+To create a new migration:
+```bash
+# Using Supabase CLI (recommended)
+.\supabase.exe migration new add_user_preferences
+
+# This creates: supabase/migrations/20260201HHMMSS_add_user_preferences.sql
+```
+
+To deploy:
+```bash
+.\supabase.exe db push
+```
+
+The `/docs/database/` folder contains documentation and manual scripts - it's not used by the Supabase CLI and should be considered legacy/reference only.
+
+## Code Quality Requirements
+
+### Pre-Commit Validation
+All code must pass these checks before committing and pushing:
+
+1. **TypeScript Check**: `npm run type-check`
+   - No TypeScript errors allowed
+   - Strict mode must be maintained
+   - All types must be properly defined
+
+2. **Linting**: `npm run lint`  
+   - ESLint must pass with zero errors
+   - Warnings should be addressed when possible
+   - Follow the established ESLint configuration
+
+3. **Build Test**: `npm run build`
+   - Production build must succeed
+   - No build-time errors or failures
+   - All imports and dependencies must resolve correctly
+
+### Pre-Push Workflow
+```bash
+# Required sequence before any git push
+npm run type-check && npm run lint && npm run build
+git add .
+git commit -m "descriptive commit message"
+git push origin main
+```
+
+## Documentation Requirements
+
+### Documentation Updates
+Documentation should be updated after every code change:
+
+1. **Feature Changes**: Update relevant documentation in `/docs/`
+2. **API Changes**: Update type definitions and interface docs
+3. **Database Changes**: Update migration guides and schema docs
+4. **Configuration Changes**: Update setup instructions and environment docs
+5. **Breaking Changes**: Update migration guides and breaking change notices
+
+### Documentation Standards
+- Keep documentation current with code changes
+- Update README.md for significant feature additions
+- Maintain accurate setup and deployment instructions
+- Document any new environment variables or configuration
+
+## Testing Requirements
+
+### Test Quality Standards
+Any tests must be:
+
+1. **Simple**: Easy to understand and maintain
+   - Clear test names that describe what is being tested
+   - Minimal setup and teardown
+   - Single responsibility per test
+
+2. **Non-Flaky**: Reliable and deterministic
+   - No random data or timing dependencies
+   - Consistent results across multiple runs
+   - Proper cleanup after each test
+
+3. **Useful**: Test real behavior and business logic
+   - Focus on user-facing functionality
+   - Test edge cases and error conditions
+   - Verify actual business requirements
+
+4. **Free from Complex Mocks**: Minimal mocking
+   - Mock only external dependencies (APIs, databases)
+   - Test real implementations when possible
+   - Avoid mocking internal application logic
+   - Use simple, focused mocks when necessary
+
+### Testing Approach
+- Integration tests preferred over unit tests
+- Test user workflows and real scenarios
+- Mock only external services (Supabase, APIs)
+- Test database interactions with real test data
+- Verify UI components render correctly
+
+## Project-Specific Guidelines
+
+### HazardOS Context
+- This is a multi-tenant SaaS platform for environmental remediation companies
+- Mobile-first design is critical - always test on mobile viewports
+- Site Surveys (formerly Assessments) are the core feature
+- Database changes must maintain RLS (Row Level Security) for multi-tenancy
+- All features must work offline (PWA requirements)
+
+### Technology Stack Considerations
+- Next.js 16 with App Router - follow App Router patterns
+- TypeScript strict mode - no `any` types allowed
+- Supabase for backend - use proper RLS policies
+- Tailwind CSS - follow mobile-first responsive design
+- shadcn/ui components - maintain consistency
+
+### Security Requirements
+- All database queries must respect RLS policies
+- User authentication required for all protected routes
+- Organization-level data isolation must be maintained
+- No sensitive data in client-side code or logs
+
+## Enforcement
+
+These rules are enforced through:
+- Pre-commit hooks (when configured)
+- CI/CD pipeline checks
+- Code review requirements
+- Automated testing in deployment pipeline
+
+Failure to follow these rules may result in:
+- Blocked merges and deployments
+- Required code refactoring
+- Documentation update requirements
+- Additional testing requirements

@@ -191,22 +191,62 @@ npm run build        # Build for production
 npm run start        # Start production server
 npm run lint         # Run ESLint
 npm run type-check   # Run TypeScript compiler
+npm run pre-commit   # Run all quality checks (TS + Lint + Build)
+npm run check-all    # Alias for pre-commit
 ```
 
 ### Code Quality
 
-- **TypeScript**: Strict mode enabled
-- **ESLint**: Flat config with Next.js rules
-- **Prettier**: Code formatting (via ESLint)
-- **Pre-commit hooks**: Type checking, linting, build verification
+- **TypeScript**: Strict mode enabled - no `any` types allowed
+- **ESLint**: Flat config with Next.js rules - zero errors required
+- **Build Verification**: Production build must succeed before commits
+- **Pre-commit Requirements**: All code must pass TS + Lint + Build checks
 
-### Testing Database Changes
+#### Pre-Commit Workflow
+```bash
+# Required before every commit
+npm run pre-commit   # Runs type-check + lint + build
+
+# Or run individually
+npm run type-check   # TypeScript validation
+npm run lint         # ESLint validation  
+npm run build        # Production build test
+
+# Helper scripts available
+./scripts/pre-commit-check.ps1  # Windows PowerShell
+./scripts/pre-commit-check.sh   # Unix/Linux/macOS
+```
+
+### Testing Standards
+
+**Test Quality Requirements:**
+- **Simple**: Easy to understand and maintain
+- **Non-Flaky**: Reliable and deterministic results
+- **Useful**: Test real behavior and business logic
+- **Minimal Mocking**: Mock only external dependencies (APIs, databases)
+
+**Testing Approach:**
+- Integration tests preferred over unit tests
+- Test user workflows and real scenarios
+- Use real test data when possible
+- Focus on mobile-first functionality
+
+### Database Testing
 
 Visit `/database-status` to verify:
 - Migration completion status
 - Table structure integrity
 - RLS policy functionality
 - Storage configuration
+
+### Documentation Requirements
+
+**Documentation must be updated after every code change:**
+- Feature additions/changes → Update relevant `/docs/` files
+- API changes → Update type definitions and interfaces
+- Database changes → Update migration guides and schema docs
+- Configuration changes → Update setup and environment docs
+- Breaking changes → Update migration guides and notices
 
 ## 🚀 Deployment
 

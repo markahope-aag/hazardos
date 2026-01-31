@@ -11,7 +11,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "pre-commit": "npm run type-check && npm run lint && npm run build",
+    "check-all": "npm run type-check && npm run lint && npm run build"
   },
   "keywords": [
     "environmental",
