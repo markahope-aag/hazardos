@@ -19,7 +19,7 @@ export default async function IntegrationsPage() {
   // Get all integrations
   const { data: integrations } = await supabase
     .from('organization_integrations')
-    .select('id, organization_id, integration_type, external_id, is_active, last_sync_at, settings, created_at, updated_at')
+    .select('id, organization_id, integration_type, access_token, refresh_token, token_expires_at, external_id, is_active, last_sync_at, last_error, settings, created_at, updated_at')
     .eq('organization_id', profile?.organization_id);
 
   const quickbooksIntegration = integrations?.find(i => i.integration_type === 'quickbooks') || null;
@@ -31,7 +31,7 @@ export default async function IntegrationsPage() {
   // Get recent sync logs
   const { data: syncLogs } = await supabase
     .from('integration_sync_log')
-    .select('id, organization_id, integration_type, sync_type, status, records_synced, records_failed, error_message, started_at, completed_at')
+    .select('id, organization_id, integration_type, sync_type, direction, status, records_processed, records_succeeded, records_failed, errors, error_message, started_at, completed_at, duration_ms')
     .eq('organization_id', profile?.organization_id)
     .order('started_at', { ascending: false })
     .limit(10);

@@ -1,26 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { JobCompletionService } from '@/lib/services/job-completion-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
-import { createClient } from '@/lib/supabase/server'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { updateMaterialUsageSchema } from '@/lib/validations/jobs'
 
-type RouteParams = { params: Promise<{ id: string; usageId: string }> }
-
-export async function PATCH(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { usageId } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json()
-
-    const materialUsage = await JobCompletionService.updateMaterialUsage(usageId, {
+/**
+ * PATCH /api/jobs/[id]/material-usage/[usageId]
+ * Update a material usage record
+ */
+export const PATCH = createApiHandlerWithParams<
+  typeof updateMaterialUsageSchema._type,
+  unknown,
+  { id: string; usageId: string }
+>(
+  {
+    rateLimit: 'general',
+    bodySchema: updateMaterialUsageSchema,
+  },
+  async (_request, _context, params, body) => {
+    const materialUsage = await JobCompletionService.updateMaterialUsage(params.usageId, {
       material_name: body.material_name,
       material_type: body.material_type,
       quantity_estimated: body.quantity_estimated,
@@ -31,28 +28,21 @@ export async function PATCH(
     })
 
     return NextResponse.json(materialUsage)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { usageId } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    await JobCompletionService.deleteMaterialUsage(usageId)
-
+/**
+ * DELETE /api/jobs/[id]/material-usage/[usageId]
+ * Delete a material usage record
+ */
+export const DELETE = createApiHandlerWithParams<
+  unknown,
+  unknown,
+  { id: string; usageId: string }
+>(
+  { rateLimit: 'general' },
+  async (_request, _context, params) => {
+    await JobCompletionService.deleteMaterialUsage(params.usageId)
     return NextResponse.json({ success: true })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

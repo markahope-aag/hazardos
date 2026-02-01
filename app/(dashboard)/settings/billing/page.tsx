@@ -48,7 +48,7 @@ export default async function BillingSettingsPage() {
   // Get all plans
   const { data: plansData } = await supabase
     .from('subscription_plans')
-    .select('id, name, slug, description, price_monthly, price_yearly, stripe_price_id_monthly, stripe_price_id_yearly, features, limits, is_active, is_public, display_order, created_at')
+    .select('id, name, slug, description, price_monthly, price_yearly, stripe_product_id, stripe_price_id_monthly, stripe_price_id_yearly, max_users, max_jobs_per_month, max_storage_gb, features, feature_flags, is_active, is_public, display_order, created_at, updated_at')
     .eq('is_active', true)
     .eq('is_public', true)
     .order('display_order')

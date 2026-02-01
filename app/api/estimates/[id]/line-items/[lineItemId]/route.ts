@@ -1,44 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
-import type { UpdateLineItemInput } from '@/types/estimates'
-
-interface RouteParams {
-  params: Promise<{ id: string; lineItemId: string }>
-}
+import { NextResponse } from 'next/server'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { updateLineItemSchema } from '@/lib/validations/estimates'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
 /**
  * PATCH /api/estimates/[id]/line-items/[lineItemId]
  * Update a single line item
  */
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  try {
-    const { id, lineItemId } = await params
-    const supabase = await createClient()
-
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    // Get user's organization
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'Profile not found')
-    }
-
+export const PATCH = createApiHandlerWithParams<
+  typeof updateLineItemSchema._type,
+  unknown,
+  { id: string; lineItemId: string }
+>(
+  {
+    rateLimit: 'general',
+    bodySchema: updateLineItemSchema,
+  },
+  async (_request, context, params, body) => {
     // Verify estimate belongs to organization
-    const { data: estimate, error: estimateError } = await supabase
+    const { data: estimate, error: estimateError } = await context.supabase
       .from('estimates')
       .select('id, status')
-      .eq('id', id)
-      .eq('organization_id', profile.organization_id)
+      .eq('id', params.id)
+      .eq('organization_id', context.profile.organization_id)
       .single()
 
     if (estimateError || !estimate) {
@@ -51,19 +35,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get existing line item
-    const { data: existing, error: existingError } = await supabase
+    const { data: existing, error: existingError } = await context.supabase
       .from('estimate_line_items')
       .select('id, quantity, unit_price')
-      .eq('id', lineItemId)
-      .eq('estimate_id', id)
+      .eq('id', params.lineItemId)
+      .eq('estimate_id', params.id)
       .single()
 
     if (existingError || !existing) {
       throw new SecureError('NOT_FOUND', 'Line item not found')
     }
-
-    // Parse request body
-    const body: UpdateLineItemInput = await request.json()
 
     // Build update object
     const updateData: Record<string, unknown> = {}
@@ -76,7 +57,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (body.unit_price !== undefined) updateData.unit_price = body.unit_price
     if (body.is_optional !== undefined) updateData.is_optional = body.is_optional
     if (body.is_included !== undefined) updateData.is_included = body.is_included
-    if (body.notes !== undefined) updateData.notes = body.notes
     if (body.sort_order !== undefined) updateData.sort_order = body.sort_order
 
     // Recalculate total price
@@ -85,10 +65,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     updateData.total_price = qty * price
 
     // Update the line item
-    const { data: lineItem, error: updateError } = await supabase
+    const { data: lineItem, error: updateError } = await context.supabase
       .from('estimate_line_items')
       .update(updateData)
-      .eq('id', lineItemId)
+      .eq('id', params.lineItemId)
       .select()
       .single()
 
@@ -97,43 +77,26 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json({ line_item: lineItem })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
 /**
  * DELETE /api/estimates/[id]/line-items/[lineItemId]
  * Delete a line item
  */
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  try {
-    const { id, lineItemId } = await params
-    const supabase = await createClient()
-
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    // Get user's organization
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'Profile not found')
-    }
-
+export const DELETE = createApiHandlerWithParams<
+  unknown,
+  unknown,
+  { id: string; lineItemId: string }
+>(
+  { rateLimit: 'general' },
+  async (_request, context, params) => {
     // Verify estimate belongs to organization
-    const { data: estimate, error: estimateError } = await supabase
+    const { data: estimate, error: estimateError } = await context.supabase
       .from('estimates')
       .select('id, status')
-      .eq('id', id)
-      .eq('organization_id', profile.organization_id)
+      .eq('id', params.id)
+      .eq('organization_id', context.profile.organization_id)
       .single()
 
     if (estimateError || !estimate) {
@@ -146,18 +109,16 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Delete the line item
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await context.supabase
       .from('estimate_line_items')
       .delete()
-      .eq('id', lineItemId)
-      .eq('estimate_id', id)
+      .eq('id', params.lineItemId)
+      .eq('estimate_id', params.id)
 
     if (deleteError) {
       throw deleteError
     }
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

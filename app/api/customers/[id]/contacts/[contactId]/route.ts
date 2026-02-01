@@ -1,51 +1,45 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { ContactsService } from '@/lib/services/contacts-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { updateContactSchema } from '@/lib/validations/customers'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
-// GET /api/customers/[id]/contacts/[contactId] - Get a specific contact
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string; contactId: string }> }
-) {
-  const { contactId } = await params
-  try {
-    const supabase = await createClient()
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const contact = await ContactsService.get(contactId)
+/**
+ * GET /api/customers/[id]/contacts/[contactId]
+ * Get a specific contact
+ */
+export const GET = createApiHandlerWithParams<
+  unknown,
+  unknown,
+  { id: string; contactId: string }
+>(
+  { rateLimit: 'general' },
+  async (_request, _context, params) => {
+    const contact = await ContactsService.get(params.contactId)
 
     if (!contact) {
       throw new SecureError('NOT_FOUND', 'Contact not found')
     }
 
     return NextResponse.json(contact)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-// PATCH /api/customers/[id]/contacts/[contactId] - Update a contact
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string; contactId: string }> }
-) {
-  const { contactId } = await params
-  try {
-    const supabase = await createClient()
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json()
-
-    const contact = await ContactsService.update(contactId, {
+/**
+ * PATCH /api/customers/[id]/contacts/[contactId]
+ * Update a contact
+ */
+export const PATCH = createApiHandlerWithParams<
+  typeof updateContactSchema._type,
+  unknown,
+  { id: string; contactId: string }
+>(
+  {
+    rateLimit: 'general',
+    bodySchema: updateContactSchema,
+  },
+  async (_request, _context, params, body) => {
+    const contact = await ContactsService.update(params.contactId, {
       name: body.name,
       title: body.title,
       email: body.email,
@@ -58,29 +52,21 @@ export async function PATCH(
     })
 
     return NextResponse.json(contact)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-// DELETE /api/customers/[id]/contacts/[contactId] - Delete a contact
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string; contactId: string }> }
-) {
-  const { contactId } = await params
-  try {
-    const supabase = await createClient()
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    await ContactsService.delete(contactId)
-
+/**
+ * DELETE /api/customers/[id]/contacts/[contactId]
+ * Delete a contact
+ */
+export const DELETE = createApiHandlerWithParams<
+  unknown,
+  unknown,
+  { id: string; contactId: string }
+>(
+  { rateLimit: 'general' },
+  async (_request, _context, params) => {
+    await ContactsService.delete(params.contactId)
     return NextResponse.json({ message: 'Contact deleted successfully' })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

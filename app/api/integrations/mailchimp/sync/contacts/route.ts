@@ -1,51 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { MailchimpService } from '@/lib/services/mailchimp-service';
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler';
+import { NextResponse } from 'next/server'
+import { MailchimpService } from '@/lib/services/mailchimp-service'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { SecureError } from '@/lib/utils/secure-error-handler'
+import { z } from 'zod'
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+const mailchimpSyncContactsSchema = z.object({
+  list_id: z.string().min(1, 'list_id is required'),
+  customer_id: z.string().uuid().optional(),
+})
 
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED');
+/**
+ * POST /api/integrations/mailchimp/sync/contacts
+ * Sync contacts to Mailchimp
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'heavy',
+    bodySchema: mailchimpSyncContactsSchema,
+  },
+  async (_request, context, body) => {
+    if (!body.list_id) {
+      throw new SecureError('VALIDATION_ERROR', 'list_id is required', 'list_id')
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'No organization found');
-    }
-
-    const body = await request.json();
-    const { list_id, customer_id } = body;
-
-    if (!list_id) {
-      throw new SecureError('VALIDATION_ERROR', 'list_id is required', 'list_id');
-    }
-
-    if (customer_id) {
+    if (body.customer_id) {
       // Sync single customer
       const mailchimpId = await MailchimpService.syncContact(
-        profile.organization_id,
-        customer_id,
-        list_id
-      );
-      return NextResponse.json({ success: true, mailchimp_id: mailchimpId });
+        context.profile.organization_id,
+        body.customer_id,
+        body.list_id
+      )
+      return NextResponse.json({ success: true, mailchimp_id: mailchimpId })
     } else {
       // Sync all contacts
       const results = await MailchimpService.syncAllContacts(
-        profile.organization_id,
-        list_id
-      );
-      return NextResponse.json({ success: true, ...results });
+        context.profile.organization_id,
+        body.list_id
+      )
+      return NextResponse.json({ success: true, ...results })
     }
-  } catch (error) {
-    return createSecureErrorResponse(error);
   }
-}
+)

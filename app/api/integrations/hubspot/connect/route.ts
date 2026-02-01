@@ -1,43 +1,28 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { HubSpotService } from '@/lib/services/hubspot-service';
-import { randomBytes } from 'crypto';
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler';
+import { NextResponse } from 'next/server'
+import { HubSpotService } from '@/lib/services/hubspot-service'
+import { randomBytes } from 'crypto'
+import { createApiHandler } from '@/lib/utils/api-handler'
 
-export async function GET() {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED');
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'No organization found');
-    }
-
+/**
+ * GET /api/integrations/hubspot/connect
+ * Get HubSpot OAuth authorization URL
+ */
+export const GET = createApiHandler(
+  { rateLimit: 'general' },
+  async (_request, context) => {
     // Generate state token for CSRF protection
-    const state = `${profile.organization_id}:${randomBytes(16).toString('hex')}`;
+    const state = `${context.profile.organization_id}:${randomBytes(16).toString('hex')}`
 
     // Get authorization URL
-    const authUrl = HubSpotService.getAuthorizationUrl(state);
+    const authUrl = HubSpotService.getAuthorizationUrl(state)
 
-    const response = NextResponse.json({ url: authUrl });
+    const response = NextResponse.json({ url: authUrl })
     response.cookies.set('hubspot_state', state, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 600, // 10 minutes
-    });
+    })
 
-    return response;
-  } catch (error) {
-    return createSecureErrorResponse(error);
+    return response
   }
-}
+)

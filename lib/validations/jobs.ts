@@ -323,7 +323,11 @@ export const createMaterialUsageSchema = z.object({
 })
 
 export const updateMaterialUsageSchema = z.object({
+  material_name: z.string().max(255).optional(),
+  material_type: z.string().max(100).optional(),
+  quantity_estimated: z.number().min(0).optional(),
   quantity_used: z.number().positive().optional(),
+  unit: z.string().max(50).optional(),
   unit_cost: z.number().min(0).optional(),
   notes: z.string().max(500).optional(),
 })
