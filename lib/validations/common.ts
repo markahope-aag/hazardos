@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { createSanitizeTransform, createSearchSanitizeTransform } from '@/lib/utils/sanitize'
 
 // Common ID parameter schema
 export const idParamSchema = z.object({
@@ -11,9 +12,9 @@ export const paginationQuerySchema = z.object({
   offset: z.string().transform(Number).optional(),
 })
 
-// Common search query
+// Common search query with sanitization for SQL LIKE wildcards
 export const searchQuerySchema = z.object({
-  search: z.string().optional(),
+  search: z.string().optional().transform(val => val ? createSearchSanitizeTransform()(val) : val),
   limit: z.string().transform(Number).optional(),
   offset: z.string().transform(Number).optional(),
 })
@@ -66,6 +67,12 @@ export const optionalEmailSchema = z.string().email('Invalid email').optional().
 
 // Phone number
 export const phoneSchema = z.string().max(20).optional()
+
+// Sanitized string schema - use for user-provided text fields
+export const sanitizedStringSchema = z.string().transform(createSanitizeTransform())
+
+// Sanitized search string schema - use for search queries
+export const sanitizedSearchSchema = z.string().transform(createSearchSanitizeTransform())
 
 // Export types
 export type IdParam = z.infer<typeof idParamSchema>

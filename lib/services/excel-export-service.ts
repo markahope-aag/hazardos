@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs'
 import type { ReportColumn } from '@/types/reporting'
+import { sanitizeForCSV } from '@/lib/utils/sanitize'
 
 interface ExportOptions {
   title: string
@@ -134,10 +135,13 @@ export class ExcelExportService {
   }
 
   private static escapeCSV(value: string): string {
-    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-      return `"${value.replace(/"/g, '""')}"`
+    // Sanitize for formula injection, then wrap/escape as needed
+    const sanitized = sanitizeForCSV(value)
+
+    if (sanitized.includes(',') || sanitized.includes('"') || sanitized.includes('\n') || sanitized.includes('\r')) {
+      return `"${sanitized.replace(/"/g, '""')}"`
     }
-    return value
+    return sanitized
   }
 
   private static getColumnWidth(col: ReportColumn): number {

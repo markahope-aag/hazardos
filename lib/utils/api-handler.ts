@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import { applyUnifiedRateLimit, UnifiedRateLimiterType } from '@/lib/middleware/unified-rate-limit'
 import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 import { createRequestLogger } from '@/lib/utils/logger'
+import { sanitizeObject } from '@/lib/utils/sanitize'
+import type { SanitizeOptions } from '@/lib/types/sanitize'
 import type { Logger } from 'pino'
 
 /** Internal auth context without logging fields */
@@ -34,6 +36,9 @@ export interface ApiHandlerOptions<TBody = unknown, TQuery = unknown> {
   // Zod schemas for validation
   bodySchema?: ZodSchema<TBody>
   querySchema?: ZodSchema<TQuery>
+
+  // Sanitization options (defaults to enabled)
+  sanitize?: boolean | SanitizeOptions
 }
 
 type HandlerWithBody<TBody, TQuery> = (
@@ -150,6 +155,17 @@ function checkRoles(context: AuthContext, allowedRoles?: string[]): void {
   }
 }
 
+// Apply sanitization to body/query based on options
+function applySanitization<T>(data: T, sanitize: boolean | SanitizeOptions | undefined): T {
+  // Sanitization is enabled by default
+  if (sanitize === false) {
+    return data
+  }
+
+  const options: SanitizeOptions = typeof sanitize === 'object' ? sanitize : {}
+  return sanitizeObject(data, options)
+}
+
 /**
  * Create an API handler with rate limiting, authentication, and Zod validation
  *
@@ -191,6 +207,7 @@ export function createApiHandler<
     allowedRoles,
     bodySchema,
     querySchema,
+    sanitize,
   } = options
 
   return async (request: NextRequest) => {
@@ -243,11 +260,13 @@ export function createApiHandler<
         checkRoles(context, allowedRoles)
       }
 
-      // Parse query parameters
-      const query = parseQuery(request, querySchema)
+      // Parse query parameters and apply sanitization
+      const rawQuery = parseQuery(request, querySchema)
+      const query = applySanitization(rawQuery, sanitize)
 
-      // Parse body if schema provided
-      const body = bodySchema ? await parseBody(request, bodySchema) : ({} as TBody)
+      // Parse body if schema provided and apply sanitization
+      const rawBody = bodySchema ? await parseBody(request, bodySchema) : ({} as TBody)
+      const body = applySanitization(rawBody, sanitize)
 
       // Call the handler with logger in context
       const enrichedContext: ApiContext = {
@@ -282,7 +301,7 @@ export function createPublicApiHandler<TBody = unknown, TQuery = unknown>(
   options: Omit<ApiHandlerOptions<TBody, TQuery>, 'requireAuth' | 'allowedRoles'>,
   handler: (request: NextRequest, body: TBody, query: TQuery) => Promise<NextResponse>
 ): (request: NextRequest) => Promise<NextResponse> {
-  const { rateLimit = 'general', bodySchema, querySchema } = options
+  const { rateLimit = 'general', bodySchema, querySchema, sanitize } = options
 
   return async (request: NextRequest) => {
     const startTime = Date.now()
@@ -308,9 +327,11 @@ export function createPublicApiHandler<TBody = unknown, TQuery = unknown>(
         return rateLimitResponse
       }
 
-      // Parse query and body
-      const query = parseQuery(request, querySchema)
-      const body = bodySchema ? await parseBody(request, bodySchema) : ({} as TBody)
+      // Parse query and body, then apply sanitization
+      const rawQuery = parseQuery(request, querySchema)
+      const query = applySanitization(rawQuery, sanitize)
+      const rawBody = bodySchema ? await parseBody(request, bodySchema) : ({} as TBody)
+      const body = applySanitization(rawBody, sanitize)
 
       const response = await handler(request, body, query)
 
@@ -345,6 +366,7 @@ export function createApiHandlerWithParams<TBody = unknown, TQuery = unknown, TP
     allowedRoles,
     bodySchema,
     querySchema,
+    sanitize,
   } = options
 
   return async (request: NextRequest, props: { params: Promise<TParams> }) => {
@@ -400,9 +422,11 @@ export function createApiHandlerWithParams<TBody = unknown, TQuery = unknown, TP
         checkRoles(context, allowedRoles)
       }
 
-      // Parse query and body
-      const query = parseQuery(request, querySchema)
-      const body = bodySchema ? await parseBody(request, bodySchema) : ({} as TBody)
+      // Parse query and body, then apply sanitization
+      const rawQuery = parseQuery(request, querySchema)
+      const query = applySanitization(rawQuery, sanitize)
+      const rawBody = bodySchema ? await parseBody(request, bodySchema) : ({} as TBody)
+      const body = applySanitization(rawBody, sanitize)
 
       // Call the handler with logger in context
       const enrichedContext: ApiContext = {
