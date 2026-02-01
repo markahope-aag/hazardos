@@ -1,54 +1,44 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
-import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
+import { NextResponse } from 'next/server'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import {
+  createMaterialCostSchema,
+  updateMaterialCostSchema,
+  deleteMaterialCostQuerySchema,
+} from '@/lib/validations/settings'
 
-export async function GET() {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const { data, error } = await supabase
+/**
+ * GET /api/settings/pricing/material-costs
+ * List material costs
+ */
+export const GET = createApiHandler(
+  { rateLimit: 'general' },
+  async (_request, context) => {
+    const { data, error } = await context.supabase
       .from('material_costs')
-      .select('*')
+      .select('id, organization_id, name, material_name, unit_cost, cost_per_unit, unit, unit_type, description, is_active, created_at, updated_at')
       .order('name')
 
-    if (error) {
-      throw error
-    }
+    if (error) throw error
 
     return NextResponse.json({ material_costs: data })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'tenant_owner'].includes(profile.role)) {
-      throw new SecureError('FORBIDDEN')
-    }
-
-    const body = await request.json()
-
-    const { data, error } = await supabase
+/**
+ * POST /api/settings/pricing/material-costs
+ * Create a material cost
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: createMaterialCostSchema,
+    allowedRoles: ['admin', 'tenant_owner'],
+  },
+  async (_request, context, body) => {
+    const { data, error } = await context.supabase
       .from('material_costs')
       .insert({
-        organization_id: profile.organization_id,
+        organization_id: context.profile.organization_id,
         name: body.name,
         cost_per_unit: body.cost_per_unit,
         unit: body.unit,
@@ -57,92 +47,56 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    if (error) {
-      throw error
-    }
+    if (error) throw error
 
     return NextResponse.json(data, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function PATCH(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'tenant_owner'].includes(profile.role)) {
-      throw new SecureError('FORBIDDEN')
-    }
-
-    const body = await request.json()
+/**
+ * PATCH /api/settings/pricing/material-costs
+ * Update a material cost
+ */
+export const PATCH = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: updateMaterialCostSchema,
+    allowedRoles: ['admin', 'tenant_owner'],
+  },
+  async (_request, context, body) => {
     const { id, ...updateData } = body
 
-    validateRequired(id, 'id')
-
-    const { data, error } = await supabase
+    const { data, error } = await context.supabase
       .from('material_costs')
       .update(updateData)
       .eq('id', id)
       .select()
       .single()
 
-    if (error) {
-      throw error
-    }
+    if (error) throw error
 
     return NextResponse.json(data)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function DELETE(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'tenant_owner'].includes(profile.role)) {
-      throw new SecureError('FORBIDDEN')
-    }
-
-    const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
-
-    if (!id) {
-      throw new SecureError('VALIDATION_ERROR', 'ID is required')
-    }
-
-    const { error } = await supabase
+/**
+ * DELETE /api/settings/pricing/material-costs
+ * Delete a material cost
+ */
+export const DELETE = createApiHandler(
+  {
+    rateLimit: 'general',
+    querySchema: deleteMaterialCostQuerySchema,
+    allowedRoles: ['admin', 'tenant_owner'],
+  },
+  async (_request, context, _body, query) => {
+    const { error } = await context.supabase
       .from('material_costs')
       .delete()
-      .eq('id', id)
+      .eq('id', query.id)
 
-    if (error) {
-      throw error
-    }
+    if (error) throw error
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

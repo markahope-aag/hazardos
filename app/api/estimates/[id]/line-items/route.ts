@@ -27,7 +27,7 @@ export const GET = createApiHandlerWithParams(
     // Get line items
     const { data: lineItems, error } = await context.supabase
       .from('estimate_line_items')
-      .select('*')
+      .select('id, estimate_id, item_type, category, description, quantity, unit, unit_price, total_price, source_rate_id, source_table, sort_order, is_optional, is_included, notes, created_at, updated_at')
       .eq('estimate_id', params.id)
       .order('sort_order', { ascending: true })
 
@@ -178,7 +178,7 @@ export const PUT = createApiHandlerWithParams(
     // Fetch updated line items
     const { data: lineItems, error: fetchError } = await context.supabase
       .from('estimate_line_items')
-      .select('*')
+      .select('id, estimate_id, item_type, category, description, quantity, unit, unit_price, total_price, source_rate_id, source_table, sort_order, is_optional, is_included, notes, created_at, updated_at')
       .eq('estimate_id', params.id)
       .order('sort_order', { ascending: true })
 

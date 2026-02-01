@@ -16,7 +16,7 @@ export class CommissionService {
 
     const { data, error } = await supabase
       .from('commission_plans')
-      .select('*')
+      .select('id, organization_id, name, commission_type, base_rate, tiers, applies_to, is_active, created_at, updated_at')
       .eq('is_active', true)
       .order('name')
 
@@ -29,7 +29,7 @@ export class CommissionService {
 
     const { data, error } = await supabase
       .from('commission_plans')
-      .select('*')
+      .select('id, organization_id, name, commission_type, base_rate, tiers, applies_to, is_active, created_at, updated_at')
       .eq('id', id)
       .single()
 

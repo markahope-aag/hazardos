@@ -1,15 +1,53 @@
 import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { StatsCards } from '@/components/dashboard/stats-cards';
-import { RevenueChart } from '@/components/dashboard/revenue-chart';
 import { UpcomingJobs } from '@/components/dashboard/upcoming-jobs';
 import { OverdueInvoices } from '@/components/dashboard/overdue-invoices';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
-import { JobsByStatus } from '@/components/dashboard/jobs-by-status';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, FileText, Calendar, Users } from 'lucide-react';
 import Link from 'next/link';
+
+// Lazy load heavy chart components (recharts ~200KB)
+const RevenueChart = dynamic(
+  () => import('@/components/dashboard/revenue-chart').then(mod => ({ default: mod.RevenueChart })),
+  {
+    ssr: false,
+    loading: () => (
+      <Card>
+        <CardHeader>
+          <div className="h-5 bg-muted rounded animate-pulse w-40" />
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          </div>
+        </CardContent>
+      </Card>
+    ),
+  }
+);
+
+const JobsByStatus = dynamic(
+  () => import('@/components/dashboard/jobs-by-status').then(mod => ({ default: mod.JobsByStatus })),
+  {
+    ssr: false,
+    loading: () => (
+      <Card>
+        <CardHeader>
+          <div className="h-5 bg-muted rounded animate-pulse w-32" />
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          </div>
+        </CardContent>
+      </Card>
+    ),
+  }
+);
 
 function StatsCardsSkeleton() {
   return (

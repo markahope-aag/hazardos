@@ -76,7 +76,7 @@ export class ReportingService {
 
     const { data, error } = await supabase
       .from('mv_sales_performance')
-      .select('*')
+      .select('organization_id, month, total_proposals, proposals_won, proposals_lost, total_value, won_value, win_rate, avg_deal_size')
       .eq('organization_id', profile.organization_id)
       .gte('month', start)
       .lte('month', end)
@@ -103,7 +103,7 @@ export class ReportingService {
 
     const { data, error } = await supabase
       .from('mv_job_costs')
-      .select('*')
+      .select('organization_id, month, total_jobs, completed_jobs, total_revenue, total_labor_cost, total_material_cost, total_equipment_cost, total_disposal_cost, gross_profit, gross_margin')
       .eq('organization_id', profile.organization_id)
       .gte('month', start)
       .lte('month', end)
@@ -130,7 +130,7 @@ export class ReportingService {
 
     const { data, error } = await supabase
       .from('mv_lead_source_roi')
-      .select('*')
+      .select('organization_id, month, source, lead_count, converted_count, conversion_rate, total_revenue, cost_per_lead, roi')
       .eq('organization_id', profile.organization_id)
       .gte('month', start)
       .lte('month', end)
@@ -147,7 +147,7 @@ export class ReportingService {
 
     const { data, error } = await supabase
       .from('saved_reports')
-      .select('*')
+      .select('id, organization_id, name, description, report_type, config, is_shared, schedule_enabled, schedule_frequency, schedule_recipients, created_by, created_at, updated_at')
       .order('updated_at', { ascending: false })
 
     if (error) throw error
@@ -159,7 +159,7 @@ export class ReportingService {
 
     const { data, error } = await supabase
       .from('saved_reports')
-      .select('*')
+      .select('id, organization_id, name, description, report_type, config, is_shared, schedule_enabled, schedule_frequency, schedule_recipients, created_by, created_at, updated_at')
       .eq('id', id)
       .single()
 

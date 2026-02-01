@@ -27,7 +27,7 @@ export const POST = createApiHandler(
   async (_request, context, body) => {
     const segment = await SegmentationService.create(
       context.profile.organization_id,
-      context.profile.id,
+      context.user.id,
       body
     )
     return NextResponse.json({ segment })

@@ -16,7 +16,7 @@ export class ApprovalService {
 
     let query = supabase
       .from('approval_thresholds')
-      .select('*')
+      .select('id, organization_id, entity_type, threshold_amount, approval_level, approver_role, is_active, created_at, updated_at')
       .eq('is_active', true)
       .order('threshold_amount')
 

@@ -53,7 +53,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Get existing line item
     const { data: existing, error: existingError } = await supabase
       .from('estimate_line_items')
-      .select('*')
+      .select('id, quantity, unit_price')
       .eq('id', lineItemId)
       .eq('estimate_id', id)
       .single()

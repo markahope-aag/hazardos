@@ -27,7 +27,7 @@ export async function RecentActivity() {
 
   const { data: activities } = await supabase
     .from('activity_log')
-    .select('*')
+    .select('id, user_name, action, entity_type, entity_name, created_at')
     .order('created_at', { ascending: false })
     .limit(8);
 

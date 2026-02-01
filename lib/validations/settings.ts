@@ -60,24 +60,51 @@ export const deleteMaterialCostQuerySchema = z.object({
 
 // Travel rate
 export const createTravelRateSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255),
-  rate_per_mile: z.number().min(0, 'Rate must be non-negative'),
-  minimum_charge: z.number().min(0).optional(),
+  min_miles: z.number().min(0, 'Min miles must be non-negative'),
+  max_miles: z.number().min(0).optional().nullable(),
+  flat_fee: z.number().min(0).optional().nullable(),
+  per_mile_rate: z.number().min(0).optional().nullable(),
   description: z.string().max(500).optional(),
-  is_default: z.boolean().optional().default(false),
 })
 
 export const updateTravelRateSchema = z.object({
   id: z.string().uuid('Invalid ID'),
-  name: z.string().min(1).max(255).optional(),
-  rate_per_mile: z.number().min(0).optional(),
-  minimum_charge: z.number().min(0).optional(),
+  min_miles: z.number().min(0).optional(),
+  max_miles: z.number().min(0).optional().nullable(),
+  flat_fee: z.number().min(0).optional().nullable(),
+  per_mile_rate: z.number().min(0).optional().nullable(),
   description: z.string().max(500).optional(),
-  is_default: z.boolean().optional(),
+  is_active: z.boolean().optional(),
 })
 
 export const deleteTravelRateQuerySchema = z.object({
   id: z.string().uuid('Invalid ID'),
+})
+
+// Equipment rate
+export const createEquipmentRateSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(255),
+  rate_per_day: z.number().min(0, 'Rate must be non-negative'),
+  description: z.string().max(500).optional(),
+})
+
+export const updateEquipmentRateSchema = z.object({
+  id: z.string().uuid('Invalid ID'),
+  name: z.string().min(1).max(255).optional(),
+  rate_per_day: z.number().min(0).optional(),
+  description: z.string().max(500).optional(),
+})
+
+export const deleteEquipmentRateQuerySchema = z.object({
+  id: z.string().uuid('Invalid ID'),
+})
+
+// Pricing settings
+export const updatePricingSettingsSchema = z.object({
+  default_markup_percentage: z.number().min(0).max(100).optional(),
+  default_tax_rate: z.number().min(0).max(100).optional(),
+  rounding_method: z.enum(['none', 'nearest', 'up', 'down']).optional(),
+  currency: z.string().max(3).optional(),
 })
 
 // Export types
@@ -89,3 +116,5 @@ export type CreateMaterialCostInput = z.infer<typeof createMaterialCostSchema>
 export type UpdateMaterialCostInput = z.infer<typeof updateMaterialCostSchema>
 export type CreateTravelRateInput = z.infer<typeof createTravelRateSchema>
 export type UpdateTravelRateInput = z.infer<typeof updateTravelRateSchema>
+export type CreateEquipmentRateInput = z.infer<typeof createEquipmentRateSchema>
+export type UpdateEquipmentRateInput = z.infer<typeof updateEquipmentRateSchema>

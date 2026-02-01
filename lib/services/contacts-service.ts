@@ -18,7 +18,7 @@ export class ContactsService {
 
     const { data, error } = await supabase
       .from('customer_contacts')
-      .select('*')
+      .select('id, organization_id, customer_id, name, title, email, phone, mobile, role, is_primary, preferred_contact_method, notes, created_at, updated_at')
       .eq('customer_id', customerId)
       .order('is_primary', { ascending: false })
       .order('created_at', { ascending: true })
@@ -39,7 +39,7 @@ export class ContactsService {
 
     const { data, error } = await supabase
       .from('customer_contacts')
-      .select('*')
+      .select('id, organization_id, customer_id, name, title, email, phone, mobile, role, is_primary, preferred_contact_method, notes, created_at, updated_at')
       .eq('id', contactId)
       .single()
 
@@ -216,7 +216,7 @@ export class ContactsService {
 
     const { data, error } = await supabase
       .from('customer_contacts')
-      .select('*')
+      .select('id, organization_id, customer_id, name, title, email, phone, mobile, role, is_primary, preferred_contact_method, notes, created_at, updated_at')
       .eq('customer_id', customerId)
       .eq('role', role)
       .order('is_primary', { ascending: false })
@@ -237,7 +237,7 @@ export class ContactsService {
 
     const { data, error } = await supabase
       .from('customer_contacts')
-      .select('*')
+      .select('id, organization_id, customer_id, name, title, email, phone, mobile, role, is_primary, preferred_contact_method, notes, created_at, updated_at')
       .eq('customer_id', customerId)
       .eq('is_primary', true)
       .single()

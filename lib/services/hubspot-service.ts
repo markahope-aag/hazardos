@@ -111,7 +111,7 @@ export class HubSpotService {
 
     const { data: integration } = await supabase
       .from('organization_integrations')
-      .select('*')
+      .select('id, access_token, refresh_token, token_expires_at, external_id')
       .eq('organization_id', organizationId)
       .eq('integration_type', 'hubspot')
       .eq('is_active', true)
@@ -149,7 +149,7 @@ export class HubSpotService {
 
     const { data: integration } = await supabase
       .from('organization_integrations')
-      .select('*')
+      .select('id, external_id, is_active, last_sync_at')
       .eq('organization_id', organizationId)
       .eq('integration_type', 'hubspot')
       .single();
@@ -247,7 +247,7 @@ export class HubSpotService {
     // Fetch customer
     const { data: customer } = await supabase
       .from('customers')
-      .select('*')
+      .select('id, first_name, last_name, company_name, email, phone, address_line1, city, state, zip, hubspot_id')
       .eq('id', customerId)
       .single();
 

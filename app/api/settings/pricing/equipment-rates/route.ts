@@ -1,55 +1,44 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { NextResponse } from 'next/server'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import {
+  createEquipmentRateSchema,
+  updateEquipmentRateSchema,
+  deleteEquipmentRateQuerySchema,
+} from '@/lib/validations/settings'
 
-export async function GET() {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { data, error } = await supabase
+/**
+ * GET /api/settings/pricing/equipment-rates
+ * List equipment rates
+ */
+export const GET = createApiHandler(
+  { rateLimit: 'general' },
+  async (_request, context) => {
+    const { data, error } = await context.supabase
       .from('equipment_rates')
-      .select('*')
+      .select('id, organization_id, name, equipment_name, daily_rate, weekly_rate, monthly_rate, rate_per_day, description, is_active, created_at, updated_at')
       .order('name')
 
-    if (error) {
-      return createSecureErrorResponse(error)
-    }
+    if (error) throw error
 
     return NextResponse.json({ equipment_rates: data })
-  } catch (error) {
-    console.error('Error fetching equipment rates:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'tenant_owner'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    const body = await request.json()
-
-    const { data, error } = await supabase
+/**
+ * POST /api/settings/pricing/equipment-rates
+ * Create an equipment rate
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: createEquipmentRateSchema,
+    allowedRoles: ['admin', 'tenant_owner'],
+  },
+  async (_request, context, body) => {
+    const { data, error } = await context.supabase
       .from('equipment_rates')
       .insert({
-        organization_id: profile.organization_id,
+        organization_id: context.profile.organization_id,
         name: body.name,
         rate_per_day: body.rate_per_day,
         description: body.description || null,
@@ -57,97 +46,56 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    if (error) {
-      return createSecureErrorResponse(error)
-    }
+    if (error) throw error
 
     return NextResponse.json(data, { status: 201 })
-  } catch (error) {
-    console.error('Error creating equipment rate:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
 
-export async function PATCH(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'tenant_owner'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    const body = await request.json()
+/**
+ * PATCH /api/settings/pricing/equipment-rates
+ * Update an equipment rate
+ */
+export const PATCH = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: updateEquipmentRateSchema,
+    allowedRoles: ['admin', 'tenant_owner'],
+  },
+  async (_request, context, body) => {
     const { id, ...updateData } = body
 
-    if (!id) {
-      return NextResponse.json({ error: 'ID is required' }, { status: 400 })
-    }
-
-    const { data, error } = await supabase
+    const { data, error } = await context.supabase
       .from('equipment_rates')
       .update(updateData)
       .eq('id', id)
       .select()
       .single()
 
-    if (error) {
-      return createSecureErrorResponse(error)
-    }
+    if (error) throw error
 
     return NextResponse.json(data)
-  } catch (error) {
-    console.error('Error updating equipment rate:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
 
-export async function DELETE(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'tenant_owner'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
-
-    if (!id) {
-      return NextResponse.json({ error: 'ID is required' }, { status: 400 })
-    }
-
-    const { error } = await supabase
+/**
+ * DELETE /api/settings/pricing/equipment-rates
+ * Delete an equipment rate
+ */
+export const DELETE = createApiHandler(
+  {
+    rateLimit: 'general',
+    querySchema: deleteEquipmentRateQuerySchema,
+    allowedRoles: ['admin', 'tenant_owner'],
+  },
+  async (_request, context, _body, query) => {
+    const { error } = await context.supabase
       .from('equipment_rates')
       .delete()
-      .eq('id', id)
+      .eq('id', query.id)
 
-    if (error) {
-      return createSecureErrorResponse(error)
-    }
+    if (error) throw error
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Error deleting equipment rate:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)
