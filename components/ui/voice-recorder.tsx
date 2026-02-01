@@ -199,8 +199,9 @@ export function VoiceRecorder({
                   size="sm"
                   variant="ghost"
                   onClick={clearRecording}
+                  aria-label="Clear recording"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
             </div>
@@ -249,8 +250,13 @@ export function VoiceRecorder({
     return (
       <Card className={className}>
         <CardContent className="p-4">
-          <div className="flex flex-col items-center justify-center gap-3 py-4">
-            <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+          <div
+            className="flex flex-col items-center justify-center gap-3 py-4"
+            role="status"
+            aria-busy="true"
+            aria-live="polite"
+          >
+            <Loader2 className="h-8 w-8 animate-spin text-purple-500" aria-hidden="true" />
             <p className="text-sm text-muted-foreground">Processing recording...</p>
           </div>
         </CardContent>
@@ -262,21 +268,24 @@ export function VoiceRecorder({
     return (
       <Card className={`border-red-300 ${className}`}>
         <CardContent className="p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between" role="status" aria-live="polite">
             <div className="flex items-center gap-3">
-              <div className="relative">
+              <div className="relative" aria-hidden="true">
                 <div className="h-4 w-4 bg-red-500 rounded-full animate-pulse" />
                 <div className="absolute inset-0 h-4 w-4 bg-red-500 rounded-full animate-ping opacity-75" />
               </div>
               <span className="font-medium">Recording...</span>
-              <span className="text-muted-foreground font-mono">{formatTime(recordingTime)}</span>
+              <span className="text-muted-foreground font-mono" aria-label={`Recording time: ${formatTime(recordingTime)}`}>
+                {formatTime(recordingTime)}
+              </span>
             </div>
             <Button
               size="sm"
               variant="destructive"
               onClick={stopRecording}
+              aria-label="Stop recording"
             >
-              <Square className="h-4 w-4 mr-2" />
+              <Square className="h-4 w-4 mr-2" aria-hidden="true" />
               Stop
             </Button>
           </div>
@@ -295,13 +304,15 @@ export function VoiceRecorder({
           </div>
         )}
 
-        <div
+        <button
+          type="button"
           onClick={startRecording}
-          className="flex items-center justify-center gap-3 py-6 cursor-pointer hover:bg-muted/50 rounded-lg transition-colors border-2 border-dashed"
+          className="flex items-center justify-center gap-3 py-6 w-full cursor-pointer hover:bg-muted/50 rounded-lg transition-colors border-2 border-dashed bg-transparent"
+          aria-label="Start voice recording"
         >
-          <Mic className="h-6 w-6 text-muted-foreground" />
+          <Mic className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
           <span className="text-muted-foreground">{placeholder}</span>
-        </div>
+        </button>
       </CardContent>
     </Card>
   );
