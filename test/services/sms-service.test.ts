@@ -314,7 +314,10 @@ describe('SmsService', () => {
       sms_enabled: true,
       use_platform_twilio: true,
       quiet_hours_enabled: false,
-      timezone: 'America/New_York'
+      timezone: 'America/New_York',
+      twilio_account_sid: null,
+      twilio_auth_token: null,
+      twilio_phone_number: null
     }
 
     beforeEach(() => {
@@ -354,6 +357,16 @@ describe('SmsService', () => {
                 id: 'msg-1',
                 status: 'queued'
               },
+              error: null
+            })
+          }
+        }
+        if (table === 'customers') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({
+              data: { sms_opt_in: true },
               error: null
             })
           }
@@ -595,10 +608,13 @@ describe('SmsService', () => {
         }
       ]
 
+      const mockOrder2 = vi.fn().mockResolvedValue({ data: mockTemplates, error: null })
+      const mockOrder1 = vi.fn().mockReturnValue({ order: mockOrder2 })
+
       mockSupabaseClient.from.mockReturnValue({
         select: vi.fn().mockReturnThis(),
         or: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: mockTemplates, error: null })
+        order: mockOrder1
       })
 
       const result = await SmsService.getTemplates('org-123')
