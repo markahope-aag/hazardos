@@ -257,7 +257,7 @@ export const createTimeEntrySchema = z.object({
   profile_id: z.string().uuid().optional(),
   work_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
   hours: z.number().positive('Hours must be positive'),
-  work_type: z.string().max(100).optional(),
+  work_type: z.enum(['regular', 'overtime', 'travel', 'setup', 'cleanup', 'supervision']).optional(),
   hourly_rate: z.number().positive().optional(),
   billable: z.boolean().optional().default(true),
   description: z.string().max(1000).optional(),
@@ -267,7 +267,7 @@ export const createTimeEntrySchema = z.object({
 export const updateTimeEntrySchema = z.object({
   work_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   hours: z.number().positive().optional(),
-  work_type: z.string().max(100).optional(),
+  work_type: z.enum(['regular', 'overtime', 'travel', 'setup', 'cleanup', 'supervision']).optional(),
   hourly_rate: z.number().positive().optional(),
   billable: z.boolean().optional(),
   description: z.string().max(1000).optional(),
@@ -291,7 +291,7 @@ export const createPhotoSchema = z.object({
   photo_url: z.string().url('Invalid photo URL'),
   thumbnail_url: z.string().url().optional(),
   storage_path: z.string().min(1, 'Storage path is required'),
-  photo_type: z.string().max(50).optional(),
+  photo_type: z.enum(['before', 'during', 'after', 'issue', 'documentation']).optional(),
   caption: z.string().max(500).optional(),
   taken_at: z.string().datetime().optional(),
   location_lat: z.number().optional(),
@@ -307,7 +307,7 @@ export const createPhotoSchema = z.object({
 
 export const updatePhotoSchema = z.object({
   caption: z.string().max(500).optional(),
-  photo_type: z.string().max(50).optional(),
+  photo_type: z.enum(['before', 'during', 'after', 'issue', 'documentation']).optional(),
 })
 
 // Material usage
