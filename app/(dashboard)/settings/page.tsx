@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { DollarSign, Users, Building, Bell, Shield, Palette } from 'lucide-react'
+import { DollarSign, Users, Building, Bell, Shield, Palette, Link2 } from 'lucide-react'
 import Link from 'next/link'
 
 const settingsGroups = [
@@ -8,6 +8,12 @@ const settingsGroups = [
     description: 'Labor rates, equipment costs, disposal fees, and markup settings',
     href: '/settings/pricing',
     icon: DollarSign,
+  },
+  {
+    title: 'Integrations',
+    description: 'Connect QuickBooks and other business tools',
+    href: '/settings/integrations',
+    icon: Link2,
   },
   {
     title: 'Team Members',
