@@ -13,10 +13,10 @@ export const invoiceStatusSchema = z.enum([
 
 // Payment method
 export const paymentMethodSchema = z.enum([
-  'cash',
   'check',
   'credit_card',
-  'bank_transfer',
+  'ach',
+  'cash',
   'other',
 ])
 

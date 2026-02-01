@@ -1,14 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-// Secure cookie defaults
-const secureCookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  path: '/',
-}
-
 export async function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -31,18 +23,16 @@ export async function createClient() {
         },
         set(name: string, value: string, options: CookieOptions) {
           try {
-            const secureOptions = { ...secureCookieOptions, ...options }
-            cookieStore.set({ name, value, ...secureOptions })
+            cookieStore.set({ name, value, ...options })
           } catch (_error) {
-            // Handle error - cookies can't be set in Server Components
+            // Handle error
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
-            const secureOptions = { ...secureCookieOptions, ...options }
-            cookieStore.set({ name, value: '', ...secureOptions })
+            cookieStore.set({ name, value: '', ...options })
           } catch (_error) {
-            // Handle error - cookies can't be set in Server Components
+            // Handle error
           }
         },
       },

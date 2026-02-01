@@ -52,6 +52,7 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
         if (!mounted) return
 
         if (profileError) {
+          console.error('Error fetching profile:', profileError)
           setLoading(false)
           return
         }
@@ -68,7 +69,9 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
 
           if (!mounted) return
 
-          if (!orgError) {
+          if (orgError) {
+            console.error('Error fetching organization:', orgError)
+          } else {
             setOrganization(org)
           }
         }
@@ -82,8 +85,8 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
           })
           .eq('id', currentUser.id)
 
-      } catch {
-        // Auth error - user remains unauthenticated
+      } catch (error) {
+        console.error('Error in fetchUserData:', error)
       } finally {
         if (mounted) {
           setLoading(false)

@@ -59,21 +59,21 @@ export function createSecureErrorResponse(error: unknown): NextResponse {
 
   // Check if it's our secure error type
   if (error instanceof SecureError) {
-    const response: { error: string; type: SafeErrorType; field?: string } = {
+    const response: any = {
       error: error.message,
       type: error.type,
     }
-
+    
     if (error.field) {
       response.field = error.field
     }
-
+    
     return NextResponse.json(response, { status: error.statusCode })
   }
 
   // Check for common database/auth errors and convert to safe errors
   if (error && typeof error === 'object') {
-    const errorObj = error as { message?: string; code?: string }
+    const errorObj = error as any
 
     // Supabase auth errors
     if (errorObj.message?.includes('JWT')) {
@@ -123,7 +123,7 @@ export function createSecureErrorResponse(error: unknown): NextResponse {
 }
 
 // Validation helper
-export function validateRequired(value: unknown, field: string): void {
+export function validateRequired(value: any, field: string): void {
   if (value === undefined || value === null || value === '') {
     throw new SecureError('VALIDATION_ERROR', `${field} is required`, field)
   }
