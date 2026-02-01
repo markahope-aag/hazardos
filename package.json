@@ -18,7 +18,8 @@
     "test:ui": "vitest --ui",
     "test:watch": "vitest --watch",
     "pre-commit": "npm run type-check && npm run lint && npm run test:run && npm run build",
-    "check-all": "npm run type-check && npm run lint && npm run test:run && npm run build"
+    "check-all": "npm run type-check && npm run lint && npm run test:run && npm run build",
+    "analyze": "ANALYZE=true next build"
   },
   "keywords": [
     "environmental",
