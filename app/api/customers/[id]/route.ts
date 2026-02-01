@@ -1,83 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { CustomersService } from '@/lib/supabase/customers'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { updateCustomerSchema } from '@/lib/validations/customers'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 import type { CustomerUpdate } from '@/types/database'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 
-// GET /api/customers/[id] - Get a specific customer
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params
-  try {
-    const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+/**
+ * GET /api/customers/[id]
+ * Get a specific customer
+ */
+export const GET = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+  },
+  async (_request, _context, params) => {
+    try {
+      const customer = await CustomersService.getCustomer(params.id)
+      return NextResponse.json({ customer })
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Failed to fetch customer')) {
+        throw new SecureError('NOT_FOUND', 'Customer not found')
+      }
+      throw error
     }
-
-    // Get user's profile to verify organization access
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
-
-    // Get customer using the service (RLS will ensure organization access)
-    const customer = await CustomersService.getCustomer(id)
-
-    return NextResponse.json({ customer })
-  } catch (error) {
-    console.error('Error fetching customer:', error)
-    if (error instanceof Error && error.message.includes('Failed to fetch customer')) {
-      return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
-    }
-    return NextResponse.json(
-      { error: 'Failed to fetch customer' },
-      { status: 500 }
-    )
   }
-}
+)
 
-// PATCH /api/customers/[id] - Update a customer
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params
-  try {
-    const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user's profile to verify organization access
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
-
-    // Parse request body
-    const body = await request.json()
-    
-    // Prepare update data (only include fields that are provided)
+/**
+ * PATCH /api/customers/[id]
+ * Update a customer
+ */
+export const PATCH = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: updateCustomerSchema,
+  },
+  async (_request, _context, params, body) => {
     const updateData: CustomerUpdate = {}
-    
+
     if (body.name !== undefined) updateData.name = body.name
     if (body.company_name !== undefined) updateData.company_name = body.company_name
     if (body.email !== undefined) updateData.email = body.email
@@ -94,65 +54,36 @@ export async function PATCH(
     if (body.marketing_consent_date !== undefined) updateData.marketing_consent_date = body.marketing_consent_date
     if (body.notes !== undefined) updateData.notes = body.notes
 
-    // Update customer using the service (RLS will ensure organization access)
-    const customer = await CustomersService.updateCustomer(id, updateData)
-
-    return NextResponse.json({ customer })
-  } catch (error) {
-    console.error('Error updating customer:', error)
-    if (error instanceof Error && error.message.includes('Failed to update customer')) {
-      return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
+    try {
+      const customer = await CustomersService.updateCustomer(params.id, updateData)
+      return NextResponse.json({ customer })
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Failed to update customer')) {
+        throw new SecureError('NOT_FOUND', 'Customer not found')
+      }
+      throw error
     }
-    return NextResponse.json(
-      { error: 'Failed to update customer' },
-      { status: 500 }
-    )
   }
-}
+)
 
-// DELETE /api/customers/[id] - Delete a customer
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params
-  try {
-    const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+/**
+ * DELETE /api/customers/[id]
+ * Delete a customer
+ */
+export const DELETE = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    allowedRoles: ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'],
+  },
+  async (_request, _context, params) => {
+    try {
+      await CustomersService.deleteCustomer(params.id)
+      return NextResponse.json({ message: 'Customer deleted successfully' })
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Failed to delete customer')) {
+        throw new SecureError('NOT_FOUND', 'Customer not found')
+      }
+      throw error
     }
-
-    // Get user's profile to verify organization access and role
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id, role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
-
-    // Check if user has permission to delete (admin or tenant_owner)
-    if (!['admin', 'tenant_owner', 'platform_owner'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
-    }
-
-    // Delete customer using the service (RLS will ensure organization access)
-    await CustomersService.deleteCustomer(id)
-
-    return NextResponse.json({ message: 'Customer deleted successfully' })
-  } catch (error) {
-    console.error('Error deleting customer:', error)
-    if (error instanceof Error && error.message.includes('Failed to delete customer')) {
-      return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
-    }
-    return NextResponse.json(
-      { error: 'Failed to delete customer' },
-      { status: 500 }
-    )
   }
-}
+)

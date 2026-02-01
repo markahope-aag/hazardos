@@ -1,48 +1,34 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { ContactsService } from '@/lib/services/contacts-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { createContactSchema } from '@/lib/validations/customers'
 
-// GET /api/customers/[id]/contacts - List all contacts for a customer
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params
-  try {
-    const supabase = await createClient()
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const contacts = await ContactsService.list(id)
-
+/**
+ * GET /api/customers/[id]/contacts
+ * List all contacts for a customer
+ */
+export const GET = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+  },
+  async (_request, _context, params) => {
+    const contacts = await ContactsService.list(params.id)
     return NextResponse.json(contacts)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-// POST /api/customers/[id]/contacts - Create a new contact
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params
-  try {
-    const supabase = await createClient()
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json()
-
+/**
+ * POST /api/customers/[id]/contacts
+ * Create a new contact
+ */
+export const POST = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: createContactSchema,
+  },
+  async (_request, _context, params, body) => {
     const contact = await ContactsService.create({
-      customer_id: id,
+      customer_id: params.id,
       name: body.name,
       title: body.title,
       email: body.email,
@@ -55,7 +41,5 @@ export async function POST(
     })
 
     return NextResponse.json(contact, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

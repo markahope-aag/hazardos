@@ -1,27 +1,36 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { JobCompletionService } from '@/lib/services/job-completion-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
-import { createClient } from '@/lib/supabase/server'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { z } from 'zod'
 
-export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+const varianceQuerySchema = z.object({
+  summary: z.string().optional(),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
+  customer_id: z.string().uuid().optional(),
+  hazard_types: z.string().optional(),
+  variance_threshold: z.string().optional(),
+}).passthrough()
 
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const searchParams = request.nextUrl.searchParams
-    const summary = searchParams.get('summary') === 'true'
+/**
+ * GET /api/analytics/variance
+ * Get variance analysis for jobs
+ */
+export const GET = createApiHandler(
+  {
+    rateLimit: 'general',
+    querySchema: varianceQuerySchema,
+  },
+  async (_request, _context, _body, query) => {
+    const summary = query.summary === 'true'
 
     const filters = {
-      start_date: searchParams.get('start_date') || undefined,
-      end_date: searchParams.get('end_date') || undefined,
-      customer_id: searchParams.get('customer_id') || undefined,
-      hazard_types: searchParams.get('hazard_types')?.split(',').filter(Boolean) || undefined,
-      variance_threshold: searchParams.get('variance_threshold')
-        ? parseFloat(searchParams.get('variance_threshold')!)
+      start_date: query.start_date || undefined,
+      end_date: query.end_date || undefined,
+      customer_id: query.customer_id || undefined,
+      hazard_types: query.hazard_types?.split(',').filter(Boolean) || undefined,
+      variance_threshold: query.variance_threshold
+        ? parseFloat(query.variance_threshold)
         : undefined,
     }
 
@@ -32,7 +41,5 @@ export async function GET(request: NextRequest) {
 
     const variance = await JobCompletionService.getVarianceAnalysis(filters)
     return NextResponse.json(variance)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
