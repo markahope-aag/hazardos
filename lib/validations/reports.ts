@@ -14,7 +14,7 @@ export const reportTypeSchema = z.enum([
 export const createReportSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255),
   report_type: reportTypeSchema,
-  config: z.record(z.unknown()),
+  config: z.record(z.string(), z.unknown()),
   description: z.string().max(1000).optional(),
   is_public: z.boolean().optional().default(false),
 })
@@ -23,7 +23,7 @@ export const createReportSchema = z.object({
 export const updateReportSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   report_type: reportTypeSchema.optional(),
-  config: z.record(z.unknown()).optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
   description: z.string().max(1000).optional(),
   is_public: z.boolean().optional(),
 })
@@ -32,7 +32,7 @@ export const updateReportSchema = z.object({
 export const runReportSchema = z.object({
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  filters: z.record(z.unknown()).optional(),
+  filters: z.record(z.string(), z.unknown()).optional(),
 })
 
 // Export types

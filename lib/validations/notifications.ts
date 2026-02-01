@@ -32,7 +32,7 @@ export const createNotificationSchema = z.object({
   action_url: z.string().max(500).optional(),
   action_label: z.string().max(100).optional(),
   priority: notificationPrioritySchema.optional().default('normal'),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   expires_at: z.string().datetime().optional(),
 })
 
