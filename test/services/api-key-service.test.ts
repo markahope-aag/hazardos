@@ -149,30 +149,27 @@ describe('ApiKeyService', () => {
       const keyHash = createHash('sha256').update(testKey).digest('hex')
       const keyPrefix = testKey.substring(0, 16)
 
-      const mockEq = {
-        single: vi.fn().mockResolvedValue({
-          data: {
-            id: 'key-123',
-            organization_id: 'org-456',
-            key_hash: keyHash,
-            key_prefix: keyPrefix,
-            scopes: ['customers:read'],
-            rate_limit: 1000,
-            is_active: true,
-            revoked_at: null,
-            expires_at: null
-          },
-          error: null
-        })
-      }
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: {
+          id: 'key-123',
+          organization_id: 'org-456',
+          key_hash: keyHash,
+          key_prefix: keyPrefix,
+          scopes: ['customers:read'],
+          rate_limit: 1000,
+          is_active: true,
+          revoked_at: null,
+          expires_at: null
+        },
+        error: null
+      })
+
+      const mockEq2 = vi.fn().mockReturnValue({ single: mockSingle })
+      const mockEq1 = vi.fn().mockReturnValue({ eq: mockEq2 })
 
       vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue(mockEq)
-        }),
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn()
-        })
+        select: vi.fn().mockReturnValue({ eq: mockEq1 }),
+        update: vi.fn().mockReturnValue({ eq: vi.fn() })
       } as any)
 
       // Act
@@ -201,25 +198,24 @@ describe('ApiKeyService', () => {
       const testKey = 'hzd_live_testkey123456'
       const keyHash = createHash('sha256').update(testKey).digest('hex')
 
-      const mockEq = {
-        single: vi.fn().mockResolvedValue({
-          data: {
-            id: 'key-123',
-            organization_id: 'org-456',
-            key_hash: keyHash,
-            scopes: ['customers:read'],
-            is_active: true,
-            revoked_at: '2026-01-31T10:00:00Z', // Revoked
-            expires_at: null
-          },
-          error: null
-        })
-      }
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: {
+          id: 'key-123',
+          organization_id: 'org-456',
+          key_hash: keyHash,
+          scopes: ['customers:read'],
+          is_active: true,
+          revoked_at: '2026-01-31T10:00:00Z', // Revoked
+          expires_at: null
+        },
+        error: null
+      })
+
+      const mockEq2 = vi.fn().mockReturnValue({ single: mockSingle })
+      const mockEq1 = vi.fn().mockReturnValue({ eq: mockEq2 })
 
       vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue(mockEq)
-        })
+        select: vi.fn().mockReturnValue({ eq: mockEq1 })
       } as any)
 
       // Act
@@ -235,25 +231,24 @@ describe('ApiKeyService', () => {
       const testKey = 'hzd_live_testkey123456'
       const keyHash = createHash('sha256').update(testKey).digest('hex')
 
-      const mockEq = {
-        single: vi.fn().mockResolvedValue({
-          data: {
-            id: 'key-123',
-            organization_id: 'org-456',
-            key_hash: keyHash,
-            scopes: ['customers:read'],
-            is_active: false, // Inactive
-            revoked_at: null,
-            expires_at: null
-          },
-          error: null
-        })
-      }
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: {
+          id: 'key-123',
+          organization_id: 'org-456',
+          key_hash: keyHash,
+          scopes: ['customers:read'],
+          is_active: false, // Inactive
+          revoked_at: null,
+          expires_at: null
+        },
+        error: null
+      })
+
+      const mockEq2 = vi.fn().mockReturnValue({ single: mockSingle })
+      const mockEq1 = vi.fn().mockReturnValue({ eq: mockEq2 })
 
       vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue(mockEq)
-        })
+        select: vi.fn().mockReturnValue({ eq: mockEq1 })
       } as any)
 
       // Act
@@ -270,25 +265,24 @@ describe('ApiKeyService', () => {
       const keyHash = createHash('sha256').update(testKey).digest('hex')
       const pastDate = new Date('2025-01-01T00:00:00Z').toISOString()
 
-      const mockEq = {
-        single: vi.fn().mockResolvedValue({
-          data: {
-            id: 'key-123',
-            organization_id: 'org-456',
-            key_hash: keyHash,
-            scopes: ['customers:read'],
-            is_active: true,
-            revoked_at: null,
-            expires_at: pastDate // Expired
-          },
-          error: null
-        })
-      }
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: {
+          id: 'key-123',
+          organization_id: 'org-456',
+          key_hash: keyHash,
+          scopes: ['customers:read'],
+          is_active: true,
+          revoked_at: null,
+          expires_at: pastDate // Expired
+        },
+        error: null
+      })
+
+      const mockEq2 = vi.fn().mockReturnValue({ single: mockSingle })
+      const mockEq1 = vi.fn().mockReturnValue({ eq: mockEq2 })
 
       vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue(mockEq)
-        })
+        select: vi.fn().mockReturnValue({ eq: mockEq1 })
       } as any)
 
       // Act
@@ -303,17 +297,16 @@ describe('ApiKeyService', () => {
       // Arrange
       const testKey = 'hzd_live_nonexistent'
 
-      const mockEq = {
-        single: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Not found' }
-        })
-      }
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: null,
+        error: { message: 'Not found' }
+      })
+
+      const mockEq2 = vi.fn().mockReturnValue({ single: mockSingle })
+      const mockEq1 = vi.fn().mockReturnValue({ eq: mockEq2 })
 
       vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue(mockEq)
-        })
+        select: vi.fn().mockReturnValue({ eq: mockEq1 })
       } as any)
 
       // Act
