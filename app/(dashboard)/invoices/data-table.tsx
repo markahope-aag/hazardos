@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo, useCallback, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, parseISO, differenceInDays } from 'date-fns'
 import {
@@ -35,6 +35,120 @@ import { invoiceStatusConfig } from '@/types/invoices'
 import Link from 'next/link'
 import { useToast } from '@/components/ui/use-toast'
 
+// Memoized helper for days overdue calculation
+const getDaysOverdue = (dueDate: string) => {
+  const today = new Date()
+  const due = parseISO(dueDate)
+  return differenceInDays(today, due)
+}
+
+// Memoized table row component
+interface InvoiceRowProps {
+  invoice: Invoice
+  onRowClick: (id: string) => void
+  onSend: (id: string, e: React.MouseEvent) => void
+  onVoid: (id: string, e: React.MouseEvent) => void
+}
+
+const InvoiceRow = memo(function InvoiceRow({ invoice, onRowClick, onSend, onVoid }: InvoiceRowProps) {
+  const isOverdue = invoice.status !== 'paid' &&
+    invoice.status !== 'void' &&
+    invoice.balance_due > 0 &&
+    new Date(invoice.due_date) < new Date()
+  const daysOverdue = isOverdue ? getDaysOverdue(invoice.due_date) : 0
+
+  return (
+    <TableRow
+      className="cursor-pointer hover:bg-muted/50"
+      onClick={() => onRowClick(invoice.id)}
+    >
+      <TableCell className="font-medium">
+        {invoice.invoice_number}
+      </TableCell>
+      <TableCell>
+        {invoice.customer?.company_name || invoice.customer?.name || '-'}
+      </TableCell>
+      <TableCell>
+        {invoice.job?.job_number || '-'}
+      </TableCell>
+      <TableCell>
+        {format(parseISO(invoice.invoice_date), 'MMM d, yyyy')}
+      </TableCell>
+      <TableCell>
+        <div className={cn(isOverdue && 'text-red-600 font-medium')}>
+          {format(parseISO(invoice.due_date), 'MMM d, yyyy')}
+          {isOverdue && (
+            <div className="text-xs">
+              {daysOverdue} days overdue
+            </div>
+          )}
+        </div>
+      </TableCell>
+      <TableCell className="text-right font-medium">
+        {formatCurrency(invoice.total)}
+      </TableCell>
+      <TableCell className="text-right">
+        {invoice.balance_due > 0 ? (
+          <span className={cn(isOverdue && 'text-red-600 font-medium')}>
+            {formatCurrency(invoice.balance_due)}
+          </span>
+        ) : (
+          <span className="text-green-600">Paid</span>
+        )}
+      </TableCell>
+      <TableCell>
+        <Badge
+          className={cn(
+            isOverdue
+              ? invoiceStatusConfig.overdue.bgColor + ' ' + invoiceStatusConfig.overdue.color
+              : invoiceStatusConfig[invoice.status]?.bgColor + ' ' + invoiceStatusConfig[invoice.status]?.color
+          )}
+        >
+          {isOverdue ? 'Overdue' : invoiceStatusConfig[invoice.status]?.label || invoice.status}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link href={`/invoices/${invoice.id}`}>View Details</Link>
+            </DropdownMenuItem>
+            {invoice.status === 'draft' && (
+              <DropdownMenuItem onClick={(e) => onSend(invoice.id, e)}>
+                <Send className="h-4 w-4 mr-2" />
+                Send Invoice
+              </DropdownMenuItem>
+            )}
+            {invoice.balance_due > 0 && invoice.status !== 'void' && (
+              <DropdownMenuItem asChild>
+                <Link href={`/invoices/${invoice.id}?record_payment=true`}>
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Record Payment
+                </Link>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            {invoice.status !== 'void' && invoice.status !== 'paid' && (
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={(e) => onVoid(invoice.id, e)}
+              >
+                <Ban className="h-4 w-4 mr-2" />
+                Void Invoice
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  )
+})
+
 interface InvoicesDataTableProps {
   data: Invoice[]
 }
@@ -45,25 +159,25 @@ export function InvoicesDataTable({ data }: InvoicesDataTableProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
-  // Filter data
-  const filteredData = data.filter(invoice => {
-    const matchesSearch = search === '' ||
-      invoice.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
-      invoice.customer?.company_name?.toLowerCase().includes(search.toLowerCase()) ||
-      invoice.customer?.name?.toLowerCase().includes(search.toLowerCase())
+  // Memoize filtered data
+  const filteredData = useMemo(() => {
+    return data.filter(invoice => {
+      const matchesSearch = search === '' ||
+        invoice.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
+        invoice.customer?.company_name?.toLowerCase().includes(search.toLowerCase()) ||
+        invoice.customer?.name?.toLowerCase().includes(search.toLowerCase())
 
-    const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter
+      const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter
 
-    return matchesSearch && matchesStatus
-  })
+      return matchesSearch && matchesStatus
+    })
+  }, [data, search, statusFilter])
 
-  const getDaysOverdue = (dueDate: string) => {
-    const today = new Date()
-    const due = parseISO(dueDate)
-    return differenceInDays(today, due)
-  }
+  const handleRowClick = useCallback((id: string) => {
+    router.push(`/invoices/${id}`)
+  }, [router])
 
-  const sendInvoice = async (id: string, e: React.MouseEvent) => {
+  const sendInvoice = useCallback(async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     try {
       const response = await fetch(`/api/invoices/${id}/send`, {
@@ -79,9 +193,9 @@ export function InvoicesDataTable({ data }: InvoicesDataTableProps) {
     } catch {
       toast({ title: 'Error', description: 'Failed to send invoice', variant: 'destructive' })
     }
-  }
+  }, [router, toast])
 
-  const voidInvoice = async (id: string, e: React.MouseEvent) => {
+  const voidInvoice = useCallback(async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     if (!confirm('Are you sure you want to void this invoice?')) return
 
@@ -97,7 +211,7 @@ export function InvoicesDataTable({ data }: InvoicesDataTableProps) {
     } catch {
       toast({ title: 'Error', description: 'Failed to void invoice', variant: 'destructive' })
     }
-  }
+  }, [router, toast])
 
   return (
     <div className="space-y-4">
@@ -153,105 +267,15 @@ export function InvoicesDataTable({ data }: InvoicesDataTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredData.map((invoice) => {
-                const isOverdue = invoice.status !== 'paid' &&
-                  invoice.status !== 'void' &&
-                  invoice.balance_due > 0 &&
-                  new Date(invoice.due_date) < new Date()
-                const daysOverdue = isOverdue ? getDaysOverdue(invoice.due_date) : 0
-
-                return (
-                  <TableRow
-                    key={invoice.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => router.push(`/invoices/${invoice.id}`)}
-                  >
-                    <TableCell className="font-medium">
-                      {invoice.invoice_number}
-                    </TableCell>
-                    <TableCell>
-                      {invoice.customer?.company_name || invoice.customer?.name || '-'}
-                    </TableCell>
-                    <TableCell>
-                      {invoice.job?.job_number || '-'}
-                    </TableCell>
-                    <TableCell>
-                      {format(parseISO(invoice.invoice_date), 'MMM d, yyyy')}
-                    </TableCell>
-                    <TableCell>
-                      <div className={cn(isOverdue && 'text-red-600 font-medium')}>
-                        {format(parseISO(invoice.due_date), 'MMM d, yyyy')}
-                        {isOverdue && (
-                          <div className="text-xs">
-                            {daysOverdue} days overdue
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(invoice.total)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {invoice.balance_due > 0 ? (
-                        <span className={cn(isOverdue && 'text-red-600 font-medium')}>
-                          {formatCurrency(invoice.balance_due)}
-                        </span>
-                      ) : (
-                        <span className="text-green-600">Paid</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={cn(
-                          isOverdue
-                            ? invoiceStatusConfig.overdue.bgColor + ' ' + invoiceStatusConfig.overdue.color
-                            : invoiceStatusConfig[invoice.status]?.bgColor + ' ' + invoiceStatusConfig[invoice.status]?.color
-                        )}
-                      >
-                        {isOverdue ? 'Overdue' : invoiceStatusConfig[invoice.status]?.label || invoice.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/invoices/${invoice.id}`}>View Details</Link>
-                          </DropdownMenuItem>
-                          {invoice.status === 'draft' && (
-                            <DropdownMenuItem onClick={(e) => sendInvoice(invoice.id, e)}>
-                              <Send className="h-4 w-4 mr-2" />
-                              Send Invoice
-                            </DropdownMenuItem>
-                          )}
-                          {invoice.balance_due > 0 && invoice.status !== 'void' && (
-                            <DropdownMenuItem asChild>
-                              <Link href={`/invoices/${invoice.id}?record_payment=true`}>
-                                <DollarSign className="h-4 w-4 mr-2" />
-                                Record Payment
-                              </Link>
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          {invoice.status !== 'void' && invoice.status !== 'paid' && (
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={(e) => voidInvoice(invoice.id, e)}
-                            >
-                              <Ban className="h-4 w-4 mr-2" />
-                              Void Invoice
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                )
-              })
+              filteredData.map((invoice) => (
+                <InvoiceRow
+                  key={invoice.id}
+                  invoice={invoice}
+                  onRowClick={handleRowClick}
+                  onSend={sendInvoice}
+                  onVoid={voidInvoice}
+                />
+              ))
             )}
           </TableBody>
         </Table>
