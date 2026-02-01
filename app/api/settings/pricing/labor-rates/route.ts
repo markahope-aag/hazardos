@@ -1,18 +1,20 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
-import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
+import { NextResponse } from 'next/server'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { createLaborRateSchema, updateLaborRateSchema, deleteLaborRateQuerySchema } from '@/lib/validations/settings'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
-// GET - List all labor rates
-export async function GET() {
-  try {
-    const supabase = await createClient()
+const adminRoles = ['platform_owner', 'platform_admin', 'tenant_owner', 'admin']
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const { data: laborRates, error } = await supabase
+/**
+ * GET /api/settings/pricing/labor-rates
+ * List all labor rates
+ */
+export const GET = createApiHandler(
+  {
+    rateLimit: 'general',
+  },
+  async (_request, context) => {
+    const { data: laborRates, error } = await context.supabase
       .from('labor_rates')
       .select('*')
       .order('is_default', { ascending: false })
@@ -23,45 +25,32 @@ export async function GET() {
     }
 
     return NextResponse.json({ labor_rates: laborRates })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-// POST - Create a new labor rate
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'tenant_owner'].includes(profile.role)) {
-      throw new SecureError('FORBIDDEN')
-    }
-
-    const body = await request.json()
-
+/**
+ * POST /api/settings/pricing/labor-rates
+ * Create a new labor rate
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: createLaborRateSchema,
+    allowedRoles: adminRoles,
+  },
+  async (_request, context, body) => {
     // If setting as default, unset other defaults first
     if (body.is_default) {
-      await supabase
+      await context.supabase
         .from('labor_rates')
         .update({ is_default: false })
-        .eq('organization_id', profile.organization_id)
+        .eq('organization_id', context.profile.organization_id)
     }
 
-    const { data: laborRate, error } = await supabase
+    const { data: laborRate, error } = await context.supabase
       .from('labor_rates')
       .insert({
-        organization_id: profile.organization_id,
+        organization_id: context.profile.organization_id,
         name: body.name,
         rate_per_hour: body.rate_per_hour,
         description: body.description || null,
@@ -75,46 +64,32 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(laborRate, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-// PATCH - Update a labor rate
-export async function PATCH(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'tenant_owner'].includes(profile.role)) {
-      throw new SecureError('FORBIDDEN')
-    }
-
-    const body = await request.json()
+/**
+ * PATCH /api/settings/pricing/labor-rates
+ * Update a labor rate
+ */
+export const PATCH = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: updateLaborRateSchema,
+    allowedRoles: adminRoles,
+  },
+  async (_request, context, body) => {
     const { id, ...updateData } = body
-
-    validateRequired(id, 'id')
 
     // If setting as default, unset other defaults first
     if (updateData.is_default) {
-      await supabase
+      await context.supabase
         .from('labor_rates')
         .update({ is_default: false })
-        .eq('organization_id', profile.organization_id)
+        .eq('organization_id', context.profile.organization_id)
         .neq('id', id)
     }
 
-    const { data: laborRate, error } = await supabase
+    const { data: laborRate, error } = await context.supabase
       .from('labor_rates')
       .update(updateData)
       .eq('id', id)
@@ -126,49 +101,29 @@ export async function PATCH(request: NextRequest) {
     }
 
     return NextResponse.json(laborRate)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-// DELETE - Delete a labor rate
-export async function DELETE(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'tenant_owner'].includes(profile.role)) {
-      throw new SecureError('FORBIDDEN')
-    }
-
-    const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
-
-    if (!id) {
-      throw new SecureError('VALIDATION_ERROR', 'ID is required')
-    }
-
-    const { error } = await supabase
+/**
+ * DELETE /api/settings/pricing/labor-rates
+ * Delete a labor rate
+ */
+export const DELETE = createApiHandler(
+  {
+    rateLimit: 'general',
+    querySchema: deleteLaborRateQuerySchema,
+    allowedRoles: adminRoles,
+  },
+  async (_request, context, _body, query) => {
+    const { error } = await context.supabase
       .from('labor_rates')
       .delete()
-      .eq('id', id)
+      .eq('id', query.id)
 
     if (error) {
       throw error
     }
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

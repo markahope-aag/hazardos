@@ -3,6 +3,12 @@ import { z } from 'zod'
 // Customer status
 export const customerStatusSchema = z.enum(['lead', 'prospect', 'customer', 'inactive'])
 
+// Customer source - matches database type
+export const customerSourceSchema = z.enum(['phone', 'website', 'mail', 'referral', 'other'])
+
+// Contact role - matches database type
+export const contactRoleSchema = z.enum(['primary', 'billing', 'site', 'scheduling', 'general'])
+
 // Communication preferences
 export const communicationPreferencesSchema = z.object({
   email: z.boolean().optional().default(true),
@@ -22,7 +28,7 @@ export const createCustomerSchema = z.object({
   state: z.string().max(50).optional(),
   zip: z.string().max(20).optional(),
   status: customerStatusSchema.optional().default('lead'),
-  source: z.string().max(100).optional(),
+  source: customerSourceSchema.optional(),
   communication_preferences: communicationPreferencesSchema.optional(),
   marketing_consent: z.boolean().optional(),
   marketing_consent_date: z.string().datetime().optional(),
@@ -41,7 +47,7 @@ export const updateCustomerSchema = z.object({
   state: z.string().max(50).optional(),
   zip: z.string().max(20).optional(),
   status: customerStatusSchema.optional(),
-  source: z.string().max(100).optional(),
+  source: customerSourceSchema.optional(),
   communication_preferences: communicationPreferencesSchema.optional(),
   marketing_consent: z.boolean().optional(),
   marketing_consent_date: z.string().datetime().optional(),
@@ -63,7 +69,7 @@ export const createContactSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().max(20).optional(),
   mobile: z.string().max(20).optional(),
-  role: z.string().max(100).optional(),
+  role: contactRoleSchema.optional(),
   is_primary: z.boolean().optional().default(false),
   preferred_contact_method: z.enum(['email', 'phone', 'mobile']).optional(),
   notes: z.string().max(2000).optional(),
@@ -76,7 +82,7 @@ export const updateContactSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().max(20).optional(),
   mobile: z.string().max(20).optional(),
-  role: z.string().max(100).optional(),
+  role: contactRoleSchema.optional(),
   is_primary: z.boolean().optional(),
   preferred_contact_method: z.enum(['email', 'phone', 'mobile']).optional(),
   notes: z.string().max(2000).optional(),
