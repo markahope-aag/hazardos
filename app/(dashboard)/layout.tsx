@@ -2,6 +2,7 @@
 
 import { LogoHorizontal } from '@/components/ui/logo'
 import { UserMenu } from '@/components/layout/user-menu'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
@@ -60,14 +61,15 @@ export default function DashboardLayout({
 
           <div className="flex items-center space-x-4">
             {canAccessPlatformAdmin && (
-              <a 
-                href="/platform-admin" 
+              <a
+                href="/platform-admin"
                 className="text-sm font-medium text-gray-600 hover:text-primary"
               >
                 Platform Admin
               </a>
             )}
-            
+
+            <NotificationBell />
             <UserMenu user={user} profile={profile} />
           </div>
         </div>
