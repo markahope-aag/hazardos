@@ -61,7 +61,7 @@ describe('Material Costs API', () => {
           select: vi.fn().mockReturnValue({
             order: vi.fn().mockResolvedValue({
               data: [
-                { id: 'mc-1', name: 'HEPA Filter', material_name: 'HEPA Filter H13', unit_cost: 45.99, unit_type: 'each', is_active: true },
+                { id: '550e8400-e29b-41d4-a716-446655440002', name: 'HEPA Filter', material_name: 'HEPA Filter H13', unit_cost: 45.99, unit_type: 'each', is_active: true },
                 { id: 'mc-2', name: 'Containment Plastic', material_name: '6mil Poly Sheeting', unit_cost: 120.00, unit_type: 'roll', is_active: true }
               ],
               error: null
@@ -205,7 +205,7 @@ describe('Material Costs API', () => {
               select: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
                   data: {
-                    id: 'mc-1',
+                    id: '550e8400-e29b-41d4-a716-446655440002',
                     name: 'HEPA Filter',
                     cost_per_unit: 49.99,
                     unit: 'each'
@@ -222,7 +222,7 @@ describe('Material Costs API', () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: 'mc-1',
+          id: '550e8400-e29b-41d4-a716-446655440002',
           cost_per_unit: 49.99
         })
       })
@@ -268,7 +268,7 @@ describe('Material Costs API', () => {
         } as any
       })
 
-      const request = new NextRequest('http://localhost:3000/api/settings/pricing/material-costs?id=mc-1', {
+      const request = new NextRequest('http://localhost:3000/api/settings/pricing/material-costs?id=550e8400-e29b-41d4-a716-446655440002', {
         method: 'DELETE'
       })
 

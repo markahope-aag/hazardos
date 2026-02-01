@@ -61,7 +61,7 @@ describe('Equipment Rates API', () => {
           select: vi.fn().mockReturnValue({
             order: vi.fn().mockResolvedValue({
               data: [
-                { id: 'er-1', name: 'HEPA Vacuum', equipment_name: 'Industrial HEPA Vacuum', daily_rate: 75, weekly_rate: 450, is_active: true },
+                { id: '550e8400-e29b-41d4-a716-446655440003', name: 'HEPA Vacuum', equipment_name: 'Industrial HEPA Vacuum', daily_rate: 75, weekly_rate: 450, is_active: true },
                 { id: 'er-2', name: 'Negative Air Machine', equipment_name: 'Portable Negative Air Unit', daily_rate: 125, weekly_rate: 750, is_active: true }
               ],
               error: null
@@ -203,7 +203,7 @@ describe('Equipment Rates API', () => {
               select: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
                   data: {
-                    id: 'er-1',
+                    id: '550e8400-e29b-41d4-a716-446655440003',
                     name: 'HEPA Vacuum',
                     rate_per_day: 85
                   },
@@ -219,7 +219,7 @@ describe('Equipment Rates API', () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: 'er-1',
+          id: '550e8400-e29b-41d4-a716-446655440003',
           rate_per_day: 85
         })
       })
@@ -265,7 +265,7 @@ describe('Equipment Rates API', () => {
         } as any
       })
 
-      const request = new NextRequest('http://localhost:3000/api/settings/pricing/equipment-rates?id=er-1', {
+      const request = new NextRequest('http://localhost:3000/api/settings/pricing/equipment-rates?id=550e8400-e29b-41d4-a716-446655440003', {
         method: 'DELETE'
       })
 

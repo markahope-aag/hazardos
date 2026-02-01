@@ -7,10 +7,14 @@ import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error
 import { createRequestLogger } from '@/lib/utils/logger'
 import type { Logger } from 'pino'
 
-export interface ApiContext {
+/** Internal auth context without logging fields */
+interface AuthContext {
   user: { id: string; email?: string }
   profile: { organization_id: string; role: string }
   supabase: Awaited<ReturnType<typeof createClient>>
+}
+
+export interface ApiContext extends AuthContext {
   /** Request-scoped logger with context */
   log: Logger
   /** Unique request ID for correlation */
@@ -106,7 +110,7 @@ async function parseBody<T>(request: NextRequest, schema?: ZodSchema<T>): Promis
 }
 
 // Get authenticated context
-async function getAuthContext(requireAuth: boolean): Promise<ApiContext | null> {
+async function getAuthContext(requireAuth: boolean): Promise<AuthContext | null> {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
 
@@ -138,7 +142,7 @@ async function getAuthContext(requireAuth: boolean): Promise<ApiContext | null> 
 }
 
 // Check role permissions
-function checkRoles(context: ApiContext, allowedRoles?: string[]): void {
+function checkRoles(context: AuthContext, allowedRoles?: string[]): void {
   if (!allowedRoles || allowedRoles.length === 0) return
 
   if (!allowedRoles.includes(context.profile.role)) {

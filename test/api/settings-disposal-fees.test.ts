@@ -61,7 +61,7 @@ describe('Disposal Fees API', () => {
           select: vi.fn().mockReturnValue({
             order: vi.fn().mockResolvedValue({
               data: [
-                { id: 'df-1', hazard_type: 'asbestos', unit_cost: 450, unit_type: 'cubic_yard', is_active: true },
+                { id: '550e8400-e29b-41d4-a716-446655440004', hazard_type: 'asbestos', unit_cost: 450, unit_type: 'cubic_yard', is_active: true },
                 { id: 'df-2', hazard_type: 'lead', unit_cost: 350, unit_type: 'cubic_yard', is_active: true }
               ],
               error: null
@@ -203,7 +203,7 @@ describe('Disposal Fees API', () => {
               select: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
                   data: {
-                    id: 'df-1',
+                    id: '550e8400-e29b-41d4-a716-446655440004',
                     hazard_type: 'asbestos',
                     cost_per_cubic_yard: 475
                   },
@@ -219,7 +219,7 @@ describe('Disposal Fees API', () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: 'df-1',
+          id: '550e8400-e29b-41d4-a716-446655440004',
           cost_per_cubic_yard: 475
         })
       })
@@ -265,7 +265,7 @@ describe('Disposal Fees API', () => {
         } as any
       })
 
-      const request = new NextRequest('http://localhost:3000/api/settings/pricing/disposal-fees?id=df-1', {
+      const request = new NextRequest('http://localhost:3000/api/settings/pricing/disposal-fees?id=550e8400-e29b-41d4-a716-446655440004', {
         method: 'DELETE'
       })
 
