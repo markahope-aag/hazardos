@@ -60,8 +60,9 @@ export default function DeleteCustomerDialog({
     try {
       await deleteCustomerMutation.mutateAsync(customer.id)
       onSuccess()
-    } catch {
+    } catch (error) {
       // Error handling is done in the mutation hook
+      console.error('Delete error:', error)
     }
   }
 

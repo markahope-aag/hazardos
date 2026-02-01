@@ -71,6 +71,7 @@ export function SurveyWizard({ surveyId, customerId, className }: SurveyWizardPr
 
   const handleSubmit = () => {
     // TODO: Submit to API
+    console.log('Submitting survey...')
     router.push('/site-surveys')
   }
 

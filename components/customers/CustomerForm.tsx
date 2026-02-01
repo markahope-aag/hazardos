@@ -67,8 +67,9 @@ export default function CustomerForm({
   const handleFormSubmit = handleSubmit(async (data: CustomerFormData) => {
     try {
       await onSubmit(data)
-    } catch {
+    } catch (error) {
       // Error handling is done in the mutation hooks
+      console.error('Form submission error:', error)
     }
   })
 
@@ -85,11 +86,9 @@ export default function CustomerForm({
               id="name"
               {...register('name')}
               className={errors.name ? 'border-red-500' : ''}
-              aria-invalid={!!errors.name}
-              aria-describedby={errors.name ? 'name-error' : undefined}
             />
             {errors.name && (
-              <p id="name-error" className="text-sm text-red-600 mt-1" role="alert">{errors.name.message}</p>
+              <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>
             )}
           </div>
 
@@ -114,11 +113,9 @@ export default function CustomerForm({
               type="email"
               {...register('email')}
               className={errors.email ? 'border-red-500' : ''}
-              aria-invalid={!!errors.email}
-              aria-describedby={errors.email ? 'email-error' : undefined}
             />
             {errors.email && (
-              <p id="email-error" className="text-sm text-red-600 mt-1" role="alert">{errors.email.message}</p>
+              <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>
             )}
           </div>
 
@@ -129,11 +126,9 @@ export default function CustomerForm({
               type="tel"
               {...register('phone')}
               className={errors.phone ? 'border-red-500' : ''}
-              aria-invalid={!!errors.phone}
-              aria-describedby={errors.phone ? 'phone-error' : undefined}
             />
             {errors.phone && (
-              <p id="phone-error" className="text-sm text-red-600 mt-1" role="alert">{errors.phone.message}</p>
+              <p className="text-sm text-red-600 mt-1">{errors.phone.message}</p>
             )}
           </div>
         </div>

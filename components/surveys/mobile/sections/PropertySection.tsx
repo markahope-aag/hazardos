@@ -100,10 +100,14 @@ export function PropertySection() {
         })
       })
 
-      // TODO: Reverse geocode to get address using a geocoding service
+      // TODO: Reverse geocode to get address
+      // For now, just show that we got coordinates
+      console.log('Got location:', position.coords.latitude, position.coords.longitude)
+
+      // In production, you'd use a geocoding service here
       // updateProperty({ address: geocodedAddress, city, state, zip })
-      void position // Position captured - geocoding service integration pending
-    } catch {
+    } catch (error) {
+      console.error('Error getting location:', error)
       alert('Unable to get your location. Please enter the address manually.')
     } finally {
       setIsGettingLocation(false)

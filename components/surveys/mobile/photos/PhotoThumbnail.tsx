@@ -13,8 +13,7 @@ export function PhotoThumbnail({ photo, onClick }: PhotoThumbnailProps) {
     <button
       type="button"
       onClick={onClick}
-      className="relative aspect-square rounded-lg overflow-hidden border-2 border-border hover:border-primary focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors touch-manipulation"
-      aria-label={photo.caption ? `View photo: ${photo.caption}` : 'View survey photo'}
+      className="relative aspect-square rounded-lg overflow-hidden border-2 border-border hover:border-primary focus:border-primary transition-colors touch-manipulation"
     >
       {photo.dataUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
