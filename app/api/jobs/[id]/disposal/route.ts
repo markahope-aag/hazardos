@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { JobsService } from '@/lib/services/jobs-service'
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 
 export async function POST(
   request: NextRequest,
@@ -32,10 +33,7 @@ export async function POST(
     return NextResponse.json(disposal, { status: 201 })
   } catch (error) {
     console.error('Add disposal error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to add disposal record' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -63,10 +61,7 @@ export async function PATCH(
     return NextResponse.json(disposal)
   } catch (error) {
     console.error('Update disposal error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to update disposal record' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -93,9 +88,6 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Delete disposal error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to delete disposal record' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }

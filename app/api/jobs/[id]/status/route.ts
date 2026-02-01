@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { JobsService } from '@/lib/services/jobs-service'
 import type { JobStatus } from '@/types/jobs'
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 
 const validStatuses: JobStatus[] = [
   'scheduled',
@@ -44,9 +45,6 @@ export async function POST(
     return NextResponse.json(job)
   } catch (error) {
     console.error('Job status error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to update status' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }

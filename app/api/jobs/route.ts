@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { JobsService } from '@/lib/services/jobs-service'
+import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,7 +9,7 @@ export async function GET(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const searchParams = request.nextUrl.searchParams
@@ -23,8 +24,7 @@ export async function GET(request: NextRequest) {
     const jobs = await JobsService.list(filters)
     return NextResponse.json(jobs)
   } catch (error) {
-    console.error('Jobs GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -34,30 +34,20 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const body = await request.json()
 
     // Validate required fields
-    if (!body.customer_id) {
-      return NextResponse.json({ error: 'customer_id is required' }, { status: 400 })
-    }
-    if (!body.scheduled_start_date) {
-      return NextResponse.json({ error: 'scheduled_start_date is required' }, { status: 400 })
-    }
-    if (!body.job_address) {
-      return NextResponse.json({ error: 'job_address is required' }, { status: 400 })
-    }
+    validateRequired(body.customer_id, 'customer_id')
+    validateRequired(body.scheduled_start_date, 'scheduled_start_date')
+    validateRequired(body.job_address, 'job_address')
 
     const job = await JobsService.create(body)
 
     return NextResponse.json(job, { status: 201 })
   } catch (error) {
-    console.error('Jobs POST error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to create job' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }

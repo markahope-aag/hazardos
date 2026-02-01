@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { JobsService } from '@/lib/services/jobs-service'
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 
 export async function POST(
   request: NextRequest,
@@ -36,10 +37,7 @@ export async function POST(
         { status: 400 }
       )
     }
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to assign crew' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -67,9 +65,6 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Remove crew error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to remove crew' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }

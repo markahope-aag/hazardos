@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { QuickBooksService } from '@/lib/services/quickbooks-service';
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,9 +36,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ qb_customer_id: qbId });
   } catch (error) {
     console.error('QBO sync customer error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Sync failed' },
-      { status: 500 }
-    );
+    return createSecureErrorResponse(error);
   }
 }
