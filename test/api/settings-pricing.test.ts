@@ -41,23 +41,40 @@ describe('Settings Pricing API', () => {
         error: null
       })
 
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
+      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
+        if (table === 'profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: mockProfile,
+                  error: null
+                })
+              })
+            })
+          } as any
+        }
+
+        if (table === 'pricing_settings') {
+          return {
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { default_markup_percentage: 25, default_tax_rate: 7.5, rounding_method: 'nearest', currency: 'USD' },
+                error: null
+              })
+            })
+          } as any
+        }
+
+        return {
+          select: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({
+              data: [],
               error: null
             })
-          }),
-          order: vi.fn().mockResolvedValue({
-            data: [
-              { id: 'lr-1', name: 'Technician', hourly_rate: 45, overtime_rate: 67.5 },
-              { id: 'lr-2', name: 'Supervisor', hourly_rate: 65, overtime_rate: 97.5 }
-            ],
-            error: null
           })
-        })
-      } as any)
+        } as any
+      })
 
       const request = new NextRequest('http://localhost:3000/api/settings/pricing')
 
@@ -123,7 +140,7 @@ describe('Settings Pricing API', () => {
                   organization_id: 'org-123',
                   default_markup_percentage: 30,
                   default_tax_rate: 8.5,
-                  rounding_method: 'nearest_dollar',
+                  rounding_method: 'nearest',
                   currency: 'USD'
                 },
                 error: null
@@ -139,7 +156,7 @@ describe('Settings Pricing API', () => {
         body: JSON.stringify({
           default_markup_percentage: 30,
           default_tax_rate: 8.5,
-          rounding_method: 'nearest_dollar',
+          rounding_method: 'nearest',
           currency: 'USD'
         })
       })

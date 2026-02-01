@@ -61,7 +61,7 @@ describe('Travel Rates API', () => {
           select: vi.fn().mockReturnValue({
             order: vi.fn().mockResolvedValue({
               data: [
-                { id: 'tr-1', min_miles: 0, max_miles: 25, flat_fee: 75, per_mile_rate: null, is_active: true },
+                { id: '550e8400-e29b-41d4-a716-446655440005', min_miles: 0, max_miles: 25, flat_fee: 75, per_mile_rate: null, is_active: true },
                 { id: 'tr-2', min_miles: 25, max_miles: 50, flat_fee: null, per_mile_rate: 3.50, is_active: true }
               ],
               error: null
@@ -204,7 +204,7 @@ describe('Travel Rates API', () => {
               select: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
                   data: {
-                    id: 'tr-1',
+                    id: '550e8400-e29b-41d4-a716-446655440005',
                     min_miles: 0,
                     max_miles: 25,
                     flat_fee: 85
@@ -221,7 +221,7 @@ describe('Travel Rates API', () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: 'tr-1',
+          id: '550e8400-e29b-41d4-a716-446655440005',
           flat_fee: 85
         })
       })
@@ -267,7 +267,7 @@ describe('Travel Rates API', () => {
         } as any
       })
 
-      const request = new NextRequest('http://localhost:3000/api/settings/pricing/travel-rates?id=tr-1', {
+      const request = new NextRequest('http://localhost:3000/api/settings/pricing/travel-rates?id=550e8400-e29b-41d4-a716-446655440005', {
         method: 'DELETE'
       })
 

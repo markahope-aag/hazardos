@@ -65,7 +65,7 @@ describe('Labor Rates API', () => {
             order: vi.fn().mockReturnValue({
               order: vi.fn().mockResolvedValue({
                 data: [
-                  { id: 'lr-1', name: 'Technician', role_title: 'Field Technician', hourly_rate: 45, overtime_rate: 67.5, is_default: true },
+                  { id: '550e8400-e29b-41d4-a716-446655440001', name: 'Technician', role_title: 'Field Technician', hourly_rate: 45, overtime_rate: 67.5, is_default: true },
                   { id: 'lr-2', name: 'Supervisor', role_title: 'Site Supervisor', hourly_rate: 65, overtime_rate: 97.5, is_default: false }
                 ],
                 error: null
@@ -213,7 +213,7 @@ describe('Labor Rates API', () => {
               select: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
                   data: {
-                    id: 'lr-1',
+                    id: '550e8400-e29b-41d4-a716-446655440001',
                     name: 'Technician',
                     rate_per_hour: 50,
                     is_default: false
@@ -231,7 +231,7 @@ describe('Labor Rates API', () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: 'lr-1',
+          id: '550e8400-e29b-41d4-a716-446655440001',
           rate_per_hour: 50
         })
       })
@@ -277,7 +277,7 @@ describe('Labor Rates API', () => {
         } as any
       })
 
-      const request = new NextRequest('http://localhost:3000/api/settings/pricing/labor-rates?id=lr-1', {
+      const request = new NextRequest('http://localhost:3000/api/settings/pricing/labor-rates?id=550e8400-e29b-41d4-a716-446655440001', {
         method: 'DELETE'
       })
 
