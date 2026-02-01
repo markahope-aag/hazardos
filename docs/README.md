@@ -91,6 +91,13 @@
 - **[Project Status](./PROJECT-STATUS.md)** - Detailed feature tracker with priorities, status, and completion percentages
 - **[Changelog](./CHANGELOG.md)** - Version history and release notes
 
+### 🚀 Deployment & Operations
+- **[MarketSharp Migration Guide](./MarketSharp%20Migration%20Guide.md)** - Step-by-step data migration from MarketSharp CRM
+  - Pre-migration checklist and data audit
+  - Export instructions and field mapping
+  - TypeScript migration script
+  - Validation and cutover procedures
+
 ### 📊 Status & Reports
 - **[Documentation Update Summary](./DOCUMENTATION-UPDATE-SUMMARY.md)** - Recent documentation changes
 - **[Hazardos Architecture Decisions](./Hazardos%20Architecture%20Decisions.md)** - Architectural decision records
@@ -123,37 +130,39 @@
 2. **Customer Management**: [Customer Management Guide](./CUSTOMER-MANAGEMENT.md)
 3. **Features Overview**: [Features Guide](./FEATURES.md)
 
+### For Operations/Deployment
+1. **Data Migration**: [MarketSharp Migration Guide](./MarketSharp%20Migration%20Guide.md)
+2. **Database**: [Migration Guide](./MIGRATION-GUIDE.md) → [Database Checklist](./DATABASE-SETUP-CHECKLIST.md)
+3. **Security**: [Security Guide](./SECURITY.md)
+
 ## 🎯 Current Project Status
 
-**Status**: Production Ready ✅
-**Last Updated**: February 1, 2026
+**Status**: 🚀 CLIENT LAUNCH READY
+**Last Updated**: February 2, 2026
+**Progress**: 112/153 features (73%) | Phases 1-4 Complete
 
-### ✅ Completed Core Features
+### ✅ Completed Core Features (Phases 1-4)
 - **Authentication & Multi-Tenancy**: Full RLS-based multi-tenant architecture
+- **Customer Management**: Complete CRM with lead tracking and multiple contacts
 - **Site Survey Management**: Mobile-optimized forms with offline support
-- **Customer Management**: Complete CRM with lead tracking
-- **Job Management**: Full job lifecycle tracking
-- **Job Completion System**: Time entries, material usage, photos, checklists (NEW)
-- **Customer Feedback**: Automated post-job surveys with NPS scoring (NEW)
-- **Analytics**: Variance tracking and reporting (NEW)
-- **QuickBooks Integration**: Two-way sync for customers and invoices (NEW)
-- **Activity Logging**: Comprehensive audit trail (NEW)
-- **Photo/Video Upload**: Client-side compression and Supabase storage
-- **PDF Proposal Generation**: Professional proposal templates
-- **Pricing Management**: Comprehensive pricing tables
-- **Invoice Management**: Full invoice generation and tracking
-- **PWA Support**: Offline capability and installable app
-- **Rate Limiting**: DoS protection with Redis
-- **Secure Error Handling**: Production-ready error handling
+- **Estimates & Proposals**: Auto-calculation, PDF generation, e-signature
+- **Job Management**: Full lifecycle with calendar, crew assignment, change orders
+- **Job Completion System**: Time entries, material usage, photos, checklists
+- **Invoicing & Payments**: Generation, delivery, partial payments, QuickBooks sync
+- **Customer Feedback**: Automated post-job surveys with NPS scoring
+- **Notifications**: In-app, email, and push notifications
+- **Activity Logging**: Manual note/call logging + auto-log system events
+- **Analytics**: Variance tracking and reporting
+- **QuickBooks Integration**: Two-way sync for customers and invoices
+- **Security**: Rate limiting, CSRF protection, secure error handling
+- **Performance**: React.memo, bundle optimization
 
-### 🚧 In Development
-- Mobile survey wizard with photo categorization
-- User registration and invitation system
-- Estimate builder UI (schema ready)
-- Job scheduling calendar interface
-- Equipment tracking system
-- Customer portal
-- White-label platform features
+### 🚧 Next Phase (Platform Layer)
+- Stripe billing integration
+- Public signup and onboarding
+- Feature gating by plan
+- Platform admin dashboard
+- Advanced reporting
 
 ## 🔄 Documentation Maintenance
 
