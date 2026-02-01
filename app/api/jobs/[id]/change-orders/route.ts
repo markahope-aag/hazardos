@@ -1,66 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { JobsService } from '@/lib/services/jobs-service'
-import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { addChangeOrderSchema, changeOrderActionSchema } from '@/lib/validations/jobs'
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const { id } = await params
-    const body = await request.json()
-
-    validateRequired(body.description, 'description')
-    if (body.amount === undefined || body.amount === null) {
-      throw new SecureError('VALIDATION_ERROR', 'amount is required')
-    }
-
-    const changeOrder = await JobsService.addChangeOrder(id, {
-      description: body.description,
-      reason: body.reason,
-      amount: body.amount,
-    })
-
+export const POST = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: addChangeOrderSchema,
+  },
+  async (_request, _context, params, body) => {
+    const changeOrder = await JobsService.addChangeOrder(params.id, body)
     return NextResponse.json(changeOrder, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function PATCH(
-  request: NextRequest,
-  { params: _params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json()
-    const { change_order_id, action } = body
-
-    validateRequired(change_order_id, 'change_order_id')
-    if (!action || !['approve', 'reject'].includes(action)) {
-      throw new SecureError('VALIDATION_ERROR', 'action must be "approve" or "reject"')
-    }
-
-    const changeOrder = action === 'approve'
-      ? await JobsService.approveChangeOrder(change_order_id)
-      : await JobsService.rejectChangeOrder(change_order_id)
-
+export const PATCH = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: changeOrderActionSchema,
+  },
+  async (_request, _context, _params, body) => {
+    const changeOrder = body.action === 'approve'
+      ? await JobsService.approveChangeOrder(body.change_order_id)
+      : await JobsService.rejectChangeOrder(body.change_order_id)
     return NextResponse.json(changeOrder)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
