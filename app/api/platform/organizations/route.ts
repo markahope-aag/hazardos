@@ -1,30 +1,37 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { PlatformAdminService } from '@/lib/services/platform-admin-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { organizationFiltersSchema } from '@/lib/validations/platform'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 import type { OrganizationFilters } from '@/types/platform-admin'
 
-export async function GET(request: NextRequest) {
-  try {
+/**
+ * GET /api/platform/organizations
+ * List organizations (platform admin only)
+ */
+export const GET = createApiHandler(
+  {
+    rateLimit: 'general',
+    querySchema: organizationFiltersSchema,
+    allowedRoles: ['platform_owner', 'platform_admin'],
+  },
+  async (_request, _context, _body, query) => {
     const isAdmin = await PlatformAdminService.isPlatformAdmin()
     if (!isAdmin) {
       throw new SecureError('FORBIDDEN', 'Platform admin access required')
     }
 
-    const { searchParams } = request.nextUrl
-
     const filters: OrganizationFilters = {
-      search: searchParams.get('search') || undefined,
-      status: searchParams.get('status') || undefined,
-      planSlug: searchParams.get('planSlug') || undefined,
-      sortBy: (searchParams.get('sortBy') as OrganizationFilters['sortBy']) || 'created_at',
-      sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
-      page: parseInt(searchParams.get('page') || '1'),
-      limit: parseInt(searchParams.get('limit') || '20'),
+      search: query.search,
+      status: query.status,
+      planSlug: query.planSlug,
+      sortBy: query.sortBy as OrganizationFilters['sortBy'] || 'created_at',
+      sortOrder: query.sortOrder as 'asc' | 'desc' || 'desc',
+      page: query.page || 1,
+      limit: query.limit || 20,
     }
 
     const result = await PlatformAdminService.getOrganizations(filters)
     return NextResponse.json(result)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

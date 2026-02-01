@@ -1,9 +1,18 @@
 import { NextResponse } from 'next/server'
 import { PlatformAdminService } from '@/lib/services/platform-admin-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
-export async function GET() {
-  try {
+/**
+ * GET /api/platform/stats
+ * Get platform statistics (platform admin only)
+ */
+export const GET = createApiHandler(
+  {
+    rateLimit: 'general',
+    allowedRoles: ['platform_owner', 'platform_admin'],
+  },
+  async () => {
     const isAdmin = await PlatformAdminService.isPlatformAdmin()
     if (!isAdmin) {
       throw new SecureError('FORBIDDEN', 'Platform admin access required')
@@ -20,7 +29,5 @@ export async function GET() {
       growth,
       planDistribution,
     })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
