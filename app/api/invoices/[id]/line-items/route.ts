@@ -1,81 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { InvoicesService } from '@/lib/services/invoices-service'
-import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { addInvoiceLineItemSchema, updateInvoiceLineItemSchema, deleteInvoiceLineItemSchema } from '@/lib/validations/invoices'
+import { SecureError } from '@/lib/utils/secure-error-handler'
+import { z } from 'zod'
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+const deleteQuerySchema = z.object({
+  line_item_id: z.string().uuid('Invalid line item ID'),
+})
 
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json()
-
-    validateRequired(body.description, 'description')
-    if (!body.quantity || body.quantity <= 0) {
-      throw new SecureError('VALIDATION_ERROR', 'Valid quantity is required')
-    }
-    if (body.unit_price === undefined) {
-      throw new SecureError('VALIDATION_ERROR', 'unit_price is required')
-    }
-
-    const lineItem = await InvoicesService.addLineItem(id, body)
-
+/**
+ * POST /api/invoices/[id]/line-items
+ * Add a line item to an invoice
+ */
+export const POST = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: addInvoiceLineItemSchema,
+  },
+  async (_request, _context, params, body) => {
+    const lineItem = await InvoicesService.addLineItem(params.id, body)
     return NextResponse.json(lineItem, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function PATCH(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json()
+/**
+ * PATCH /api/invoices/[id]/line-items
+ * Update a line item
+ */
+export const PATCH = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: updateInvoiceLineItemSchema,
+  },
+  async (_request, _context, _params, body) => {
     const { line_item_id, ...updates } = body
-
-    validateRequired(line_item_id, 'line_item_id')
-
     const lineItem = await InvoicesService.updateLineItem(line_item_id, updates)
-
     return NextResponse.json(lineItem)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function DELETE(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const { searchParams } = new URL(request.url)
-    const lineItemId = searchParams.get('line_item_id')
-
-    if (!lineItemId) {
+/**
+ * DELETE /api/invoices/[id]/line-items
+ * Delete a line item
+ */
+export const DELETE = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    querySchema: deleteQuerySchema,
+  },
+  async (_request, _context, _params, _body, query) => {
+    if (!query.line_item_id) {
       throw new SecureError('VALIDATION_ERROR', 'line_item_id is required')
     }
-
-    await InvoicesService.deleteLineItem(lineItemId)
-
+    await InvoicesService.deleteLineItem(query.line_item_id)
     return NextResponse.json({ success: true })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

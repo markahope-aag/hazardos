@@ -1,25 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { InvoicesService } from '@/lib/services/invoices-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const invoice = await InvoicesService.void(id)
-
+/**
+ * POST /api/invoices/[id]/void
+ * Void an invoice
+ */
+export const POST = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    allowedRoles: ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'],
+  },
+  async (_request, _context, params) => {
+    const invoice = await InvoicesService.void(params.id)
     return NextResponse.json(invoice)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

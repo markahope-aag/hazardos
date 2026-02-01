@@ -1,55 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { InvoicesService } from '@/lib/services/invoices-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { addPaymentSchema } from '@/lib/validations/invoices'
+import { SecureError } from '@/lib/utils/secure-error-handler'
+import { z } from 'zod'
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+const deleteQuerySchema = z.object({
+  payment_id: z.string().uuid('Invalid payment ID'),
+})
 
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json()
-
-    if (!body.amount || body.amount <= 0) {
-      throw new SecureError('VALIDATION_ERROR', 'Valid amount is required')
-    }
-
-    const payment = await InvoicesService.recordPayment(id, body)
-
+/**
+ * POST /api/invoices/[id]/payments
+ * Record a payment for an invoice
+ */
+export const POST = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: addPaymentSchema,
+  },
+  async (_request, _context, params, body) => {
+    const payment = await InvoicesService.recordPayment(params.id, body)
     return NextResponse.json(payment, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function DELETE(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const { searchParams } = new URL(request.url)
-    const paymentId = searchParams.get('payment_id')
-
-    if (!paymentId) {
+/**
+ * DELETE /api/invoices/[id]/payments
+ * Delete a payment
+ */
+export const DELETE = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    querySchema: deleteQuerySchema,
+  },
+  async (_request, _context, _params, _body, query) => {
+    if (!query.payment_id) {
       throw new SecureError('VALIDATION_ERROR', 'payment_id is required')
     }
-
-    await InvoicesService.deletePayment(paymentId)
-
+    await InvoicesService.deletePayment(query.payment_id)
     return NextResponse.json({ success: true })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

@@ -1,23 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import type { SignProposalInput } from '@/types/estimates'
-import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
+import { createPublicApiHandler } from '@/lib/utils/api-handler'
+import { signProposalSchema } from '@/lib/validations/proposals'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
 /**
  * POST /api/proposals/sign
  * Sign a proposal (public endpoint using access token)
  */
-export async function POST(request: NextRequest) {
-  try {
+export const POST = createPublicApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: signProposalSchema,
+  },
+  async (request, body) => {
     const supabase = await createClient()
-
-    // Parse request body
-    const body: SignProposalInput = await request.json()
-
-    validateRequired(body.access_token, 'access_token')
-    validateRequired(body.signer_name, 'signer_name')
-    validateRequired(body.signer_email, 'signer_email')
-    validateRequired(body.signature_data, 'signature_data')
 
     // Get the proposal by access token
     const { data: proposal, error: proposalError } = await supabase
@@ -76,7 +73,5 @@ export async function POST(request: NextRequest) {
       success: true,
       signed_at: updated.signed_at,
     })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

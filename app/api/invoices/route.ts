@@ -1,52 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { InvoicesService } from '@/lib/services/invoices-service'
-import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { invoiceListQuerySchema, createInvoiceSchema } from '@/lib/validations/invoices'
 
-export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const searchParams = request.nextUrl.searchParams
+/**
+ * GET /api/invoices
+ * List all invoices for the current organization
+ */
+export const GET = createApiHandler(
+  {
+    rateLimit: 'general',
+    querySchema: invoiceListQuerySchema,
+  },
+  async (_request, _context, _body, query) => {
     const filters = {
-      status: searchParams.get('status') || undefined,
-      customer_id: searchParams.get('customer_id') || undefined,
-      job_id: searchParams.get('job_id') || undefined,
-      from_date: searchParams.get('from_date') || undefined,
-      to_date: searchParams.get('to_date') || undefined,
-      overdue_only: searchParams.get('overdue_only') === 'true',
+      status: query.status || undefined,
+      customer_id: query.customer_id || undefined,
+      job_id: query.job_id || undefined,
+      from_date: query.from_date || undefined,
+      to_date: query.to_date || undefined,
+      overdue_only: query.overdue || false,
     }
 
     const invoices = await InvoicesService.list(filters)
     return NextResponse.json({ invoices })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json()
-
-    validateRequired(body.customer_id, 'customer_id')
-    validateRequired(body.due_date, 'due_date')
-
+/**
+ * POST /api/invoices
+ * Create a new invoice
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: createInvoiceSchema,
+  },
+  async (_request, _context, body) => {
     const invoice = await InvoicesService.create(body)
-
     return NextResponse.json(invoice, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
