@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-git-push.sh\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": {},
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-docs-needed.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}
