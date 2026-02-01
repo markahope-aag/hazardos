@@ -147,18 +147,21 @@ describe('Logger Module', () => {
       } as any
 
       const testError = new Error('Operation failed')
-      const operation = vi.fn().mockImplementation(() => {
+      const operation = vi.fn().mockImplementation(async () => {
         vi.advanceTimersByTime(150)
-        return Promise.reject(testError)
+        throw testError
       })
 
-      const promise = timed(mockLogger, 'processData', operation)
-
-      await expect(async () => {
+      let caughtError
+      try {
+        const promise = timed(mockLogger, 'processData', operation)
         await vi.advanceTimersByTimeAsync(150)
         await promise
-      }).rejects.toThrow('Operation failed')
+      } catch (error) {
+        caughtError = error
+      }
 
+      expect(caughtError).toBe(testError)
       expect(mockLogger.error).toHaveBeenCalledWith(
         expect.objectContaining({
           operation: 'processData',
