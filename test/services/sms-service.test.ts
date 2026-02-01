@@ -188,7 +188,7 @@ describe('SmsService', () => {
         SmsService.send('org-123', {
           to: '555-123-4567',
           body: 'Test',
-          message_type: 'transactional'
+          message_type: 'appointment_reminder'
         })
       ).rejects.toThrow('SMS is not enabled')
     })
@@ -198,7 +198,7 @@ describe('SmsService', () => {
         SmsService.send('org-123', {
           to: 'invalid',
           body: 'Test',
-          message_type: 'transactional'
+          message_type: 'appointment_reminder'
         })
       ).rejects.toThrow('Invalid phone number')
     })
@@ -232,7 +232,7 @@ describe('SmsService', () => {
         SmsService.send('org-123', {
           to: '555-123-4567',
           body: 'Test',
-          message_type: 'transactional',
+          message_type: 'appointment_reminder',
           customer_id: 'cust-1'
         })
       ).rejects.toThrow('Customer has not opted in')
@@ -248,7 +248,7 @@ describe('SmsService', () => {
         SmsService.send('org-123', {
           to: '555-123-4567',
           body: 'Test',
-          message_type: 'transactional'
+          message_type: 'appointment_reminder'
         })
       ).rejects.toThrow()
     })
@@ -482,7 +482,7 @@ describe('SmsService', () => {
         id: 'template-1',
         organization_id: 'org-123',
         name: 'Test Template',
-        message_type: 'transactional',
+        message_type: 'appointment_reminder',
         body: 'Test body',
         is_system: false
       }
@@ -495,7 +495,7 @@ describe('SmsService', () => {
 
       const result = await SmsService.createTemplate('org-123', {
         name: 'Test Template',
-        message_type: 'transactional',
+        message_type: 'appointment_reminder',
         body: 'Test body'
       })
 
