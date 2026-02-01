@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loader2, StickyNote, Phone, PhoneIncoming, PhoneOutgoing } from 'lucide-react'
+import { useToast } from '@/components/ui/use-toast'
 
 interface AddActivityDialogProps {
   open: boolean
@@ -40,6 +41,7 @@ export function AddActivityDialog({
   entityId,
   entityName,
 }: AddActivityDialogProps) {
+  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activityType, setActivityType] = useState<'note' | 'call'>('note')
@@ -99,11 +101,21 @@ export function AddActivityDialog({
         throw new Error(data.error || 'Failed to log activity')
       }
 
+      toast({
+        title: activityType === 'note' ? 'Note added' : 'Call logged',
+        description: `Activity has been recorded successfully.`,
+      })
       resetForm()
       onClose()
       onSuccess?.()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const message = err instanceof Error ? err.message : 'An error occurred'
+      setError(message)
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
+      })
     } finally {
       setLoading(false)
     }

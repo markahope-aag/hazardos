@@ -34,6 +34,7 @@ import {
   StarOff,
 } from 'lucide-react'
 import { ContactDialog } from './contact-dialog'
+import { useToast } from '@/components/ui/use-toast'
 import type { CustomerContact, ContactRole } from '@/types/contacts'
 import { contactRoleConfig } from '@/types/contacts'
 
@@ -50,6 +51,7 @@ const roleColors: Record<ContactRole, string> = {
 }
 
 export function ContactsList({ customerId }: ContactsListProps) {
+  const { toast } = useToast()
   const [contacts, setContacts] = useState<CustomerContact[]>([])
   const [loading, setLoading] = useState(true)
   const [showDialog, setShowDialog] = useState(false)
@@ -84,9 +86,20 @@ export function ContactsList({ customerId }: ContactsListProps) {
       })
       if (res.ok) {
         await fetchContacts()
+        toast({
+          title: 'Primary contact updated',
+          description: 'The contact has been set as primary.',
+        })
+      } else {
+        throw new Error('Failed to update')
       }
     } catch (error) {
       console.error('Failed to set primary contact:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to set primary contact.',
+        variant: 'destructive',
+      })
     } finally {
       setActionLoading(null)
     }
@@ -102,9 +115,20 @@ export function ContactsList({ customerId }: ContactsListProps) {
       })
       if (res.ok) {
         await fetchContacts()
+        toast({
+          title: 'Contact deleted',
+          description: `${deleteContact.name} has been removed.`,
+        })
+      } else {
+        throw new Error('Failed to delete')
       }
     } catch (error) {
       console.error('Failed to delete contact:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to delete contact.',
+        variant: 'destructive',
+      })
     } finally {
       setActionLoading(null)
       setDeleteContact(null)

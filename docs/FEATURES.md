@@ -13,12 +13,13 @@
 2. [Customer Feedback System](#customer-feedback-system)
 3. [Analytics & Variance Tracking](#analytics--variance-tracking)
 4. [QuickBooks Integration](#quickbooks-integration)
-5. [Activity Logging](#activity-logging)
-6. [Site Survey Mobile Wizard](#site-survey-mobile-wizard)
-7. [Pricing Management](#pricing-management)
-8. [Customer Management](#customer-management)
-9. [Estimate Builder](#estimate-builder)
-10. [Invoice Management](#invoice-management)
+5. [Multiple Contacts System](#multiple-contacts-system)
+6. [Activity Logging](#activity-logging)
+7. [Site Survey Mobile Wizard](#site-survey-mobile-wizard)
+8. [Pricing Management](#pricing-management)
+9. [Customer Management](#customer-management)
+10. [Estimate Builder](#estimate-builder)
+11. [Invoice Management](#invoice-management)
 
 ---
 
@@ -617,17 +618,278 @@ Detailed logging of all sync operations.
 
 ---
 
+## Multiple Contacts System
+
+### Overview
+
+Manage multiple contacts per customer with role-based organization and communication preferences. Ideal for enterprise customers with different decision-makers, billing contacts, and on-site coordinators.
+
+### Features
+
+#### Contact Roles
+
+Each contact can have a specific role:
+
+**Primary Contact**:
+- Main point of contact for the customer
+- Automatically synced to customer record
+- Only one primary contact per customer
+- When set as primary, updates customer's main contact info
+
+**Billing Contact**:
+- Receives invoices and payment communications
+- Handles financial matters
+- Multiple billing contacts allowed
+
+**Site Contact**:
+- On-site coordinator for job execution
+- Receives scheduling notifications
+- Multiple site contacts allowed
+
+**Scheduling Contact**:
+- Handles appointment scheduling
+- Receives calendar updates
+- Multiple scheduling contacts allowed
+
+**General Contact**:
+- General purpose contact
+- No specific role assignment
+
+#### Primary Contact Management
+
+**Automatic Primary Assignment**:
+- First contact created is automatically set as primary
+- Primary contact syncs to customer record fields
+- Customer name, email, and phone updated from primary contact
+
+**Setting Primary Contact**:
+```
+1. Open customer details
+2. Navigate to Contacts tab
+3. Click menu on contact card
+4. Select "Set as Primary"
+5. Previous primary contact automatically demoted
+6. Customer record updated with new primary info
+```
+
+**Primary Contact Deletion**:
+- When primary contact is deleted, system automatically promotes another contact
+- Priority order: primary role → billing role → site role → scheduling role → oldest contact
+- Customer record updated with new primary contact info
+
+#### Contact Information
+
+Each contact stores:
+
+**Personal Information**:
+- Name (required)
+- Job title
+- Email address
+- Phone number
+- Mobile number
+
+**Communication Preferences**:
+- Preferred contact method (email, phone, mobile, any)
+- Notes about communication preferences
+
+**Contact Notes**:
+- Internal notes about the contact
+- Access restrictions
+- Special instructions
+
+#### Contact List UI
+
+**Features**:
+- Visual contact cards with role badges
+- Primary contact highlighted with star icon
+- Quick access to email and phone
+- Role-based color coding:
+  - Primary: Blue
+  - Billing: Green
+  - Site: Orange
+  - Scheduling: Purple
+  - General: Gray
+
+**Actions Per Contact**:
+- Edit contact information
+- Set as primary
+- Delete contact
+- View activity history
+
+#### Add/Edit Contact Dialog
+
+**Form Fields**:
+```
+Name * (required)
+Title
+Email
+Phone
+Mobile
+Role (dropdown: Primary, Billing, Site, Scheduling, General)
+Preferred Contact Method (dropdown: Email, Phone, Mobile, Any)
+Set as Primary Contact (checkbox)
+Notes (textarea)
+```
+
+**Validation**:
+- Name is required
+- Email format validated
+- Phone numbers validated
+- Duplicate prevention within same customer
+
+#### Database Schema
+
+```sql
+CREATE TABLE customer_contacts (
+  id UUID PRIMARY KEY,
+  organization_id UUID NOT NULL,
+  customer_id UUID NOT NULL,
+  name TEXT NOT NULL,
+  title TEXT,
+  email TEXT,
+  phone TEXT,
+  mobile TEXT,
+  role TEXT NOT NULL, -- primary, billing, site, scheduling, general
+  is_primary BOOLEAN NOT NULL DEFAULT false,
+  preferred_contact_method TEXT, -- email, phone, mobile, any
+  notes TEXT,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+);
+```
+
+**Indexes**:
+- customer_id (for fast lookups)
+- customer_id + is_primary (for primary contact queries)
+- customer_id + role (for role-based queries)
+
+#### Sync to Customer Table
+
+**Automatic Sync Trigger**:
+```sql
+-- When contact is set as primary
+-- Customer table is automatically updated with:
+UPDATE customers SET
+  name = contact.name,
+  email = contact.email,
+  phone = COALESCE(contact.phone, contact.mobile)
+WHERE id = contact.customer_id;
+```
+
+#### Service Methods
+
+**ContactsService Methods**:
+```typescript
+// List all contacts for a customer
+ContactsService.list(customerId)
+
+// Get single contact
+ContactsService.get(contactId)
+
+// Create new contact
+ContactsService.create(input)
+
+// Update contact
+ContactsService.update(contactId, input)
+
+// Delete contact
+ContactsService.delete(contactId)
+
+// Set as primary contact
+ContactsService.setPrimary(contactId)
+
+// Get contacts by role
+ContactsService.getByRole(customerId, role)
+
+// Get primary contact
+ContactsService.getPrimary(customerId)
+```
+
+#### Activity Logging
+
+All contact operations are logged:
+- Contact created
+- Contact updated
+- Contact deleted
+- Contact set as primary
+
+**Example Activity Log**:
+```
+Jane Doe created contact "John Smith (Acme Corp)"
+Mike Wilson set "Sarah Jones" as primary contact (XYZ Industries)
+Admin User deleted contact "Bob Johnson (ABC Company)"
+```
+
+#### Use Cases
+
+**Enterprise Customer**:
+```
+Customer: Acme Corporation
+
+Contacts:
+1. John Smith (Primary, Scheduling)
+   - Project Manager
+   - john@acme.com
+   - Handles all project coordination
+
+2. Jane Doe (Billing)
+   - Accounts Payable Manager
+   - jane@acme.com
+   - Receives all invoices
+
+3. Bob Wilson (Site)
+   - Facilities Manager
+   - bob@acme.com, (555) 123-4567
+   - On-site contact during jobs
+```
+
+**Residential Customer**:
+```
+Customer: Smith Family
+
+Contacts:
+1. Mary Smith (Primary)
+   - Homeowner
+   - mary@example.com
+   - Main decision maker
+
+2. John Smith (General)
+   - Spouse
+   - john@example.com
+   - Backup contact
+```
+
+#### Integration Points
+
+**Email Communications**:
+- Proposals sent to primary contact
+- Invoices sent to billing contacts
+- Scheduling notifications to scheduling contacts
+- Job updates to site contacts
+
+**Activity Feed**:
+- Contact creation logged
+- Contact role changes tracked
+- Communication history linked to specific contacts
+
+**QuickBooks Sync**:
+- Primary contact synced as QB customer contact
+- Additional contacts stored in QB customer notes
+
+---
+
 ## Activity Logging
 
 ### Overview
 
-Comprehensive audit trail of all user actions and system events.
+Comprehensive audit trail of all user actions and system events with support for manual activity logging.
 
 ### Logged Activities
 
 **User Actions**:
 - Login/Logout events
 - Customer created/updated/deleted
+- Contact created/updated/deleted/set as primary
 - Site survey created/updated
 - Estimate approved
 - Job status changed
@@ -641,6 +903,11 @@ Comprehensive audit trail of all user actions and system events.
 - Sync operations completed
 - Background tasks executed
 
+**Manual Activities**:
+- Notes added
+- Phone calls logged
+- Customer communications
+
 ### Activity Log Entry
 
 ```json
@@ -653,25 +920,98 @@ Comprehensive audit trail of all user actions and system events.
   "entity_type": "customer",
   "entity_id": "uuid",
   "entity_name": "Acme Corporation",
-  "changes": {
-    "before": null,
-    "after": {
-      "name": "Acme Corporation",
-      "email": "contact@acme.com",
-      "status": "lead"
-    }
+  "old_values": null,
+  "new_values": {
+    "name": "Acme Corporation",
+    "email": "contact@acme.com",
+    "status": "lead"
   },
-  "ip_address": "192.168.1.100",
-  "user_agent": "Mozilla/5.0...",
-  "timestamp": "2026-02-01T10:00:00Z"
+  "description": null,
+  "created_at": "2026-02-01T10:00:00Z"
 }
 ```
 
-### Activity Feed
+### Manual Activity Logging
 
-Real-time activity feed on dashboard.
+#### Adding Notes
 
-**Display**:
+Add contextual notes to any entity (customer, job, estimate, etc.):
+
+**Via UI**:
+```
+1. Navigate to entity (customer, job, etc.)
+2. Click "Add Activity" button
+3. Select "Note" tab
+4. Enter note content
+5. Click "Log Activity"
+```
+
+**Note Entry**:
+```json
+{
+  "action": "note",
+  "entity_type": "customer",
+  "entity_id": "uuid",
+  "entity_name": "Acme Corporation",
+  "description": "Customer requested follow-up call next week to discuss additional services"
+}
+```
+
+#### Logging Phone Calls
+
+Track all customer phone interactions:
+
+**Via UI**:
+```
+1. Navigate to entity
+2. Click "Add Activity" button
+3. Select "Phone Call" tab
+4. Choose direction: Outbound or Inbound
+5. Enter duration (optional)
+6. Add call notes
+7. Click "Log Activity"
+```
+
+**Call Direction Options**:
+- **Outbound**: Call made to customer
+- **Inbound**: Call received from customer
+
+**Call Entry**:
+```json
+{
+  "action": "call",
+  "entity_type": "customer",
+  "entity_id": "uuid",
+  "entity_name": "Acme Corporation",
+  "description": "Discussed project timeline and budget constraints",
+  "new_values": {
+    "direction": "outbound",
+    "duration": 15
+  }
+}
+```
+
+#### Activity Types
+
+**Notes**:
+- General customer communications
+- Follow-up reminders
+- Important information
+- Meeting summaries
+- Customer requests
+
+**Calls**:
+- Outbound sales calls
+- Inbound customer inquiries
+- Follow-up discussions
+- Support calls
+- Appointment confirmations
+
+### Activity Timeline UI
+
+Real-time activity feed on dashboard and entity pages.
+
+**Display Format**:
 ```
 🆕 John Smith created customer "Acme Corporation"
    2 minutes ago
@@ -679,12 +1019,120 @@ Real-time activity feed on dashboard.
 📝 Sarah Johnson updated estimate EST-2026-045
    15 minutes ago
 
-✅ Mike Wilson completed job JOB-2026-012
+📞 Mike Wilson called "Acme Corporation" (outbound, 15 min)
+   30 minutes ago
+   Note: Discussed project timeline and budget
+
+📋 Jane Doe added note to "XYZ Industries"
    1 hour ago
+   Note: Customer requested follow-up next week
+
+✅ System completed job JOB-2026-012
+   2 hours ago
 
 📄 System generated invoice INV-2026-089
-   2 hours ago
+   3 hours ago
 ```
+
+**Activity Icons**:
+- 🆕 Created
+- 📝 Updated
+- 🗑️ Deleted
+- ✅ Completed
+- 📞 Phone call
+- 📋 Note added
+- 📄 Document generated
+- 📧 Email sent
+- ⭐ Status changed
+
+### Add Activity Dialog
+
+**User Interface**:
+```
+┌─────────────────────────────────────┐
+│ Log Activity                    ✕   │
+├─────────────────────────────────────┤
+│ Add a note or log a phone call      │
+│                                     │
+│ [Note] [Phone Call]                 │
+│                                     │
+│ Note *                              │
+│ ┌─────────────────────────────────┐ │
+│ │ Enter your note here...         │ │
+│ │                                 │ │
+│ │                                 │ │
+│ └─────────────────────────────────┘ │
+│                                     │
+│         [Cancel] [Log Activity]     │
+└─────────────────────────────────────┘
+```
+
+**Phone Call Tab**:
+```
+┌─────────────────────────────────────┐
+│ Log Activity                    ✕   │
+├─────────────────────────────────────┤
+│ Add a note or log a phone call      │
+│                                     │
+│ [Note] [Phone Call]                 │
+│                                     │
+│ Call Direction                      │
+│ [📞 Outbound] [📞 Inbound]          │
+│                                     │
+│ Duration (minutes)                  │
+│ [15                    ]            │
+│                                     │
+│ Call Notes                          │
+│ ┌─────────────────────────────────┐ │
+│ │ Summary of conversation...      │ │
+│ └─────────────────────────────────┘ │
+│                                     │
+│         [Cancel] [Log Activity]     │
+└─────────────────────────────────────┘
+```
+
+### Activity Service Methods
+
+```typescript
+// Automatic activity logging
+Activity.created(entityType, entityId, entityName)
+Activity.updated(entityType, entityId, entityName, changes)
+Activity.deleted(entityType, entityId, entityName)
+Activity.statusChanged(entityType, entityId, entityName, oldStatus, newStatus)
+Activity.sent(entityType, entityId, entityName)
+Activity.signed(entityType, entityId, entityName)
+Activity.paid(entityType, entityId, entityName, amount)
+
+// Manual activity logging
+Activity.note(entityType, entityId, entityName, noteText)
+Activity.call(entityType, entityId, entityName, {
+  direction: 'inbound' | 'outbound',
+  duration?: number,
+  notes?: string
+})
+```
+
+### Integration with Other Features
+
+**Customer Management**:
+- All customer interactions logged
+- Contact changes tracked
+- Status progression visible
+
+**Job Management**:
+- Job lifecycle tracked
+- Status changes logged
+- Crew communications recorded
+
+**Sales Process**:
+- Proposal sent tracked
+- Follow-up calls logged
+- Customer communications centralized
+
+**Invoicing**:
+- Invoice generation logged
+- Payment tracking
+- Collection calls recorded
 
 ---
 
