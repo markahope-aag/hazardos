@@ -7,9 +7,20 @@ import type {
   BillingCycle,
 } from '@/types/billing'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-12-18.acacia',
-})
+// Lazy initialization of Stripe to avoid build-time errors when env vars are missing
+let _stripe: Stripe | null = null
+
+function getStripe(): Stripe {
+  if (!_stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set')
+    }
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2026-01-28.clover',
+    })
+  }
+  return _stripe
+}
 
 export class StripeService {
   // ========== CUSTOMERS ==========
@@ -37,7 +48,7 @@ export class StripeService {
       .maybeSingle()
 
     // Create Stripe customer
-    const customer = await stripe.customers.create({
+    const customer = await getStripe().customers.create({
       name: org?.name || undefined,
       email: owner?.email || undefined,
       metadata: {
@@ -81,7 +92,7 @@ export class StripeService {
 
     if (!priceId) throw new Error('Plan not configured in Stripe')
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -121,7 +132,7 @@ export class StripeService {
       throw new Error('No billing account found')
     }
 
-    const session = await stripe.billingPortal.sessions.create({
+    const session = await getStripe().billingPortal.sessions.create({
       customer: org.stripe_customer_id,
       return_url: returnUrl,
     })
@@ -165,9 +176,9 @@ export class StripeService {
     }
 
     if (cancelImmediately) {
-      await stripe.subscriptions.cancel(sub.stripe_subscription_id)
+      await getStripe().subscriptions.cancel(sub.stripe_subscription_id)
     } else {
-      await stripe.subscriptions.update(sub.stripe_subscription_id, {
+      await getStripe().subscriptions.update(sub.stripe_subscription_id, {
         cancel_at_period_end: true,
       })
     }
@@ -197,7 +208,7 @@ export class StripeService {
       throw new Error('No subscription found')
     }
 
-    await stripe.subscriptions.update(sub.stripe_subscription_id, {
+    await getStripe().subscriptions.update(sub.stripe_subscription_id, {
       cancel_at_period_end: false,
     })
 
@@ -259,7 +270,7 @@ export class StripeService {
     await supabase.from('stripe_webhook_events').insert({
       stripe_event_id: event.id,
       event_type: event.type,
-      payload: event.data.object as Record<string, unknown>,
+      payload: event.data.object as unknown as Record<string, unknown>,
     })
 
     // Handle event
@@ -298,20 +309,33 @@ export class StripeService {
 
     const planId = subscription.metadata?.plan_id
 
+    // Cast to any for compatibility with different Stripe API versions
+    const sub = subscription as unknown as {
+      id: string
+      customer: string
+      status: string
+      items: { data: Array<{ price?: { recurring?: { interval?: string } } }> }
+      current_period_start?: number
+      current_period_end?: number
+      trial_start?: number | null
+      trial_end?: number | null
+      cancel_at_period_end?: boolean
+    }
+
     await supabase
       .from('organization_subscriptions')
       .upsert({
         organization_id: organizationId,
         plan_id: planId,
-        stripe_customer_id: subscription.customer as string,
-        stripe_subscription_id: subscription.id,
-        status: subscription.status as string,
-        billing_cycle: subscription.items.data[0]?.price?.recurring?.interval === 'year' ? 'yearly' : 'monthly',
-        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-        trial_start: subscription.trial_start ? new Date(subscription.trial_start * 1000).toISOString() : null,
-        trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
-        cancel_at_period_end: subscription.cancel_at_period_end,
+        stripe_customer_id: sub.customer as string,
+        stripe_subscription_id: sub.id,
+        status: sub.status as string,
+        billing_cycle: sub.items.data[0]?.price?.recurring?.interval === 'year' ? 'yearly' : 'monthly',
+        current_period_start: sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null,
+        current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+        trial_start: sub.trial_start ? new Date(sub.trial_start * 1000).toISOString() : null,
+        trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
+        cancel_at_period_end: sub.cancel_at_period_end ?? false,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'organization_id',
@@ -321,9 +345,9 @@ export class StripeService {
     await supabase
       .from('organizations')
       .update({
-        subscription_status: subscription.status,
-        trial_ends_at: subscription.trial_end
-          ? new Date(subscription.trial_end * 1000).toISOString()
+        subscription_status: sub.status,
+        trial_ends_at: sub.trial_end
+          ? new Date(sub.trial_end * 1000).toISOString()
           : null,
       })
       .eq('id', organizationId)
@@ -351,31 +375,46 @@ export class StripeService {
 
   private static async handleInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
     const supabase = await createClient()
-    const customerId = invoice.customer as string
+
+    // Cast for compatibility with different Stripe API versions
+    const inv = invoice as unknown as {
+      id: string
+      customer: string
+      number?: string | null
+      subtotal?: number
+      tax?: number | null
+      total?: number
+      amount_paid?: number
+      amount_due?: number
+      created: number
+      due_date?: number | null
+      invoice_pdf?: string | null
+      hosted_invoice_url?: string | null
+    }
 
     const { data: org } = await supabase
       .from('organizations')
       .select('id')
-      .eq('stripe_customer_id', customerId)
+      .eq('stripe_customer_id', inv.customer)
       .single()
 
     if (!org) return
 
     await supabase.from('billing_invoices').upsert({
       organization_id: org.id,
-      stripe_invoice_id: invoice.id,
-      invoice_number: invoice.number,
+      stripe_invoice_id: inv.id,
+      invoice_number: inv.number || null,
       status: 'paid',
-      subtotal: invoice.subtotal,
-      tax: invoice.tax || 0,
-      total: invoice.total,
-      amount_paid: invoice.amount_paid,
-      amount_due: invoice.amount_due,
-      invoice_date: new Date(invoice.created * 1000).toISOString(),
-      due_date: invoice.due_date ? new Date(invoice.due_date * 1000).toISOString() : null,
+      subtotal: inv.subtotal || 0,
+      tax: inv.tax || 0,
+      total: inv.total || 0,
+      amount_paid: inv.amount_paid || 0,
+      amount_due: inv.amount_due || 0,
+      invoice_date: new Date(inv.created * 1000).toISOString(),
+      due_date: inv.due_date ? new Date(inv.due_date * 1000).toISOString() : null,
       paid_at: new Date().toISOString(),
-      invoice_pdf_url: invoice.invoice_pdf,
-      hosted_invoice_url: invoice.hosted_invoice_url,
+      invoice_pdf_url: inv.invoice_pdf || null,
+      hosted_invoice_url: inv.hosted_invoice_url || null,
     }, {
       onConflict: 'stripe_invoice_id',
     })
