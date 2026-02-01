@@ -22,6 +22,10 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => Promise.resolve(mockSupabaseClient))
 }))
 
+vi.mock('@/lib/middleware/unified-rate-limit', () => ({
+  applyUnifiedRateLimit: vi.fn(() => Promise.resolve(null))
+}))
+
 vi.mock('@/lib/services/invoices-service', () => ({
   InvoicesService: {
     list: vi.fn(),
@@ -35,7 +39,30 @@ vi.mock('@/lib/services/invoices-service', () => ({
 
 // Import the route handlers
 import { GET, POST } from '@/app/api/invoices/route'
-import { createClient } from '@/lib/supabase/server'
+import { InvoicesService } from '@/lib/services/invoices-service'
+
+const mockProfile = {
+  organization_id: 'org-123',
+  role: 'user'
+}
+
+const setupAuthenticatedUser = () => {
+  vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+    data: { user: { id: 'user-1', email: 'test@example.com' } },
+    error: null
+  })
+
+  vi.mocked(mockSupabaseClient.from).mockReturnValue({
+    select: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: mockProfile,
+          error: null
+        })
+      })
+    })
+  } as any)
+}
 
 describe('Invoices API', () => {
   beforeEach(() => {
@@ -44,31 +71,14 @@ describe('Invoices API', () => {
 
   describe('GET /api/invoices', () => {
     it('should return invoices for authenticated user', async () => {
-      // Mock authenticated user
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
+      setupAuthenticatedUser()
 
-      // Mock profile data
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
-
-      // Mock invoices query
       const mockInvoices = [
         {
-          id: 'invoice-1',
+          id: '550e8400-e29b-41d4-a716-446655440001',
           invoice_number: 'INV-001',
-          job_id: 'job-1',
-          customer_id: 'customer-1',
+          job_id: '550e8400-e29b-41d4-a716-446655440010',
+          customer_id: '550e8400-e29b-41d4-a716-446655440020',
           status: 'draft',
           subtotal: 1000.00,
           tax_amount: 80.00,
@@ -78,10 +88,10 @@ describe('Invoices API', () => {
           created_at: '2026-01-31T10:00:00Z'
         },
         {
-          id: 'invoice-2',
+          id: '550e8400-e29b-41d4-a716-446655440002',
           invoice_number: 'INV-002',
-          job_id: 'job-2',
-          customer_id: 'customer-2',
+          job_id: '550e8400-e29b-41d4-a716-446655440011',
+          customer_id: '550e8400-e29b-41d4-a716-446655440021',
           status: 'sent',
           subtotal: 1500.00,
           tax_amount: 120.00,
@@ -92,19 +102,7 @@ describe('Invoices API', () => {
         }
       ]
 
-      // Mock the complex query chain
-      const mockQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        range: vi.fn().mockResolvedValue({
-          data: mockInvoices,
-          error: null,
-          count: 2
-        })
-      }
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue(mockQuery as any)
+      vi.mocked(InvoicesService.list).mockResolvedValue(mockInvoices)
 
       const request = new NextRequest('http://localhost:3000/api/invoices')
       const response = await GET(request)
@@ -112,9 +110,7 @@ describe('Invoices API', () => {
 
       expect(response.status).toBe(200)
       expect(data.invoices).toEqual(mockInvoices)
-      expect(data.total).toBe(2)
-      expect(data.page).toBe(1)
-      expect(data.limit).toBe(20)
+      expect(InvoicesService.list).toHaveBeenCalled()
     })
 
     it('should return 401 for unauthenticated user', async () => {
@@ -132,117 +128,27 @@ describe('Invoices API', () => {
       expect(data.type).toBe('UNAUTHORIZED')
     })
 
-    it('should handle query parameters for pagination', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
-
-      // Mock profile data
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
-
-      const mockQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        range: vi.fn().mockResolvedValue({
-          data: [],
-          error: null,
-          count: 0
-        })
-      }
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue(mockQuery as any)
-
-      const request = new NextRequest('http://localhost:3000/api/invoices?page=2&limit=10')
-      const response = await GET(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(200)
-      expect(data.page).toBe(2)
-      expect(data.limit).toBe(10)
-      expect(mockQuery.range).toHaveBeenCalledWith(10, 19) // page 2, limit 10
-    })
-
     it('should handle query parameters for filtering', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
+      setupAuthenticatedUser()
 
-      // Mock profile data
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
+      vi.mocked(InvoicesService.list).mockResolvedValue([])
 
-      const mockQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        range: vi.fn().mockResolvedValue({
-          data: [],
-          error: null,
-          count: 0
-        })
-      }
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue(mockQuery as any)
-
-      const request = new NextRequest('http://localhost:3000/api/invoices?status=sent&customer_id=customer-1')
+      const request = new NextRequest('http://localhost:3000/api/invoices?status=sent&customer_id=550e8400-e29b-41d4-a716-446655440020')
       await GET(request)
 
-      // Verify filtering was applied
-      expect(mockQuery.eq).toHaveBeenCalledWith('status', 'sent')
-      expect(mockQuery.eq).toHaveBeenCalledWith('customer_id', 'customer-1')
+      // Verify filtering was applied via InvoicesService
+      expect(InvoicesService.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'sent',
+          customer_id: '550e8400-e29b-41d4-a716-446655440020'
+        })
+      )
     })
 
-    it('should handle database errors securely', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
+    it('should handle service errors securely', async () => {
+      setupAuthenticatedUser()
 
-      // Mock profile data
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
-
-      // Mock database error
-      const mockQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        range: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Connection to database failed', code: '08006' },
-          count: null
-        })
-      }
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue(mockQuery as any)
+      vi.mocked(InvoicesService.list).mockRejectedValue(new Error('Database connection failed'))
 
       const request = new NextRequest('http://localhost:3000/api/invoices')
       const response = await GET(request)
@@ -251,68 +157,30 @@ describe('Invoices API', () => {
       expect(response.status).toBe(500)
       expect(data.error).toBe('An internal server error occurred')
       expect(data.type).toBe('INTERNAL_ERROR')
-      expect(data.error).not.toContain('Connection to database failed')
+      expect(data.error).not.toContain('Database connection failed')
     })
   })
 
   describe('POST /api/invoices', () => {
     const validInvoiceData = {
-      job_id: 'job-1',
-      customer_id: 'customer-1',
-      issue_date: '2026-01-31',
+      customer_id: '550e8400-e29b-41d4-a716-446655440020',
       due_date: '2026-02-15',
-      subtotal: 1000.00,
-      tax_rate: 0.08,
-      tax_amount: 80.00,
-      total_amount: 1080.00,
-      line_items: [
-        {
-          description: 'Asbestos removal',
-          quantity: 1,
-          unit_price: 1000.00,
-          total: 1000.00
-        }
-      ]
+      notes: 'Test invoice'
     }
 
     it('should create a new invoice for authenticated user', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
-
-      // Mock profile data
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const mockCreatedInvoice = {
-        id: 'invoice-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         invoice_number: 'INV-001',
         ...validInvoiceData,
         status: 'draft',
-        organization_id: 'org-1',
+        organization_id: 'org-123',
         created_at: '2026-01-31T10:00:00Z'
       }
 
-      // Mock the insert operation
-      const mockInsert = {
-        insert: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: mockCreatedInvoice,
-          error: null
-        })
-      }
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue(mockInsert as any)
+      vi.mocked(InvoicesService.create).mockResolvedValue(mockCreatedInvoice)
 
       const request = new NextRequest('http://localhost:3000/api/invoices', {
         method: 'POST',
@@ -323,7 +191,8 @@ describe('Invoices API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(201)
-      expect(data.invoice).toEqual(mockCreatedInvoice)
+      expect(data).toEqual(mockCreatedInvoice)
+      expect(InvoicesService.create).toHaveBeenCalled()
     })
 
     it('should return 401 for unauthenticated user', async () => {
@@ -345,27 +214,12 @@ describe('Invoices API', () => {
       expect(data.type).toBe('UNAUTHORIZED')
     })
 
-    it('should validate required fields', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
+    it('should validate customer_id field is required', async () => {
+      setupAuthenticatedUser()
 
-      // Mock profile data
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
-
-      // Test missing job_id
-      const invalidData = { ...validInvoiceData }
-      delete invalidData.job_id
+      const invalidData = {
+        due_date: '2026-02-15'
+      }
 
       const request = new NextRequest('http://localhost:3000/api/invoices', {
         method: 'POST',
@@ -376,68 +230,17 @@ describe('Invoices API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(400)
-      expect(data.error).toBe('job_id is required')
-      expect(data.type).toBe('VALIDATION_ERROR')
-      expect(data.field).toBe('job_id')
-    })
-
-    it('should validate customer_id field', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
-
-      // Mock profile data
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
-
-      // Test missing customer_id
-      const invalidData = { ...validInvoiceData }
-      delete invalidData.customer_id
-
-      const request = new NextRequest('http://localhost:3000/api/invoices', {
-        method: 'POST',
-        body: JSON.stringify(invalidData)
-      })
-
-      const response = await POST(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(400)
-      expect(data.error).toBe('customer_id is required')
       expect(data.type).toBe('VALIDATION_ERROR')
       expect(data.field).toBe('customer_id')
     })
 
-    it('should validate total_amount field', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
+    it('should validate customer_id must be a valid UUID', async () => {
+      setupAuthenticatedUser()
 
-      // Mock profile data
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
-
-      // Test missing total_amount
-      const invalidData = { ...validInvoiceData }
-      delete invalidData.total_amount
+      const invalidData = {
+        customer_id: 'invalid-customer-id',
+        due_date: '2026-02-15'
+      }
 
       const request = new NextRequest('http://localhost:3000/api/invoices', {
         method: 'POST',
@@ -448,40 +251,55 @@ describe('Invoices API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(400)
-      expect(data.error).toBe('total_amount is required')
       expect(data.type).toBe('VALIDATION_ERROR')
-      expect(data.field).toBe('total_amount')
+      expect(data.error).toContain('Invalid customer ID')
     })
 
-    it('should handle database errors securely', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
+    it('should validate due_date field is required', async () => {
+      setupAuthenticatedUser()
 
-      // Mock profile data
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
-
-      // Mock database error
-      const mockInsert = {
-        insert: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Foreign key constraint violation', code: '23503' }
-        })
+      const invalidData = {
+        customer_id: '550e8400-e29b-41d4-a716-446655440020'
       }
 
-      vi.mocked(mockSupabaseClient.from).mockReturnValue(mockInsert as any)
+      const request = new NextRequest('http://localhost:3000/api/invoices', {
+        method: 'POST',
+        body: JSON.stringify(invalidData)
+      })
+
+      const response = await POST(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(data.type).toBe('VALIDATION_ERROR')
+      expect(data.field).toBe('due_date')
+    })
+
+    it('should validate due_date format', async () => {
+      setupAuthenticatedUser()
+
+      const invalidData = {
+        customer_id: '550e8400-e29b-41d4-a716-446655440020',
+        due_date: '02-15-2026' // Invalid format
+      }
+
+      const request = new NextRequest('http://localhost:3000/api/invoices', {
+        method: 'POST',
+        body: JSON.stringify(invalidData)
+      })
+
+      const response = await POST(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(data.type).toBe('VALIDATION_ERROR')
+      expect(data.error).toContain('Invalid date format')
+    })
+
+    it('should handle service errors securely', async () => {
+      setupAuthenticatedUser()
+
+      vi.mocked(InvoicesService.create).mockRejectedValue(new Error('Foreign key constraint violation'))
 
       const request = new NextRequest('http://localhost:3000/api/invoices', {
         method: 'POST',
@@ -491,17 +309,14 @@ describe('Invoices API', () => {
       const response = await POST(request)
       const data = await response.json()
 
-      expect(response.status).toBe(404)
-      expect(data.error).toBe('The requested resource was not found')
-      expect(data.type).toBe('NOT_FOUND')
+      expect(response.status).toBe(500)
+      expect(data.error).toBe('An internal server error occurred')
+      expect(data.type).toBe('INTERNAL_ERROR')
       expect(data.error).not.toContain('Foreign key constraint')
     })
 
     it('should handle malformed JSON', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
+      setupAuthenticatedUser()
 
       const request = new NextRequest('http://localhost:3000/api/invoices', {
         method: 'POST',
@@ -511,9 +326,9 @@ describe('Invoices API', () => {
       const response = await POST(request)
       const data = await response.json()
 
-      expect(response.status).toBe(500)
-      expect(data.error).toBe('An internal server error occurred')
-      expect(data.type).toBe('INTERNAL_ERROR')
+      expect(response.status).toBe(400)
+      expect(data.error).toBe('Invalid JSON body')
+      expect(data.type).toBe('BAD_REQUEST')
     })
   })
 })

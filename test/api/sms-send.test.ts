@@ -66,7 +66,7 @@ describe('POST /api/sms/send', () => {
     const smsData = {
       to: '+15551234567',
       body: 'Your appointment is tomorrow',
-      message_type: 'reminder'
+      message_type: 'appointment_reminder'
     }
 
     const request = new NextRequest('http://localhost:3000/api/sms/send', {
@@ -82,7 +82,7 @@ describe('POST /api/sms/send', () => {
     expect(SmsService.send).toHaveBeenCalledWith('org-123', expect.objectContaining({
       to: '+15551234567',
       body: 'Your appointment is tomorrow',
-      message_type: 'reminder'
+      message_type: 'appointment_reminder'
     }))
   })
 
@@ -115,7 +115,7 @@ describe('POST /api/sms/send', () => {
     const smsData = {
       to: '+15559876543',
       body: 'Job update',
-      message_type: 'job_update',
+      message_type: 'job_status',
       customer_id: 'customer-1',
       related_entity_type: 'job',
       related_entity_id: 'job-123'
