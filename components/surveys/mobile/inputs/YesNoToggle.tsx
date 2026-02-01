@@ -28,13 +28,14 @@ export function YesNoToggle({
         className={cn(
           'flex-1 min-h-[56px] px-6 py-3 rounded-lg font-medium text-lg',
           'touch-manipulation transition-all duration-200',
-          'border-2',
+          'border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500',
           value === true
-            ? 'bg-green-100 border-green-500 text-green-700'
-            : 'bg-background border-border text-muted-foreground hover:border-green-300',
+            ? 'bg-green-600 border-green-700 text-white'
+            : 'bg-background border-border text-foreground hover:border-green-400',
           disabled && 'opacity-50 cursor-not-allowed'
         )}
         aria-pressed={value === true}
+        aria-disabled={disabled}
       >
         {yesLabel}
       </button>
@@ -46,13 +47,14 @@ export function YesNoToggle({
         className={cn(
           'flex-1 min-h-[56px] px-6 py-3 rounded-lg font-medium text-lg',
           'touch-manipulation transition-all duration-200',
-          'border-2',
+          'border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500',
           value === false
-            ? 'bg-red-100 border-red-500 text-red-700'
-            : 'bg-background border-border text-muted-foreground hover:border-red-300',
+            ? 'bg-red-600 border-red-700 text-white'
+            : 'bg-background border-border text-foreground hover:border-red-400',
           disabled && 'opacity-50 cursor-not-allowed'
         )}
         aria-pressed={value === false}
+        aria-disabled={disabled}
       >
         {noLabel}
       </button>
@@ -88,13 +90,14 @@ export function YesNoNaToggle({
         className={cn(
           'flex-1 min-h-[52px] px-4 py-2 rounded-lg font-medium',
           'touch-manipulation transition-all duration-200',
-          'border-2',
+          'border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500',
           value === true
-            ? 'bg-green-100 border-green-500 text-green-700'
-            : 'bg-background border-border text-muted-foreground hover:border-green-300',
+            ? 'bg-green-600 border-green-700 text-white'
+            : 'bg-background border-border text-foreground hover:border-green-400',
           disabled && 'opacity-50 cursor-not-allowed'
         )}
         aria-pressed={value === true}
+        aria-disabled={disabled}
       >
         {yesLabel}
       </button>
@@ -106,13 +109,14 @@ export function YesNoNaToggle({
         className={cn(
           'flex-1 min-h-[52px] px-4 py-2 rounded-lg font-medium',
           'touch-manipulation transition-all duration-200',
-          'border-2',
+          'border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500',
           value === false
-            ? 'bg-red-100 border-red-500 text-red-700'
-            : 'bg-background border-border text-muted-foreground hover:border-red-300',
+            ? 'bg-red-600 border-red-700 text-white'
+            : 'bg-background border-border text-foreground hover:border-red-400',
           disabled && 'opacity-50 cursor-not-allowed'
         )}
         aria-pressed={value === false}
+        aria-disabled={disabled}
       >
         {noLabel}
       </button>
@@ -124,13 +128,14 @@ export function YesNoNaToggle({
         className={cn(
           'flex-1 min-h-[52px] px-4 py-2 rounded-lg font-medium',
           'touch-manipulation transition-all duration-200',
-          'border-2',
+          'border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500',
           value === null
-            ? 'bg-gray-100 border-gray-500 text-gray-700'
-            : 'bg-background border-border text-muted-foreground hover:border-gray-300',
+            ? 'bg-gray-600 border-gray-700 text-white'
+            : 'bg-background border-border text-foreground hover:border-gray-400',
           disabled && 'opacity-50 cursor-not-allowed'
         )}
         aria-pressed={value === null}
+        aria-disabled={disabled}
       >
         {naLabel}
       </button>

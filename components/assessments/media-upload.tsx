@@ -300,8 +300,9 @@ export function MediaUpload({
           variant="outline"
           onClick={() => openCamera(false)}
           className="flex flex-col items-center p-4 h-auto"
+          aria-label="Take a photo using your camera"
         >
-          <Camera className="h-6 w-6 mb-1" />
+          <Camera className="h-6 w-6 mb-1" aria-hidden="true" />
           <span className="text-xs">Take Photo</span>
         </Button>
 
@@ -310,8 +311,9 @@ export function MediaUpload({
           variant="outline"
           onClick={() => openCamera(true)}
           className="flex flex-col items-center p-4 h-auto"
+          aria-label="Record a video using your camera"
         >
-          <Video className="h-6 w-6 mb-1" />
+          <Video className="h-6 w-6 mb-1" aria-hidden="true" />
           <span className="text-xs">Record Video</span>
         </Button>
 
@@ -320,12 +322,13 @@ export function MediaUpload({
           variant="outline"
           onClick={() => fileInputRef.current?.click()}
           className="flex flex-col items-center p-4 h-auto"
+          aria-label="Upload files from your device"
         >
-          <Upload className="h-6 w-6 mb-1" />
+          <Upload className="h-6 w-6 mb-1" aria-hidden="true" />
           <span className="text-xs">Upload Files</span>
         </Button>
 
-        <div className="flex flex-col items-center justify-center p-2 text-xs text-gray-500">
+        <div className="flex flex-col items-center justify-center p-2 text-xs text-gray-500" role="status" aria-live="polite">
           <span>{media.length}/{maxFiles}</span>
           <span>files</span>
         </div>
@@ -339,6 +342,8 @@ export function MediaUpload({
         accept="image/*,video/*"
         onChange={handleFileSelect}
         className="hidden"
+        aria-label="Select image or video files to upload"
+        id="media-file-input"
       />
 
       {/* Processing indicator */}
@@ -368,7 +373,7 @@ export function MediaUpload({
                 {item.type === 'image' ? (
                   <Image
                     src={item.url}
-                    alt="Assessment photo"
+                    alt={item.caption || `Assessment photo ${media.indexOf(item) + 1} of ${media.length}`}
                     className="w-full h-full object-cover"
                     width={200}
                     height={200}
@@ -378,12 +383,13 @@ export function MediaUpload({
                     <video
                       src={item.url}
                       className="w-full h-full object-cover"
-                      controls={false}
+                      controls
                       muted
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Play className="h-8 w-8 text-white bg-black bg-opacity-50 rounded-full p-1" />
-                    </div>
+                      aria-label={item.caption || `Assessment video ${media.indexOf(item) + 1} of ${media.length}`}
+                    >
+                      <track kind="captions" src="" label="Captions" />
+                      Your browser does not support video playback.
+                    </video>
                   </div>
                 )}
 
@@ -394,8 +400,9 @@ export function MediaUpload({
                   size="sm"
                   onClick={() => removeMedia(item.id)}
                   className="absolute top-2 right-2 h-6 w-6 p-0"
+                  aria-label={`Remove ${item.type === 'image' ? 'photo' : 'video'} ${item.caption || ''}`}
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-3 w-3" aria-hidden="true" />
                 </Button>
 
                 {/* Compression indicator */}
@@ -418,12 +425,16 @@ export function MediaUpload({
                 </div>
 
                 {/* Caption input */}
+                <label htmlFor={`caption-${item.id}`} className="sr-only">
+                  Add caption for {item.type}
+                </label>
                 <input
+                  id={`caption-${item.id}`}
                   type="text"
                   placeholder="Add caption..."
                   value={item.caption || ''}
                   onChange={(e) => updateCaption(item.id, e.target.value)}
-                  className="w-full text-xs p-1 border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full text-xs p-1 border rounded focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </CardContent>
             </Card>
