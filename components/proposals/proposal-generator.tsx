@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText, Download, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { formatCurrency } from '@/lib/utils'
 
 interface ProposalGeneratorProps {
   estimateId: string
@@ -82,13 +83,6 @@ export function ProposalGenerator({
     } finally {
       setIsGenerating(false)
     }
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
   }
 
   return (

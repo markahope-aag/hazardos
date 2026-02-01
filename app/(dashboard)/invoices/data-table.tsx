@@ -29,7 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal, Search, Send, DollarSign, Ban } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import type { Invoice } from '@/types/invoices'
 import { invoiceStatusConfig } from '@/types/invoices'
 import Link from 'next/link'
@@ -56,14 +56,6 @@ export function InvoicesDataTable({ data }: InvoicesDataTableProps) {
 
     return matchesSearch && matchesStatus
   })
-
-  const formatCurrency = (amount: number | null) => {
-    if (amount === null) return '-'
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
-  }
 
   const getDaysOverdue = (dueDate: string) => {
     const today = new Date()

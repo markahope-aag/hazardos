@@ -6,19 +6,13 @@ import { Separator } from '@/components/ui/separator'
 import { User, MapPin, FileText, Calendar } from 'lucide-react'
 import type { Invoice } from '@/types/invoices'
 import Link from 'next/link'
+import { formatCurrency } from '@/lib/utils'
 
 interface InvoiceDetailsProps {
   invoice: Invoice
 }
 
 export function InvoiceDetails({ invoice }: InvoiceDetailsProps) {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
-  }
-
   return (
     <div className="space-y-4">
       {/* Summary Card */}

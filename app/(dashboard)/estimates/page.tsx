@@ -45,6 +45,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
+import { formatCurrency } from '@/lib/utils'
 import type { EstimateWithRelations, EstimateStatus, ESTIMATE_STATUS_CONFIG } from '@/types/estimates'
 
 const STATUS_CONFIG: typeof ESTIMATE_STATUS_CONFIG = {
@@ -156,13 +157,6 @@ export default function EstimatesPage() {
       estimate.customer?.last_name?.toLowerCase().includes(query)
     )
   })
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value)
-  }
 
   return (
     <div className="space-y-6">

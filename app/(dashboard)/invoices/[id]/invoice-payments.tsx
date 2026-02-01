@@ -33,6 +33,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, Trash2, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { formatCurrency } from '@/lib/utils'
 import type { Invoice, Payment, PaymentMethod } from '@/types/invoices'
 import { paymentMethodConfig } from '@/types/invoices'
 
@@ -56,13 +57,6 @@ export function InvoicePayments({ invoice, payments }: InvoicePaymentsProps) {
   })
 
   const canRecordPayment = invoice.balance_due > 0 && invoice.status !== 'void'
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
-  }
 
   const openDialog = () => {
     setForm({

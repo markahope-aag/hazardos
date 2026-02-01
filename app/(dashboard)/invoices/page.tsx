@@ -11,6 +11,7 @@ import {
   Clock
 } from 'lucide-react'
 import Link from 'next/link'
+import { formatCurrency } from '@/lib/utils'
 
 export default async function InvoicesPage({
   searchParams,
@@ -70,15 +71,6 @@ export default async function InvoicesPage({
       stats.total_overdue += inv.balance_due
       stats.overdue_count++
     }
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
   }
 
   return (
