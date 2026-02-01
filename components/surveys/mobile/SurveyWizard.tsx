@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -8,7 +8,8 @@ import { useSurveyStore } from '@/lib/stores/survey-store'
 import { SurveySection } from '@/lib/stores/survey-types'
 import { WizardNavigation, WizardNavigationLabel } from './WizardNavigation'
 import { WizardFooter } from './WizardFooter'
-import { Save, X } from 'lucide-react'
+import { Save, X, ClipboardList } from 'lucide-react'
+import { FormErrorBoundary, ErrorBoundary } from '@/components/error-boundaries'
 
 // Section components will be imported here
 import { PropertySection } from './sections/PropertySection'
@@ -17,6 +18,43 @@ import { EnvironmentSection } from './sections/EnvironmentSection'
 import { HazardsSection } from './sections/HazardsSection'
 import { PhotosSection } from './sections/PhotosSection'
 import { ReviewSection } from './sections/ReviewSection'
+
+/**
+ * Error boundary wrapper for the Survey Wizard
+ */
+export function SurveyWizardErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <FormErrorBoundary
+      formName="Site Survey"
+      backPath="/site-surveys"
+      backLabel="Back to Surveys"
+    >
+      {children}
+    </FormErrorBoundary>
+  );
+}
+
+/**
+ * Error boundary for individual wizard sections
+ * Allows other sections to continue working if one section fails
+ */
+function SectionErrorBoundary({
+  children,
+  sectionName,
+}: {
+  children: ReactNode;
+  sectionName: string;
+}) {
+  return (
+    <ErrorBoundary
+      name={`SurveySection:${sectionName}`}
+      minHeight="200px"
+      showDetails={process.env.NODE_ENV === 'development'}
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
 
 interface SurveyWizardProps {
   surveyId?: string
@@ -116,10 +154,12 @@ export function SurveyWizard({ surveyId, customerId, className }: SurveyWizardPr
         <WizardNavigationLabel className="pb-3" />
       </header>
 
-      {/* Main Content Area */}
+      {/* Main Content Area - wrapped with error boundary for section rendering */}
       <main className="flex-1 overflow-y-auto pb-24">
         <div className="px-4 py-6">
-          <CurrentSectionComponent />
+          <SectionErrorBoundary sectionName={currentSection}>
+            <CurrentSectionComponent />
+          </SectionErrorBoundary>
         </div>
       </main>
 

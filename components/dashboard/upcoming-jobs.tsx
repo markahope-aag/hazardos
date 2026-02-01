@@ -5,6 +5,9 @@ import { Calendar, MapPin } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import Link from 'next/link';
 
+// Re-export error boundary wrapper
+export { UpcomingJobsErrorBoundary } from './error-wrappers';
+
 interface Customer {
   company_name: string | null;
   first_name: string | null;

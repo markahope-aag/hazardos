@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,24 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { formatDistanceToNow } from 'date-fns';
+import { IntegrationErrorBoundary } from '@/components/error-boundaries';
 import type { OrganizationIntegration } from '@/types/integrations';
+
+/**
+ * Error boundary wrapper for the Google Calendar Card
+ */
+export function GoogleCalendarCardErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <IntegrationErrorBoundary
+      integrationName="Google Calendar"
+      icon={<Calendar className="h-6 w-6 text-blue-600" />}
+      settingsPath="/settings/integrations"
+      showReconnect
+    >
+      {children}
+    </IntegrationErrorBoundary>
+  );
+}
 
 interface GoogleCalendarCardProps {
   integration: OrganizationIntegration | null;

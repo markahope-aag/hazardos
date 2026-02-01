@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -19,7 +19,23 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { cn } from '@/lib/utils'
+import { DataErrorBoundary } from '@/components/error-boundaries'
 import type { PipelineStage, Opportunity } from '@/types/sales'
+
+/**
+ * Error boundary wrapper for the Pipeline Kanban component
+ */
+export function PipelineKanbanErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <DataErrorBoundary
+      dataLabel="pipeline"
+      minHeight="400px"
+      showCard={false}
+    >
+      {children}
+    </DataErrorBoundary>
+  );
+}
 
 interface PipelineKanbanProps {
   stages: PipelineStage[]

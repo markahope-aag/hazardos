@@ -6,6 +6,9 @@ import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils';
 
+// Re-export error boundary wrapper
+export { OverdueInvoicesErrorBoundary } from './error-wrappers';
+
 interface Customer {
   company_name: string | null;
   first_name: string | null;

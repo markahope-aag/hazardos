@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -35,8 +35,23 @@ import {
 } from 'recharts'
 import { Download, RefreshCw, Save, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { ChartErrorBoundary, DataErrorBoundary } from '@/components/error-boundaries'
 import type { ReportType, ReportConfig, ReportColumn, DateRangeType, ChartType } from '@/types/reporting'
 import { dateRangePresets } from '@/types/reporting'
+
+/**
+ * Error boundary wrapper for the Report Viewer component
+ */
+export function ReportViewerErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <DataErrorBoundary
+      dataLabel="report"
+      minHeight="500px"
+    >
+      {children}
+    </DataErrorBoundary>
+  );
+}
 
 interface ReportViewerProps {
   reportType: ReportType
@@ -231,53 +246,55 @@ export function ReportViewer({
         </CardContent>
       </Card>
 
-      {/* Chart */}
+      {/* Chart - wrapped with error boundary for chart rendering failures */}
       {chartType !== 'none' && data.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Visualization</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                {chartType === 'bar' ? (
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#4F46E5" />
-                  </BarChart>
-                ) : chartType === 'line' ? (
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="value" stroke="#4F46E5" />
-                  </LineChart>
-                ) : (
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      label
-                    >
-                      {chartData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                )}
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <ChartErrorBoundary title="Visualization" height="300px" compact={false}>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Visualization</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  {chartType === 'bar' ? (
+                    <BarChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="#4F46E5" />
+                    </BarChart>
+                  ) : chartType === 'line' ? (
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="value" stroke="#4F46E5" />
+                    </LineChart>
+                  ) : (
+                    <PieChart>
+                      <Pie
+                        data={chartData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        label
+                      >
+                        {chartData.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  )}
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </ChartErrorBoundary>
       )}
 
       {/* Data Table */}
