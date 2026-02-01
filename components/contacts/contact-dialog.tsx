@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Loader2 } from 'lucide-react'
+import { useToast } from '@/components/ui/use-toast'
 import type { CustomerContact, ContactRole, ContactMethod } from '@/types/contacts'
 import { contactRoleConfig, contactMethodConfig } from '@/types/contacts'
 
@@ -40,6 +41,7 @@ export function ContactDialog({
   customerId,
   contact,
 }: ContactDialogProps) {
+  const { toast } = useToast()
   const isEdit = !!contact
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -122,9 +124,19 @@ export function ContactDialog({
         throw new Error(data.error || 'Failed to save contact')
       }
 
+      toast({
+        title: isEdit ? 'Contact updated' : 'Contact added',
+        description: `${name} has been ${isEdit ? 'updated' : 'added'} successfully.`,
+      })
       onSuccess()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const message = err instanceof Error ? err.message : 'An error occurred'
+      setError(message)
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
+      })
     } finally {
       setLoading(false)
     }

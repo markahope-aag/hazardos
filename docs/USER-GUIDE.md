@@ -240,6 +240,239 @@ Update customer status as they progress through your sales funnel:
 
 **Best Practice**: Set customers to "Inactive" status instead of deleting them to preserve historical data.
 
+### Managing Customer Contacts
+
+HazardOS allows you to maintain multiple contacts per customer, perfect for enterprise customers with different decision-makers, billing contacts, and on-site coordinators.
+
+#### Viewing Customer Contacts
+
+1. Open customer details page
+2. Navigate to **Contacts** tab
+3. View all contacts for this customer
+
+**Contact Card Display**:
+- Contact name with role badge
+- Star icon for primary contact
+- Job title
+- Email and phone numbers (clickable)
+- Notes about the contact
+
+**Role Badges**:
+- Primary (Blue) - Main point of contact
+- Billing (Green) - Receives invoices
+- Site (Orange) - On-site coordinator
+- Scheduling (Purple) - Appointment scheduling
+- General (Gray) - General purpose
+
+#### Adding a New Contact
+
+1. Open customer details
+2. Go to **Contacts** tab
+3. Click **Add Contact** button
+4. Fill in the contact form:
+
+**Required Fields**:
+- Name (required)
+
+**Optional Fields**:
+- Title (e.g., "Project Manager")
+- Email address
+- Phone number
+- Mobile number
+- Role (dropdown):
+  - Primary - Main point of contact
+  - Billing - Invoices and payments
+  - Site - On-site contact for jobs
+  - Scheduling - Appointment scheduling
+  - General - General contact
+- Preferred Contact Method (dropdown):
+  - Email
+  - Phone
+  - Mobile
+  - Any
+- Set as Primary Contact (checkbox)
+- Notes (internal notes about the contact)
+
+5. Click **Add Contact**
+
+**First Contact Behavior**:
+- First contact added is automatically set as primary
+- Primary contact information syncs to customer record
+- Customer name, email, and phone updated from primary contact
+
+#### Editing a Contact
+
+1. Open customer details
+2. Go to **Contacts** tab
+3. Click the **menu** (three dots) on the contact card
+4. Select **Edit**
+5. Update the contact information
+6. Click **Save Changes**
+
+#### Setting a Primary Contact
+
+The primary contact is the main point of contact and their information syncs to the customer record.
+
+**To Change Primary Contact**:
+1. Open customer details
+2. Go to **Contacts** tab
+3. Find the contact you want to set as primary
+4. Click the **menu** (three dots) on their card
+5. Select **Set as Primary**
+
+**What Happens**:
+- Previous primary contact is automatically demoted
+- New primary contact highlighted with star icon
+- Customer record updated with new primary contact info
+- Activity logged for the change
+
+#### Deleting a Contact
+
+1. Open customer details
+2. Go to **Contacts** tab
+3. Click the **menu** (three dots) on the contact card
+4. Select **Delete**
+5. Confirm deletion
+
+**Primary Contact Deletion**:
+- If you delete the primary contact, another contact is automatically promoted
+- Promotion priority: primary role → billing → site → scheduling → oldest contact
+- Customer record updated with new primary contact info
+
+#### Contact Roles Explained
+
+**Primary Contact**:
+- Main decision-maker
+- Receives proposals and important communications
+- Only one primary contact per customer
+- Information syncs to customer record
+
+**Billing Contact**:
+- Receives invoices and payment reminders
+- Handles financial matters
+- Can have multiple billing contacts
+- Invoices sent to all billing contacts
+
+**Site Contact**:
+- On-site coordinator during job execution
+- Receives job scheduling notifications
+- Can have multiple site contacts
+- Job notifications sent to relevant site contacts
+
+**Scheduling Contact**:
+- Handles appointment scheduling
+- Receives calendar updates and reminders
+- Can have multiple scheduling contacts
+- Appointment confirmations sent to scheduling contacts
+
+**General Contact**:
+- No specific role
+- Can be used for additional contacts
+- Receives standard customer communications
+
+#### Communication Preferences
+
+Each contact can specify their preferred contact method:
+
+**Email**:
+- Prefers email communication
+- Good for detailed information
+- Allows for documentation trail
+
+**Phone**:
+- Prefers phone calls
+- Good for urgent matters
+- Direct communication
+
+**Mobile**:
+- Prefers mobile/SMS
+- Good for quick updates
+- On-the-go communication
+
+**Any**:
+- No preference
+- Use any available method
+
+#### Use Cases
+
+**Enterprise Customer Example**:
+```
+Customer: Acme Corporation
+
+Contact 1: John Smith (Primary, Scheduling)
+- Title: Project Manager
+- Email: john@acme.com
+- Phone: (555) 123-4567
+- Preferred: Email
+- Handles: Project coordination, scheduling
+
+Contact 2: Jane Doe (Billing)
+- Title: Accounts Payable Manager
+- Email: ap@acme.com
+- Phone: (555) 234-5678
+- Preferred: Email
+- Handles: Invoices and payments
+
+Contact 3: Bob Wilson (Site)
+- Title: Facilities Manager
+- Email: bob@acme.com
+- Mobile: (555) 345-6789
+- Preferred: Mobile
+- Handles: On-site coordination during jobs
+```
+
+**Residential Customer Example**:
+```
+Customer: Smith Residence
+
+Contact 1: Mary Smith (Primary)
+- Email: mary@example.com
+- Phone: (555) 123-4567
+- Main decision maker
+
+Contact 2: John Smith (General)
+- Email: john@example.com
+- Mobile: (555) 987-6543
+- Backup contact
+```
+
+#### Contact Activity Tracking
+
+All contact actions are logged:
+- Contact created
+- Contact updated
+- Contact deleted
+- Contact set as primary
+
+View contact activity in the customer's activity timeline.
+
+#### Tips for Managing Contacts
+
+**Best Practices**:
+- Add all relevant contacts upfront
+- Keep contact information current
+- Use appropriate roles for each contact
+- Note communication preferences
+- Add context in the notes field
+
+**Communication Strategy**:
+- Send proposals to primary contact
+- Send invoices to billing contacts
+- Send job notifications to site contacts
+- Send appointment confirmations to scheduling contacts
+
+**Data Quality**:
+- Verify email addresses before sending important communications
+- Test phone numbers periodically
+- Update titles when contacts change roles
+- Remove inactive contacts
+
+**Enterprise Customers**:
+- Map organizational structure
+- Identify decision-makers vs. influencers
+- Note reporting relationships
+- Track preferred communication channels
+
 ---
 
 ## Creating and Managing Site Surveys

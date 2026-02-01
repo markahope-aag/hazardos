@@ -261,6 +261,322 @@ Delete a customer. This operation includes safety checks for linked site surveys
 
 ---
 
+## 👥 Customer Contacts API
+
+### `GET /api/customers/[id]/contacts`
+
+List all contacts for a specific customer.
+
+**Path Parameters:**
+- `id` (UUID) - Customer ID
+
+**Response:**
+```json
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440020",
+    "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+    "customer_id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "John Smith",
+    "title": "Project Manager",
+    "email": "john@acmecorp.com",
+    "phone": "(555) 123-4567",
+    "mobile": "(555) 987-6543",
+    "role": "primary",
+    "is_primary": true,
+    "preferred_contact_method": "email",
+    "notes": "Main point of contact for all projects",
+    "created_at": "2026-02-01T10:00:00.000Z",
+    "updated_at": "2026-02-01T10:00:00.000Z"
+  }
+]
+```
+
+**Status Codes:**
+- `200` - Success
+- `401` - Unauthorized
+- `404` - Customer not found
+- `500` - Server error
+
+---
+
+### `POST /api/customers/[id]/contacts`
+
+Create a new contact for a customer.
+
+**Path Parameters:**
+- `id` (UUID) - Customer ID
+
+**Request Body:**
+```json
+{
+  "name": "Jane Doe",
+  "title": "Safety Officer",
+  "email": "jane@acmecorp.com",
+  "phone": "(555) 222-3333",
+  "mobile": "(555) 444-5555",
+  "role": "site",
+  "is_primary": false,
+  "preferred_contact_method": "phone",
+  "notes": "On-site contact for inspections"
+}
+```
+
+**Required Fields:**
+- `name` (string) - Contact name
+
+**Optional Fields:**
+- `title` (string) - Job title
+- `email` (string) - Email address
+- `phone` (string) - Phone number
+- `mobile` (string) - Mobile number
+- `role` (enum) - Contact role: `primary`, `billing`, `site`, `scheduling`, `general`
+- `is_primary` (boolean) - Primary contact flag (default: false, auto-set to true if first contact)
+- `preferred_contact_method` (enum) - Preferred method: `email`, `phone`, `mobile`, `any`
+- `notes` (text) - Additional notes
+
+**Response:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440021",
+  "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+  "customer_id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Jane Doe",
+  "title": "Safety Officer",
+  "email": "jane@acmecorp.com",
+  "phone": "(555) 222-3333",
+  "mobile": "(555) 444-5555",
+  "role": "site",
+  "is_primary": false,
+  "preferred_contact_method": "phone",
+  "notes": "On-site contact for inspections",
+  "created_at": "2026-02-01T11:00:00.000Z",
+  "updated_at": "2026-02-01T11:00:00.000Z"
+}
+```
+
+**Status Codes:**
+- `201` - Created successfully
+- `400` - Invalid request body
+- `401` - Unauthorized
+- `404` - Customer not found
+- `500` - Server error
+
+---
+
+### `GET /api/customers/[id]/contacts/[contactId]`
+
+Get a specific contact by ID.
+
+**Path Parameters:**
+- `id` (UUID) - Customer ID
+- `contactId` (UUID) - Contact ID
+
+**Response:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440020",
+  "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+  "customer_id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "John Smith",
+  "title": "Project Manager",
+  "email": "john@acmecorp.com",
+  "phone": "(555) 123-4567",
+  "mobile": "(555) 987-6543",
+  "role": "primary",
+  "is_primary": true,
+  "preferred_contact_method": "email",
+  "notes": "Main point of contact for all projects",
+  "created_at": "2026-02-01T10:00:00.000Z",
+  "updated_at": "2026-02-01T10:00:00.000Z"
+}
+```
+
+**Status Codes:**
+- `200` - Success
+- `401` - Unauthorized
+- `404` - Contact not found
+- `500` - Server error
+
+---
+
+### `PATCH /api/customers/[id]/contacts/[contactId]`
+
+Update an existing contact.
+
+**Path Parameters:**
+- `id` (UUID) - Customer ID
+- `contactId` (UUID) - Contact ID
+
+**Request Body:**
+```json
+{
+  "title": "Senior Project Manager",
+  "email": "john.smith@acmecorp.com",
+  "preferred_contact_method": "mobile"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440020",
+  "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+  "customer_id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "John Smith",
+  "title": "Senior Project Manager",
+  "email": "john.smith@acmecorp.com",
+  "phone": "(555) 123-4567",
+  "mobile": "(555) 987-6543",
+  "role": "primary",
+  "is_primary": true,
+  "preferred_contact_method": "mobile",
+  "notes": "Main point of contact for all projects",
+  "created_at": "2026-02-01T10:00:00.000Z",
+  "updated_at": "2026-02-01T12:00:00.000Z"
+}
+```
+
+**Status Codes:**
+- `200` - Updated successfully
+- `400` - Invalid request body
+- `401` - Unauthorized
+- `404` - Contact not found
+- `500` - Server error
+
+---
+
+### `DELETE /api/customers/[id]/contacts/[contactId]`
+
+Delete a contact. If deleting the primary contact, another contact will be automatically promoted.
+
+**Path Parameters:**
+- `id` (UUID) - Customer ID
+- `contactId` (UUID) - Contact ID
+
+**Response:**
+```json
+{
+  "message": "Contact deleted successfully"
+}
+```
+
+**Status Codes:**
+- `200` - Deleted successfully
+- `401` - Unauthorized
+- `404` - Contact not found
+- `500` - Server error
+
+---
+
+### `POST /api/customers/[id]/contacts/[contactId]/set-primary`
+
+Set a contact as the primary contact for the customer. This will automatically unset any existing primary contact.
+
+**Path Parameters:**
+- `id` (UUID) - Customer ID
+- `contactId` (UUID) - Contact ID
+
+**Response:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440021",
+  "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+  "customer_id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Jane Doe",
+  "title": "Safety Officer",
+  "email": "jane@acmecorp.com",
+  "phone": "(555) 222-3333",
+  "mobile": "(555) 444-5555",
+  "role": "site",
+  "is_primary": true,
+  "preferred_contact_method": "phone",
+  "notes": "On-site contact for inspections",
+  "created_at": "2026-02-01T11:00:00.000Z",
+  "updated_at": "2026-02-01T13:00:00.000Z"
+}
+```
+
+**Status Codes:**
+- `200` - Updated successfully
+- `401` - Unauthorized
+- `404` - Contact not found
+- `500` - Server error
+
+---
+
+## 📝 Activity API
+
+### `POST /api/activity/manual`
+
+Manually log a note or phone call for any entity (customer, job, estimate, etc.).
+
+**Request Body:**
+```json
+{
+  "type": "note",
+  "entity_type": "customer",
+  "entity_id": "550e8400-e29b-41d4-a716-446655440000",
+  "entity_name": "Acme Corporation",
+  "content": "Discussed project timeline and additional requirements"
+}
+```
+
+**For Call Logging:**
+```json
+{
+  "type": "call",
+  "entity_type": "customer",
+  "entity_id": "550e8400-e29b-41d4-a716-446655440000",
+  "entity_name": "Acme Corporation",
+  "call_direction": "outbound",
+  "call_duration": 15,
+  "content": "Follow-up call about proposal. Customer has questions about timeline."
+}
+```
+
+**Required Fields:**
+- `type` (enum) - Activity type: `note`, `call`
+- `entity_type` (string) - Type of entity (customer, job, estimate, proposal, etc.)
+- `entity_id` (UUID) - ID of the entity
+- `content` (string) - Note content (required for notes)
+
+**For Calls:**
+- `call_direction` (enum) - Call direction: `inbound`, `outbound` (required for calls)
+- `call_duration` (number) - Duration in minutes (optional)
+- `content` (string) - Call notes (optional)
+
+**Optional Fields:**
+- `entity_name` (string) - Name of the entity for display
+
+**Response:**
+```json
+{
+  "success": true
+}
+```
+
+**Status Codes:**
+- `200` - Activity logged successfully
+- `400` - Invalid request body or missing required fields
+- `401` - Unauthorized
+- `500` - Server error
+
+**Activity Types:**
+- `note` - General note about an entity
+- `call` - Phone call log with direction and duration
+
+**Entity Types:**
+- `customer` - Customer record
+- `contact` - Customer contact
+- `site_survey` - Site survey
+- `estimate` - Estimate
+- `proposal` - Proposal
+- `job` - Job
+- `invoice` - Invoice
+
+---
+
 ## 📄 Proposals API
 
 ### `POST /api/proposals/generate`
@@ -655,6 +971,23 @@ type CustomerStatus = 'lead' | 'prospect' | 'customer' | 'inactive'
 ### Customer Source
 ```typescript
 type CustomerSource = 'referral' | 'website' | 'advertising' | 'cold_call' | 'trade_show' | 'other'
+```
+
+### Contact Role
+```typescript
+type ContactRole = 'primary' | 'billing' | 'site' | 'scheduling' | 'general'
+```
+
+**Role Descriptions:**
+- `primary` - Main point of contact for the customer
+- `billing` - Contact for invoices and payments
+- `site` - On-site contact for job execution
+- `scheduling` - Contact for appointment scheduling
+- `general` - General purpose contact
+
+### Contact Method
+```typescript
+type ContactMethod = 'email' | 'phone' | 'mobile' | 'any'
 ```
 
 ### Hazard Type
