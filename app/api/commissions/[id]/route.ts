@@ -1,34 +1,32 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { CommissionService } from '@/lib/services/commission-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { SecureError } from '@/lib/utils/secure-error-handler'
+import { z } from 'zod'
 
-interface RouteParams {
-  params: Promise<{ id: string }>
-}
+const commissionActionSchema = z.object({
+  action: z.enum(['approve', 'mark_paid']),
+})
 
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { id } = await params
-    const body = await request.json()
-    const { action } = body
-
+/**
+ * PATCH /api/commissions/[id]
+ * Approve or mark a commission as paid
+ */
+export const PATCH = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: commissionActionSchema,
+    allowedRoles: ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'],
+  },
+  async (_request, _context, params, body) => {
     let earning
 
-    if (action === 'approve') {
-      earning = await CommissionService.approveEarning(id)
-    } else if (action === 'mark_paid') {
-      earning = await CommissionService.markPaid(id)
+    if (body.action === 'approve') {
+      earning = await CommissionService.approveEarning(params.id)
     } else {
-      throw new SecureError('VALIDATION_ERROR', 'Invalid action')
+      earning = await CommissionService.markPaid(params.id)
     }
 
     return NextResponse.json(earning)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

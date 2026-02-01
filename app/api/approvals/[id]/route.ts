@@ -1,58 +1,52 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { ApprovalService } from '@/lib/services/approval-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { SecureError } from '@/lib/utils/secure-error-handler'
+import { z } from 'zod'
 
-interface RouteParams {
-  params: Promise<{ id: string }>
-}
+const approvalDecisionSchema = z.object({
+  level: z.number().int().min(1).max(2),
+  approved: z.boolean(),
+  notes: z.string().max(1000).optional(),
+})
 
-export async function GET(request: NextRequest, { params }: RouteParams) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { id } = await params
-    const approvalRequest = await ApprovalService.getRequest(id)
+/**
+ * GET /api/approvals/[id]
+ * Get an approval request
+ */
+export const GET = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+  },
+  async (_request, _context, params) => {
+    const approvalRequest = await ApprovalService.getRequest(params.id)
 
     if (!approvalRequest) {
       throw new SecureError('NOT_FOUND', 'Approval request not found')
     }
 
     return NextResponse.json(approvalRequest)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { id } = await params
-    const body = await request.json()
-    const { level, approved, notes } = body
-
-    if (level !== 1 && level !== 2) {
-      throw new SecureError('VALIDATION_ERROR', 'level must be 1 or 2')
-    }
-    if (typeof approved !== 'boolean') {
-      throw new SecureError('VALIDATION_ERROR', 'approved must be a boolean')
-    }
-
+/**
+ * PATCH /api/approvals/[id]
+ * Process an approval (approve/reject)
+ */
+export const PATCH = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: approvalDecisionSchema,
+  },
+  async (_request, _context, params, body) => {
     let result
 
-    if (level === 1) {
-      result = await ApprovalService.decideLevel1(id, { approved, notes })
+    if (body.level === 1) {
+      result = await ApprovalService.decideLevel1(params.id, { approved: body.approved, notes: body.notes })
     } else {
-      result = await ApprovalService.decideLevel2(id, { approved, notes })
+      result = await ApprovalService.decideLevel2(params.id, { approved: body.approved, notes: body.notes })
     }
 
     return NextResponse.json(result)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
