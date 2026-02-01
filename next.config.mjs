@@ -1,4 +1,10 @@
 import withPWA from 'next-pwa';
+import withBundleAnalyzer from '@next/bundle-analyzer';
+
+// Bundle analyzer - run with ANALYZE=true pnpm build
+const analyzeBundle = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
 
 // Security headers configuration
 const securityHeaders = [
@@ -68,9 +74,16 @@ const nextConfig = {
   },
 };
 
-export default withPWA({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
-})(nextConfig);
+// Compose plugins: bundle analyzer -> PWA
+const withPlugins = (config) => {
+  return analyzeBundle(
+    withPWA({
+      dest: 'public',
+      register: true,
+      skipWaiting: true,
+      disable: process.env.NODE_ENV === 'development',
+    })(config)
+  );
+};
+
+export default withPlugins(nextConfig);
