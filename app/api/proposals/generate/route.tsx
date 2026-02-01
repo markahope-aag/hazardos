@@ -6,9 +6,16 @@ import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/
 import type { ProposalData, ProposalGenerateRequest } from '@/types/proposal'
 import type { EquipmentNeeded, MaterialNeeded } from '@/types/database'
 import { generateProposalNumber } from '@/types/proposal'
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting for heavy operations (PDF generation)
+    const rateLimitResponse = await applyUnifiedRateLimit(request, 'heavy')
+    if (rateLimitResponse) {
+      return rateLimitResponse
+    }
+
     const supabase = await createClient()
 
     // Check authentication

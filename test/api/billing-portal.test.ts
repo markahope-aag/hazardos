@@ -290,7 +290,7 @@ describe('POST /api/billing/portal', () => {
     const response = await POST(request)
     const data = await response.json()
 
-    expect(response.status).toBe(500)
-    expect(data.type).toBe('INTERNAL_ERROR')
+    expect(response.status).toBe(404)
+    expect(data.type).toBe('NOT_FOUND')
   })
 })

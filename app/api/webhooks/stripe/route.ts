@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { StripeService } from '@/lib/services/stripe-service'
 import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
 
 // Lazy initialization to avoid build-time errors
 let _stripe: Stripe | null = null
@@ -20,6 +21,12 @@ function getStripe(): Stripe {
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting for webhooks
+    const rateLimitResponse = await applyUnifiedRateLimit(request, 'webhook')
+    if (rateLimitResponse) {
+      return rateLimitResponse
+    }
+
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ''
 
     const body = await request.text()

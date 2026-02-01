@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MailchimpService } from '@/lib/services/mailchimp-service';
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
 
 export async function GET(request: NextRequest) {
   try {
+    // Apply rate limiting for auth/callback endpoints
+    const rateLimitResponse = await applyUnifiedRateLimit(request, 'auth');
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');
     const state = searchParams.get('state');

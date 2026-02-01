@@ -73,10 +73,10 @@ export const POST = createApiHandler(
     bodySchema: createEstimateFromSurveySchema,
   },
   async (_request, context, body) => {
-    // Get the site survey
+    // Get the site survey (full record needed for estimate calculation)
     const { data: survey, error: surveyError } = await context.supabase
       .from('site_surveys')
-      .select('id, organization_id, customer_id, job_name, hazard_type, containment_level, area_sqft, linear_ft, volume_cuft, access_info, clearance_required, regulatory_notifications_needed, site_address, site_city, site_state, site_zip')
+      .select('*')
       .eq('id', body.site_survey_id)
       .eq('organization_id', context.profile.organization_id)
       .single()
