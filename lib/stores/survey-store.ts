@@ -9,7 +9,6 @@ import {
   AccessData,
   EnvironmentData,
   HazardsData,
-  PhotosData,
   PhotoData,
   AsbestosMaterial,
   MoldAffectedArea,

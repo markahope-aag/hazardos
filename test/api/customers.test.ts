@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/customers/route'
+import { createMockCustomer, createMockCustomerArray } from '@/test/helpers/mock-data'
 
 // Mock the customers service
 vi.mock('@/lib/supabase/customers', () => ({
@@ -36,10 +37,7 @@ describe('Customers API Routes', () => {
 
   describe('GET /api/customers', () => {
     it('should return customers list', async () => {
-      const mockCustomers = [
-        { id: '1', name: 'John Doe', status: 'prospect' },
-        { id: '2', name: 'Jane Smith', status: 'lead' }
-      ]
+      const mockCustomers = createMockCustomerArray(2)
 
       const { CustomersService } = await import('@/lib/supabase/customers')
       vi.mocked(CustomersService.getCustomers).mockResolvedValue(mockCustomers)
@@ -141,7 +139,7 @@ describe('Customers API Routes', () => {
         status: 'lead'
       }
 
-      const createdCustomer = { id: 'new-id', ...newCustomerData }
+      const createdCustomer = createMockCustomer({ id: 'new-id', name: newCustomerData.name, email: newCustomerData.email, status: newCustomerData.status as 'lead' })
 
       const { CustomersService } = await import('@/lib/supabase/customers')
       vi.mocked(CustomersService.createCustomer).mockResolvedValue(createdCustomer)
@@ -240,7 +238,7 @@ describe('Customers API Routes', () => {
       }
 
       const { CustomersService } = await import('@/lib/supabase/customers')
-      vi.mocked(CustomersService.createCustomer).mockResolvedValue({ id: 'new-id', ...newCustomerData })
+      vi.mocked(CustomersService.createCustomer).mockResolvedValue(createMockCustomer({ id: 'new-id', name: newCustomerData.name }))
 
       const request = new NextRequest('http://localhost:3000/api/customers', {
         method: 'POST',
@@ -267,7 +265,7 @@ describe('Customers API Routes', () => {
       }
 
       const { CustomersService } = await import('@/lib/supabase/customers')
-      vi.mocked(CustomersService.createCustomer).mockResolvedValue({ id: 'new-id', name: 'Test Customer' })
+      vi.mocked(CustomersService.createCustomer).mockResolvedValue(createMockCustomer({ id: 'new-id', name: 'Test Customer' }))
 
       const request = new NextRequest('http://localhost:3000/api/customers', {
         method: 'POST',
@@ -288,7 +286,7 @@ describe('Customers API Routes', () => {
     it('should require authentication', async () => {
       // Mock unauthenticated user
       const { createClient } = await import('@/lib/supabase/server')
-      vi.mocked(createClient).mockReturnValue({
+      vi.mocked(createClient).mockResolvedValue({
         auth: {
           getUser: vi.fn().mockResolvedValue({
             data: { user: null },

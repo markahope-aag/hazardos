@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import CustomerListPage from '@/app/(dashboard)/customers/page'
+import { createMockCustomer, createMockCustomerArray } from '@/test/helpers/mock-data'
 
 // Mock the services
 vi.mock('@/lib/supabase/customers', () => ({
@@ -53,24 +54,7 @@ describe('Customer Workflow Integration', () => {
 
   describe('Customer List Page', () => {
     it('should render customer list with data', async () => {
-      const mockCustomers = [
-        {
-          id: '1',
-          name: 'John Doe',
-          email: 'john@example.com',
-          status: 'prospect',
-          source: 'website',
-          created_at: '2026-01-31T10:00:00Z'
-        },
-        {
-          id: '2', 
-          name: 'Jane Smith',
-          email: 'jane@example.com',
-          status: 'lead',
-          source: 'referral',
-          created_at: '2026-01-31T11:00:00Z'
-        }
-      ]
+      const mockCustomers = createMockCustomerArray(2)
 
       const { CustomersService } = await import('@/lib/supabase/customers')
       vi.mocked(CustomersService.getCustomers).mockResolvedValue(mockCustomers)
@@ -83,8 +67,8 @@ describe('Customer Workflow Integration', () => {
       )
 
       await waitFor(() => {
-        expect(screen.getByText('John Doe')).toBeInTheDocument()
-        expect(screen.getByText('Jane Smith')).toBeInTheDocument()
+        expect(screen.getByText('Customer 1')).toBeInTheDocument()
+        expect(screen.getByText('Customer 2')).toBeInTheDocument()
       })
     })
 
@@ -104,7 +88,7 @@ describe('Customer Workflow Integration', () => {
       })
     })
 
-    it('should show loading state initially', () => {
+    it('should show loading state initially', async () => {
       const { CustomersService } = await import('@/lib/supabase/customers')
       vi.mocked(CustomersService.getCustomers).mockImplementation(() => new Promise(() => {})) // Never resolves
 
@@ -159,11 +143,9 @@ describe('Customer Workflow Integration', () => {
       const { CustomersService } = await import('@/lib/supabase/customers')
       
       vi.mocked(CustomersService.getCustomers).mockResolvedValue([])
-      vi.mocked(CustomersService.createCustomer).mockResolvedValue({
-        id: 'new-customer-id',
-        name: 'New Customer',
-        status: 'lead'
-      })
+      vi.mocked(CustomersService.createCustomer).mockResolvedValue(
+        createMockCustomer({ id: 'new-customer-id', name: 'New Customer', status: 'lead' })
+      )
 
       const Wrapper = createWrapper()
       render(
@@ -199,10 +181,9 @@ describe('Customer Workflow Integration', () => {
       const { CustomersService } = await import('@/lib/supabase/customers')
       
       vi.mocked(CustomersService.getCustomers).mockResolvedValue([])
-      vi.mocked(CustomersService.createCustomer).mockResolvedValue({
-        id: 'new-id',
-        name: 'Test Customer'
-      })
+      vi.mocked(CustomersService.createCustomer).mockResolvedValue(
+        createMockCustomer({ id: 'new-id', name: 'Test Customer' })
+      )
 
       const Wrapper = createWrapper()
       render(
@@ -230,10 +211,7 @@ describe('Customer Workflow Integration', () => {
   describe('Customer Search and Filter Workflow', () => {
     it('should filter customers by search term', async () => {
       const user = userEvent.setup()
-      const mockCustomers = [
-        { id: '1', name: 'John Doe', status: 'prospect' },
-        { id: '2', name: 'Jane Smith', status: 'lead' }
-      ]
+      const mockCustomers = createMockCustomerArray(2)
 
       const { CustomersService } = await import('@/lib/supabase/customers')
       vi.mocked(CustomersService.getCustomers)
@@ -330,19 +308,18 @@ describe('Customer Workflow Integration', () => {
   describe('Customer Status Update Workflow', () => {
     it('should update customer status from list actions', async () => {
       const user = userEvent.setup()
-      const mockCustomer = {
+      const mockCustomer = createMockCustomer({
         id: 'customer-1',
         name: 'John Doe',
         status: 'lead',
         email: 'john@example.com'
-      }
+      })
 
       const { CustomersService } = await import('@/lib/supabase/customers')
       vi.mocked(CustomersService.getCustomers).mockResolvedValue([mockCustomer])
-      vi.mocked(CustomersService.updateCustomer).mockResolvedValue({
-        ...mockCustomer,
-        status: 'prospect'
-      })
+      vi.mocked(CustomersService.updateCustomer).mockResolvedValue(
+        createMockCustomer({ ...mockCustomer, status: 'prospect' })
+      )
 
       const Wrapper = createWrapper()
       render(
@@ -535,7 +512,7 @@ describe('Customer Workflow Integration', () => {
       const searchInput = await screen.findByPlaceholderText(/search customers/i)
       
       // Type quickly
-      await user.type(searchInput, 'john', { delay: 10 })
+      await user.type(searchInput, 'john')
 
       // Should not call service for every keystroke
       await waitFor(() => {
@@ -550,8 +527,8 @@ describe('Customer Workflow Integration', () => {
       const user = userEvent.setup()
       const { CustomersService } = await import('@/lib/supabase/customers')
       
-      const initialCustomers = [{ id: '1', name: 'Existing Customer' }]
-      const newCustomer = { id: '2', name: 'New Customer' }
+      const initialCustomers = [createMockCustomer({ id: '1', name: 'Existing Customer' })]
+      const newCustomer = createMockCustomer({ id: '2', name: 'New Customer' })
       const updatedList = [...initialCustomers, newCustomer]
 
       vi.mocked(CustomersService.getCustomers)

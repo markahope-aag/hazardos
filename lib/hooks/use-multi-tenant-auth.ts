@@ -115,7 +115,7 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [])
+  }, [supabase])
 
   const isPlatformUser = profile?.is_platform_user ?? false
   const canAccessPlatformAdmin = isPlatformUser && ['platform_owner', 'platform_admin'].includes(profile?.role || '')

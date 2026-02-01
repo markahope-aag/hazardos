@@ -5,34 +5,32 @@ import type {
   CustomerUpdate,
   SiteSurvey,
   SiteSurveyInsert,
-  SiteSurveyUpdate,
   CustomerStatus,
   CustomerSource,
   HazardType,
   SiteSurveyStatus,
   AppointmentStatus
 } from '@/types/database'
+import { createMockCustomer, createMockSiteSurvey } from '@/test/helpers/mock-data'
 
 describe('Database Types', () => {
   describe('Customer Types', () => {
     it('should have correct Customer type structure', () => {
-      const mockCustomer: Customer = {
+      const mockCustomer = createMockCustomer({
         id: '550e8400-e29b-41d4-a716-446655440000',
         organization_id: '550e8400-e29b-41d4-a716-446655440001',
         name: 'John Doe',
         email: 'john@example.com',
         phone: '(555) 123-4567',
-        address: '123 Main St',
+        address_line1: '123 Main St',
         city: 'Anytown',
         state: 'CA',
         zip: '12345',
         status: 'prospect',
         source: 'website',
         notes: 'Test notes',
-        marketing_consent: true,
-        created_at: '2026-01-31T10:00:00Z',
-        updated_at: '2026-01-31T10:00:00Z'
-      }
+        marketing_consent: true
+      })
 
       expectTypeOf(mockCustomer).toEqualTypeOf<Customer>()
       expect(mockCustomer.id).toBeDefined()
@@ -65,7 +63,7 @@ describe('Database Types', () => {
 
   describe('Site Survey Types', () => {
     it('should have correct SiteSurvey type structure', () => {
-      const mockSurvey: SiteSurvey = {
+      const mockSurvey = createMockSiteSurvey({
         id: '550e8400-e29b-41d4-a716-446655440002',
         organization_id: '550e8400-e29b-41d4-a716-446655440001',
         estimator_id: '550e8400-e29b-41d4-a716-446655440003',
@@ -83,10 +81,8 @@ describe('Database Types', () => {
         area_sqft: 1000,
         occupied: false,
         clearance_required: true,
-        status: 'draft',
-        created_at: '2026-01-31T10:00:00Z',
-        updated_at: '2026-01-31T10:00:00Z'
-      }
+        status: 'draft'
+      })
 
       expectTypeOf(mockSurvey).toEqualTypeOf<SiteSurvey>()
       expect(mockSurvey.id).toBeDefined()
@@ -120,7 +116,7 @@ describe('Database Types', () => {
     })
 
     it('should validate CustomerSource enum values', () => {
-      const validSources: CustomerSource[] = ['referral', 'website', 'advertising', 'cold_call', 'trade_show', 'other']
+      const validSources: CustomerSource[] = ['phone', 'website', 'mail', 'referral', 'other']
       
       validSources.forEach(source => {
         expectTypeOf(source).toEqualTypeOf<CustomerSource>()
@@ -144,7 +140,7 @@ describe('Database Types', () => {
     })
 
     it('should validate AppointmentStatus enum values', () => {
-      const validStatuses: AppointmentStatus[] = ['scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled', 'rescheduled']
+      const validStatuses: AppointmentStatus[] = ['scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show']
       
       validStatuses.forEach(status => {
         expectTypeOf(status).toEqualTypeOf<AppointmentStatus>()
@@ -154,59 +150,25 @@ describe('Database Types', () => {
 
   describe('Type Relationships', () => {
     it('should ensure Customer and SiteSurvey can be linked', () => {
-      const customer: Customer = {
+      const customer = createMockCustomer({
         id: '550e8400-e29b-41d4-a716-446655440000',
         organization_id: '550e8400-e29b-41d4-a716-446655440001',
         name: 'John Doe',
-        email: null,
-        phone: null,
-        address: null,
-        city: null,
-        state: null,
-        zip: null,
-        status: 'prospect',
-        source: null,
-        notes: null,
-        marketing_consent: false,
-        created_at: '2026-01-31T10:00:00Z',
-        updated_at: '2026-01-31T10:00:00Z'
-      }
+        status: 'prospect'
+      })
 
-      const survey: SiteSurvey = {
+      const survey = createMockSiteSurvey({
         id: '550e8400-e29b-41d4-a716-446655440002',
         organization_id: customer.organization_id,
         estimator_id: '550e8400-e29b-41d4-a716-446655440003',
-        customer_id: customer.id, // Should link to customer
+        customer_id: customer.id,
         job_name: 'Survey for ' + customer.name,
         customer_name: customer.name,
         customer_email: customer.email,
         customer_phone: customer.phone,
-        site_address: '123 Test St',
-        site_city: 'Test City',
-        site_state: 'CA',
-        site_zip: '12345',
         hazard_type: 'asbestos',
-        containment_level: null,
-        area_sqft: null,
-        linear_ft: null,
-        volume_cuft: null,
-        occupied: false,
-        clearance_required: false,
-        regulatory_notifications_needed: false,
-        access_issues: null,
-        special_conditions: null,
-        notes: null,
-        status: 'draft',
-        site_location: null,
-        scheduled_date: null,
-        scheduled_time_start: null,
-        scheduled_time_end: null,
-        assigned_to: null,
-        appointment_status: null,
-        hazard_subtype: null,
-        created_at: '2026-01-31T10:00:00Z',
-        updated_at: '2026-01-31T10:00:00Z'
-      }
+        status: 'draft'
+      })
 
       expect(survey.customer_id).toBe(customer.id)
       expect(survey.organization_id).toBe(customer.organization_id)

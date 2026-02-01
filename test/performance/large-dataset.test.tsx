@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useCustomers } from '@/lib/hooks/use-customers'
+import { createMockCustomer } from '@/test/helpers/mock-data'
 
 // Mock the customers service
 vi.mock('@/lib/supabase/customers', () => ({
@@ -39,13 +40,14 @@ describe('Performance Tests', () => {
 
   describe('Large Dataset Handling', () => {
     it('should handle 10,000 customers efficiently', async () => {
-      const largeCustomerList = Array.from({ length: 10000 }, (_, i) => ({
-        id: `customer-${i}`,
-        name: `Customer ${i}`,
-        email: `customer${i}@example.com`,
-        status: 'prospect' as const,
-        created_at: new Date().toISOString()
-      }))
+      const largeCustomerList = Array.from({ length: 10000 }, (_, i) => 
+        createMockCustomer({
+          id: `customer-${i}`,
+          name: `Customer ${i}`,
+          email: `customer${i}@example.com`,
+          status: 'prospect'
+        })
+      )
 
       const { CustomersService } = await import('@/lib/supabase/customers')
       vi.mocked(CustomersService.getCustomers).mockResolvedValue(largeCustomerList)
@@ -71,7 +73,7 @@ describe('Performance Tests', () => {
       vi.mocked(CustomersService.getCustomers).mockResolvedValue([])
 
       const wrapper = createWrapper()
-      const initialMemory = (performance as any).memory?.usedJSHeapSize || 0
+      const initialMemory = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize || 0
 
       // Perform 100 rapid queries
       for (let i = 0; i < 100; i++) {
@@ -84,7 +86,7 @@ describe('Performance Tests', () => {
         unmount()
       }
 
-      const finalMemory = (performance as any).memory?.usedJSHeapSize || 0
+      const finalMemory = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize || 0
       const memoryIncrease = finalMemory - initialMemory
 
       // Memory increase should be reasonable (less than 50MB)
@@ -96,7 +98,7 @@ describe('Performance Tests', () => {
       vi.mocked(CustomersService.getCustomers).mockImplementation(async (orgId, filters) => {
         // Simulate network delay
         await new Promise(resolve => setTimeout(resolve, 100))
-        return [{ id: '1', name: `Customer for ${filters?.search || 'default'}` }]
+        return [createMockCustomer({ id: '1', name: `Customer for ${filters?.search || 'default'}` })]
       })
 
       const wrapper = createWrapper()
@@ -126,12 +128,12 @@ describe('Performance Tests', () => {
   describe('Edge Cases', () => {
     it('should handle extremely long customer names', async () => {
       const longName = 'A'.repeat(10000) // 10KB name
-      const customer = {
+      const customer = createMockCustomer({
         id: 'long-name-customer',
         name: longName,
         email: 'test@example.com',
-        status: 'prospect' as const
-      }
+        status: 'prospect'
+      })
 
       const { CustomersService } = await import('@/lib/supabase/customers')
       vi.mocked(CustomersService.getCustomers).mockResolvedValue([customer])
@@ -154,7 +156,7 @@ describe('Performance Tests', () => {
         null,
         undefined,
         { id: 'incomplete' } // Missing required fields
-      ] as any[]
+      ] as unknown as Awaited<ReturnType<typeof import('@/lib/supabase/customers').CustomersService.getCustomers>>
 
       const { CustomersService } = await import('@/lib/supabase/customers')
       vi.mocked(CustomersService.getCustomers).mockResolvedValue(malformedData)
@@ -220,11 +222,11 @@ describe('Performance Tests', () => {
 
     it('should handle unicode and special characters', async () => {
       const specialCustomers = [
-        { id: '1', name: '测试客户', email: 'test@测试.com', status: 'prospect' as const },
-        { id: '2', name: 'Müller & Söhne', email: 'müller@example.de', status: 'customer' as const },
-        { id: '3', name: '🏢 Corporate Client 🚀', email: 'emoji@example.com', status: 'lead' as const },
-        { id: '4', name: "O'Connor & Associates", email: "oconnor@example.com", status: 'inactive' as const },
-        { id: '5', name: 'Client\nWith\nNewlines', email: 'newlines@example.com', status: 'prospect' as const }
+        createMockCustomer({ id: '1', name: '测试客户', email: 'test@example.com', status: 'prospect' }),
+        createMockCustomer({ id: '2', name: 'Müller & Söhne', email: 'müller@example.de', status: 'customer' }),
+        createMockCustomer({ id: '3', name: '🏢 Corporate Client 🚀', email: 'emoji@example.com', status: 'lead' }),
+        createMockCustomer({ id: '4', name: "O'Connor & Associates", email: "oconnor@example.com", status: 'inactive' }),
+        createMockCustomer({ id: '5', name: 'Client With Newlines', email: 'newlines@example.com', status: 'prospect' })
       ]
 
       const { CustomersService } = await import('@/lib/supabase/customers')
@@ -258,7 +260,7 @@ describe('Performance Tests', () => {
       expect(result.current.data).toEqual([])
 
       // Test null response
-      vi.mocked(CustomersService.getCustomers).mockResolvedValueOnce(null as any)
+      vi.mocked(CustomersService.getCustomers).mockResolvedValueOnce(null as unknown as Awaited<ReturnType<typeof CustomersService.getCustomers>>)
       
       rerender()
 
@@ -303,7 +305,7 @@ describe('Performance Tests', () => {
 
     it('should handle memory pressure scenarios', async () => {
       // Simulate low memory by creating large objects
-      const largeObjects: any[] = []
+      const largeObjects: Array<string[]> = []
       
       try {
         // Fill up memory with large arrays
@@ -313,7 +315,7 @@ describe('Performance Tests', () => {
 
         const { CustomersService } = await import('@/lib/supabase/customers')
         vi.mocked(CustomersService.getCustomers).mockResolvedValue([
-          { id: '1', name: 'Test Customer', status: 'prospect' as const }
+          createMockCustomer({ id: '1', name: 'Test Customer', status: 'prospect' })
         ])
 
         const wrapper = createWrapper()

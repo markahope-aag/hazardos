@@ -199,13 +199,14 @@ describe('CustomersService', () => {
 
   describe('getCustomerStats', () => {
     it('should return customer statistics', async () => {
-      const mockStats = {
-        total: 100,
-        leads: 25,
-        prospects: 30,
-        customers: 40,
-        inactive: 5
-      }
+      // Mock stats for potential future use
+      // const mockStats = {
+      //   total: 100,
+      //   leads: 25,
+      //   prospects: 30,
+      //   customers: 40,
+      //   inactive: 5
+      // }
 
       // Mock multiple queries for stats
       mockSupabase.single

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { CustomerSearch } from '@/components/customers/CustomerSearch'
+import CustomerSearch from '@/components/customers/CustomerSearch'
 
 describe('CustomerSearch Component', () => {
   it('should render search input with placeholder', () => {

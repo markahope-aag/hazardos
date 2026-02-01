@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Image from 'next/image'
 import { Camera, Video, Upload, X, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -368,10 +369,12 @@ export function MediaUpload({
             <Card key={item.id} className="overflow-hidden">
               <div className="relative aspect-square">
                 {item.type === 'image' ? (
-                  <img
+                  <Image
                     src={item.url}
                     alt="Assessment photo"
                     className="w-full h-full object-cover"
+                    width={200}
+                    height={200}
                   />
                 ) : (
                   <div className="relative w-full h-full bg-gray-100 flex items-center justify-center">

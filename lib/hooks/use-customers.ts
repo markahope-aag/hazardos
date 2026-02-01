@@ -23,7 +23,7 @@ export function useCustomers(options: UseCustomersOptions = {}) {
         throw new Error('No organization found')
       }
 
-      const { search, status, source: _source, page = 1, pageSize = 25 } = options
+      const { search, status, page = 1, pageSize = 25 } = options
       const offset = (page - 1) * pageSize
 
       return CustomersService.getCustomers(organization.id, {

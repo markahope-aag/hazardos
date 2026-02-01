@@ -1,4 +1,5 @@
-import type { Organization, Assessment, Estimate, EquipmentNeeded, MaterialNeeded } from './database'
+import type { Organization, EquipmentNeeded, MaterialNeeded } from './database'
+// TODO: Update to use SiteSurvey instead of Assessment
 
 export interface ProposalData {
   // Organization (company generating the proposal)

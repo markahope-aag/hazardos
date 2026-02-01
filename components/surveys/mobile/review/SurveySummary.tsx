@@ -74,7 +74,6 @@ export function SurveySummary() {
       restrictionCount: access.restrictions.length,
     }
   }, [
-    formData,
     property.address,
     property.city,
     property.state,

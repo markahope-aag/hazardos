@@ -6,12 +6,12 @@ import { useSurveyStore } from '@/lib/stores/survey-store'
 import { SurveySection, SECTION_LABELS } from '@/lib/stores/survey-types'
 import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react'
 
-interface _SectionStatus {
-  section: SurveySection
-  label: string
-  isComplete: boolean
-  errors: string[]
-}
+// interface SectionStatus {
+//   section: SurveySection
+//   label: string
+//   isComplete: boolean
+//   errors: string[]
+// }
 
 export function CompletionChecklist() {
   const { validateSection, setCurrentSection } = useSurveyStore()

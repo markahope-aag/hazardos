@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useCustomers, useCustomer, useCreateCustomer, useUpdateCustomer, useDeleteCustomer } from '@/lib/hooks/use-customers'
+import { createMockCustomer, createMockCustomerArray } from '@/test/helpers/mock-data'
 
 // Mock the customers service
 vi.mock('@/lib/supabase/customers', () => ({
@@ -53,10 +54,7 @@ describe('Customer Hooks', () => {
 
   describe('useCustomers', () => {
     it('should fetch customers with default options', async () => {
-      const mockCustomers = [
-        { id: '1', name: 'John Doe', status: 'prospect' },
-        { id: '2', name: 'Jane Smith', status: 'lead' }
-      ]
+      const mockCustomers = createMockCustomerArray(2)
 
       const { CustomersService } = await import('@/lib/supabase/customers')
       vi.mocked(CustomersService.getCustomers).mockResolvedValue(mockCustomers)
@@ -77,7 +75,7 @@ describe('Customer Hooks', () => {
       vi.mocked(CustomersService.getCustomers).mockResolvedValue([])
 
       const wrapper = createWrapper()
-      const { result } = renderHook(() => useCustomers({ search: 'john' }), { wrapper })
+      renderHook(() => useCustomers({ search: 'john' }), { wrapper })
 
       await waitFor(() => {
         expect(CustomersService.getCustomers).toHaveBeenCalledWith('test-org-id', { search: 'john' })
@@ -89,7 +87,7 @@ describe('Customer Hooks', () => {
       vi.mocked(CustomersService.getCustomers).mockResolvedValue([])
 
       const wrapper = createWrapper()
-      const { result } = renderHook(() => useCustomers({ status: 'prospect' }), { wrapper })
+      renderHook(() => useCustomers({ status: 'prospect' }), { wrapper })
 
       await waitFor(() => {
         expect(CustomersService.getCustomers).toHaveBeenCalledWith('test-org-id', { status: 'prospect' })
@@ -121,7 +119,7 @@ describe('Customer Hooks', () => {
 
   describe('useCustomer', () => {
     it('should fetch single customer by id', async () => {
-      const mockCustomer = { id: 'customer-1', name: 'John Doe' }
+      const mockCustomer = createMockCustomer({ id: 'customer-1', name: 'John Doe' })
 
       const { CustomersService } = await import('@/lib/supabase/customers')
       vi.mocked(CustomersService.getCustomer).mockResolvedValue(mockCustomer)
@@ -137,11 +135,12 @@ describe('Customer Hooks', () => {
       expect(CustomersService.getCustomer).toHaveBeenCalledWith('customer-1')
     })
 
-    it('should not fetch when id is undefined', () => {
-      const { CustomersService } = vi.mocked(require('@/lib/supabase/customers'))
+    it('should not fetch when id is undefined', async () => {
+      const { CustomersService } = await import('@/lib/supabase/customers')
+      vi.mocked(CustomersService)
       
       const wrapper = createWrapper()
-      const { result } = renderHook(() => useCustomer(undefined), { wrapper })
+      const { result } = renderHook(() => useCustomer(undefined as unknown as string), { wrapper })
 
       expect(result.current.data).toBeUndefined()
       expect(CustomersService.getCustomer).not.toHaveBeenCalled()
@@ -156,7 +155,7 @@ describe('Customer Hooks', () => {
         status: 'lead' as const
       }
 
-      const createdCustomer = { id: 'new-id', ...newCustomerData }
+      const createdCustomer = createMockCustomer({ id: 'new-id', name: newCustomerData.name, email: newCustomerData.email, status: newCustomerData.status })
 
       const { CustomersService } = await import('@/lib/supabase/customers')
       vi.mocked(CustomersService.createCustomer).mockResolvedValue(createdCustomer)
@@ -166,10 +165,14 @@ describe('Customer Hooks', () => {
 
       await result.current.mutateAsync(newCustomerData)
 
-      expect(CustomersService.createCustomer).toHaveBeenCalledWith({
-        organization_id: 'test-org-id',
-        ...newCustomerData
-      })
+      expect(CustomersService.createCustomer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organization_id: 'test-org-id',
+          name: newCustomerData.name,
+          email: newCustomerData.email,
+          status: newCustomerData.status
+        })
+      )
     })
 
     it('should handle creation errors', async () => {
@@ -189,7 +192,7 @@ describe('Customer Hooks', () => {
   describe('useUpdateCustomer', () => {
     it('should update customer successfully', async () => {
       const updates = { name: 'Updated Name' }
-      const updatedCustomer = { id: 'customer-1', ...updates }
+      const updatedCustomer = createMockCustomer({ id: 'customer-1', name: updates.name })
 
       const { CustomersService } = await import('@/lib/supabase/customers')
       vi.mocked(CustomersService.updateCustomer).mockResolvedValue(updatedCustomer)
@@ -197,7 +200,7 @@ describe('Customer Hooks', () => {
       const wrapper = createWrapper()
       const { result } = renderHook(() => useUpdateCustomer(), { wrapper })
 
-      await result.current.mutateAsync({ id: 'customer-1', ...updates })
+      await result.current.mutateAsync({ id: 'customer-1', updates })
 
       expect(CustomersService.updateCustomer).toHaveBeenCalledWith('customer-1', updates)
     })
@@ -230,7 +233,7 @@ describe('Customer Hooks', () => {
   describe('Query Invalidation', () => {
     it('should invalidate customers query after creation', async () => {
       const { CustomersService } = await import('@/lib/supabase/customers')
-      vi.mocked(CustomersService.createCustomer).mockResolvedValue({ id: 'new-id', name: 'New Customer' })
+      vi.mocked(CustomersService.createCustomer).mockResolvedValue(createMockCustomer({ id: 'new-id', name: 'New Customer' }))
 
       const wrapper = createWrapper()
       const { result: createResult } = renderHook(() => useCreateCustomer(), { wrapper })
@@ -249,7 +252,7 @@ describe('Customer Hooks', () => {
 
     it('should invalidate customer query after update', async () => {
       const { CustomersService } = await import('@/lib/supabase/customers')
-      vi.mocked(CustomersService.updateCustomer).mockResolvedValue({ id: 'customer-1', name: 'Updated' })
+      vi.mocked(CustomersService.updateCustomer).mockResolvedValue(createMockCustomer({ id: 'customer-1', name: 'Updated' }))
 
       const wrapper = createWrapper()
       const { result: updateResult } = renderHook(() => useUpdateCustomer(), { wrapper })
@@ -257,7 +260,7 @@ describe('Customer Hooks', () => {
 
       await updateResult.current.mutateAsync({
         id: 'customer-1',
-        name: 'Updated Name'
+        updates: { name: 'Updated Name' }
       })
 
       // Individual customer query should be invalidated
@@ -270,10 +273,9 @@ describe('Customer Hooks', () => {
   describe('Optimistic Updates', () => {
     it('should handle optimistic updates for status changes', async () => {
       const { CustomersService } = await import('@/lib/supabase/customers')
-      vi.mocked(CustomersService.updateCustomerStatus).mockResolvedValue({ 
-        id: 'customer-1', 
-        status: 'customer' 
-      })
+      vi.mocked(CustomersService.updateCustomer).mockResolvedValue(
+        createMockCustomer({ id: 'customer-1', status: 'customer' })
+      )
 
       const wrapper = createWrapper()
       const { result } = renderHook(() => useUpdateCustomer(), { wrapper })
@@ -281,7 +283,7 @@ describe('Customer Hooks', () => {
       // Should update optimistically before API call completes
       result.current.mutate({
         id: 'customer-1',
-        status: 'customer'
+        updates: { status: 'customer' }
       })
 
       expect(result.current.isPending).toBe(true)

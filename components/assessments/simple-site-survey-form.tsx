@@ -15,7 +15,28 @@ import type { SiteSurveyStatus, HazardType } from '@/types/database'
 
 interface SiteSurveyFormProps {
   siteSurveyId?: string
-  initialData?: any
+  initialData?: Partial<{
+    job_name: string
+    customer_name: string
+    customer_email: string
+    customer_phone: string
+    site_address: string
+    site_city: string
+    site_state: string
+    site_zip: string
+    hazard_type: string
+    hazard_subtype: string
+    containment_level: number
+    area_sqft: number
+    linear_ft: number
+    volume_cuft: number
+    occupied: boolean
+    clearance_required: boolean
+    regulatory_notifications_needed: boolean
+    access_issues: string[]
+    special_conditions: string
+    notes: string
+  }>
 }
 
 export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFormProps) {
@@ -26,7 +47,16 @@ export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFo
   const [isDraft, setIsDraft] = useState(true)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
-  const [mediaFiles, setMediaFiles] = useState<any[]>([])
+  const [mediaFiles, setMediaFiles] = useState<Array<{
+    id: string
+    file: File
+    type: 'image' | 'video'
+    url: string
+    compressed?: boolean
+    originalSize: number
+    compressedSize?: number
+    caption?: string
+  }>>([])
 
   // Site Survey form state
   const [formData, setFormData] = useState({
@@ -72,13 +102,13 @@ export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFo
     }
   }, [])
 
-  const handleInputChange = (field: string, value: any) => {
-    setFormData((prev: any) => ({ ...prev, [field]: value }))
+  const handleInputChange = (field: string, value: string | number | boolean | string[]) => {
+    setFormData((prev: typeof formData) => ({ ...prev, [field]: value }))
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleAccessIssueChange = (issue: string, checked: boolean) => {
-    setFormData((prev: any) => ({
+    setFormData((prev: typeof formData) => ({
       ...prev,
       access_issues: checked
         ? [...prev.access_issues, issue]
@@ -107,9 +137,10 @@ export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFo
         estimator_id: user.id,
         status: (isDraft ? 'draft' : 'submitted') as SiteSurveyStatus,
         site_location: location ? { lat: location.lat, lng: location.lng } : null,
-        area_sqft: formData.area_sqft ? parseFloat(formData.area_sqft) : null,
-        linear_ft: formData.linear_ft ? parseFloat(formData.linear_ft) : null,
-        volume_cuft: formData.volume_cuft ? parseFloat(formData.volume_cuft) : null,
+        area_sqft: formData.area_sqft ? parseFloat(String(formData.area_sqft)) : null,
+        linear_ft: formData.linear_ft ? parseFloat(String(formData.linear_ft)) : null,
+        volume_cuft: formData.volume_cuft ? parseFloat(String(formData.volume_cuft)) : null,
+        hazard_type: formData.hazard_type as HazardType,
       }
 
       let result

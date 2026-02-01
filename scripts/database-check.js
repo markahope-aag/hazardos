@@ -5,8 +5,8 @@
  * Runs comprehensive database structure and functionality tests
  */
 
-const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config({ path: '.env.local' });
+import { createClient } from '@supabase/supabase-js'
+import 'dotenv/config'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -23,7 +23,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function checkTableExists(tableName) {
   try {
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from(tableName)
       .select('*')
       .limit(1);
@@ -74,12 +74,12 @@ async function checkEnums() {
   
   try {
     // Check if we can query tables that use enums
-    const { data: customerData, error: customerError } = await supabase
+    const { data: _customerData, error: _customerError } = await supabase
       .from('customers')
       .select('status, source')
       .limit(1);
 
-    const { data: surveyData, error: surveyError } = await supabase
+    const { data: _surveyData, error: _surveyError } = await supabase
       .from('site_surveys')
       .select('status, hazard_type')
       .limit(1);
@@ -101,12 +101,12 @@ async function checkRLS() {
   
   try {
     // Try to access tables without authentication (should fail or return empty)
-    const { data: profileData, error: profileError } = await supabase
+    const { data: _profileData, error: _profileError } = await supabase
       .from('profiles')
       .select('*')
       .limit(1);
 
-    const { data: orgData, error: orgError } = await supabase
+    const { data: _orgData, error: _orgError } = await supabase
       .from('organizations')
       .select('*')
       .limit(1);
@@ -123,7 +123,7 @@ async function checkStorage() {
   console.log('\n🔍 Checking Storage Configuration...');
   
   try {
-    const { data, error } = await supabase.storage
+    const { data: _data, error } = await supabase.storage
       .from('assessment-media')
       .list('', { limit: 1 });
 
@@ -147,7 +147,7 @@ async function checkIndexes() {
     // Test queries that should use indexes
     const start = Date.now();
     
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from('site_surveys')
       .select('id, job_name, status, created_at')
       .order('created_at', { ascending: false })

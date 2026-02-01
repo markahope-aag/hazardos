@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 import type { SiteSurvey, LaborRate, EquipmentRate, MaterialCost, DisposalFee, TravelRate, PricingSetting } from '@/types/database'
-import type { CalculatedLineItem, EstimateCalculation, LineItemType } from '@/types/estimates'
+import type { CalculatedLineItem, EstimateCalculation } from '@/types/estimates'
 
 // ============================================================================
 // Types for Pricing Data

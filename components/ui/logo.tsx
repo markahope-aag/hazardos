@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import Image from 'next/image'
 
 interface LogoProps {
   variant?: 'horizontal' | 'vertical' | 'icon'
@@ -46,7 +47,7 @@ export function Logo({
   const sizeClass = sizeClasses[size][variant]
 
   return (
-    <img
+    <Image
       src={getImageSrc()}
       alt="HazardOS"
       className={cn(
@@ -54,6 +55,8 @@ export function Logo({
         variant !== 'icon' && 'w-auto',
         className
       )}
+      width={variant === 'icon' ? 32 : 120}
+      height={variant === 'icon' ? 32 : 40}
     />
   )
 }

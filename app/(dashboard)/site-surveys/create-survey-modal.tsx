@@ -124,7 +124,7 @@ function CreateSurveyForm({ onSuccess }: { onSuccess: () => void }) {
 
       const customerName = customer.company_name || `${customer.first_name} ${customer.last_name}`
 
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('site_surveys')
         .insert({
           organization_id: organization.id,

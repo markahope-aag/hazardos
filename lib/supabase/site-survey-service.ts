@@ -1,5 +1,5 @@
 import { createClient } from './client'
-import type { SiteSurvey, SiteSurveyInsert } from '@/types/database'
+import type { SiteSurvey, SiteSurveyInsert, SiteSurveyUpdate } from '@/types/database'
 
 interface MediaUploadResult {
   url: string
@@ -294,11 +294,11 @@ export class DatabaseService extends SiteSurveyService {
     return this.getSiteSurvey(id)
   }
 
-  static async createAssessment(assessment: any) {
+  static async createAssessment(assessment: SiteSurveyInsert) {
     return this.createSiteSurvey(assessment)
   }
 
-  static async updateAssessment(id: string, updates: any) {
+  static async updateAssessment(id: string, updates: SiteSurveyUpdate) {
     return this.updateSiteSurvey(id, updates)
   }
 

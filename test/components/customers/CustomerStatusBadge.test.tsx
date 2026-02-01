@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { CustomerStatusBadge } from '@/components/customers/CustomerStatusBadge'
+import CustomerStatusBadge from '@/components/customers/CustomerStatusBadge'
+import type { CustomerStatus } from '@/types/database'
 
 describe('CustomerStatusBadge Component', () => {
   it('should render lead status with correct styling', () => {
@@ -36,8 +37,8 @@ describe('CustomerStatusBadge Component', () => {
   })
 
   it('should handle unknown status gracefully', () => {
-    // @ts-expect-error Testing invalid status
-    render(<CustomerStatusBadge status="unknown" />)
+    // Testing invalid status
+    render(<CustomerStatusBadge status={"unknown" as unknown as CustomerStatus} />)
     
     const badge = screen.getByText('Unknown')
     expect(badge).toBeInTheDocument()

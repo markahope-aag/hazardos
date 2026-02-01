@@ -1,8 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { CustomerForm } from '@/components/customers/CustomerForm'
+import CustomerForm from '@/components/customers/CustomerForm'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { createMockCustomer } from '@/test/helpers/mock-data'
 
 // Mock the toast hook
 vi.mock('@/components/ui/use-toast', () => ({
@@ -79,19 +80,19 @@ describe('CustomerForm Component', () => {
     expect(screen.getByText(/invalid email/i)).toBeInTheDocument()
   })
 
-  it('should populate form with initial data', () => {
-    const initialData = {
+  it('should populate form with customer data', () => {
+    const customer = createMockCustomer({
       name: 'John Doe',
       email: 'john@example.com',
       phone: '(555) 123-4567',
-      status: 'prospect' as const
-    }
+      status: 'prospect'
+    })
     
     const Wrapper = createWrapper()
     render(
       <Wrapper>
         <CustomerForm 
-          initialData={initialData}
+          customer={customer}
           onSubmit={vi.fn()} 
           onCancel={vi.fn()} 
         />
@@ -152,7 +153,7 @@ describe('CustomerForm Component', () => {
         <CustomerForm 
           onSubmit={vi.fn()} 
           onCancel={vi.fn()} 
-          isLoading={true} 
+          isSubmitting={true} 
         />
       </Wrapper>
     )

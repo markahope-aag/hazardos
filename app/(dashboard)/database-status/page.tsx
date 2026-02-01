@@ -30,7 +30,12 @@ export default function DatabaseStatusPage() {
     // 1. Table Structure Checks
     const tableChecks = {
       category: 'Table Structure',
-      checks: [] as any[]
+      checks: [] as Array<{
+        name: string
+        status: 'success' | 'error' | 'warning'
+        message: string
+        details?: string
+      }>
     }
 
     // Check if migration was run correctly
@@ -113,7 +118,12 @@ export default function DatabaseStatusPage() {
     // 2. Authentication & Authorization
     const authChecks = {
       category: 'Authentication & Authorization',
-      checks: [] as any[]
+      checks: [] as Array<{
+        name: string
+        status: 'success' | 'error' | 'warning'
+        message: string
+        details?: string
+      }>
     }
 
     if (user && profile) {
@@ -149,7 +159,12 @@ export default function DatabaseStatusPage() {
     // 3. Storage Configuration
     const storageChecks = {
       category: 'Storage Configuration',
-      checks: [] as any[]
+      checks: [] as Array<{
+        name: string
+        status: 'success' | 'error' | 'warning'
+        message: string
+        details?: string
+      }>
     }
 
     try {
@@ -184,7 +199,12 @@ export default function DatabaseStatusPage() {
     // 4. CRUD Operations Test
     const crudChecks = {
       category: 'CRUD Operations',
-      checks: [] as any[]
+      checks: [] as Array<{
+        name: string
+        status: 'success' | 'error' | 'warning'
+        message: string
+        details?: string
+      }>
     }
 
     if (organization && user) {

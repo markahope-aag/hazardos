@@ -21,7 +21,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('next/link', () => {
   return {
     __esModule: true,
-    default: ({ children, href, ...props }: any) => {
+    default: ({ children, href, ...props }: { children: React.ReactNode; href: string; [key: string]: unknown }) => {
       return React.createElement('a', { href, ...props }, children)
     },
   }

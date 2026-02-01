@@ -13,7 +13,15 @@ interface CustomerSurveysListProps {
 }
 
 export default function CustomerSurveysList({ customerId }: CustomerSurveysListProps) {
-  const [surveys, setSurveys] = useState<any[]>([])
+  const [surveys, setSurveys] = useState<Array<{
+    id: string
+    job_name: string
+    site_address: string
+    status: string
+    appointment_status?: string
+    scheduled_date?: string
+    created_at: string
+  }>>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
