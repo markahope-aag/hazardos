@@ -120,7 +120,7 @@ export class GoogleCalendarService {
 
     const { data: integration } = await supabase
       .from('organization_integrations')
-      .select('*')
+      .select('id, access_token, refresh_token, token_expires_at, external_id')
       .eq('organization_id', organizationId)
       .eq('integration_type', 'google_calendar')
       .eq('is_active', true)
@@ -167,7 +167,7 @@ export class GoogleCalendarService {
 
     const { data: integration } = await supabase
       .from('organization_integrations')
-      .select('*')
+      .select('id, external_id, is_active, last_sync_at')
       .eq('organization_id', organizationId)
       .eq('integration_type', 'google_calendar')
       .single();
