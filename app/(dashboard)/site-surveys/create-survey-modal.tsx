@@ -159,7 +159,8 @@ function CreateSurveyForm({ onSuccess }: { onSuccess: () => void }) {
 
       router.refresh()
       onSuccess()
-    } catch {
+    } catch (error) {
+      console.error('Error creating survey:', error)
       toast({
         title: 'Error',
         description: 'Failed to schedule survey. Please try again.',
