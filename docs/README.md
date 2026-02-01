@@ -39,8 +39,19 @@
 - **[Migration Guide](./MIGRATION-GUIDE.md)** - How to run database migrations
 - **[Structure Verification](./database/11-site-survey-structure-verification.sql)** - Database health check queries
 
-### 👥 Customer Management
+### 👥 Customer Management & User Guide
 - **[Customer Management Guide](./CUSTOMER-MANAGEMENT.md)** - Complete CRM functionality documentation
+- **[User Guide](./USER-GUIDE.md)** - End-user documentation for HazardOS (NEW)
+  - Getting started and first-time setup
+  - Dashboard overview
+  - Managing customers
+  - Creating and managing site surveys
+  - Proposals and estimates
+  - Job scheduling and management
+  - Invoicing
+  - Customer portal usage
+  - Mobile features and PWA
+  - Tips and best practices
 
 ### 🔌 API Documentation
 - **[API Reference](./API-REFERENCE.md)** - Complete REST API documentation with examples
@@ -53,8 +64,27 @@
   - And more...
 
 ### 🧪 Testing & Quality
+- **[Testing Guide](./TESTING.md)** - Comprehensive testing documentation (NEW)
+  - Testing philosophy and approach
+  - Unit, integration, and E2E testing
+  - Writing and running tests
+  - Mocking strategies
+  - Test coverage goals
+  - CI/CD integration
 - **[Testing Summary](./TESTING-SUMMARY.md)** - Test coverage and strategy
 - **[Codebase Audit Report](./CODEBASE-AUDIT-REPORT.md)** - Comprehensive code quality audit
+
+### 🔒 Security
+- **[Security Guide](./SECURITY.md)** - Comprehensive security documentation (NEW)
+  - Security architecture and principles
+  - Authentication and authorization
+  - Data protection and encryption
+  - Rate limiting implementation
+  - Secure error handling
+  - Input validation and sanitization
+  - OWASP considerations
+  - Security best practices
+  - Incident response procedures
 
 ### 📊 Status & Reports
 - **[Documentation Update Summary](./DOCUMENTATION-UPDATE-SUMMARY.md)** - Recent documentation changes
@@ -68,7 +98,8 @@
 2. **Architecture**: [Architecture Guide](./architecture.md) → [Multi-Tenant Setup](./MULTI_TENANT_SETUP.md)
 3. **Database**: [Migration Guide](./MIGRATION-GUIDE.md) → [Database Checklist](./DATABASE-SETUP-CHECKLIST.md)
 4. **Features**: [Features Guide](./FEATURES.md) → [API Reference](./API-REFERENCE.md)
-5. **Testing**: [Testing Summary](./TESTING-SUMMARY.md)
+5. **Testing**: [Testing Guide](./TESTING.md)
+6. **Security**: [Security Guide](./SECURITY.md)
 
 ### For Product/Business
 1. **Overview**: [Project Summary](./PROJECT-SUMMARY.md) → [Project Overview](./HazardOS-Project-Overview.md)
@@ -80,6 +111,11 @@
 1. **Mobile Experience**: [Site Survey UI Specification](./hazardos-site-survey-ui-spec.md)
 2. **Field Requirements**: [Site Assessment Requirements](./HazardOS-Site-Assessment-Requirements.md)
 3. **Features**: [Features Guide](./FEATURES.md)
+
+### For End Users
+1. **Getting Started**: [User Guide](./USER-GUIDE.md) - Complete guide for using HazardOS
+2. **Customer Management**: [Customer Management Guide](./CUSTOMER-MANAGEMENT.md)
+3. **Features Overview**: [Features Guide](./FEATURES.md)
 
 ## 🎯 Current Project Status
 
