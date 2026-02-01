@@ -1372,22 +1372,756 @@ Generate and track invoices.
 
 ---
 
+## Advanced Reporting System
+
+### Overview
+
+Comprehensive reporting and analytics with Excel/CSV export capabilities for business intelligence and decision-making.
+
+### Features
+
+#### Report Types
+
+**Sales Performance Report**:
+- Monthly sales metrics
+- Revenue by sales rep
+- Conversion rates
+- Pipeline velocity
+- Year-over-year comparisons
+
+**Job Cost Report**:
+- Estimated vs. actual costs
+- Profit margins by job
+- Material cost analysis
+- Labor efficiency metrics
+- Cost variance trends
+
+**Lead Source ROI Report**:
+- Lead count by source
+- Conversion rates by source
+- Customer acquisition cost
+- Revenue per source
+- ROI calculations
+
+#### Report Configuration
+
+**Date Range Options**:
+- Today
+- Yesterday
+- Last 7 days
+- Last 30 days
+- This month
+- Last month
+- This quarter
+- This year
+- Custom date range
+
+**Report Settings**:
+```typescript
+{
+  "date_range": {
+    "type": "this_month",
+    "start": "2026-02-01",
+    "end": "2026-02-28"
+  },
+  "filters": {
+    "customer_id": "optional-uuid",
+    "status": "completed",
+    "hazard_type": "asbestos"
+  }
+}
+```
+
+#### Excel Export Service
+
+**Features**:
+- Professional Excel formatting with branded headers
+- Color-coded columns and rows
+- Auto-filters on all data tables
+- Frozen header rows
+- Automatic column width adjustment
+- Cell formatting (currency, percentage, dates)
+- Alternating row colors for readability
+- Border styling
+
+**CSV Export**:
+- RFC 4180 compliant CSV format
+- Proper escaping of special characters
+- UTF-8 encoding
+- Compatible with Excel, Google Sheets, and other tools
+
+**Export Tracking**:
+```sql
+CREATE TABLE report_exports (
+  id UUID PRIMARY KEY,
+  organization_id UUID NOT NULL,
+  exported_by UUID NOT NULL,
+  report_id UUID,
+  report_name TEXT NOT NULL,
+  export_format TEXT NOT NULL, -- xlsx, csv
+  file_size INTEGER,
+  parameters JSONB,
+  created_at TIMESTAMPTZ
+);
+```
+
+#### Saved Reports
+
+**Features**:
+- Save report configurations
+- Schedule recurring reports
+- Share reports with team
+- Report versioning
+- Export history
+
+**Report Scheduling**:
+```json
+{
+  "schedule_enabled": true,
+  "schedule_frequency": "weekly",
+  "schedule_recipients": ["email@example.com"],
+  "schedule_day": "monday",
+  "schedule_time": "09:00"
+}
+```
+
+#### Materialized Views
+
+Performance optimization using PostgreSQL materialized views:
+
+```sql
+-- Sales Performance View
+CREATE MATERIALIZED VIEW mv_sales_performance AS
+SELECT
+  DATE_TRUNC('month', created_at) as month,
+  COUNT(*) as total_opportunities,
+  SUM(estimated_value) as total_value,
+  AVG(estimated_value) as avg_value
+FROM opportunities
+GROUP BY month;
+
+-- Refresh strategy
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_sales_performance;
+```
+
+**Automatic Refresh**:
+- Scheduled hourly refresh
+- Manual refresh via API
+- Concurrent refresh to avoid locking
+
+---
+
+## Sales Pipeline Management
+
+### Overview
+
+Visual Kanban-style sales pipeline with drag-and-drop functionality for tracking opportunities through the sales process.
+
+### Features
+
+#### Pipeline Stages
+
+**Default Stages**:
+1. **Lead** (0% probability)
+   - Initial contact
+   - Qualification needed
+
+2. **Qualified** (20% probability)
+   - Budget confirmed
+   - Decision maker identified
+
+3. **Proposal** (40% probability)
+   - Proposal sent
+   - Awaiting response
+
+4. **Negotiation** (60% probability)
+   - Active discussions
+   - Terms being finalized
+
+5. **Verbal Commit** (80% probability)
+   - Verbal agreement
+   - Paperwork pending
+
+6. **Won** (100% probability)
+   - Contract signed
+   - Job scheduled
+
+7. **Lost** (0% probability)
+   - Opportunity lost
+   - Reason tracked
+
+**Custom Stages**:
+- Organizations can create custom stages
+- Configurable probability percentages
+- Color coding for visual differentiation
+- Sort order customization
+
+**Stage Configuration**:
+```typescript
+{
+  "name": "Proposal Sent",
+  "color": "#3b82f6",
+  "stage_type": "open", // open, won, lost
+  "probability": 40,
+  "sort_order": 3
+}
+```
+
+#### Opportunity Management
+
+**Opportunity Fields**:
+- Name and description
+- Customer linkage
+- Estimated value
+- Expected close date
+- Owner assignment
+- Stage position
+- Probability-weighted value
+- Custom notes
+
+**Weighted Value Calculation**:
+```
+Weighted Value = Estimated Value × (Stage Probability / 100)
+
+Example:
+Opportunity: $10,000
+Stage: Proposal (40%)
+Weighted Value: $10,000 × 0.40 = $4,000
+```
+
+#### Kanban Board
+
+**Visual Features**:
+- Drag-and-drop cards between stages
+- Real-time stage updates
+- Stage-level totals (count and value)
+- Opportunity cards with key metrics
+- Color-coded by age or priority
+- Quick actions menu on cards
+
+**Card Display**:
+```
+┌──────────────────────────┐
+│ Acme Corp - Office Reno  │
+│ $15,000                  │
+│ Close: Feb 28            │
+│ Owner: John Smith        │
+│ 📅 14 days in stage      │
+└──────────────────────────┘
+```
+
+**Drag-and-Drop Behavior**:
+- Click and drag to move between stages
+- Automatic probability update
+- History logging of stage changes
+- Optional notes on stage change
+- Activity timeline update
+
+#### Pipeline Metrics
+
+**Dashboard Metrics**:
+```json
+{
+  "total_value": 125000,
+  "weighted_value": 58000,
+  "count": 23,
+  "by_stage": [
+    {
+      "stage_name": "Proposal",
+      "count": 5,
+      "value": 45000
+    }
+  ]
+}
+```
+
+**Stage Analytics**:
+- Average time in stage
+- Conversion rate to next stage
+- Drop-off analysis
+- Stage velocity metrics
+
+#### Opportunity History
+
+**Change Tracking**:
+```sql
+CREATE TABLE opportunity_history (
+  id UUID PRIMARY KEY,
+  opportunity_id UUID NOT NULL,
+  from_stage_id UUID,
+  to_stage_id UUID NOT NULL,
+  changed_by UUID NOT NULL,
+  notes TEXT,
+  created_at TIMESTAMPTZ
+);
+```
+
+**History Display**:
+```
+Feb 15, 2026 - Moved to Proposal by John Smith
+  Note: "Sent comprehensive proposal via email"
+
+Feb 10, 2026 - Moved to Qualified by Sarah Johnson
+  Note: "Budget confirmed, decision maker identified"
+
+Feb 5, 2026 - Created by Mike Wilson
+```
+
+---
+
+## Commission Tracking System
+
+### Overview
+
+Automated commission calculation and tracking system for sales team compensation management.
+
+### Features
+
+#### Commission Plans
+
+**Plan Types**:
+
+1. **Percentage Commission**
+   - Fixed percentage of sale amount
+   - Example: 5% of total invoice value
+
+2. **Flat Rate Commission**
+   - Fixed dollar amount per sale
+   - Example: $500 per completed job
+
+3. **Tiered Commission**
+   - Variable rates based on thresholds
+   - Example:
+     ```
+     $0 - $10,000: 3%
+     $10,001 - $25,000: 5%
+     $25,001+: 7%
+     ```
+
+**Plan Configuration**:
+```typescript
+{
+  "name": "Standard Sales Commission",
+  "commission_type": "tiered",
+  "tiers": [
+    { "min": 0, "max": 10000, "rate": 3 },
+    { "min": 10001, "max": 25000, "rate": 5 },
+    { "min": 25001, "max": null, "rate": 7 }
+  ],
+  "applies_to": "won" // won, paid, completed
+}
+```
+
+#### Commission Earnings
+
+**Automatic Calculation**:
+- Triggered when opportunity is marked as "Won"
+- Or when invoice is marked as "Paid" (configurable)
+- Calculates based on assigned commission plan
+- Links to opportunity, job, or invoice
+
+**Earning Record**:
+```typescript
+{
+  "user_id": "sales-rep-uuid",
+  "plan_id": "plan-uuid",
+  "opportunity_id": "opp-uuid",
+  "base_amount": 15000,
+  "commission_rate": 5,
+  "commission_amount": 750,
+  "status": "pending", // pending, approved, paid
+  "earning_date": "2026-02-15"
+}
+```
+
+#### Commission Workflow
+
+```
+Sale Closed/Invoice Paid
+    ↓
+Create Commission Earning (Status: Pending)
+    ↓
+Manager Review
+    ↓
+Approve Earning (Status: Approved)
+    ↓
+Payment Processing
+    ↓
+Mark as Paid (Status: Paid)
+```
+
+#### Commission Dashboard
+
+**Summary Metrics**:
+```json
+{
+  "total_pending": 2500,
+  "total_approved": 5000,
+  "total_paid": 25000,
+  "this_month": 3500,
+  "this_quarter": 12000
+}
+```
+
+**Earnings Table**:
+- Date of sale
+- Sales rep name
+- Commission plan
+- Base amount
+- Commission rate
+- Commission amount
+- Payment status
+- Actions (approve, mark paid)
+
+#### Bulk Operations
+
+**Bulk Approval**:
+- Select multiple pending earnings
+- Approve all at once
+- Optional approval notes
+
+**Bulk Payment**:
+- Select approved earnings
+- Mark as paid in batch
+- Integration with payroll systems
+
+#### Commission Reports
+
+**Sales Rep Performance**:
+- Total earnings by period
+- Commission by product/service
+- Average commission per sale
+- Trend analysis
+
+**Organization-wide**:
+- Total commission expense
+- Commission as % of revenue
+- Top performers
+- Commission plan effectiveness
+
+---
+
+## Two-Level Approval Workflow
+
+### Overview
+
+Hierarchical approval system for estimates, discounts, and proposals requiring manager sign-off based on configurable thresholds.
+
+### Features
+
+#### Approval Thresholds
+
+**Threshold Configuration**:
+```typescript
+{
+  "entity_type": "estimate", // estimate, discount, proposal
+  "threshold_amount": 10000,
+  "approval_level": 1, // 1 or 2
+  "approver_role": "manager" // optional
+}
+```
+
+**Example Thresholds**:
+```
+Estimates:
+  $0 - $5,000: No approval required
+  $5,001 - $15,000: Level 1 approval (Manager)
+  $15,001+: Level 2 approval (Director)
+
+Discounts:
+  0% - 10%: No approval required
+  11% - 20%: Level 1 approval
+  21%+: Level 2 approval
+```
+
+#### Approval Levels
+
+**Level 1 Approval**:
+- Required for moderate-value items
+- Typically approved by manager/supervisor
+- Can be approved/rejected independently
+- If rejected, no further levels needed
+
+**Level 2 Approval**:
+- Required for high-value items
+- Only proceeds if Level 1 approved
+- Typically approved by director/owner
+- Final approval authority
+
+#### Approval Request Flow
+
+```
+1. User Creates Estimate/Proposal
+   ↓
+2. System Checks Thresholds
+   ↓
+3. If No Approval Needed: Auto-Approve
+   ↓
+4. If Approval Needed: Create Request
+   ↓
+5. Level 1 Approver Notified
+   ↓
+6. Level 1 Review:
+   - Approve → Continue
+   - Reject → Stop (Request Rejected)
+   ↓
+7. If Requires Level 2:
+   - Level 2 Approver Notified
+   - Level 2 Review:
+     * Approve → Request Approved
+     * Reject → Request Rejected
+```
+
+#### Approval Request Details
+
+**Request Fields**:
+```typescript
+{
+  "entity_type": "estimate",
+  "entity_id": "uuid",
+  "amount": 12500,
+  "requested_by": "user-uuid",
+  "requested_at": "2026-02-15T10:00:00Z",
+
+  // Level 1
+  "level1_status": "pending", // pending, approved, rejected
+  "level1_approver": null,
+  "level1_at": null,
+  "level1_notes": null,
+
+  // Level 2 (if required)
+  "requires_level2": true,
+  "level2_status": "pending",
+  "level2_approver": null,
+  "level2_at": null,
+  "level2_notes": null,
+
+  // Final
+  "final_status": "pending" // pending, approved, rejected
+}
+```
+
+#### Approval Queue Page
+
+**Pending Approvals Section**:
+- Table of items awaiting user's approval
+- Filter by entity type (estimates, discounts, proposals)
+- Key details visible (requester, amount, date)
+- Status badges for each level
+- Quick approve/reject actions
+
+**Approval History**:
+- All past approval requests
+- Status indicators
+- Audit trail of decisions
+- Approver names and timestamps
+
+**Actions**:
+- Approve with optional notes
+- Reject with required notes
+- View full entity details
+- Add comments/questions
+
+#### Notifications
+
+**Approval Request Created**:
+- Email to Level 1 approver
+- In-app notification
+- Optional SMS
+
+**Level 1 Approved**:
+- Notification to requester
+- If Level 2 required: Notification to Level 2 approver
+
+**Final Decision**:
+- Notification to requester
+- Email summary
+- Activity log update
+
+#### Integration Points
+
+**Estimates**:
+- Automatically check thresholds on create/update
+- Block estimate approval until approval granted
+- Link to approval request from estimate detail
+
+**Proposals**:
+- Check before sending to customer
+- Display approval status on proposal
+- Require approval before customer sign-off
+
+**Discounts**:
+- Validate discount % against thresholds
+- Request approval for over-threshold discounts
+- Track discount approval history
+
+---
+
+## Win/Loss Tracking
+
+### Overview
+
+Systematic tracking and analysis of won and lost opportunities to improve sales effectiveness and identify trends.
+
+### Features
+
+#### Win Tracking
+
+**Won Opportunities**:
+- Automatic tracking when deal closes
+- Actual close date captured
+- Final deal value recorded
+- Win reason (optional)
+- Customer testimonial request triggered
+
+**Win Metrics**:
+```json
+{
+  "won_count": 45,
+  "won_value": 675000,
+  "avg_deal_size": 15000,
+  "win_rate": 68.2,
+  "avg_sales_cycle": 21 // days
+}
+```
+
+#### Loss Tracking
+
+**Loss Reasons**:
+- Price too high
+- Lost to competitor
+- Timeline didn't work
+- Budget cut
+- Project cancelled
+- No decision made
+- Went with internal solution
+- Other (with notes)
+
+**Loss Details**:
+```typescript
+{
+  "loss_reason": "lost_to_competitor",
+  "loss_notes": "Competitor bid $2,000 lower",
+  "competitor": "ABC Remediation",
+  "actual_close_date": "2026-02-15"
+}
+```
+
+**Loss Metrics**:
+```json
+{
+  "lost_count": 21,
+  "lost_value": 315000,
+  "loss_rate": 31.8,
+  "top_loss_reasons": [
+    { "reason": "Price too high", "count": 8 },
+    { "reason": "Lost to competitor", "count": 6 }
+  ]
+}
+```
+
+#### Loss Reason Analysis
+
+**Visual Breakdown**:
+```
+Loss Reasons Distribution:
+
+Price Too High          ████████ 38% (8 deals)
+Lost to Competitor      ██████ 29% (6 deals)
+Timeline Issues         ███ 14% (3 deals)
+Budget Cut             ██ 9% (2 deals)
+Other                  ██ 10% (2 deals)
+```
+
+**Insights**:
+- Identify patterns in losses
+- Compare loss reasons by period
+- Competitor analysis
+- Pricing sensitivity analysis
+- Win/loss ratio by sales rep
+
+#### Win/Loss Analysis Page
+
+**Summary Cards**:
+- Won deals count and value
+- Lost deals count and value
+- Win rate percentage
+- Average deal size (won deals)
+
+**Loss Reasons Chart**:
+- Bar chart of loss reasons
+- Percentage breakdown
+- Drill-down to specific opportunities
+
+**Tabs**:
+
+1. **Won Opportunities**
+   - Table of all won deals
+   - Customer name
+   - Deal value
+   - Close date
+   - Sales rep
+
+2. **Lost Opportunities**
+   - Table of all lost deals
+   - Loss reason badge
+   - Competitor info
+   - Notes
+
+**Filters**:
+- Date range
+- Sales rep
+- Customer
+- Deal value range
+- Loss reason
+
+#### Competitor Intelligence
+
+**Competitor Tracking**:
+```sql
+CREATE TABLE competitors (
+  id UUID PRIMARY KEY,
+  name TEXT NOT NULL,
+  website TEXT,
+  strengths JSONB,
+  weaknesses JSONB,
+  pricing_strategy TEXT,
+  notes TEXT
+);
+```
+
+**Loss to Competitor Analysis**:
+- Most common competitors
+- Win rate against each competitor
+- Average price differential
+- Service comparison notes
+
+#### Action Items from Losses
+
+**Follow-up Tasks**:
+- Re-engage in 6 months
+- Add to nurture campaign
+- Request feedback
+- Update competitive intelligence
+
+---
+
 ## Upcoming Features
 
-### Q1 2026
-- Advanced scheduling calendar
-- Mobile app (iOS/Android native)
-- Equipment tracking
-
 ### Q2 2026
-- Customer portal
-- Online payments (Stripe)
-- Automated reminders
+- Advanced scheduling calendar with resource optimization
+- Mobile app (iOS/Android native)
+- Equipment tracking and maintenance scheduling
 
 ### Q3 2026
+- Customer portal enhancements
+- Online payments (Stripe integration)
+- Automated marketing campaigns
+
+### Q4 2026
 - Machine learning for estimate accuracy
-- Predictive analytics
-- White-label platform
+- Predictive analytics dashboard
+- White-label platform option
 
 ---
 

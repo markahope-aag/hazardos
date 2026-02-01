@@ -961,6 +961,518 @@ Sync invoices to QuickBooks.
 
 ---
 
+## 📊 Reports API
+
+### `GET /api/reports`
+
+List all saved reports for the organization.
+
+**Response:**
+```json
+[
+  {
+    "id": "uuid",
+    "organization_id": "uuid",
+    "name": "Monthly Sales Report",
+    "description": "Sales performance by month",
+    "report_type": "sales",
+    "config": {
+      "date_range": { "type": "this_month" }
+    },
+    "is_shared": true,
+    "schedule_enabled": false,
+    "created_at": "2026-02-01T10:00:00Z"
+  }
+]
+```
+
+**Status Codes:**
+- `200` - Success
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
+### `POST /api/reports`
+
+Create a new saved report.
+
+**Request Body:**
+```json
+{
+  "name": "Q1 Sales Performance",
+  "description": "Quarterly sales analysis",
+  "report_type": "sales",
+  "config": {
+    "date_range": {
+      "type": "custom",
+      "start": "2026-01-01",
+      "end": "2026-03-31"
+    }
+  },
+  "is_shared": false
+}
+```
+
+**Required Fields:**
+- `name` (string) - Report name
+- `report_type` (enum) - Report type: `sales`, `jobs`, `leads`
+- `config` (object) - Report configuration
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "organization_id": "uuid",
+  "name": "Q1 Sales Performance",
+  "report_type": "sales",
+  "config": { /* ... */ },
+  "created_at": "2026-02-01T10:00:00Z"
+}
+```
+
+**Status Codes:**
+- `201` - Created successfully
+- `400` - Invalid request body
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
+### `POST /api/reports/[type]/run`
+
+Run a report and return data.
+
+**Path Parameters:**
+- `type` (string) - Report type: `sales`, `jobs`, `leads`
+
+**Request Body:**
+```json
+{
+  "date_range": {
+    "type": "last_30_days"
+  },
+  "filters": {
+    "status": "completed"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "month": "2026-02-01",
+      "total_opportunities": 25,
+      "total_value": 125000,
+      "avg_value": 5000
+    }
+  ]
+}
+```
+
+**Status Codes:**
+- `200` - Success
+- `400` - Invalid report type
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
+### `POST /api/reports/export`
+
+Export report data to Excel or CSV.
+
+**Request Body:**
+```json
+{
+  "format": "xlsx",
+  "title": "Sales Performance Report",
+  "data": [/* report data */],
+  "columns": [
+    { "field": "month", "label": "Month", "format": "date", "visible": true },
+    { "field": "total_value", "label": "Revenue", "format": "currency", "visible": true }
+  ],
+  "report_id": "optional-uuid"
+}
+```
+
+**Required Fields:**
+- `format` (enum) - Export format: `xlsx`, `csv`
+- `data` (array) - Report data rows
+- `columns` (array) - Column definitions
+
+**Response:**
+Binary file download with headers:
+```http
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+Content-Disposition: attachment; filename="sales_performance_report_2026-02-01.xlsx"
+```
+
+**Status Codes:**
+- `200` - File generated successfully
+- `400` - Invalid format or missing data
+- `401` - Unauthorized
+- `500` - Export generation error
+
+---
+
+## 🎯 Pipeline API
+
+### `GET /api/pipeline`
+
+Get sales pipeline with stages, opportunities, and metrics.
+
+**Response:**
+```json
+{
+  "stages": [
+    {
+      "id": "uuid",
+      "name": "Qualified",
+      "color": "#3b82f6",
+      "stage_type": "open",
+      "probability": 20,
+      "sort_order": 1
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "uuid",
+      "name": "Acme Corp - Office Renovation",
+      "customer_id": "uuid",
+      "stage_id": "uuid",
+      "estimated_value": 15000,
+      "weighted_value": 3000,
+      "expected_close_date": "2026-03-15",
+      "owner_id": "uuid"
+    }
+  ],
+  "metrics": {
+    "total_value": 125000,
+    "weighted_value": 58000,
+    "count": 23,
+    "by_stage": [/* stage metrics */]
+  }
+}
+```
+
+**Status Codes:**
+- `200` - Success
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
+### `POST /api/pipeline`
+
+Create a new opportunity.
+
+**Request Body:**
+```json
+{
+  "customer_id": "uuid",
+  "name": "XYZ Industries - Asbestos Removal",
+  "description": "3-story building asbestos abatement",
+  "stage_id": "uuid",
+  "estimated_value": 25000,
+  "expected_close_date": "2026-04-01",
+  "owner_id": "uuid"
+}
+```
+
+**Required Fields:**
+- `customer_id` (UUID) - Customer ID
+- `name` (string) - Opportunity name
+- `stage_id` (UUID) - Initial pipeline stage
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "customer_id": "uuid",
+  "name": "XYZ Industries - Asbestos Removal",
+  "stage_id": "uuid",
+  "estimated_value": 25000,
+  "weighted_value": 5000,
+  "created_at": "2026-02-01T10:00:00Z"
+}
+```
+
+**Status Codes:**
+- `201` - Created successfully
+- `400` - Invalid request body
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
+### `POST /api/pipeline/[id]/move`
+
+Move opportunity to a different stage (drag-and-drop).
+
+**Path Parameters:**
+- `id` (UUID) - Opportunity ID
+
+**Request Body:**
+```json
+{
+  "stage_id": "uuid",
+  "notes": "Customer requested revised proposal"
+}
+```
+
+**Required Fields:**
+- `stage_id` (UUID) - New stage ID
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "stage_id": "uuid",
+  "weighted_value": 6000,
+  "outcome": null,
+  "updated_at": "2026-02-01T11:00:00Z"
+}
+```
+
+**Status Codes:**
+- `200` - Moved successfully
+- `400` - Invalid stage_id
+- `401` - Unauthorized
+- `404` - Opportunity not found
+- `500` - Server error
+
+---
+
+## ✅ Approvals API
+
+### `GET /api/approvals`
+
+List approval requests with filtering.
+
+**Query Parameters:**
+- `entity_type` (string, optional) - Filter by type: `estimate`, `discount`, `proposal`
+- `status` (string, optional) - Filter by status: `pending`, `approved`, `rejected`
+- `pending_only` (boolean, optional) - Only show pending approvals
+
+**Response:**
+```json
+[
+  {
+    "id": "uuid",
+    "entity_type": "estimate",
+    "entity_id": "uuid",
+    "amount": 12500,
+    "requested_by": "uuid",
+    "requester": { "full_name": "John Smith" },
+    "level1_status": "approved",
+    "level2_status": "pending",
+    "requires_level2": true,
+    "final_status": "pending",
+    "requested_at": "2026-02-01T10:00:00Z"
+  }
+]
+```
+
+**Status Codes:**
+- `200` - Success
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
+### `POST /api/approvals`
+
+Create a new approval request.
+
+**Request Body:**
+```json
+{
+  "entity_type": "estimate",
+  "entity_id": "uuid",
+  "amount": 12500
+}
+```
+
+**Required Fields:**
+- `entity_type` (enum) - Type: `estimate`, `discount`, `proposal`
+- `entity_id` (UUID) - ID of the entity requiring approval
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "entity_type": "estimate",
+  "entity_id": "uuid",
+  "amount": 12500,
+  "level1_status": "pending",
+  "requires_level2": true,
+  "level2_status": "pending",
+  "final_status": "pending"
+}
+```
+
+**Status Codes:**
+- `200` - Created successfully
+- `400` - Invalid request body
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
+### `GET /api/approvals/pending`
+
+Get approvals pending for the current user.
+
+**Response:**
+```json
+[
+  {
+    "id": "uuid",
+    "entity_type": "estimate",
+    "amount": 12500,
+    "requester": { "full_name": "Sarah Johnson" },
+    "requested_at": "2026-02-01T09:00:00Z"
+  }
+]
+```
+
+**Status Codes:**
+- `200` - Success
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
+## 💰 Commissions API
+
+### `GET /api/commissions`
+
+List commission earnings with filtering.
+
+**Query Parameters:**
+- `user_id` (uuid, optional) - Filter by sales rep
+- `status` (string, optional) - Filter by status: `pending`, `approved`, `paid`
+- `pay_period` (string, optional) - Filter by pay period
+
+**Response:**
+```json
+[
+  {
+    "id": "uuid",
+    "user_id": "uuid",
+    "user": { "full_name": "John Smith" },
+    "plan_id": "uuid",
+    "plan": { "name": "Standard Sales Commission" },
+    "base_amount": 15000,
+    "commission_rate": 5,
+    "commission_amount": 750,
+    "status": "approved",
+    "earning_date": "2026-02-15"
+  }
+]
+```
+
+**Status Codes:**
+- `200` - Success
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
+### `POST /api/commissions`
+
+Create a new commission earning.
+
+**Request Body:**
+```json
+{
+  "user_id": "uuid",
+  "plan_id": "uuid",
+  "opportunity_id": "uuid",
+  "base_amount": 15000
+}
+```
+
+**Required Fields:**
+- `user_id` (UUID) - Sales rep ID
+- `plan_id` (UUID) - Commission plan ID
+- `base_amount` (number) - Sale amount
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "user_id": "uuid",
+  "plan_id": "uuid",
+  "base_amount": 15000,
+  "commission_rate": 5,
+  "commission_amount": 750,
+  "status": "pending"
+}
+```
+
+**Status Codes:**
+- `200` - Created successfully
+- `400` - Invalid request body
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
+### `GET /api/commissions/summary`
+
+Get commission summary for current user or organization.
+
+**Query Parameters:**
+- `user_id` (uuid, optional) - Get summary for specific user
+
+**Response:**
+```json
+{
+  "total_pending": 2500,
+  "total_approved": 5000,
+  "total_paid": 25000,
+  "this_month": 3500,
+  "this_quarter": 12000
+}
+```
+
+**Status Codes:**
+- `200` - Success
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
+### `GET /api/commissions/plans`
+
+List all commission plans.
+
+**Response:**
+```json
+[
+  {
+    "id": "uuid",
+    "name": "Standard Sales Commission",
+    "commission_type": "percentage",
+    "base_rate": 5,
+    "tiers": null,
+    "applies_to": "won",
+    "is_active": true
+  }
+]
+```
+
+**Status Codes:**
+- `200` - Success
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
 ## 📊 Data Types & Enums
 
 ### Customer Status
@@ -1038,6 +1550,64 @@ type SiteSurveyStatus = 'draft' | 'submitted' | 'estimated' | 'quoted' | 'schedu
 ### Appointment Status
 ```typescript
 type AppointmentStatus = 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'rescheduled'
+```
+
+### Report Type
+```typescript
+type ReportType = 'sales' | 'jobs' | 'leads'
+```
+
+### Export Format
+```typescript
+type ExportFormat = 'xlsx' | 'csv'
+```
+
+### Pipeline Stage Type
+```typescript
+type StageType = 'open' | 'won' | 'lost'
+```
+
+### Opportunity Outcome
+```typescript
+type OpportunityOutcome = 'won' | 'lost' | null
+```
+
+### Loss Reason
+```typescript
+type LossReason =
+  | 'price_too_high'
+  | 'lost_to_competitor'
+  | 'timeline_issues'
+  | 'budget_cut'
+  | 'project_cancelled'
+  | 'no_decision'
+  | 'internal_solution'
+  | 'other'
+```
+
+### Approval Entity Type
+```typescript
+type ApprovalEntityType = 'estimate' | 'discount' | 'proposal'
+```
+
+### Approval Status
+```typescript
+type ApprovalStatus = 'pending' | 'approved' | 'rejected'
+```
+
+### Commission Type
+```typescript
+type CommissionType = 'percentage' | 'flat' | 'tiered'
+```
+
+### Commission Status
+```typescript
+type CommissionStatus = 'pending' | 'approved' | 'paid'
+```
+
+### Commission Applies To
+```typescript
+type CommissionAppliesTo = 'won' | 'paid' | 'completed'
 ```
 
 ---
