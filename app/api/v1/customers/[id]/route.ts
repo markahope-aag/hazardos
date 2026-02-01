@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { withApiKeyAuth, ApiKeyAuthContext } from '@/lib/middleware/api-key-auth';
 import { ApiKeyService } from '@/lib/services/api-key-service';
+import { handlePreflight } from '@/lib/middleware/cors';
 
 async function handleGet(
   _request: NextRequest,
@@ -128,3 +129,4 @@ function createHandler(
 export const GET = createHandler(handleGet);
 export const PATCH = createHandler(handlePatch);
 export const DELETE = createHandler(handleDelete);
+export const OPTIONS = (request: NextRequest) => handlePreflight(request, 'public-api');

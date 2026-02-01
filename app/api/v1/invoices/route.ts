@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { withApiKeyAuth, ApiKeyAuthContext } from '@/lib/middleware/api-key-auth';
 import { ApiKeyService } from '@/lib/services/api-key-service';
+import { handlePreflight } from '@/lib/middleware/cors';
 
 async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
   // Check scope
@@ -152,3 +153,4 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
 
 export const GET = withApiKeyAuth(handleGet);
 export const POST = withApiKeyAuth(handlePost);
+export const OPTIONS = (request: NextRequest) => handlePreflight(request, 'public-api');
