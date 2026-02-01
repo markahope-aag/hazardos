@@ -1,21 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { NotificationService } from '@/lib/services/notification-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
-import { createClient } from '@/lib/supabase/server'
+import { createApiHandler } from '@/lib/utils/api-handler'
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
+/**
+ * POST /api/notifications/read-all
+ * Mark all notifications as read
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'general',
+  },
+  async () => {
     await NotificationService.markAllAsRead()
-
     return NextResponse.json({ success: true })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

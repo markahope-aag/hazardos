@@ -1,15 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { PipelineService } from '@/lib/services/pipeline-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { createOpportunitySchema } from '@/lib/validations/pipeline'
 
-// Get all opportunities and stages
-export async function GET() {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
+/**
+ * GET /api/pipeline
+ * Get pipeline data (stages, opportunities, metrics)
+ */
+export const GET = createApiHandler(
+  {
+    rateLimit: 'general',
+  },
+  async () => {
     const [stages, opportunities, metrics] = await Promise.all([
       PipelineService.getStages(),
       PipelineService.getOpportunities(),
@@ -17,27 +19,20 @@ export async function GET() {
     ])
 
     return NextResponse.json({ stages, opportunities, metrics })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-// Create new opportunity
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const body = await request.json()
-
-    if (!body.customer_id || !body.name || !body.stage_id) {
-      throw new SecureError('VALIDATION_ERROR', 'customer_id, name, and stage_id are required')
-    }
-
+/**
+ * POST /api/pipeline
+ * Create a new opportunity
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: createOpportunitySchema,
+  },
+  async (_request, _context, body) => {
     const opportunity = await PipelineService.createOpportunity(body)
     return NextResponse.json(opportunity, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
