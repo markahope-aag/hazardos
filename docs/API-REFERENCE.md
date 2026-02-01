@@ -321,6 +321,330 @@ Content-Disposition: attachment; filename="proposal-{estimate-id}.pdf"
 
 ---
 
+## 📋 Jobs API
+
+### `GET /api/jobs`
+
+List jobs with filtering and pagination.
+
+**Query Parameters:**
+- `status` (string, optional) - Filter by status: `scheduled`, `in_progress`, `on_hold`, `completed`, `cancelled`
+- `customer_id` (uuid, optional) - Filter by customer
+- `start_date` (date, optional) - Filter jobs after this date
+- `end_date` (date, optional) - Filter jobs before this date
+- `page` (number, optional) - Page number (default: 1)
+- `limit` (number, optional) - Results per page (default: 25)
+
+**Response:**
+```json
+{
+  "jobs": [{
+    "id": "uuid",
+    "job_number": "JOB-2026-001",
+    "customer_id": "uuid",
+    "customer_name": "Acme Corp",
+    "status": "in_progress",
+    "scheduled_start_date": "2026-02-15",
+    "estimated_duration_hours": 40,
+    "contract_amount": 15000.00
+  }],
+  "pagination": { /* ... */ }
+}
+```
+
+---
+
+### `POST /api/jobs/[id]/complete`
+
+Submit job completion with time entries, material usage, and photos.
+
+**Request Body:**
+```json
+{
+  "field_notes": "Job completed successfully",
+  "issues_encountered": "Minor access delay on day 2",
+  "customer_signed": true,
+  "customer_signature_name": "John Doe",
+  "customer_signature_data": "data:image/png;base64,..."
+}
+```
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "job_id": "uuid",
+  "status": "submitted",
+  "actual_hours": 42.5,
+  "hours_variance": 2.5,
+  "hours_variance_percent": 6.25
+}
+```
+
+---
+
+### `GET /api/jobs/[id]/time-entries`
+
+List time entries for a job.
+
+**Response:**
+```json
+{
+  "entries": [{
+    "id": "uuid",
+    "profile_id": "uuid",
+    "work_date": "2026-02-15",
+    "hours": 8.5,
+    "work_type": "regular",
+    "hourly_rate": 45.00,
+    "billable": true
+  }]
+}
+```
+
+---
+
+### `POST /api/jobs/[id]/time-entries`
+
+Add a time entry to a job.
+
+**Request Body:**
+```json
+{
+  "work_date": "2026-02-15",
+  "hours": 8.5,
+  "work_type": "regular",
+  "profile_id": "uuid",
+  "description": "Site preparation and setup"
+}
+```
+
+---
+
+## 📊 Analytics API
+
+### `GET /api/analytics/variance`
+
+Get variance analysis for completed jobs.
+
+**Query Parameters:**
+- `start_date` (date, optional)
+- `end_date` (date, optional)
+- `customer_id` (uuid, optional)
+- `variance_threshold` (number, optional) - Only return jobs with variance > threshold%
+
+**Response:**
+```json
+{
+  "summary": {
+    "total_jobs": 45,
+    "over_budget_count": 12,
+    "under_budget_count": 8,
+    "on_target_count": 25,
+    "avg_hours_variance": 3.2,
+    "avg_cost_variance": 450.00
+  },
+  "jobs": [{
+    "job_id": "uuid",
+    "job_number": "JOB-2026-001",
+    "customer_name": "Acme Corp",
+    "estimated_hours": 40,
+    "actual_hours": 42.5,
+    "hours_variance": 2.5,
+    "hours_variance_percent": 6.25
+  }]
+}
+```
+
+---
+
+## 📨 Feedback API
+
+### `GET /api/feedback`
+
+List feedback surveys for the organization (authenticated).
+
+**Query Parameters:**
+- `status` (string, optional) - Filter by status
+- `job_id` (uuid, optional) - Filter by job
+
+**Response:**
+```json
+{
+  "surveys": [{
+    "id": "uuid",
+    "job_id": "uuid",
+    "customer_id": "uuid",
+    "status": "completed",
+    "rating_overall": 5,
+    "rating_quality": 5,
+    "likelihood_to_recommend": 10,
+    "completed_at": "2026-02-01T10:00:00Z"
+  }]
+}
+```
+
+---
+
+### `POST /api/feedback`
+
+Create a feedback survey for a completed job.
+
+**Request Body:**
+```json
+{
+  "job_id": "uuid",
+  "send_immediately": true,
+  "recipient_email": "customer@example.com"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "access_token": "abc123...",
+  "token_expires_at": "2026-03-01T00:00:00Z",
+  "status": "sent",
+  "sent_at": "2026-02-01T10:00:00Z"
+}
+```
+
+---
+
+### `GET /api/feedback/[token]` (Public)
+
+Get feedback survey by public token (no authentication required).
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "job_number": "JOB-2026-001",
+  "job_name": "Asbestos Removal - Building A",
+  "organization_name": "ABC Remediation",
+  "customer_name": "John Doe",
+  "status": "pending",
+  "completed_at": null
+}
+```
+
+---
+
+### `POST /api/feedback/[token]` (Public)
+
+Submit feedback survey (no authentication required).
+
+**Request Body:**
+```json
+{
+  "rating_overall": 5,
+  "rating_quality": 5,
+  "rating_communication": 5,
+  "rating_timeliness": 4,
+  "rating_value": 5,
+  "likelihood_to_recommend": 10,
+  "would_recommend": true,
+  "feedback_text": "Excellent service!",
+  "testimonial_text": "Professional and thorough",
+  "testimonial_permission": true
+}
+```
+
+---
+
+### `GET /api/feedback/stats`
+
+Get aggregated feedback statistics for the organization.
+
+**Response:**
+```json
+{
+  "total_surveys": 156,
+  "completed_surveys": 98,
+  "avg_overall_rating": 4.7,
+  "avg_quality_rating": 4.8,
+  "avg_communication_rating": 4.6,
+  "avg_timeliness_rating": 4.5,
+  "nps_score": 72.5,
+  "testimonials_count": 45,
+  "response_rate": 62.8
+}
+```
+
+---
+
+## 🔗 Integrations API
+
+### `GET /api/integrations/quickbooks`
+
+Get QuickBooks integration status.
+
+**Response:**
+```json
+{
+  "is_connected": true,
+  "is_active": true,
+  "company_name": "ABC Remediation Inc",
+  "realm_id": "123456789",
+  "last_sync_at": "2026-02-01T08:00:00Z"
+}
+```
+
+---
+
+### `POST /api/integrations/quickbooks/connect`
+
+Initiate QuickBooks OAuth connection.
+
+**Response:**
+```json
+{
+  "auth_url": "https://appcenter.intuit.com/connect/oauth2?..."
+}
+```
+
+---
+
+### `POST /api/integrations/quickbooks/sync/customers`
+
+Sync customers to QuickBooks.
+
+**Request Body:**
+```json
+{
+  "customer_ids": ["uuid1", "uuid2"]  // Optional, syncs all if omitted
+}
+```
+
+**Response:**
+```json
+{
+  "synced_count": 15,
+  "failed_count": 0,
+  "details": [{
+    "customer_id": "uuid",
+    "qb_id": "123",
+    "status": "success"
+  }]
+}
+```
+
+---
+
+### `POST /api/integrations/quickbooks/sync/invoices`
+
+Sync invoices to QuickBooks.
+
+**Request Body:**
+```json
+{
+  "invoice_ids": ["uuid1", "uuid2"]
+}
+```
+
+---
+
 ## 📊 Data Types & Enums
 
 ### Customer Status
@@ -336,6 +660,41 @@ type CustomerSource = 'referral' | 'website' | 'advertising' | 'cold_call' | 'tr
 ### Hazard Type
 ```typescript
 type HazardType = 'asbestos' | 'mold' | 'lead' | 'vermiculite' | 'other'
+```
+
+### Job Status
+```typescript
+type JobStatus = 'scheduled' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled'
+```
+
+### Completion Status
+```typescript
+type CompletionStatus = 'draft' | 'submitted' | 'approved' | 'rejected'
+```
+
+### Work Type
+```typescript
+type WorkType = 'regular' | 'overtime' | 'travel' | 'setup' | 'cleanup' | 'supervision'
+```
+
+### Photo Type
+```typescript
+type PhotoType = 'before' | 'during' | 'after' | 'issue' | 'documentation'
+```
+
+### Checklist Category
+```typescript
+type ChecklistCategory = 'safety' | 'quality' | 'cleanup' | 'documentation' | 'custom'
+```
+
+### Feedback Survey Status
+```typescript
+type FeedbackSurveyStatus = 'pending' | 'sent' | 'viewed' | 'completed' | 'expired'
+```
+
+### Review Platform
+```typescript
+type ReviewPlatform = 'google' | 'yelp' | 'facebook' | 'bbb' | 'homeadvisor' | 'angi'
 ```
 
 ### Site Survey Status

@@ -11,8 +11,7 @@ interface MediaUploadResult {
 function getSupabaseClient() {
   try {
     return createClient()
-  } catch (error) {
-    console.warn('Supabase client not available:', error)
+  } catch {
     return null
   }
 }
@@ -240,9 +239,7 @@ export class SiteSurveyService {
       .from('assessment-media')
       .remove([filePath])
 
-    if (storageError) {
-      console.error('Failed to delete file from storage:', storageError)
-    }
+    // Storage deletion error is non-fatal - continue to delete database record
 
     // Delete from database
     const { error: dbError } = await supabase

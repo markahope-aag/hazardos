@@ -135,8 +135,8 @@ export default function SiteSurveysPage() {
       }
 
       setSurveys(filteredData)
-    } catch (error) {
-      console.error('Error loading surveys:', error)
+    } catch {
+      // Survey load failed - will show empty state
     } finally {
       setLoading(false)
     }

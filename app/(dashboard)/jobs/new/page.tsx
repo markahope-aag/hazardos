@@ -73,8 +73,8 @@ export default function NewJobPage() {
         if (data.customers) {
           setCustomers(data.customers)
         }
-      } catch (error) {
-        console.error('Failed to fetch customers:', error)
+      } catch {
+        // Customer fetch failed - form will show empty customer list
       } finally {
         setLoadingCustomers(false)
       }

@@ -95,8 +95,8 @@ export default function NewInvoicePage() {
             }
           }
         }
-      } catch (error) {
-        console.error('Failed to fetch data:', error)
+      } catch {
+        // Data fetch failed - form will show empty lists
       } finally {
         setLoadingCustomers(false)
         setLoadingJobs(false)

@@ -95,8 +95,8 @@ export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFo
             lng: position.coords.longitude
           })
         },
-        (error) => {
-          console.log('Location access denied or unavailable:', error)
+        () => {
+          // Location access denied or unavailable - GPS indicator won't show
         }
       )
     }
@@ -165,8 +165,7 @@ export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFo
               currentSiteSurveyId!,
               organization.id
             )
-          } catch (error) {
-            console.error('Failed to upload media file:', mediaFile.file.name, error)
+          } catch {
             toast({
               title: 'Media upload failed',
               description: `Failed to upload ${mediaFile.file.name}`,
@@ -199,8 +198,7 @@ export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFo
       } else {
         setLastSaved(new Date())
       }
-    } catch (error) {
-      console.error('Error saving assessment:', error)
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to save site survey. Please try again.',

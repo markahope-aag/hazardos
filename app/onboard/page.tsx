@@ -79,7 +79,6 @@ export default function OnboardPage() {
       }
 
     } catch (error) {
-      console.error('Onboarding error:', error)
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'An error occurred during onboarding',

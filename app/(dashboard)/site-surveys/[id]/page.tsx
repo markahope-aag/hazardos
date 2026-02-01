@@ -78,8 +78,7 @@ export default function SurveyDetailPage() {
       } as SurveyWithRelations
 
       setSurvey(transformedData)
-    } catch (error) {
-      console.error('Error loading survey:', error)
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to load survey.',

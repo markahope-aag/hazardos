@@ -7,18 +7,23 @@ const hasRedis = Boolean(
   process.env.UPSTASH_REDIS_REST_TOKEN
 )
 
+// Type for the dynamically imported rate limit module
+interface RateLimitModule {
+  applyRateLimit: (request: NextRequest, type?: MemoryRateLimiterType) => Promise<NextResponse | null>
+}
+
 // Dynamic import for Redis rate limiting
-let redisRateLimit: any = null
+let redisRateLimit: RateLimitModule | null = null
 if (hasRedis) {
   try {
     // This will be loaded dynamically when needed
     import('./rate-limit').then(module => {
       redisRateLimit = module
     }).catch(() => {
-      console.warn('Failed to load Redis rate limiting, using memory fallback')
+      // Redis rate limiting unavailable - will use memory fallback
     })
   } catch {
-    console.warn('Redis rate limiting not available')
+    // Redis rate limiting not available - will use memory fallback
   }
 }
 
