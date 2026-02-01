@@ -65,7 +65,7 @@ describe('Manual Activity API', () => {
         body: JSON.stringify({
           type: 'note',
           entity_type: 'customer',
-          entity_id: 'customer-123',
+          entity_id: '550e8400-e29b-41d4-a716-446655440010',
           entity_name: 'ABC Construction',
           content: 'Customer called to discuss project timeline'
         })
@@ -80,7 +80,7 @@ describe('Manual Activity API', () => {
       expect(data.success).toBe(true)
       expect(Activity.note).toHaveBeenCalledWith(
         'customer',
-        'customer-123',
+        '550e8400-e29b-41d4-a716-446655440010',
         'ABC Construction',
         'Customer called to discuss project timeline'
       )
@@ -111,8 +111,8 @@ describe('Manual Activity API', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'call',
-          entity_type: 'lead',
-          entity_id: 'lead-456',
+          entity_type: 'opportunity',
+          entity_id: '550e8400-e29b-41d4-a716-446655440011',
           entity_name: 'XYZ Company',
           call_direction: 'outbound',
           call_duration: 180,
@@ -128,8 +128,8 @@ describe('Manual Activity API', () => {
       expect(response.status).toBe(200)
       expect(data.success).toBe(true)
       expect(Activity.call).toHaveBeenCalledWith(
-        'lead',
-        'lead-456',
+        'opportunity',
+        '550e8400-e29b-41d4-a716-446655440011',
         'XYZ Company',
         {
           direction: 'outbound',
@@ -152,7 +152,7 @@ describe('Manual Activity API', () => {
         body: JSON.stringify({
           type: 'note',
           entity_type: 'customer',
-          entity_id: 'customer-123',
+          entity_id: '550e8400-e29b-41d4-a716-446655440010',
           entity_name: 'ABC Construction',
           content: 'Test note'
         })
