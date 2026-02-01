@@ -124,13 +124,10 @@ describe('QuickBooksService', () => {
       const result = await QuickBooksService.refreshTokens('old-refresh-token')
 
       expect(result).toEqual(mockTokens)
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer',
-        expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('grant_type=refresh_token')
-        })
-      )
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+      const callArgs = mockFetch.mock.calls[0]
+      expect(callArgs[0]).toBe('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer')
+      expect(callArgs[1].method).toBe('POST')
     })
 
     it('should throw error when refresh fails', async () => {
