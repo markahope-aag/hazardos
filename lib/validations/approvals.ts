@@ -1,10 +1,10 @@
 import { z } from 'zod'
 
-// Approval entity type
+// Approval entity type (matches ApprovalEntityType from types/sales.ts)
 export const approvalEntityTypeSchema = z.enum([
   'estimate',
-  'proposal',
   'discount',
+  'proposal',
   'change_order',
   'expense',
 ])

@@ -4,7 +4,7 @@ export type CommissionType = 'percentage' | 'flat' | 'tiered'
 export type CommissionAppliesTo = 'won' | 'invoiced' | 'paid'
 export type CommissionStatus = 'pending' | 'approved' | 'paid'
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
-export type ApprovalEntityType = 'estimate' | 'discount' | 'proposal'
+export type ApprovalEntityType = 'estimate' | 'discount' | 'proposal' | 'change_order' | 'expense'
 
 // Pipeline stages
 export interface PipelineStage {

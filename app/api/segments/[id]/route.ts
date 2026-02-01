@@ -1,79 +1,49 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { SegmentationService } from '@/lib/services/segmentation-service';
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler';
+import { NextResponse } from 'next/server'
+import { SegmentationService } from '@/lib/services/segmentation-service'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { updateSegmentSchema } from '@/lib/validations/segments'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED');
-    }
-
-    const { id } = await params;
-    const segment = await SegmentationService.get(id);
+/**
+ * GET /api/segments/[id]
+ * Get a segment
+ */
+export const GET = createApiHandlerWithParams(
+  { rateLimit: 'general' },
+  async (_request, _context, params) => {
+    const segment = await SegmentationService.get(params.id)
 
     if (!segment) {
-      throw new SecureError('NOT_FOUND', 'Segment not found');
+      throw new SecureError('NOT_FOUND', 'Segment not found')
     }
 
-    return NextResponse.json({ segment });
-  } catch (error) {
-    return createSecureErrorResponse(error);
+    return NextResponse.json({ segment })
   }
-}
+)
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED');
-    }
-
-    const { id } = await params;
-    const body = await request.json();
-    const { name, description, rules, is_active } = body;
-
-    const segment = await SegmentationService.update(id, {
-      name,
-      description,
-      rules,
-      is_active,
-    });
-
-    return NextResponse.json({ segment });
-  } catch (error) {
-    return createSecureErrorResponse(error);
+/**
+ * PUT /api/segments/[id]
+ * Update a segment
+ */
+export const PUT = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: updateSegmentSchema,
+  },
+  async (_request, _context, params, body) => {
+    const segment = await SegmentationService.update(params.id, body)
+    return NextResponse.json({ segment })
   }
-}
+)
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED');
-    }
-
-    const { id } = await params;
-    await SegmentationService.delete(id);
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return createSecureErrorResponse(error);
+/**
+ * DELETE /api/segments/[id]
+ * Delete a segment
+ */
+export const DELETE = createApiHandlerWithParams(
+  { rateLimit: 'general' },
+  async (_request, _context, params) => {
+    await SegmentationService.delete(params.id)
+    return NextResponse.json({ success: true })
   }
-}
+)
