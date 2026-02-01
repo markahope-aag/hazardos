@@ -37,7 +37,8 @@ export function NotesSection({ survey }: NotesSectionProps) {
         title: 'Notes saved',
         description: 'Office notes have been updated.',
       })
-    } catch {
+    } catch (error) {
+      console.error('Error saving notes:', error)
       toast({
         title: 'Error',
         description: 'Failed to save notes. Please try again.',
