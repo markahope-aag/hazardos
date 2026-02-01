@@ -6,21 +6,35 @@ import { Button } from '@/components/ui/button'
 describe('Button Component', () => {
   it('should render with default props', () => {
     render(<Button>Click me</Button>)
-    
+
     const button = screen.getByRole('button', { name: /click me/i })
     expect(button).toBeInTheDocument()
     expect(button).toHaveClass('bg-primary')
   })
 
-  it('should render with different variants', () => {
-    const { rerender } = render(<Button variant="outline">Outline</Button>)
-    expect(screen.getByRole('button')).toHaveClass('border-gray-300')
+  it('should render with outline variant', () => {
+    render(<Button variant="outline">Outline</Button>)
+    expect(screen.getByRole('button')).toHaveClass('border', 'border-input', 'bg-background')
+  })
 
-    rerender(<Button variant="ghost">Ghost</Button>)
-    expect(screen.getByRole('button')).toHaveClass('hover:bg-gray-100')
+  it('should render with ghost variant', () => {
+    render(<Button variant="ghost">Ghost</Button>)
+    expect(screen.getByRole('button')).toHaveClass('hover:bg-accent')
+  })
 
-    rerender(<Button variant="destructive">Destructive</Button>)
-    expect(screen.getByRole('button')).toHaveClass('bg-red-500')
+  it('should render with destructive variant', () => {
+    render(<Button variant="destructive">Destructive</Button>)
+    expect(screen.getByRole('button')).toHaveClass('bg-destructive')
+  })
+
+  it('should render with secondary variant', () => {
+    render(<Button variant="secondary">Secondary</Button>)
+    expect(screen.getByRole('button')).toHaveClass('bg-secondary')
+  })
+
+  it('should render with link variant', () => {
+    render(<Button variant="link">Link</Button>)
+    expect(screen.getByRole('button')).toHaveClass('text-primary', 'underline-offset-4')
   })
 
   it('should render with different sizes', () => {
@@ -36,7 +50,7 @@ describe('Button Component', () => {
 
   it('should handle disabled state', () => {
     render(<Button disabled>Disabled</Button>)
-    
+
     const button = screen.getByRole('button')
     expect(button).toBeDisabled()
     expect(button).toHaveClass('disabled:pointer-events-none')
@@ -45,9 +59,9 @@ describe('Button Component', () => {
   it('should handle click events', async () => {
     const user = userEvent.setup()
     const handleClick = vi.fn()
-    
+
     render(<Button onClick={handleClick}>Click me</Button>)
-    
+
     await user.click(screen.getByRole('button'))
     expect(handleClick).toHaveBeenCalledOnce()
   })
@@ -55,9 +69,9 @@ describe('Button Component', () => {
   it('should not trigger click when disabled', async () => {
     const user = userEvent.setup()
     const handleClick = vi.fn()
-    
+
     render(<Button disabled onClick={handleClick}>Disabled</Button>)
-    
+
     await user.click(screen.getByRole('button'))
     expect(handleClick).not.toHaveBeenCalled()
   })
@@ -68,7 +82,7 @@ describe('Button Component', () => {
         <a href="/test">Link Button</a>
       </Button>
     )
-    
+
     const link = screen.getByRole('link')
     expect(link).toBeInTheDocument()
     expect(link).toHaveAttribute('href', '/test')
@@ -76,14 +90,14 @@ describe('Button Component', () => {
 
   it('should accept custom className', () => {
     render(<Button className="custom-class">Custom</Button>)
-    
+
     const button = screen.getByRole('button')
     expect(button).toHaveClass('custom-class')
   })
 
   it('should render loading state', () => {
     render(<Button disabled>Loading...</Button>)
-    
+
     const button = screen.getByRole('button')
     expect(button).toBeDisabled()
     expect(button).toHaveTextContent('Loading...')
@@ -92,16 +106,26 @@ describe('Button Component', () => {
   it('should handle keyboard navigation', async () => {
     const user = userEvent.setup()
     const handleClick = vi.fn()
-    
+
     render(<Button onClick={handleClick}>Keyboard</Button>)
-    
+
     const button = screen.getByRole('button')
     button.focus()
-    
+
     await user.keyboard('{Enter}')
     expect(handleClick).toHaveBeenCalledOnce()
-    
+
     await user.keyboard(' ')
     expect(handleClick).toHaveBeenCalledTimes(2)
+  })
+
+  it('should have default size styles', () => {
+    render(<Button>Default</Button>)
+    expect(screen.getByRole('button')).toHaveClass('h-10', 'px-4', 'py-2')
+  })
+
+  it('should have proper font styling', () => {
+    render(<Button>Styled</Button>)
+    expect(screen.getByRole('button')).toHaveClass('text-sm', 'font-medium')
   })
 })

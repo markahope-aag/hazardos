@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 describe('Input Component', () => {
   it('should render with default props', () => {
     render(<Input />)
-    
+
     const input = screen.getByRole('textbox')
     expect(input).toBeInTheDocument()
     expect(input).toHaveClass('flex', 'h-10', 'w-full')
@@ -14,7 +14,7 @@ describe('Input Component', () => {
 
   it('should accept placeholder text', () => {
     render(<Input placeholder="Enter your name" />)
-    
+
     const input = screen.getByPlaceholderText('Enter your name')
     expect(input).toBeInTheDocument()
   })
@@ -22,18 +22,18 @@ describe('Input Component', () => {
   it('should handle value changes', async () => {
     const user = userEvent.setup()
     const handleChange = vi.fn()
-    
+
     render(<Input onChange={handleChange} />)
-    
+
     const input = screen.getByRole('textbox')
     await user.type(input, 'test value')
-    
+
     expect(handleChange).toHaveBeenCalled()
   })
 
   it('should handle disabled state', () => {
     render(<Input disabled />)
-    
+
     const input = screen.getByRole('textbox')
     expect(input).toBeDisabled()
     expect(input).toHaveClass('disabled:cursor-not-allowed', 'disabled:opacity-50')
@@ -41,25 +41,30 @@ describe('Input Component', () => {
 
   it('should accept custom className', () => {
     render(<Input className="custom-class" />)
-    
+
     const input = screen.getByRole('textbox')
     expect(input).toHaveClass('custom-class')
   })
 
-  it('should handle different input types', () => {
-    const { rerender } = render(<Input type="email" />)
+  it('should handle email input type', () => {
+    render(<Input type="email" />)
     expect(screen.getByRole('textbox')).toHaveAttribute('type', 'email')
+  })
 
-    rerender(<Input type="password" />)
-    expect(screen.getByLabelText(/password/i) || screen.getByDisplayValue('')).toHaveAttribute('type', 'password')
+  it('should handle password input type', () => {
+    render(<Input type="password" data-testid="password-input" />)
+    const input = screen.getByTestId('password-input')
+    expect(input).toHaveAttribute('type', 'password')
+  })
 
-    rerender(<Input type="number" />)
+  it('should handle number input type', () => {
+    render(<Input type="number" />)
     expect(screen.getByRole('spinbutton')).toHaveAttribute('type', 'number')
   })
 
   it('should support controlled input', () => {
     const { rerender } = render(<Input value="controlled value" onChange={vi.fn()} />)
-    
+
     const input = screen.getByDisplayValue('controlled value')
     expect(input).toBeInTheDocument()
 
@@ -71,21 +76,21 @@ describe('Input Component', () => {
     const user = userEvent.setup()
     const handleFocus = vi.fn()
     const handleBlur = vi.fn()
-    
+
     render(<Input onFocus={handleFocus} onBlur={handleBlur} />)
-    
+
     const input = screen.getByRole('textbox')
-    
+
     await user.click(input)
     expect(handleFocus).toHaveBeenCalled()
-    
+
     await user.tab()
     expect(handleBlur).toHaveBeenCalled()
   })
 
   it('should support form validation attributes', () => {
     render(<Input required minLength={3} maxLength={10} />)
-    
+
     const input = screen.getByRole('textbox')
     expect(input).toHaveAttribute('required')
     expect(input).toHaveAttribute('minLength', '3')
@@ -94,8 +99,29 @@ describe('Input Component', () => {
 
   it('should handle readonly state', () => {
     render(<Input readOnly value="readonly value" />)
-    
+
     const input = screen.getByDisplayValue('readonly value')
     expect(input).toHaveAttribute('readonly')
+  })
+
+  it('should have proper border styling', () => {
+    render(<Input />)
+
+    const input = screen.getByRole('textbox')
+    expect(input).toHaveClass('border', 'border-gray-300')
+  })
+
+  it('should have rounded corners', () => {
+    render(<Input />)
+
+    const input = screen.getByRole('textbox')
+    expect(input).toHaveClass('rounded-md')
+  })
+
+  it('should have focus styling classes', () => {
+    render(<Input />)
+
+    const input = screen.getByRole('textbox')
+    expect(input).toHaveClass('focus-visible:outline-none', 'focus-visible:ring-2')
   })
 })
