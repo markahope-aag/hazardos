@@ -14,13 +14,19 @@ export const createFeedbackSurveySchema = z.object({
   recipient_email: z.string().email().optional(),
 })
 
-// Submit feedback response (public)
+// Submit feedback response (public - via token)
 export const submitFeedbackSchema = z.object({
-  token: z.string().min(1, 'Token is required'),
-  rating: z.number().int().min(1).max(5),
-  comments: z.string().max(2000).optional(),
+  rating_overall: z.number().int().min(1).max(5).optional(),
+  rating_quality: z.number().int().min(1).max(5).optional(),
+  rating_communication: z.number().int().min(1).max(5).optional(),
+  rating_timeliness: z.number().int().min(1).max(5).optional(),
+  rating_value: z.number().int().min(1).max(5).optional(),
   would_recommend: z.boolean().optional(),
-  allow_testimonial: z.boolean().optional(),
+  likelihood_to_recommend: z.number().int().min(0).max(10).optional(),
+  feedback_text: z.string().max(5000).optional(),
+  improvement_suggestions: z.string().max(2000).optional(),
+  testimonial_text: z.string().max(2000).optional(),
+  testimonial_permission: z.boolean().optional(),
 })
 
 // Approve testimonial

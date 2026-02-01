@@ -5,7 +5,7 @@ export class CustomersService {
   private static supabase = createClient()
 
   static async getCustomers(
-    organizationId: string, 
+    organizationId: string,
     options: {
       search?: string
       status?: CustomerStatus
@@ -15,7 +15,7 @@ export class CustomersService {
   ): Promise<Customer[]> {
     let query = this.supabase
       .from('customers')
-      .select('*')
+      .select('id, organization_id, name, company_name, email, phone, status, customer_type, lead_source, address_line1, city, state, zip, created_at, updated_at')
       .eq('organization_id', organizationId)
 
     if (options.search) {
@@ -48,7 +48,7 @@ export class CustomersService {
   static async getCustomer(id: string): Promise<Customer | null> {
     const { data, error } = await this.supabase
       .from('customers')
-      .select('*')
+      .select('id, organization_id, name, first_name, last_name, company_name, email, phone, mobile, fax, website, status, customer_type, lead_source, address_line1, address_line2, city, state, zip, country, notes, tags, billing_email, billing_address_line1, billing_address_line2, billing_city, billing_state, billing_zip, billing_country, tax_id, preferred_contact_method, do_not_email, do_not_call, do_not_sms, created_at, updated_at, created_by, qb_customer_id, qb_synced_at, mailchimp_id, mailchimp_synced_at, hubspot_id, hubspot_synced_at')
       .eq('id', id)
       .single()
 
