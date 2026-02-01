@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { sanitizeSearchQuery } from '@/lib/utils/sanitize'
 import type { Customer, CustomerInsert, CustomerUpdate, CustomerStatus } from '@/types/database'
 
 export class CustomersService {
@@ -19,7 +20,8 @@ export class CustomersService {
       .eq('organization_id', organizationId)
 
     if (options.search) {
-      query = query.or(`name.ilike.%${options.search}%,company_name.ilike.%${options.search}%,email.ilike.%${options.search}%,phone.ilike.%${options.search}%`)
+      const sanitizedSearch = sanitizeSearchQuery(options.search)
+      query = query.or(`name.ilike.%${sanitizedSearch}%,company_name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%,phone.ilike.%${sanitizedSearch}%`)
     }
 
     if (options.status) {
@@ -109,41 +111,42 @@ export class CustomersService {
     customers: number
     inactive: number
   }> {
-    const { data, error } = await this.supabase
-      .from('customers')
-      .select('status')
-      .eq('organization_id', organizationId)
+    // Use parallel count queries - more efficient than fetching all rows
+    const [leadCount, prospectCount, customerCount, inactiveCount] = await Promise.all([
+      this.supabase
+        .from('customers')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+        .eq('status', 'lead'),
+      this.supabase
+        .from('customers')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+        .eq('status', 'prospect'),
+      this.supabase
+        .from('customers')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+        .eq('status', 'customer'),
+      this.supabase
+        .from('customers')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+        .eq('status', 'inactive'),
+    ])
 
-    if (error) {
-      throw new Error(`Failed to fetch customer stats: ${error.message}`)
+    const leads = leadCount.count || 0
+    const prospects = prospectCount.count || 0
+    const customers = customerCount.count || 0
+    const inactive = inactiveCount.count || 0
+
+    return {
+      total: leads + prospects + customers + inactive,
+      leads,
+      prospects,
+      customers,
+      inactive,
     }
-
-    const stats = {
-      total: data.length,
-      leads: 0,
-      prospects: 0,
-      customers: 0,
-      inactive: 0
-    }
-
-    data.forEach(customer => {
-      switch (customer.status) {
-        case 'lead':
-          stats.leads++
-          break
-        case 'prospect':
-          stats.prospects++
-          break
-        case 'customer':
-          stats.customers++
-          break
-        case 'inactive':
-          stats.inactive++
-          break
-      }
-    })
-
-    return stats
   }
 
   static async updateCustomerStatus(id: string, status: CustomerStatus): Promise<Customer> {

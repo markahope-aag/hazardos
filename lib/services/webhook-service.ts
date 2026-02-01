@@ -132,10 +132,15 @@ export class WebhookService {
 
     if (!webhooks?.length) return;
 
-    // Create delivery records and send
-    for (const webhook of webhooks) {
-      await this.deliver(webhook as Webhook, eventType, payload);
-    }
+    // Deliver to all webhooks in parallel for better performance
+    await Promise.all(
+      webhooks.map(webhook =>
+        this.deliver(webhook as Webhook, eventType, payload).catch(err => {
+          // Log error but don't fail other deliveries
+          console.error(`Webhook delivery failed for ${webhook.id}:`, err);
+        })
+      )
+    );
   }
 
   static async deliver(

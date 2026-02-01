@@ -84,10 +84,13 @@ export class InvoicesService {
       payment_terms: `Net ${input.due_days || 30}`,
     })
 
+    // Collect all line items for batch insert (single query)
+    const lineItems: AddLineItemInput[] = []
+
     // Add main job amount as line item
     const jobAmount = job.final_amount || job.contract_amount
     if (jobAmount) {
-      await this.addLineItem(invoice.id, {
+      lineItems.push({
         description: `Remediation services - Job #${job.job_number}`,
         quantity: 1,
         unit: 'job',
@@ -104,7 +107,7 @@ export class InvoicesService {
       )
 
       for (const co of approvedCOs) {
-        await this.addLineItem(invoice.id, {
+        lineItems.push({
           description: `Change Order: ${co.description}`,
           quantity: 1,
           unit: 'each',
@@ -113,6 +116,11 @@ export class InvoicesService {
           source_id: co.id,
         })
       }
+    }
+
+    // Batch insert all line items in a single query
+    if (lineItems.length > 0) {
+      await this.addLineItemsBatch(invoice.id, lineItems)
     }
 
     // Update job status to invoiced
@@ -303,6 +311,39 @@ export class InvoicesService {
 
     if (error) throw error
     return data
+  }
+
+  /**
+   * Batch insert multiple line items efficiently (single query)
+   */
+  static async addLineItemsBatch(
+    invoiceId: string,
+    items: AddLineItemInput[],
+    startSortOrder: number = 0
+  ): Promise<InvoiceLineItem[]> {
+    if (items.length === 0) return []
+
+    const supabase = await createClient()
+
+    const lineItems = items.map((item, index) => ({
+      invoice_id: invoiceId,
+      description: item.description,
+      quantity: item.quantity,
+      unit: item.unit || null,
+      unit_price: item.unit_price,
+      line_total: item.quantity * item.unit_price,
+      source_type: item.source_type || null,
+      source_id: item.source_id || null,
+      sort_order: startSortOrder + index,
+    }))
+
+    const { data, error } = await supabase
+      .from('invoice_line_items')
+      .insert(lineItems)
+      .select()
+
+    if (error) throw error
+    return data || []
   }
 
   static async updateLineItem(
