@@ -1,36 +1,33 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { ReportingService } from '@/lib/services/reporting-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { createReportSchema } from '@/lib/validations/reports'
 
-export async function GET() {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
+/**
+ * GET /api/reports
+ * List all reports
+ */
+export const GET = createApiHandler(
+  {
+    rateLimit: 'general',
+  },
+  async () => {
     const reports = await ReportingService.listReports()
     return NextResponse.json(reports)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const body = await request.json()
-
-    if (!body.name || !body.report_type || !body.config) {
-      throw new SecureError('VALIDATION_ERROR', 'name, report_type, and config are required')
-    }
-
+/**
+ * POST /api/reports
+ * Create a new report
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: createReportSchema,
+  },
+  async (_request, _context, body) => {
     const report = await ReportingService.createReport(body)
     return NextResponse.json(report, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

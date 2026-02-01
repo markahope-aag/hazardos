@@ -1,63 +1,53 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { ReportingService } from '@/lib/services/reporting-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { updateReportSchema } from '@/lib/validations/reports'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { id } = await params
-    const report = await ReportingService.getReport(id)
+/**
+ * GET /api/reports/[id]
+ * Get a report
+ */
+export const GET = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+  },
+  async (_request, _context, params) => {
+    const report = await ReportingService.getReport(params.id)
 
     if (!report) {
       throw new SecureError('NOT_FOUND', 'Report not found')
     }
 
     return NextResponse.json(report)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { id } = await params
-    const body = await request.json()
-
-    const report = await ReportingService.updateReport(id, body)
+/**
+ * PATCH /api/reports/[id]
+ * Update a report
+ */
+export const PATCH = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: updateReportSchema,
+  },
+  async (_request, _context, params, body) => {
+    const report = await ReportingService.updateReport(params.id, body)
     return NextResponse.json(report)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { id } = await params
-    await ReportingService.deleteReport(id)
-
+/**
+ * DELETE /api/reports/[id]
+ * Delete a report
+ */
+export const DELETE = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+  },
+  async (_request, _context, params) => {
+    await ReportingService.deleteReport(params.id)
     return NextResponse.json({ success: true })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
