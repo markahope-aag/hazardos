@@ -23,6 +23,145 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0] - 2026-02-02
+
+### Added - Phase 7: SMS Infrastructure & Communications
+
+#### SMS Service (Twilio Integration)
+- Comprehensive SMS service with Twilio integration (`lib/services/sms-service.ts`)
+- Support for platform-level shared Twilio account or organization-specific accounts
+- Automatic phone number normalization to E.164 format
+- Message delivery status tracking with webhook integration
+- Opt-in/opt-out management with TCPA compliance
+- Quiet hours enforcement based on organization timezone
+- Message history and audit trail
+
+#### SMS Templates
+- Six default system templates for common scenarios:
+  - Appointment reminders
+  - Job status updates (en route, arrived, completed)
+  - Lead notifications
+  - Estimate follow-ups
+  - Payment reminders
+- Template variable interpolation (e.g., `{{customer_name}}`, `{{company_name}}`)
+- Organization-specific custom templates
+- Template management UI
+
+#### SMS API Routes
+- `POST /api/sms/send` - Send individual SMS messages
+- `GET /api/sms/messages` - Retrieve message history with filtering
+- `GET /api/sms/settings` - Get organization SMS settings
+- `PATCH /api/sms/settings` - Update SMS configuration (admin only)
+- `GET /api/sms/templates` - List all templates (system + custom)
+- `POST /api/sms/templates` - Create custom templates (admin only)
+
+#### SMS Settings UI
+- Comprehensive settings page at `/settings/sms`
+- Master SMS toggle with feature-specific controls
+- Appointment reminder configuration (enable/disable, hours before)
+- Job status update notifications toggle
+- Lead notification toggle
+- Payment reminder toggle
+- Quiet hours configuration with timezone support
+- Twilio credential management (platform or custom account)
+- SMS best practices information
+
+#### Webhooks & Automation
+- `POST /api/webhooks/twilio/status` - Delivery status callback from Twilio
+- `POST /api/webhooks/twilio/inbound` - Inbound SMS handler for opt-out keywords
+- `GET /api/cron/appointment-reminders` - Automated hourly appointment reminder job
+- Keyword detection (STOP, START, UNSUBSCRIBE, etc.)
+- Automatic customer opt-out/opt-in processing
+
+#### Database Schema
+- `organization_sms_settings` table for organization-level configuration
+- `sms_messages` table for complete message audit trail
+- `sms_templates` table for system and custom templates
+- Added `sms_opt_in`, `sms_opt_in_at`, `sms_opt_out_at` to customers table
+- Added `reminder_sent_at` to jobs table
+- RLS policies for multi-tenant security
+
+#### Validation Schemas
+- **Approvals** (`lib/validations/approvals.ts`)
+  - Approval entity types and statuses
+  - Create and process approval validation
+- **Commissions** (`lib/validations/commissions.ts`)
+  - Commission plans and earnings
+  - Tiered commission structure validation
+- **Feedback** (`lib/validations/feedback.ts`)
+  - Feedback survey creation and submission
+  - Rating ranges (1-5 stars, 0-10 NPS)
+  - Testimonial approval
+- **Notifications** (`lib/validations/notifications.ts`)
+  - Notification types (15 types)
+  - Priority levels (low, normal, high, urgent)
+  - Create notification validation
+- **Pipeline** (`lib/validations/pipeline.ts`)
+  - Opportunity management
+  - Pipeline stage validation
+  - Move opportunity validation
+- **Settings** (`lib/validations/settings.ts`)
+  - Labor rate validation
+  - Disposal fee validation
+  - Material cost validation
+  - Travel rate validation
+- **Platform** (`lib/validations/platform.ts`)
+  - Organization filters
+  - Sort and pagination parameters
+- **Reports** (`lib/validations/reports.ts`)
+  - Report types and configurations
+  - Date range types (9 options)
+  - Chart types (bar, line, pie, area)
+  - Filter operators
+  - Export formats (xlsx, csv, pdf)
+
+#### Platform Admin API
+- `GET /api/platform/organizations` - List organizations with filtering/sorting
+- `GET /api/platform/stats` - Platform-wide statistics and growth metrics
+- Organization filters (search, status, plan)
+- Platform metrics (total orgs, users, jobs, revenue, MRR)
+
+### Changed
+
+#### SMS Infrastructure
+- Customer table updated with SMS opt-in/opt-out tracking
+- Jobs table updated with reminder tracking
+- Enhanced notification system to support SMS delivery
+
+#### Type Safety
+- Added comprehensive TypeScript types for SMS (`types/sms.ts`)
+- Zod validation schemas for all new features
+- Type-safe API handlers with validation
+
+### Security
+
+#### TCPA Compliance
+- Customer opt-in required before SMS delivery
+- Quiet hours enforcement (default: 21:00-08:00)
+- Automatic opt-out keyword detection
+- Timestamp tracking for all consent changes
+- Opt-out instructions in all messages
+
+#### Data Protection
+- Twilio credentials encrypted at rest
+- RLS policies enforce organization isolation on all SMS tables
+- Webhook endpoints validated for Twilio signatures
+- SMS message content sanitized in logs
+
+#### Input Validation
+- Comprehensive Zod schemas for all API endpoints
+- Phone number format validation and normalization
+- Template variable sanitization
+- Rate limiting on all SMS endpoints
+
+### Fixed
+- Phone number normalization edge cases
+- Timezone handling for quiet hours
+- Template variable interpolation with special characters
+- Webhook signature validation
+
+---
+
 ## [0.1.1] - 2026-02-01
 
 ### Added - API Standardization & Testing

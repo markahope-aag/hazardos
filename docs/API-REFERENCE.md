@@ -461,4 +461,469 @@ curl -X POST https://hazardos.app/api/proposals/generate \
 
 ---
 
+## 📱 SMS API
+
+### `POST /api/sms/send`
+
+Send an SMS message to a customer.
+
+**Request Body:**
+```json
+{
+  "to": "+15551234567",
+  "body": "Your appointment is tomorrow at 10am",
+  "message_type": "appointment_reminder",
+  "customer_id": "550e8400-e29b-41d4-a716-446655440000",
+  "related_entity_type": "job",
+  "related_entity_id": "550e8400-e29b-41d4-a716-446655440001"
+}
+```
+
+**Required Fields:**
+- `to` (string) - Recipient phone number (E.164 format)
+- `body` (string) - Message content
+- `message_type` (enum) - Type of message: `appointment_reminder`, `job_status`, `lead_notification`, `payment_reminder`, `estimate_follow_up`, `general`
+
+**Optional Fields:**
+- `customer_id` (UUID) - Link to customer record
+- `related_entity_type` (string) - Entity type (job, estimate, invoice)
+- `related_entity_id` (UUID) - Entity ID
+
+**Response:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440002",
+  "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+  "customer_id": "550e8400-e29b-41d4-a716-446655440000",
+  "to_phone": "+15551234567",
+  "message_type": "appointment_reminder",
+  "body": "Your appointment is tomorrow at 10am",
+  "twilio_message_sid": "SM1234567890abcdef",
+  "status": "sent",
+  "queued_at": "2026-02-01T10:00:00.000Z",
+  "sent_at": "2026-02-01T10:00:01.000Z",
+  "segments": 1
+}
+```
+
+**Status Codes:**
+- `201` - Message sent successfully
+- `400` - Invalid phone number or missing required fields
+- `401` - Unauthorized
+- `403` - SMS not enabled or customer not opted in
+- `500` - Twilio error or server error
+
+---
+
+### `GET /api/sms/messages`
+
+Get SMS message history with filtering.
+
+**Query Parameters:**
+- `customer_id` (UUID, optional) - Filter by customer
+- `status` (string, optional) - Filter by status: `queued`, `sending`, `sent`, `delivered`, `failed`, `undelivered`
+- `message_type` (string, optional) - Filter by message type
+- `limit` (number, optional) - Results limit (default: 50, max: 100)
+
+**Example Request:**
+```http
+GET /api/sms/messages?customer_id=550e8400-e29b-41d4-a716-446655440000&status=delivered&limit=10
+```
+
+**Response:**
+```json
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440002",
+    "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+    "customer_id": "550e8400-e29b-41d4-a716-446655440000",
+    "to_phone": "+15551234567",
+    "message_type": "appointment_reminder",
+    "body": "Your appointment is tomorrow at 10am",
+    "twilio_message_sid": "SM1234567890abcdef",
+    "status": "delivered",
+    "queued_at": "2026-02-01T10:00:00.000Z",
+    "sent_at": "2026-02-01T10:00:01.000Z",
+    "delivered_at": "2026-02-01T10:00:05.000Z",
+    "segments": 1,
+    "cost": 0.0075
+  }
+]
+```
+
+**Status Codes:**
+- `200` - Success
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
+### `GET /api/sms/settings`
+
+Get organization SMS settings.
+
+**Response:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440003",
+  "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+  "sms_enabled": true,
+  "appointment_reminders_enabled": true,
+  "appointment_reminder_hours": 24,
+  "job_status_updates_enabled": true,
+  "lead_notifications_enabled": true,
+  "payment_reminders_enabled": false,
+  "quiet_hours_enabled": true,
+  "quiet_hours_start": "21:00",
+  "quiet_hours_end": "08:00",
+  "timezone": "America/Chicago",
+  "use_platform_twilio": true
+}
+```
+
+**Status Codes:**
+- `200` - Success
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
+### `PATCH /api/sms/settings`
+
+Update organization SMS settings (admin only).
+
+**Request Body:**
+```json
+{
+  "sms_enabled": true,
+  "appointment_reminders_enabled": true,
+  "appointment_reminder_hours": 48,
+  "quiet_hours_enabled": true,
+  "quiet_hours_start": "20:00",
+  "quiet_hours_end": "09:00",
+  "timezone": "America/New_York"
+}
+```
+
+**Optional Fields:**
+- `sms_enabled` (boolean) - Master toggle for SMS
+- `appointment_reminders_enabled` (boolean) - Enable appointment reminders
+- `appointment_reminder_hours` (number) - Hours before appointment to send reminder
+- `job_status_updates_enabled` (boolean) - Enable job status SMS
+- `lead_notifications_enabled` (boolean) - Enable lead follow-up SMS
+- `payment_reminders_enabled` (boolean) - Enable payment reminder SMS
+- `quiet_hours_enabled` (boolean) - Enable quiet hours
+- `quiet_hours_start` (time) - Quiet hours start time (HH:MM)
+- `quiet_hours_end` (time) - Quiet hours end time (HH:MM)
+- `timezone` (string) - Timezone for quiet hours
+- `use_platform_twilio` (boolean) - Use platform Twilio account
+- `twilio_account_sid` (string) - Custom Twilio account SID
+- `twilio_auth_token` (string) - Custom Twilio auth token
+- `twilio_phone_number` (string) - Custom Twilio phone number
+
+**Response:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440003",
+  "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+  "sms_enabled": true,
+  "appointment_reminders_enabled": true,
+  "appointment_reminder_hours": 48,
+  "quiet_hours_enabled": true,
+  "quiet_hours_start": "20:00",
+  "quiet_hours_end": "09:00",
+  "timezone": "America/New_York",
+  "use_platform_twilio": true,
+  "updated_at": "2026-02-01T16:30:00.000Z"
+}
+```
+
+**Status Codes:**
+- `200` - Updated successfully
+- `400` - Invalid settings
+- `401` - Unauthorized
+- `403` - Requires admin role
+- `500` - Server error
+
+---
+
+### `GET /api/sms/templates`
+
+Get all SMS templates (system and organization-specific).
+
+**Response:**
+```json
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440004",
+    "organization_id": null,
+    "name": "Appointment Reminder",
+    "message_type": "appointment_reminder",
+    "body": "Hi {{customer_name}}! Reminder: {{company_name}} is scheduled for {{job_date}} at {{job_time}}. Reply STOP to opt out.",
+    "is_active": true,
+    "is_system": true,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  }
+]
+```
+
+**Status Codes:**
+- `200` - Success
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
+### `POST /api/sms/templates`
+
+Create a custom SMS template (admin only).
+
+**Request Body:**
+```json
+{
+  "name": "Holiday Greeting",
+  "message_type": "general",
+  "body": "Happy holidays from {{company_name}}! We appreciate your business."
+}
+```
+
+**Required Fields:**
+- `name` (string) - Template name
+- `message_type` (enum) - Message type
+- `body` (string) - Template body with {{variables}}
+
+**Response:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440005",
+  "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+  "name": "Holiday Greeting",
+  "message_type": "general",
+  "body": "Happy holidays from {{company_name}}! We appreciate your business.",
+  "is_active": true,
+  "is_system": false,
+  "created_at": "2026-02-01T16:45:00.000Z",
+  "updated_at": "2026-02-01T16:45:00.000Z"
+}
+```
+
+**Status Codes:**
+- `201` - Created successfully
+- `400` - Invalid template
+- `401` - Unauthorized
+- `403` - Requires admin role
+- `500` - Server error
+
+---
+
+## 🔔 Webhooks API
+
+### `POST /api/webhooks/twilio/status`
+
+Twilio delivery status callback webhook (internal use).
+
+**Request Body (Form Data):**
+- `MessageSid` - Twilio message SID
+- `MessageStatus` - Message status
+- `ErrorCode` - Error code (if failed)
+- `ErrorMessage` - Error message (if failed)
+
+**Response:**
+```json
+{
+  "success": true
+}
+```
+
+**Status Codes:**
+- `200` - Always returns 200 to prevent Twilio retries
+
+**Note:** This endpoint is called by Twilio automatically. No authentication required (validated by Twilio signature).
+
+---
+
+### `POST /api/webhooks/twilio/inbound`
+
+Twilio inbound SMS webhook for opt-out handling (internal use).
+
+**Request Body (Form Data):**
+- `From` - Sender phone number
+- `Body` - Message body
+
+**Response:**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Response></Response>
+```
+
+**Supported Keywords:**
+- **Opt-Out**: STOP, UNSUBSCRIBE, CANCEL, END, QUIT
+- **Opt-In**: START, SUBSCRIBE, YES, UNSTOP
+
+**Status Codes:**
+- `200` - Always returns TwiML response
+
+**Note:** This endpoint is called by Twilio for inbound messages. Automatically handles opt-out/opt-in keywords.
+
+---
+
+## ⏰ Cron Jobs API
+
+### `GET /api/cron/appointment-reminders`
+
+Send appointment reminders for jobs in the reminder window.
+
+**Authentication:**
+- Requires `CRON_SECRET` in Authorization header
+- Or `x-vercel-cron` header from Vercel
+
+**Example Request:**
+```http
+GET /api/cron/appointment-reminders
+Authorization: Bearer <CRON_SECRET>
+```
+
+**Response:**
+```json
+{
+  "sent": 15,
+  "failed": 2,
+  "errors": [
+    {
+      "jobId": "550e8400-e29b-41d4-a716-446655440006",
+      "error": "Customer has not opted in to SMS"
+    }
+  ],
+  "timestamp": "2026-02-01T10:00:00.000Z"
+}
+```
+
+**Status Codes:**
+- `200` - Job completed (includes sent/failed counts)
+- `401` - Unauthorized (missing or invalid CRON_SECRET)
+- `500` - Server error
+
+**Cron Schedule:**
+```json
+{
+  "crons": [{
+    "path": "/api/cron/appointment-reminders",
+    "schedule": "0 * * * *"
+  }]
+}
+```
+
+**How It Works:**
+1. Runs every hour
+2. Queries organizations with SMS enabled and appointment reminders enabled
+3. For each organization, finds jobs in the reminder window (based on `appointment_reminder_hours`)
+4. Sends reminder SMS to customer if:
+   - Customer has opted in to SMS
+   - Job hasn't been reminded yet
+   - Not during quiet hours
+5. Marks job as reminded
+6. Returns summary of sent/failed messages
+
+---
+
+## 🏢 Platform Admin API
+
+### `GET /api/platform/organizations`
+
+List all organizations (platform admin only).
+
+**Query Parameters:**
+- `search` (string, optional) - Search by name
+- `status` (string, optional) - Filter by status
+- `planSlug` (string, optional) - Filter by subscription plan
+- `sortBy` (string, optional) - Sort field: `created_at`, `name`, `user_count`, `job_count`
+- `sortOrder` (string, optional) - Sort order: `asc`, `desc`
+- `page` (number, optional) - Page number (default: 1)
+- `limit` (number, optional) - Results per page (default: 20)
+
+**Example Request:**
+```http
+GET /api/platform/organizations?search=acme&sortBy=created_at&sortOrder=desc&page=1&limit=10
+```
+
+**Response:**
+```json
+{
+  "organizations": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "name": "Acme Remediation",
+      "status": "active",
+      "plan_slug": "professional",
+      "user_count": 5,
+      "job_count": 127,
+      "created_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "total": 50,
+    "page": 1,
+    "limit": 10,
+    "pages": 5
+  }
+}
+```
+
+**Status Codes:**
+- `200` - Success
+- `401` - Unauthorized
+- `403` - Requires platform admin role
+- `500` - Server error
+
+---
+
+### `GET /api/platform/stats`
+
+Get platform-wide statistics (platform admin only).
+
+**Response:**
+```json
+{
+  "stats": {
+    "total_organizations": 50,
+    "active_organizations": 45,
+    "total_users": 250,
+    "total_jobs": 5000,
+    "total_revenue": 2500000
+  },
+  "growth": {
+    "new_orgs_this_month": 5,
+    "new_users_this_month": 25,
+    "mrr": 50000,
+    "mrr_growth": 10.5
+  },
+  "planDistribution": [
+    {
+      "plan_slug": "starter",
+      "count": 20,
+      "percentage": 40
+    },
+    {
+      "plan_slug": "professional",
+      "count": 25,
+      "percentage": 50
+    },
+    {
+      "plan_slug": "enterprise",
+      "count": 5,
+      "percentage": 10
+    }
+  ]
+}
+```
+
+**Status Codes:**
+- `200` - Success
+- `401` - Unauthorized
+- `403` - Requires platform admin role
+- `500` - Server error
+
+---
+
 **HazardOS API** - Powering environmental remediation business management through robust, secure APIs. 🚀✨
