@@ -22,11 +22,10 @@
  *   log.info({ operation: 'createCheckoutSession', durationMs: 342 }, 'Checkout session created')
  */
 
-import pino from 'pino'
+import pino, { type Logger } from 'pino'
 import type {
   RequestContext,
   LogContext,
-  ServiceLogContext,
   LogLevel,
 } from '@/lib/types/logging'
 
@@ -218,4 +217,4 @@ export function formatError(
 }
 
 // Re-export pino types for convenience
-export type { Logger } from 'pino'
+export type { Logger }

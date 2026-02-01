@@ -1,9 +1,9 @@
 import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
-import { StatsCards } from '@/components/dashboard/stats-cards';
-import { UpcomingJobs } from '@/components/dashboard/upcoming-jobs';
-import { OverdueInvoices } from '@/components/dashboard/overdue-invoices';
-import { RecentActivity } from '@/components/dashboard/recent-activity';
+import { StatsCards, StatsCardsErrorBoundary } from '@/components/dashboard/stats-cards';
+import { UpcomingJobs, UpcomingJobsErrorBoundary } from '@/components/dashboard/upcoming-jobs';
+import { OverdueInvoices, OverdueInvoicesErrorBoundary } from '@/components/dashboard/overdue-invoices';
+import { RecentActivity, RecentActivityErrorBoundary } from '@/components/dashboard/recent-activity';
 import { RevenueChart, JobsByStatus } from '@/components/dashboard/charts-lazy';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -85,11 +85,13 @@ export default async function DashboardPage() {
       </div>
 
       {/* Key Metrics */}
-      <Suspense fallback={<StatsCardsSkeleton />}>
-        <StatsCards />
-      </Suspense>
+      <StatsCardsErrorBoundary>
+        <Suspense fallback={<StatsCardsSkeleton />}>
+          <StatsCards />
+        </Suspense>
+      </StatsCardsErrorBoundary>
 
-      {/* Charts Row - Lazy loaded */}
+      {/* Charts Row - Lazy loaded (error boundaries built into chart components) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RevenueChart />
         <JobsByStatus />
@@ -97,15 +99,21 @@ export default async function DashboardPage() {
 
       {/* Details Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Suspense fallback={<WidgetSkeleton />}>
-          <UpcomingJobs />
-        </Suspense>
-        <Suspense fallback={<WidgetSkeleton />}>
-          <OverdueInvoices />
-        </Suspense>
-        <Suspense fallback={<WidgetSkeleton />}>
-          <RecentActivity />
-        </Suspense>
+        <UpcomingJobsErrorBoundary>
+          <Suspense fallback={<WidgetSkeleton />}>
+            <UpcomingJobs />
+          </Suspense>
+        </UpcomingJobsErrorBoundary>
+        <OverdueInvoicesErrorBoundary>
+          <Suspense fallback={<WidgetSkeleton />}>
+            <OverdueInvoices />
+          </Suspense>
+        </OverdueInvoicesErrorBoundary>
+        <RecentActivityErrorBoundary>
+          <Suspense fallback={<WidgetSkeleton />}>
+            <RecentActivity />
+          </Suspense>
+        </RecentActivityErrorBoundary>
       </div>
 
       {/* Quick Actions */}

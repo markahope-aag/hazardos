@@ -136,7 +136,11 @@ export function createSecureErrorResponse(
     }
 
     // Database not found errors
-    if (errorObj.code === '23503' || errorObj.message?.includes('not found')) {
+    if (
+      errorObj.code === '23503' ||
+      (typeof errorObj.message === 'string' &&
+        errorObj.message.includes('not found'))
+    ) {
       errorLog.warn(
         { error: formatError(error, 'NOT_FOUND') },
         'Resource not found'

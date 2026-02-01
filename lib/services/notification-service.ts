@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type {
   Notification,
   NotificationPreference,
@@ -7,6 +8,8 @@ import type {
   UpdatePreferenceInput,
   NotificationType,
 } from '@/types/notifications'
+
+const log = createServiceLogger('NotificationService')
 
 export class NotificationService {
   // ========== NOTIFICATIONS ==========
@@ -328,12 +331,26 @@ export class NotificationService {
         `,
       })
 
-      // Update notification to mark email as sent
-      if (input.user_id) {
-        // Note: We don't have the notification ID here, but we can skip this update
-      }
+      log.info(
+        {
+          operation: 'sendEmailNotification',
+          userId: input.user_id,
+          type: input.type,
+          organizationId,
+        },
+        'Email notification sent'
+      )
     } catch (error) {
-      console.error('Failed to send notification email:', error)
+      log.error(
+        {
+          operation: 'sendEmailNotification',
+          error: formatError(error),
+          userId: input.user_id,
+          type: input.type,
+          organizationId,
+        },
+        'Failed to send notification email'
+      )
     }
   }
 }
@@ -366,7 +383,10 @@ export async function notify(
       priority: options.priority,
     })
   } catch (error) {
-    console.error('Failed to create notification:', error)
+    log.error(
+      { operation: 'notify', error: formatError(error), userId, type },
+      'Failed to create notification'
+    )
     return null
   }
 }
