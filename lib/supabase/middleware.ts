@@ -1,14 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Secure cookie defaults
-const secureCookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  path: '/',
-}
-
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({
     request: {
@@ -33,11 +25,10 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          const secureOptions = { ...secureCookieOptions, ...options }
           request.cookies.set({
             name,
             value,
-            ...secureOptions,
+            ...options,
           })
           response = NextResponse.next({
             request: {
@@ -47,15 +38,14 @@ export async function updateSession(request: NextRequest) {
           response.cookies.set({
             name,
             value,
-            ...secureOptions,
+            ...options,
           })
         },
         remove(name: string, options: CookieOptions) {
-          const secureOptions = { ...secureCookieOptions, ...options }
           request.cookies.set({
             name,
             value: '',
-            ...secureOptions,
+            ...options,
           })
           response = NextResponse.next({
             request: {
@@ -65,7 +55,7 @@ export async function updateSession(request: NextRequest) {
           response.cookies.set({
             name,
             value: '',
-            ...secureOptions,
+            ...options,
           })
         },
       },

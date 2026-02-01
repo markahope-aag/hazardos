@@ -35,9 +35,9 @@ export const updateProposalSchema = z.object({
 
 // Send proposal
 export const sendProposalSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  message: z.string().max(2000).optional(),
-  expires_days: z.number().int().positive().optional().default(30),
+  recipient_email: z.string().email('Invalid email address'),
+  recipient_name: z.string().max(255).optional(),
+  custom_message: z.string().max(2000).optional(),
 })
 
 // Sign proposal (public endpoint)

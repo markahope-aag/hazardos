@@ -516,6 +516,7 @@ export const useSurveyStore = create<SurveyState>()(
         const { organizationId, customerId } = state
 
         if (!organizationId) {
+          console.error('Cannot create survey: organizationId is required')
           return null
         }
 
@@ -543,6 +544,7 @@ export const useSurveyStore = create<SurveyState>()(
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to create survey'
           set({ isSyncing: false, syncError: message })
+          console.error('Create survey error:', error)
           return null
         }
       },
@@ -576,6 +578,7 @@ export const useSurveyStore = create<SurveyState>()(
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to load survey'
           set({ isSyncing: false, syncError: message })
+          console.error('Load survey error:', error)
           return false
         }
       },
@@ -601,6 +604,7 @@ export const useSurveyStore = create<SurveyState>()(
 
         // Sync to Supabase
         if (!organizationId) {
+          console.warn('Cannot sync to database: organizationId is required')
           set({ isDirty: false, lastSavedAt: new Date().toISOString() })
           return true
         }
@@ -637,6 +641,7 @@ export const useSurveyStore = create<SurveyState>()(
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to save draft'
           set({ isSyncing: false, syncError: message })
+          console.error('Save draft error:', error)
           return false
         }
       },
@@ -646,11 +651,13 @@ export const useSurveyStore = create<SurveyState>()(
         const { currentSurveyId, organizationId } = state
 
         if (!currentSurveyId || !organizationId) {
+          console.error('Cannot submit: surveyId and organizationId are required')
           return false
         }
 
         // Validate all sections first
         if (!get().validateAll()) {
+          console.error('Cannot submit: validation failed')
           return false
         }
 
@@ -687,6 +694,7 @@ export const useSurveyStore = create<SurveyState>()(
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to submit survey'
           set({ isSyncing: false, syncError: message })
+          console.error('Submit survey error:', error)
           return false
         }
       },

@@ -58,6 +58,7 @@ export async function processPhotoQueue(): Promise<void> {
 
   // Check if online
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    console.log('Offline - skipping photo queue processing')
     return
   }
 
@@ -84,7 +85,7 @@ export async function processPhotoQueue(): Promise<void> {
 
         // If we hit max retries, don't try again immediately
         if (store.queue.find((p) => p.id === photo.id)?.retryCount || 0 >= 3) {
-          // Photo upload failed after max retries - status is already 'failed' in store
+          console.error(`Photo ${photo.id} failed after max retries:`, errorMessage)
         } else {
           // Wait before retrying
           await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
@@ -198,6 +199,7 @@ export async function waitForUploads(
     await new Promise((resolve) => setTimeout(resolve, 500))
   }
 
-  // Timeout reached
+  // Timeout
+  console.warn('Upload wait timeout reached')
   return false
 }

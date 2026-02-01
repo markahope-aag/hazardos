@@ -11,7 +11,8 @@ interface MediaUploadResult {
 function getSupabaseClient() {
   try {
     return createClient()
-  } catch {
+  } catch (error) {
+    console.warn('Supabase client not available:', error)
     return null
   }
 }
@@ -23,6 +24,7 @@ export class DatabaseService {
   // Profile operations
   static async getProfile(userId: string): Promise<Profile | null> {
     if (!supabase) {
+      console.error('Supabase client not available')
       return null
     }
 
@@ -33,6 +35,7 @@ export class DatabaseService {
       .single()
 
     if (error) {
+      console.error('Error fetching profile:', error)
       return null
     }
 
@@ -377,7 +380,9 @@ export class DatabaseService {
       .from('assessment-media')
       .remove([filePath])
 
-    // Storage deletion error is non-fatal - continue to delete database record
+    if (storageError) {
+      console.error('Failed to delete file from storage:', storageError)
+    }
 
     // Delete from database
     const { error: dbError } = await supabase
