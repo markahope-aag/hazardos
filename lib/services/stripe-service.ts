@@ -1,11 +1,14 @@
 import Stripe from 'stripe'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type {
   SubscriptionPlan,
   OrganizationSubscription,
   BillingInvoice,
   BillingCycle,
 } from '@/types/billing'
+
+const log = createServiceLogger('StripeService')
 
 // Lazy initialization of Stripe to avoid build-time errors when env vars are missing
 let _stripe: Stripe | null = null
@@ -299,7 +302,10 @@ export class StripeService {
     if (!organizationId) return
 
     // Subscription will be created via subscription.created webhook
-    console.log(`Checkout completed for org ${organizationId}`)
+    log.info(
+      { operation: 'handleCheckoutComplete', organizationId, sessionId: session.id },
+      'Checkout completed'
+    )
   }
 
   private static async handleSubscriptionUpdate(subscription: Stripe.Subscription): Promise<void> {

@@ -1,24 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { applyMemoryRateLimit, type MemoryRateLimiterType } from './memory-rate-limit'
+import { logger } from '@/lib/utils/logger'
+
+const log = logger.child({ module: 'rate-limit' })
 
 // Check if Redis is available at runtime
 const hasRedis = Boolean(
-  process.env.UPSTASH_REDIS_REST_URL && 
+  process.env.UPSTASH_REDIS_REST_URL &&
   process.env.UPSTASH_REDIS_REST_TOKEN
 )
 
 // Dynamic import for Redis rate limiting
-let redisRateLimit: any = null
+let redisRateLimit: { applyRateLimit: typeof applyMemoryRateLimit } | null = null
 if (hasRedis) {
   try {
     // This will be loaded dynamically when needed
     import('./rate-limit').then(module => {
       redisRateLimit = module
     }).catch(() => {
-      console.warn('Failed to load Redis rate limiting, using memory fallback')
+      log.warn('Failed to load Redis rate limiting, using memory fallback')
     })
   } catch {
-    console.warn('Redis rate limiting not available')
+    log.warn('Redis rate limiting not available')
   }
 }
 

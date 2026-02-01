@@ -1,6 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
+import { createServiceLogger, formatError } from '@/lib/utils/logger';
 import type { EstimateSuggestion, SuggestedLineItem } from '@/types/integrations';
+
+const log = createServiceLogger('AIEstimateService');
 
 const MODEL_VERSION = 'claude-3-5-sonnet-20241022';
 
@@ -113,8 +116,19 @@ Include all necessary line items: labor, materials, equipment, disposal, permits
 
     if (error) throw error;
 
-    const processingTime = Date.now() - startTime;
-    console.log(`AI estimate generated in ${processingTime}ms`);
+    const durationMs = Date.now() - startTime;
+    log.info(
+      {
+        operation: 'suggestEstimate',
+        organizationId,
+        durationMs,
+        hazardTypes: input.hazard_types,
+        confidence: parsedResponse.confidence,
+        itemCount: parsedResponse.items.length,
+        totalAmount,
+      },
+      'AI estimate generated'
+    );
 
     return suggestion;
   }
