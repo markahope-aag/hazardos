@@ -1,31 +1,15 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { GoogleCalendarService } from '@/lib/services/google-calendar-service';
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler';
+import { NextResponse } from 'next/server'
+import { GoogleCalendarService } from '@/lib/services/google-calendar-service'
+import { createApiHandler } from '@/lib/utils/api-handler'
 
-export async function POST() {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED');
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'No organization found');
-    }
-
-    await GoogleCalendarService.disconnect(profile.organization_id);
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return createSecureErrorResponse(error);
+/**
+ * POST /api/integrations/google-calendar/disconnect
+ * Disconnect Google Calendar integration
+ */
+export const POST = createApiHandler(
+  { rateLimit: 'general' },
+  async (_request, context) => {
+    await GoogleCalendarService.disconnect(context.profile.organization_id)
+    return NextResponse.json({ success: true })
   }
-}
+)

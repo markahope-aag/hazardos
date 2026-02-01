@@ -1,42 +1,34 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { GoogleCalendarService } from '@/lib/services/google-calendar-service';
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler';
+import { NextResponse } from 'next/server'
+import { GoogleCalendarService } from '@/lib/services/google-calendar-service'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { SecureError } from '@/lib/utils/secure-error-handler'
+import { z } from 'zod'
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+const googleCalendarSyncSchema = z.object({
+  job_id: z.string().uuid('Invalid job ID'),
+  calendar_id: z.string().optional(),
+})
 
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED');
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'No organization found');
-    }
-
-    const body = await request.json();
-    const { job_id, calendar_id } = body;
-
-    if (!job_id) {
-      throw new SecureError('VALIDATION_ERROR', 'job_id is required', 'job_id');
+/**
+ * POST /api/integrations/google-calendar/sync
+ * Sync a job to Google Calendar
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: googleCalendarSyncSchema,
+  },
+  async (_request, context, body) => {
+    if (!body.job_id) {
+      throw new SecureError('VALIDATION_ERROR', 'job_id is required', 'job_id')
     }
 
     const eventId = await GoogleCalendarService.syncJobToCalendar(
-      profile.organization_id,
-      job_id,
-      calendar_id || 'primary'
-    );
+      context.profile.organization_id,
+      body.job_id,
+      body.calendar_id || 'primary'
+    )
 
-    return NextResponse.json({ success: true, event_id: eventId });
-  } catch (error) {
-    return createSecureErrorResponse(error);
+    return NextResponse.json({ success: true, event_id: eventId })
   }
-}
+)
