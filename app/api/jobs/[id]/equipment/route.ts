@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { JobsService } from '@/lib/services/jobs-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
 
 export async function POST(
   request: NextRequest,
@@ -12,21 +12,18 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const { id } = await _params
     const body = await request.json()
 
-    if (!body.equipment_name) {
-      return NextResponse.json({ error: 'equipment_name is required' }, { status: 400 })
-    }
+    validateRequired(body.equipment_name, 'equipment_name')
 
     const equipment = await JobsService.addEquipment(id, body)
 
     return NextResponse.json(equipment, { status: 201 })
   } catch (error) {
-    console.error('Add equipment error:', error)
     return createSecureErrorResponse(error)
   }
 }
@@ -40,25 +37,19 @@ export async function PATCH(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const body = await request.json()
     const { equipment_id, status } = body
 
-    if (!equipment_id) {
-      return NextResponse.json({ error: 'equipment_id is required' }, { status: 400 })
-    }
-
-    if (!status) {
-      return NextResponse.json({ error: 'status is required' }, { status: 400 })
-    }
+    validateRequired(equipment_id, 'equipment_id')
+    validateRequired(status, 'status')
 
     const equipment = await JobsService.updateEquipmentStatus(equipment_id, status)
 
     return NextResponse.json(equipment)
   } catch (error) {
-    console.error('Update equipment error:', error)
     return createSecureErrorResponse(error)
   }
 }
@@ -72,20 +63,17 @@ export async function DELETE(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const { equipment_id } = await request.json()
 
-    if (!equipment_id) {
-      return NextResponse.json({ error: 'equipment_id is required' }, { status: 400 })
-    }
+    validateRequired(equipment_id, 'equipment_id')
 
     await JobsService.deleteEquipment(equipment_id)
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Delete equipment error:', error)
     return createSecureErrorResponse(error)
   }
 }
