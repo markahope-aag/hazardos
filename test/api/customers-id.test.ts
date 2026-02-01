@@ -5,19 +5,19 @@ import { GET, PATCH, DELETE } from '@/app/api/customers/[id]/route'
 // Mock Supabase client
 const mockSupabaseClient = {
   auth: {
-    getUser: vi.fn(),
+    getUser: vi.fn()
   },
-  from: vi.fn(() => mockSupabaseClient),
-  select: vi.fn(() => mockSupabaseClient),
-  eq: vi.fn(() => mockSupabaseClient),
-  single: vi.fn(),
-  insert: vi.fn(() => mockSupabaseClient),
-  update: vi.fn(() => mockSupabaseClient),
-  delete: vi.fn(() => mockSupabaseClient),
+  from: vi.fn(() => ({
+    select: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        single: vi.fn()
+      }))
+    }))
+  }))
 }
 
 vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(() => mockSupabaseClient),
+  createClient: vi.fn(() => Promise.resolve(mockSupabaseClient)),
 }))
 
 vi.mock('@/lib/supabase/customers', () => ({
@@ -35,18 +35,8 @@ describe('Customer By ID API', () => {
     vi.clearAllMocks()
 
     // Default auth mock - authenticated user
-    mockSupabaseClient.auth.getUser.mockResolvedValue({
+    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
       data: { user: { id: 'user-123' } },
-      error: null,
-    })
-
-    // Default profile mock
-    mockSupabaseClient.single.mockResolvedValue({
-      data: {
-        id: 'profile-123',
-        organization_id: 'org-123',
-        role: 'admin'
-      },
       error: null,
     })
   })
