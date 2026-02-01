@@ -45,7 +45,7 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
         // Get user profile
         const { data: userProfile, error: profileError } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, email, first_name, last_name, phone, role, organization_id, is_platform_user, avatar_url, last_login_at, login_count, created_at, updated_at')
           .eq('id', currentUser.id)
           .single()
 
@@ -63,7 +63,7 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
         if (userProfile.organization_id) {
           const { data: org, error: orgError } = await supabase
             .from('organizations')
-            .select('*')
+            .select('id, name, slug, address, city, state, zip, phone, email, website, logo_url, license_number, subscription_status, trial_ends_at, is_active, created_at, updated_at')
             .eq('id', userProfile.organization_id)
             .single()
 

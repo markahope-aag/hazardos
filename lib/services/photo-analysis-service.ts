@@ -55,7 +55,7 @@ export class PhotoAnalysisService {
     // Check for existing analysis
     const { data: existing } = await supabase
       .from('photo_analyses')
-      .select('*')
+      .select('id, organization_id, image_hash, property_type, known_hazards, detected_hazards, overall_risk_level, recommendations, raw_analysis, model_version, processing_time_ms, created_at')
       .eq('organization_id', organizationId)
       .eq('image_hash', imageHash)
       .maybeSingle();

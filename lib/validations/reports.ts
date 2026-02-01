@@ -114,9 +114,10 @@ export const exportFormatSchema = z.enum(['xlsx', 'csv', 'pdf'])
 // Export report
 export const exportReportSchema = z.object({
   format: exportFormatSchema,
-  title: z.string(),
+  title: z.string().max(255).optional(),
   data: z.array(z.record(z.string(), z.unknown())),
   columns: z.array(reportColumnSchema),
+  report_id: z.string().uuid().optional(),
 })
 
 // Export types

@@ -31,19 +31,24 @@ export const moveOpportunitySchema = z.object({
   stage_id: z.string().uuid('Invalid stage ID'),
 })
 
+// Stage type
+export const stageTypeSchema = z.enum(['lead', 'qualified', 'proposal', 'negotiation', 'won', 'lost'])
+
 // Pipeline stage
 export const createStageSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
-  order: z.number().int().min(0),
-  probability: z.number().min(0).max(100).optional(),
+  stage_type: stageTypeSchema,
   color: z.string().max(20).optional(),
+  probability: z.number().min(0).max(100).optional(),
 })
 
 export const updateStageSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  order: z.number().int().min(0).optional(),
-  probability: z.number().min(0).max(100).optional(),
+  stage_type: stageTypeSchema.optional(),
   color: z.string().max(20).optional(),
+  probability: z.number().min(0).max(100).optional(),
+  sort_order: z.number().int().min(0).optional(),
+  is_active: z.boolean().optional(),
 })
 
 // Export types

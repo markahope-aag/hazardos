@@ -1,58 +1,39 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { JobCompletionService } from '@/lib/services/job-completion-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
-import { createClient } from '@/lib/supabase/server'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { updateTimeEntrySchema } from '@/lib/validations/jobs'
 
-type RouteParams = { params: Promise<{ id: string; entryId: string }> }
-
-export async function PATCH(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { entryId } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json()
-
-    const timeEntry = await JobCompletionService.updateTimeEntry(entryId, {
-      work_date: body.work_date,
-      hours: body.hours,
-      work_type: body.work_type,
-      hourly_rate: body.hourly_rate,
-      billable: body.billable,
-      description: body.description,
-      notes: body.notes,
-    })
-
+/**
+ * PATCH /api/jobs/[id]/time-entries/[entryId]
+ * Update a time entry
+ */
+export const PATCH = createApiHandlerWithParams<
+  typeof updateTimeEntrySchema._type,
+  unknown,
+  { id: string; entryId: string }
+>(
+  {
+    rateLimit: 'general',
+    bodySchema: updateTimeEntrySchema,
+  },
+  async (_request, _context, params, body) => {
+    const timeEntry = await JobCompletionService.updateTimeEntry(params.entryId, body)
     return NextResponse.json(timeEntry)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { entryId } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    await JobCompletionService.deleteTimeEntry(entryId)
-
+/**
+ * DELETE /api/jobs/[id]/time-entries/[entryId]
+ * Delete a time entry
+ */
+export const DELETE = createApiHandlerWithParams<
+  unknown,
+  unknown,
+  { id: string; entryId: string }
+>(
+  { rateLimit: 'general' },
+  async (_request, _context, params) => {
+    await JobCompletionService.deleteTimeEntry(params.entryId)
     return NextResponse.json({ success: true })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

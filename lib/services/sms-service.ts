@@ -28,7 +28,7 @@ export class SmsService {
 
     const { data, error } = await supabase
       .from('organization_sms_settings')
-      .select('*')
+      .select('id, organization_id, sms_enabled, use_platform_twilio, twilio_account_sid, twilio_auth_token, twilio_phone_number, appointment_reminders_enabled, job_status_updates_enabled, lead_notifications_enabled, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, timezone, created_at, updated_at')
       .eq('organization_id', organizationId)
       .maybeSingle();
 
@@ -164,7 +164,7 @@ export class SmsService {
     // Get template - prefer org-specific, fall back to system
     const { data: templates } = await supabase
       .from('sms_templates')
-      .select('*')
+      .select('id, organization_id, name, message_type, body, is_system, is_active, created_at, updated_at')
       .eq('message_type', input.template_type)
       .eq('is_active', true)
       .or(`organization_id.eq.${organizationId},organization_id.is.null`)
@@ -325,7 +325,7 @@ export class SmsService {
 
     const { data, error } = await supabase
       .from('sms_templates')
-      .select('*')
+      .select('id, organization_id, name, message_type, body, is_system, is_active, created_at, updated_at')
       .or(`organization_id.eq.${organizationId},organization_id.is.null`)
       .order('message_type')
       .order('is_system', { ascending: false });
@@ -451,7 +451,7 @@ export class SmsService {
 
     let query = supabase
       .from('sms_messages')
-      .select('*')
+      .select('id, organization_id, customer_id, to_phone, message_type, body, status, twilio_message_sid, segments, error_code, error_message, related_entity_type, related_entity_id, queued_at, sent_at, delivered_at, failed_at, created_at')
       .eq('organization_id', organizationId)
       .order('queued_at', { ascending: false });
 

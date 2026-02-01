@@ -1,48 +1,30 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { SegmentationService } from '@/lib/services/segmentation-service';
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler';
+import { NextResponse } from 'next/server'
+import { SegmentationService } from '@/lib/services/segmentation-service'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
-export async function POST(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED');
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'No organization found');
-    }
-
+/**
+ * POST /api/segments/[id]/sync/hubspot
+ * Sync segment to HubSpot
+ */
+export const POST = createApiHandlerWithParams(
+  { rateLimit: 'heavy' },
+  async (_request, context, params) => {
     // Check HubSpot is connected
-    const { data: integration } = await supabase
+    const { data: integration } = await context.supabase
       .from('organization_integrations')
       .select('id')
-      .eq('organization_id', profile.organization_id)
+      .eq('organization_id', context.profile.organization_id)
       .eq('integration_type', 'hubspot')
       .eq('is_active', true)
-      .single();
+      .single()
 
     if (!integration) {
-      throw new SecureError('BAD_REQUEST', 'HubSpot is not connected');
+      throw new SecureError('BAD_REQUEST', 'HubSpot is not connected')
     }
 
-    const { id } = await params;
-    await SegmentationService.syncToHubSpot(id);
+    await SegmentationService.syncToHubSpot(params.id)
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return createSecureErrorResponse(error);
+    return NextResponse.json({ success: true })
   }
-}
+)

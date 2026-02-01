@@ -219,7 +219,7 @@ export class SiteSurveyService {
 
     const { data, error } = await supabase
       .from('site_survey_photos')
-      .select('*')
+      .select('id, site_survey_id, url, file_name, file_path, file_size, file_type, caption, created_at')
       .eq('site_survey_id', siteSurveyId)
       .order('created_at')
 

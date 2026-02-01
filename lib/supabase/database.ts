@@ -30,7 +30,7 @@ export class DatabaseService {
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, email, first_name, last_name, phone, role, organization_id, is_platform_user, avatar_url, last_login_at, login_count, created_at, updated_at')
       .eq('id', userId)
       .single()
 
@@ -234,7 +234,7 @@ export class DatabaseService {
 
     const { data, error } = await supabase
       .from('equipment_catalog')
-      .select('*')
+      .select('id, organization_id, name, description, category, daily_rate, weekly_rate, monthly_rate, is_active, created_at, updated_at')
       .eq('organization_id', organizationId)
       .eq('is_active', true)
       .order('name')
@@ -253,7 +253,7 @@ export class DatabaseService {
 
     const { data, error } = await supabase
       .from('materials_catalog')
-      .select('*')
+      .select('id, organization_id, name, description, category, unit, unit_cost, is_active, created_at, updated_at')
       .eq('organization_id', organizationId)
       .eq('is_active', true)
       .order('name')
@@ -359,7 +359,7 @@ export class DatabaseService {
 
     const { data, error } = await supabase
       .from('assessment_photos')
-      .select('*')
+      .select('id, assessment_id, url, file_name, file_path, file_size, file_type, caption, created_at')
       .eq('assessment_id', assessmentId)
       .order('created_at')
 

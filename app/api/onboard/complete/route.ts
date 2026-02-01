@@ -1,57 +1,36 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { StripeService } from '@/lib/services/stripe-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { completeOnboardSchema } from '@/lib/validations/onboard'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
-interface OrganizationData {
-  name: string
-  address?: string
-  city?: string
-  state?: string
-  zip?: string
-  phone?: string
-  email?: string
-  licenseNumber?: string
-}
-
-interface OnboardRequest {
-  organization: OrganizationData
-  plan_id: string
-  billing_cycle: 'monthly' | 'yearly'
-  start_trial?: boolean
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
+/**
+ * POST /api/onboard/complete
+ * Complete onboarding by creating organization and setting up subscription
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: completeOnboardSchema,
+  },
+  async (request, context, body) => {
+    const { organization, plan_id, billing_cycle, start_trial } = body
 
     // Check if user already has an organization
-    const { data: existingProfile } = await supabase
+    const { data: existingProfile } = await context.supabase
       .from('profiles')
       .select('organization_id')
-      .eq('id', user.id)
+      .eq('id', context.user.id)
       .single()
 
     if (existingProfile?.organization_id) {
       throw new SecureError('VALIDATION_ERROR', 'User already belongs to an organization')
     }
 
-    const body: OnboardRequest = await request.json()
-    const { organization, plan_id, billing_cycle, start_trial } = body
-
-    if (!organization?.name || !plan_id) {
-      throw new SecureError('VALIDATION_ERROR', 'Organization name and plan are required')
-    }
-
     // Get the selected plan
-    const { data: plan } = await supabase
+    const { data: plan } = await context.supabase
       .from('subscription_plans')
-      .select('*')
+      .select('id, name, slug, description, price_monthly, price_yearly, stripe_price_id_monthly, stripe_price_id_yearly, features, limits, is_active, is_public, display_order, created_at')
       .eq('id', plan_id)
       .single()
 
@@ -60,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the organization
-    const { data: newOrg, error: orgError } = await supabase
+    const { data: newOrg, error: orgError } = await context.supabase
       .from('organizations')
       .insert({
         name: organization.name,
@@ -82,24 +61,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Update user's profile with organization
-    const { error: profileError } = await supabase
+    const { error: profileError } = await context.supabase
       .from('profiles')
       .update({
         organization_id: newOrg.id,
         role: 'owner',
       })
-      .eq('id', user.id)
+      .eq('id', context.user.id)
 
     if (profileError) {
       // Rollback org creation
-      await supabase.from('organizations').delete().eq('id', newOrg.id)
+      await context.supabase.from('organizations').delete().eq('id', newOrg.id)
       throw new SecureError('BAD_REQUEST', 'Failed to update profile')
     }
 
     // Create subscription record
     const trialEnd = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
 
-    const { error: subError } = await supabase
+    await context.supabase
       .from('organization_subscriptions')
       .insert({
         organization_id: newOrg.id,
@@ -112,10 +91,6 @@ export async function POST(request: NextRequest) {
         current_period_end: trialEnd.toISOString(),
         users_count: 1,
       })
-
-    if (subError) {
-      // Subscription creation failed but org exists - continue with trial
-    }
 
     // If user wants to subscribe now (not just trial), create Stripe checkout
     if (!start_trial) {
@@ -149,7 +124,5 @@ export async function POST(request: NextRequest) {
       organizationId: newOrg.id,
       message: 'Organization created with 14-day trial'
     })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

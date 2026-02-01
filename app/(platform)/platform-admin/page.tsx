@@ -16,7 +16,7 @@ export default async function PlatformAdminPage() {
     supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_active', true),
     supabase
       .from('audit_log')
-      .select('*')
+      .select('id, organization_id, user_id, action, entity_type, entity_id, old_values, new_values, ip_address, user_agent, created_at')
       .order('created_at', { ascending: false })
       .limit(10)
   ])

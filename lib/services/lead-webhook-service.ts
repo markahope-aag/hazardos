@@ -79,7 +79,7 @@ export class LeadWebhookService {
 
     const { data, error } = await supabase
       .from('lead_webhook_endpoints')
-      .select('*')
+      .select('id, organization_id, name, slug, provider, api_key, secret, field_mapping, is_active, leads_received, last_lead_at, created_at, updated_at')
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
 
@@ -92,7 +92,7 @@ export class LeadWebhookService {
 
     const { data, error } = await supabase
       .from('lead_webhook_endpoints')
-      .select('*')
+      .select('id, organization_id, name, slug, provider, api_key, secret, field_mapping, is_active, leads_received, last_lead_at, created_at, updated_at')
       .eq('id', endpointId)
       .single();
 
@@ -105,7 +105,7 @@ export class LeadWebhookService {
 
     const { data, error } = await supabase
       .from('lead_webhook_endpoints')
-      .select('*')
+      .select('id, organization_id, name, slug, provider, api_key, secret, field_mapping, is_active, leads_received, last_lead_at, created_at, updated_at')
       .eq('slug', slug)
       .eq('is_active', true)
       .single();

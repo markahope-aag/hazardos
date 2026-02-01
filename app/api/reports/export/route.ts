@@ -1,31 +1,40 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { ExcelExportService } from '@/lib/services/excel-export-service'
 import { ReportingService } from '@/lib/services/reporting-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { exportReportSchema } from '@/lib/validations/reports'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { format, title, data, columns, report_id } = await request.json()
-
-    if (!format || !data || !columns) {
-      throw new SecureError('VALIDATION_ERROR', 'format, data, and columns are required')
-    }
+/**
+ * POST /api/reports/export
+ * Export report data to xlsx or csv
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'heavy',
+    bodySchema: exportReportSchema,
+  },
+  async (_request, _context, body) => {
+    const { format, title, data, columns, report_id } = body
 
     let content: Buffer | string
     let contentType: string
     let ext: string
 
     if (format === 'xlsx') {
-      content = await ExcelExportService.generateExcel({ title: title || 'Report', data, columns })
+      content = await ExcelExportService.generateExcel({
+        title: title || 'Report',
+        data,
+        columns
+      })
       contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       ext = 'xlsx'
     } else if (format === 'csv') {
-      content = await ExcelExportService.generateCSV({ title: title || 'Report', data, columns })
+      content = await ExcelExportService.generateCSV({
+        title: title || 'Report',
+        data,
+        columns
+      })
       contentType = 'text/csv'
       ext = 'csv'
     } else {
@@ -43,15 +52,13 @@ export async function POST(request: NextRequest) {
     const filename = `${(title || 'report').replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.${ext}`
 
     // Convert Buffer to Uint8Array for NextResponse compatibility
-    const body = typeof content === 'string' ? content : new Uint8Array(content)
+    const responseBody = typeof content === 'string' ? content : new Uint8Array(content)
 
-    return new NextResponse(body, {
+    return new NextResponse(responseBody, {
       headers: {
         'Content-Type': contentType,
         'Content-Disposition': `attachment; filename="${filename}"`,
       },
     })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

@@ -38,7 +38,7 @@ export default async function BillingSettingsPage() {
   // Get invoices
   const { data: invoicesData } = await supabase
     .from('billing_invoices')
-    .select('*')
+    .select('id, organization_id, subscription_id, stripe_invoice_id, stripe_payment_intent_id, invoice_number, status, subtotal, tax, total, amount_paid, amount_due, invoice_date, due_date, paid_at, invoice_pdf_url, hosted_invoice_url, created_at')
     .eq('organization_id', profile.organization_id)
     .order('invoice_date', { ascending: false })
     .limit(10)
@@ -48,7 +48,7 @@ export default async function BillingSettingsPage() {
   // Get all plans
   const { data: plansData } = await supabase
     .from('subscription_plans')
-    .select('*')
+    .select('id, name, slug, description, price_monthly, price_yearly, stripe_price_id_monthly, stripe_price_id_yearly, features, limits, is_active, is_public, display_order, created_at')
     .eq('is_active', true)
     .eq('is_public', true)
     .order('display_order')
