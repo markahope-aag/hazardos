@@ -61,12 +61,13 @@ vi.mock('@/lib/supabase/client', () => ({
   }),
 }))
 
-// Global test utilities
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}))
+// Global test utilities - ResizeObserver mock as a class
+class ResizeObserverMock {
+  observe = vi.fn()
+  unobserve = vi.fn()
+  disconnect = vi.fn()
+}
+global.ResizeObserver = ResizeObserverMock as any
 
 // Mock IntersectionObserver
 global.IntersectionObserver = vi.fn().mockImplementation(() => ({
