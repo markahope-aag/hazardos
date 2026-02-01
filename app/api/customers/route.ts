@@ -1,92 +1,42 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { CustomersService } from '@/lib/supabase/customers'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { customerListQuerySchema, createCustomerSchema } from '@/lib/validations/customers'
 import type { CustomerInsert, CustomerStatus } from '@/types/database'
-import { withUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
-import { createSecureErrorResponse, SecureError, validateRequired, validateEmail } from '@/lib/utils/secure-error-handler'
 
-// GET /api/customers - List customers with optional filtering
-async function getHandler(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    // Get user's profile to get organization_id
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
-
-    // Parse query parameters
-    const { searchParams } = new URL(request.url)
-    const statusParam = searchParams.get('status')
-    const status = statusParam && ['lead', 'prospect', 'customer', 'inactive'].includes(statusParam) 
-      ? statusParam as CustomerStatus 
-      : undefined
-    const search = searchParams.get('search') || undefined
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined
-    const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : undefined
-
-    // Get customers using the service
-    const customers = await CustomersService.getCustomers(profile.organization_id, {
-      status,
-      search,
-      limit,
-      offset
+/**
+ * GET /api/customers
+ * List customers with optional filtering
+ */
+export const GET = createApiHandler(
+  {
+    rateLimit: 'general',
+    querySchema: customerListQuerySchema,
+  },
+  async (_request, context, _body, query) => {
+    const customers = await CustomersService.getCustomers(context.profile.organization_id, {
+      status: query.status as CustomerStatus | undefined,
+      search: query.search,
+      limit: query.limit,
+      offset: query.offset,
     })
 
     return NextResponse.json({ customers })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-// POST /api/customers - Create a new customer
-async function postHandler(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    // Get user's profile to get organization_id
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
-
-    // Parse request body
-    const body = await request.json()
-    
-    // Validate required fields
-    validateRequired(body.name, 'name')
-    
-    // Validate email if provided
-    if (body.email) {
-      validateEmail(body.email)
-    }
-
-    // Prepare customer data
+/**
+ * POST /api/customers
+ * Create a new customer
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: createCustomerSchema,
+  },
+  async (_request, context, body) => {
     const customerData: CustomerInsert = {
-      organization_id: profile.organization_id,
+      organization_id: context.profile.organization_id,
       name: body.name,
       company_name: body.company_name || null,
       email: body.email || null,
@@ -102,18 +52,11 @@ async function postHandler(request: NextRequest) {
       marketing_consent: body.marketing_consent || false,
       marketing_consent_date: body.marketing_consent && body.marketing_consent_date ? body.marketing_consent_date : null,
       notes: body.notes || null,
-      created_by: user.id
+      created_by: context.user.id,
     }
 
-    // Create customer using the service
     const customer = await CustomersService.createCustomer(customerData)
 
     return NextResponse.json({ customer }, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
-
-// Apply rate limiting to exports
-export const GET = withUnifiedRateLimit(getHandler, 'general')
-export const POST = withUnifiedRateLimit(postHandler, 'general')
+)
