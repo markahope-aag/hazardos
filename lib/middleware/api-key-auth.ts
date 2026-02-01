@@ -131,7 +131,16 @@ export function withApiKeyAuth(
       response = await handler(request, auth.context);
       statusCode = response.status;
     } catch (error) {
-      console.error('API v1 handler error:', error);
+      log.error(
+        {
+          error: formatError(error),
+          apiKeyId: auth.context.apiKey.id,
+          organizationId: auth.context.organizationId,
+          method: request.method,
+          path: request.nextUrl.pathname,
+        },
+        'API v1 handler error'
+      );
       response = NextResponse.json(
         { error: 'Internal server error' },
         { status: 500 }
@@ -164,7 +173,9 @@ export function withApiKeyAuth(
       responseTime,
       ipAddress,
       userAgent
-    ).catch(console.error);
+    ).catch((err) => {
+      log.error({ error: formatError(err) }, 'Failed to log API request');
+    });
 
     return response;
   };
