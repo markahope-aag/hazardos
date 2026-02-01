@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createSecureErrorResponse, SecureError, validateRequired, validateEmail } from '@/lib/utils/secure-error-handler'
 import type { SendProposalInput } from '@/types/estimates'
 
 interface RouteParams {
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's organization
@@ -29,15 +30,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Parse request body
     const body: Omit<SendProposalInput, 'proposal_id'> = await request.json()
 
-    if (!body.recipient_email) {
-      return NextResponse.json({ error: 'recipient_email is required' }, { status: 400 })
-    }
+    validateRequired(body.recipient_email, 'recipient_email')
+    validateEmail(body.recipient_email)
 
     // Get the proposal
     const { data: proposal, error: proposalError } = await supabase
@@ -51,22 +51,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (proposalError || !proposal) {
-      return NextResponse.json({ error: 'Proposal not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Proposal not found')
     }
 
     // Check if proposal can be sent
     if (!['draft', 'sent'].includes(proposal.status)) {
-      return NextResponse.json({
-        error: 'Proposal cannot be sent in its current status'
-      }, { status: 400 })
+      throw new SecureError('VALIDATION_ERROR', 'Proposal cannot be sent in its current status')
     }
 
     // Generate portal URL
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const portalUrl = `${appUrl}/portal/proposal/${proposal.access_token}`
-
-    // TODO: Integrate with email service (Resend)
-    // For now, we'll just update the proposal status
 
     // Check if Resend API key is configured
     const resendApiKey = process.env.RESEND_API_KEY
@@ -95,8 +90,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             <p>${orgName}</p>
           `,
         })
-      } catch (emailError) {
-        console.error('Error sending email:', emailError)
+      } catch {
         // Continue anyway - we'll update the status
       }
     }
@@ -114,8 +108,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (updateError) {
-      console.error('Error updating proposal:', updateError)
-      return NextResponse.json({ error: 'Failed to update proposal' }, { status: 500 })
+      throw updateError
     }
 
     return NextResponse.json({
@@ -124,7 +117,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       email_sent: !!resendApiKey,
     })
   } catch (error) {
-    console.error('Error in POST /api/proposals/[id]/send:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }

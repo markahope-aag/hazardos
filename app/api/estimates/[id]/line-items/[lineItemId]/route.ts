@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 import type { UpdateLineItemInput } from '@/types/estimates'
 
 interface RouteParams {
@@ -18,7 +19,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's organization
@@ -29,7 +30,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Verify estimate belongs to organization
@@ -41,14 +42,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (estimateError || !estimate) {
-      return NextResponse.json({ error: 'Estimate not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Estimate not found')
     }
 
     // Check if estimate can be modified
     if (!['draft', 'pending_approval'].includes(estimate.status)) {
-      return NextResponse.json({
-        error: 'Cannot modify line items for an estimate in this status'
-      }, { status: 400 })
+      throw new SecureError('VALIDATION_ERROR', 'Cannot modify line items for an estimate in this status')
     }
 
     // Get existing line item
@@ -60,7 +59,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (existingError || !existing) {
-      return NextResponse.json({ error: 'Line item not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Line item not found')
     }
 
     // Parse request body
@@ -94,14 +93,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (updateError) {
-      console.error('Error updating line item:', updateError)
-      return NextResponse.json({ error: 'Failed to update line item' }, { status: 500 })
+      throw updateError
     }
 
     return NextResponse.json({ line_item: lineItem })
   } catch (error) {
-    console.error('Error in PATCH /api/estimates/[id]/line-items/[lineItemId]:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -117,7 +114,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's organization
@@ -128,7 +125,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Verify estimate belongs to organization
@@ -140,14 +137,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (estimateError || !estimate) {
-      return NextResponse.json({ error: 'Estimate not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Estimate not found')
     }
 
     // Check if estimate can be modified
     if (!['draft', 'pending_approval'].includes(estimate.status)) {
-      return NextResponse.json({
-        error: 'Cannot modify line items for an estimate in this status'
-      }, { status: 400 })
+      throw new SecureError('VALIDATION_ERROR', 'Cannot modify line items for an estimate in this status')
     }
 
     // Delete the line item
@@ -158,13 +153,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .eq('estimate_id', id)
 
     if (deleteError) {
-      console.error('Error deleting line item:', deleteError)
-      return NextResponse.json({ error: 'Failed to delete line item' }, { status: 500 })
+      throw deleteError
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error in DELETE /api/estimates/[id]/line-items/[lineItemId]:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }

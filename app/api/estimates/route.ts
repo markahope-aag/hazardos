@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { calculateEstimateFromSurvey } from '@/lib/services/estimate-calculator'
+import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
 import type { CreateEstimateInput } from '@/types/estimates'
 
 /**
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's organization
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Parse query params
@@ -62,8 +63,7 @@ export async function GET(request: NextRequest) {
     const { data, error, count } = await query
 
     if (error) {
-      console.error('Error fetching estimates:', error)
-      return NextResponse.json({ error: 'Failed to fetch estimates' }, { status: 500 })
+      throw error
     }
 
     // Transform relations
@@ -81,8 +81,7 @@ export async function GET(request: NextRequest) {
       offset,
     })
   } catch (error) {
-    console.error('Error in GET /api/estimates:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -97,7 +96,7 @@ export async function POST(request: NextRequest) {
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's organization
@@ -108,15 +107,13 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Parse request body
     const body: CreateEstimateInput = await request.json()
 
-    if (!body.site_survey_id) {
-      return NextResponse.json({ error: 'site_survey_id is required' }, { status: 400 })
-    }
+    validateRequired(body.site_survey_id, 'site_survey_id')
 
     // Get the site survey
     const { data: survey, error: surveyError } = await supabase
@@ -127,7 +124,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (surveyError || !survey) {
-      return NextResponse.json({ error: 'Site survey not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Site survey not found')
     }
 
     // Calculate estimate from survey
@@ -144,8 +141,7 @@ export async function POST(request: NextRequest) {
       .rpc('generate_estimate_number', { org_id: profile.organization_id })
 
     if (numberError) {
-      console.error('Error generating estimate number:', numberError)
-      return NextResponse.json({ error: 'Failed to generate estimate number' }, { status: 500 })
+      throw numberError
     }
 
     // Create the estimate
@@ -179,8 +175,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (createError) {
-      console.error('Error creating estimate:', createError)
-      return NextResponse.json({ error: 'Failed to create estimate' }, { status: 500 })
+      throw createError
     }
 
     // Create line items
@@ -201,14 +196,9 @@ export async function POST(request: NextRequest) {
       notes: item.notes,
     }))
 
-    const { error: lineItemsError } = await supabase
+    await supabase
       .from('estimate_line_items')
       .insert(lineItemsToInsert)
-
-    if (lineItemsError) {
-      console.error('Error creating line items:', lineItemsError)
-      // Don't fail the whole request, estimate was created
-    }
 
     // Update survey status to 'estimated'
     await supabase
@@ -218,7 +208,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ estimate }, { status: 201 })
   } catch (error) {
-    console.error('Error in POST /api/estimates:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }

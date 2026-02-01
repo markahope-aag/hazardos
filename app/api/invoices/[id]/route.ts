@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { InvoicesService } from '@/lib/services/invoices-service'
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 
 export async function GET(
   request: NextRequest,
@@ -12,19 +13,18 @@ export async function GET(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const invoice = await InvoicesService.getById(id)
 
     if (!invoice) {
-      return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Invoice not found')
     }
 
     return NextResponse.json(invoice)
   } catch (error) {
-    console.error('Invoice GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch invoice' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -38,7 +38,7 @@ export async function PATCH(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const body = await request.json()
@@ -46,8 +46,7 @@ export async function PATCH(
 
     return NextResponse.json(invoice)
   } catch (error) {
-    console.error('Invoice PATCH error:', error)
-    return NextResponse.json({ error: 'Failed to update invoice' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -61,14 +60,13 @@ export async function DELETE(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     await InvoicesService.delete(id)
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Invoice DELETE error:', error)
-    return NextResponse.json({ error: 'Failed to delete invoice' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { InvoicesService } from '@/lib/services/invoices-service'
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 
 export async function POST(
   request: NextRequest,
@@ -12,14 +13,13 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const invoice = await InvoicesService.void(id)
 
     return NextResponse.json(invoice)
   } catch (error) {
-    console.error('Invoice void error:', error)
-    return NextResponse.json({ error: 'Failed to void invoice' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }

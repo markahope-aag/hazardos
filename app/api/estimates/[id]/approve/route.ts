@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's organization and role
@@ -28,13 +29,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Check if user has permission to approve
     const canApprove = ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'].includes(profile.role)
     if (!canApprove) {
-      return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
+      throw new SecureError('FORBIDDEN')
     }
 
     // Get the estimate
@@ -46,14 +47,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (estimateError || !estimate) {
-      return NextResponse.json({ error: 'Estimate not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Estimate not found')
     }
 
     // Check if estimate is in pending_approval status
     if (estimate.status !== 'pending_approval' && estimate.status !== 'draft') {
-      return NextResponse.json({
-        error: 'Estimate cannot be approved in its current status'
-      }, { status: 400 })
+      throw new SecureError('VALIDATION_ERROR', 'Estimate cannot be approved in its current status')
     }
 
     // Parse request body for optional notes
@@ -73,13 +72,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (updateError) {
-      console.error('Error approving estimate:', updateError)
-      return NextResponse.json({ error: 'Failed to approve estimate' }, { status: 500 })
+      throw updateError
     }
 
     return NextResponse.json({ estimate: updated })
   } catch (error) {
-    console.error('Error in POST /api/estimates/[id]/approve:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }

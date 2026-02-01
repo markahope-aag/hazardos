@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { InvoicesService } from '@/lib/services/invoices-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
 
 export async function POST(
   request: NextRequest,
@@ -13,26 +13,23 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const body = await request.json()
 
-    if (!body.description) {
-      return NextResponse.json({ error: 'description is required' }, { status: 400 })
-    }
+    validateRequired(body.description, 'description')
     if (!body.quantity || body.quantity <= 0) {
-      return NextResponse.json({ error: 'Valid quantity is required' }, { status: 400 })
+      throw new SecureError('VALIDATION_ERROR', 'Valid quantity is required')
     }
     if (body.unit_price === undefined) {
-      return NextResponse.json({ error: 'unit_price is required' }, { status: 400 })
+      throw new SecureError('VALIDATION_ERROR', 'unit_price is required')
     }
 
     const lineItem = await InvoicesService.addLineItem(id, body)
 
     return NextResponse.json(lineItem, { status: 201 })
   } catch (error) {
-    console.error('Add line item error:', error)
     return createSecureErrorResponse(error)
   }
 }
@@ -43,22 +40,19 @@ export async function PATCH(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const body = await request.json()
     const { line_item_id, ...updates } = body
 
-    if (!line_item_id) {
-      return NextResponse.json({ error: 'line_item_id is required' }, { status: 400 })
-    }
+    validateRequired(line_item_id, 'line_item_id')
 
     const lineItem = await InvoicesService.updateLineItem(line_item_id, updates)
 
     return NextResponse.json(lineItem)
   } catch (error) {
-    console.error('Update line item error:', error)
-    return NextResponse.json({ error: 'Failed to update line item' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -68,21 +62,20 @@ export async function DELETE(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const { searchParams } = new URL(request.url)
     const lineItemId = searchParams.get('line_item_id')
 
     if (!lineItemId) {
-      return NextResponse.json({ error: 'line_item_id is required' }, { status: 400 })
+      throw new SecureError('VALIDATION_ERROR', 'line_item_id is required')
     }
 
     await InvoicesService.deleteLineItem(lineItemId)
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Delete line item error:', error)
-    return NextResponse.json({ error: 'Failed to delete line item' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }
