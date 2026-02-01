@@ -20,6 +20,10 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => Promise.resolve(mockSupabaseClient)),
 }))
 
+vi.mock('@/lib/middleware/unified-rate-limit', () => ({
+  applyUnifiedRateLimit: vi.fn(() => Promise.resolve(null))
+}))
+
 vi.mock('@/lib/services/job-completion-service', () => ({
   JobCompletionService: {
     getChecklist: vi.fn(),
@@ -30,15 +34,32 @@ vi.mock('@/lib/services/job-completion-service', () => ({
 
 import { JobCompletionService } from '@/lib/services/job-completion-service'
 
+const mockProfile = {
+  organization_id: 'org-123',
+  role: 'user'
+}
+
+const setupAuthenticatedUser = () => {
+  vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+    data: { user: { id: 'user-123', email: 'test@example.com' } },
+    error: null,
+  })
+
+  vi.mocked(mockSupabaseClient.from).mockReturnValue({
+    select: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: mockProfile,
+          error: null
+        })
+      })
+    })
+  } as any)
+}
+
 describe('Job Checklist API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-
-    // Default auth mock - authenticated user
-    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-      data: { user: { id: 'user-123' } },
-      error: null,
-    })
   })
 
   describe('GET /api/jobs/[id]/checklist', () => {
