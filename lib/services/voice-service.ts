@@ -253,7 +253,7 @@ Respond in JSON format:
 
     let query = supabase
       .from('voice_transcriptions')
-      .select('*')
+      .select('id, organization_id, user_id, audio_format, context_type, context_id, raw_transcription, processed_text, extracted_data, transcription_model, processing_model, processing_time_ms, status, error_message, created_at')
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false })
       .limit(limit);

@@ -30,7 +30,7 @@ export class WebhookService {
 
     const { data, error } = await supabase
       .from('webhooks')
-      .select('*')
+      .select('id, organization_id, name, url, events, secret, headers, is_active, last_triggered_at, failure_count, created_at, updated_at')
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
 
@@ -43,7 +43,7 @@ export class WebhookService {
 
     const { data, error } = await supabase
       .from('webhooks')
-      .select('*')
+      .select('id, organization_id, name, url, events, secret, headers, is_active, last_triggered_at, failure_count, created_at, updated_at')
       .eq('id', webhookId)
       .single();
 
@@ -125,7 +125,7 @@ export class WebhookService {
     // Get all active webhooks subscribed to this event
     const { data: webhooks } = await supabase
       .from('webhooks')
-      .select('*')
+      .select('id, organization_id, name, url, events, secret, headers, is_active, failure_count')
       .eq('organization_id', organizationId)
       .eq('is_active', true)
       .contains('events', [eventType]);
@@ -284,7 +284,7 @@ export class WebhookService {
 
     const { data, error } = await supabase
       .from('webhook_deliveries')
-      .select('*')
+      .select('id, webhook_id, organization_id, event_type, payload, status, status_code, response_body, error_message, attempt_count, delivered_at, next_retry_at, created_at')
       .eq('webhook_id', webhookId)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -299,7 +299,7 @@ export class WebhookService {
     // Get delivery and webhook
     const { data: delivery } = await supabase
       .from('webhook_deliveries')
-      .select('*')
+      .select('id, webhook_id, organization_id, event_type, payload, status, status_code, response_body, error_message, attempt_count, delivered_at, next_retry_at, created_at')
       .eq('id', deliveryId)
       .single();
 
@@ -307,7 +307,7 @@ export class WebhookService {
 
     const { data: webhook } = await supabase
       .from('webhooks')
-      .select('*')
+      .select('id, organization_id, name, url, events, secret, headers, is_active, failure_count')
       .eq('id', delivery.webhook_id)
       .single();
 

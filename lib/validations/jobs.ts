@@ -282,8 +282,8 @@ export const checklistQuerySchema = z.object({
 // Checklist item update
 export const updateChecklistItemSchema = z.object({
   is_completed: z.boolean().optional(),
-  completed_at: z.string().datetime().optional().nullable(),
-  notes: z.string().max(1000).optional(),
+  completion_notes: z.string().max(1000).optional(),
+  evidence_photo_ids: z.array(z.string().uuid()).optional(),
 })
 
 // Photo
@@ -312,16 +312,18 @@ export const updatePhotoSchema = z.object({
 
 // Material usage
 export const createMaterialUsageSchema = z.object({
-  material_id: z.string().uuid().optional(),
+  job_material_id: z.string().uuid().optional(),
   material_name: z.string().min(1, 'Material name is required').max(255),
-  quantity: z.number().positive('Quantity must be positive'),
+  material_type: z.string().max(100).optional(),
+  quantity_estimated: z.number().min(0).optional(),
+  quantity_used: z.number().positive('Quantity must be positive'),
   unit: z.string().max(50).optional(),
   unit_cost: z.number().min(0).optional(),
   notes: z.string().max(500).optional(),
 })
 
 export const updateMaterialUsageSchema = z.object({
-  quantity: z.number().positive().optional(),
+  quantity_used: z.number().positive().optional(),
   unit_cost: z.number().min(0).optional(),
   notes: z.string().max(500).optional(),
 })

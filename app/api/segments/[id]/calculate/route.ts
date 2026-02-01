@@ -1,25 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { SegmentationService } from '@/lib/services/segmentation-service';
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler';
+import { NextResponse } from 'next/server'
+import { SegmentationService } from '@/lib/services/segmentation-service'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 
-export async function POST(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED');
-    }
-
-    const { id } = await params;
-    const memberCount = await SegmentationService.calculateMembers(id);
-
-    return NextResponse.json({ success: true, member_count: memberCount });
-  } catch (error) {
-    return createSecureErrorResponse(error);
+/**
+ * POST /api/segments/[id]/calculate
+ * Calculate segment members
+ */
+export const POST = createApiHandlerWithParams(
+  { rateLimit: 'heavy' },
+  async (_request, _context, params) => {
+    const memberCount = await SegmentationService.calculateMembers(params.id)
+    return NextResponse.json({ success: true, member_count: memberCount })
   }
-}
+)

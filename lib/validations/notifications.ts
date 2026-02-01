@@ -40,7 +40,16 @@ export const notificationListQuerySchema = z.object({
   unread: z.string().optional(),
 }).passthrough()
 
+// Update notification preference
+export const updateNotificationPreferenceSchema = z.object({
+  notification_type: notificationTypeSchema,
+  in_app: z.boolean().optional(),
+  email: z.boolean().optional(),
+  push: z.boolean().optional(),
+})
+
 // Export types
 export type CreateNotificationInput = z.infer<typeof createNotificationSchema>
+export type UpdateNotificationPreferenceInput = z.infer<typeof updateNotificationPreferenceSchema>
 export type NotificationType = z.infer<typeof notificationTypeSchema>
 export type NotificationPriority = z.infer<typeof notificationPrioritySchema>

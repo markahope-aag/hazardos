@@ -40,7 +40,7 @@ export class LocationService {
 
     const { data, error } = await supabase
       .from('locations')
-      .select('*')
+      .select('id, organization_id, name, code, address_line1, address_line2, city, state, zip, country, phone, email, timezone, is_headquarters, is_active, created_at, updated_at')
       .eq('organization_id', organizationId)
       .order('is_headquarters', { ascending: false })
       .order('name');
@@ -54,7 +54,7 @@ export class LocationService {
 
     const { data, error } = await supabase
       .from('locations')
-      .select('*')
+      .select('id, organization_id, name, code, address_line1, address_line2, city, state, zip, country, phone, email, timezone, is_headquarters, is_active, created_at, updated_at')
       .eq('id', locationId)
       .single();
 

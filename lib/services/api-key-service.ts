@@ -31,7 +31,7 @@ export class ApiKeyService {
 
     const { data, error } = await supabase
       .from('api_keys')
-      .select('*')
+      .select('id, organization_id, name, key_prefix, scopes, rate_limit, is_active, expires_at, revoked_at, last_used_at, created_by, created_at')
       .eq('organization_id', organizationId)
       .is('revoked_at', null)
       .order('created_at', { ascending: false });
@@ -45,7 +45,7 @@ export class ApiKeyService {
 
     const { data, error } = await supabase
       .from('api_keys')
-      .select('*')
+      .select('id, organization_id, name, key_prefix, scopes, rate_limit, is_active, expires_at, revoked_at, last_used_at, created_by, created_at')
       .eq('id', keyId)
       .single();
 
@@ -144,7 +144,7 @@ export class ApiKeyService {
     // Look up by hash
     const { data: key, error } = await supabase
       .from('api_keys')
-      .select('*')
+      .select('id, organization_id, name, key_prefix, key_hash, scopes, rate_limit, is_active, expires_at, revoked_at, last_used_at')
       .eq('key_hash', keyHash)
       .eq('key_prefix', keyPrefix)
       .single();

@@ -80,7 +80,7 @@ export class StripeService {
     // Get plan
     const { data: plan } = await supabase
       .from('subscription_plans')
-      .select('*')
+      .select('id, name, slug, description, price_monthly, price_yearly, stripe_price_id_monthly, stripe_price_id_yearly, features, limits, is_active, is_public, display_order, created_at')
       .eq('slug', planSlug)
       .single()
 

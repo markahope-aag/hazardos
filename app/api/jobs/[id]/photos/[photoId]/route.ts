@@ -1,53 +1,39 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { JobCompletionService } from '@/lib/services/job-completion-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
-import { createClient } from '@/lib/supabase/server'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { updatePhotoSchema } from '@/lib/validations/jobs'
 
-type RouteParams = { params: Promise<{ id: string; photoId: string }> }
-
-export async function PATCH(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { photoId } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json()
-
-    const photo = await JobCompletionService.updatePhoto(photoId, {
-      photo_type: body.photo_type,
-      caption: body.caption,
-    })
-
+/**
+ * PATCH /api/jobs/[id]/photos/[photoId]
+ * Update a photo
+ */
+export const PATCH = createApiHandlerWithParams<
+  typeof updatePhotoSchema._type,
+  unknown,
+  { id: string; photoId: string }
+>(
+  {
+    rateLimit: 'general',
+    bodySchema: updatePhotoSchema,
+  },
+  async (_request, _context, params, body) => {
+    const photo = await JobCompletionService.updatePhoto(params.photoId, body)
     return NextResponse.json(photo)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { photoId } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    await JobCompletionService.deletePhoto(photoId)
-
+/**
+ * DELETE /api/jobs/[id]/photos/[photoId]
+ * Delete a photo
+ */
+export const DELETE = createApiHandlerWithParams<
+  unknown,
+  unknown,
+  { id: string; photoId: string }
+>(
+  { rateLimit: 'general' },
+  async (_request, _context, params) => {
+    await JobCompletionService.deletePhoto(params.photoId)
     return NextResponse.json({ success: true })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

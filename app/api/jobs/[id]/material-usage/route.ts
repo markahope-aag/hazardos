@@ -1,62 +1,35 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { JobCompletionService } from '@/lib/services/job-completion-service'
-import { createSecureErrorResponse, validateRequired, SecureError } from '@/lib/utils/secure-error-handler'
-import { createClient } from '@/lib/supabase/server'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { createMaterialUsageSchema } from '@/lib/validations/jobs'
 
-type RouteParams = { params: Promise<{ id: string }> }
-
-export async function GET(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const materialUsage = await JobCompletionService.getMaterialUsage(id)
+/**
+ * GET /api/jobs/[id]/material-usage
+ * Get material usage for a job
+ */
+export const GET = createApiHandlerWithParams(
+  { rateLimit: 'general' },
+  async (_request, _context, params) => {
+    const materialUsage = await JobCompletionService.getMaterialUsage(params.id)
     return NextResponse.json(materialUsage)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function POST(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json()
-
-    validateRequired(body.material_name, 'material_name')
-    validateRequired(body.quantity_used, 'quantity_used')
-
+/**
+ * POST /api/jobs/[id]/material-usage
+ * Create material usage record for a job
+ */
+export const POST = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: createMaterialUsageSchema,
+  },
+  async (_request, _context, params, body) => {
     const materialUsage = await JobCompletionService.createMaterialUsage({
-      job_id: id,
-      job_material_id: body.job_material_id,
-      material_name: body.material_name,
-      material_type: body.material_type,
-      quantity_estimated: body.quantity_estimated,
-      quantity_used: body.quantity_used,
-      unit: body.unit,
-      unit_cost: body.unit_cost,
-      notes: body.notes,
+      job_id: params.id,
+      ...body,
     })
 
     return NextResponse.json(materialUsage, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

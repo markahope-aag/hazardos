@@ -1,44 +1,31 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { CommissionService } from '@/lib/services/commission-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { createCommissionPlanSchema } from '@/lib/validations/commissions'
 
-export async function GET() {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
+/**
+ * GET /api/commissions/plans
+ * List commission plans
+ */
+export const GET = createApiHandler(
+  { rateLimit: 'general' },
+  async () => {
     const plans = await CommissionService.getPlans()
     return NextResponse.json(plans)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const body = await request.json()
-    const { name, commission_type, base_rate, tiers, applies_to } = body
-
-    if (!name || !commission_type) {
-      throw new SecureError('VALIDATION_ERROR', 'name and commission_type are required')
-    }
-
-    const plan = await CommissionService.createPlan({
-      name,
-      commission_type,
-      base_rate,
-      tiers,
-      applies_to,
-    })
-
+/**
+ * POST /api/commissions/plans
+ * Create a commission plan
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: createCommissionPlanSchema,
+  },
+  async (_request, _context, body) => {
+    const plan = await CommissionService.createPlan(body)
     return NextResponse.json(plan)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

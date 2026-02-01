@@ -71,7 +71,7 @@ export default async function JobReviewPage({
       .order('work_date', { ascending: false }),
     supabase
       .from('job_material_usage')
-      .select('*')
+      .select('id, job_id, material_name, quantity_estimated, quantity_used, unit, unit_cost, total_cost, variance_percent, notes, created_at')
       .eq('job_id', id)
       .order('created_at', { ascending: false }),
     supabase
@@ -81,7 +81,7 @@ export default async function JobReviewPage({
       .order('created_at', { ascending: false }),
     supabase
       .from('job_completion_checklists')
-      .select('*')
+      .select('id, job_id, category, item_name, is_required, is_completed, completed_by, completed_at, notes, sort_order, created_at')
       .eq('job_id', id)
       .order('category')
       .order('sort_order'),
