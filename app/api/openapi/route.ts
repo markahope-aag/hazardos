@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { openApiSpec } from '@/lib/openapi/openapi-spec'
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
+import { addCorsHeaders, handlePreflight } from '@/lib/middleware/cors'
 
 /**
  * GET /api/openapi
@@ -14,12 +15,20 @@ export async function GET(request: NextRequest) {
     return rateLimitResponse
   }
 
-  return NextResponse.json(openApiSpec, {
+  const response = NextResponse.json(openApiSpec, {
     headers: {
       'Content-Type': 'application/json',
-      // Allow CORS for external tools
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET',
     },
   })
+
+  // Add CORS headers for openapi documentation
+  return addCorsHeaders(response, request, 'openapi')
+}
+
+/**
+ * OPTIONS /api/openapi
+ * Handle CORS preflight requests
+ */
+export async function OPTIONS(request: NextRequest) {
+  return handlePreflight(request, 'openapi')
 }

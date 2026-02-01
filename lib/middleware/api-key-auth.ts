@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ApiKeyService } from '@/lib/services/api-key-service';
 import { createServiceLogger, formatError } from '@/lib/utils/logger';
+import { addCorsHeaders, handlePreflight } from '@/lib/middleware/cors';
 import type { ApiKey, ApiKeyScope } from '@/types/integrations';
 
 const log = createServiceLogger('ApiKeyAuth');
@@ -108,6 +109,11 @@ export function withApiKeyAuth(
   options: AuthOptions = {}
 ) {
   return async (request: NextRequest): Promise<NextResponse> => {
+    // Handle CORS preflight for public API routes
+    if (request.method === 'OPTIONS') {
+      return handlePreflight(request, 'public-api');
+    }
+
     const startTime = Date.now();
 
     const auth = await authenticateApiKey(request, options);
@@ -177,6 +183,7 @@ export function withApiKeyAuth(
       log.error({ error: formatError(err) }, 'Failed to log API request');
     });
 
-    return response;
+    // Add CORS headers for public API
+    return addCorsHeaders(response, request, 'public-api');
   };
 }
