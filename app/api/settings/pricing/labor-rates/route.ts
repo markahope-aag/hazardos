@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 
 // GET - List all labor rates
 export async function GET() {
@@ -18,7 +19,7 @@ export async function GET() {
       .order('name')
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      return createSecureErrorResponse(error)
     }
 
     return NextResponse.json({ labor_rates: laborRates })
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      return createSecureErrorResponse(error)
     }
 
     return NextResponse.json(laborRate, { status: 201 })
@@ -125,7 +126,7 @@ export async function PATCH(request: NextRequest) {
       .single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      return createSecureErrorResponse(error)
     }
 
     return NextResponse.json(laborRate)
@@ -168,7 +169,7 @@ export async function DELETE(request: NextRequest) {
       .eq('id', id)
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      return createSecureErrorResponse(error)
     }
 
     return NextResponse.json({ success: true })

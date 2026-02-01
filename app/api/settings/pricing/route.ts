@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 
 // GET - Fetch all pricing data for the organization
 export async function GET() {
@@ -79,7 +80,7 @@ export async function PATCH(request: NextRequest) {
 
     if (error) {
       console.error('Error updating pricing settings:', error)
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      return createSecureErrorResponse(error)
     }
 
     return NextResponse.json(settings)

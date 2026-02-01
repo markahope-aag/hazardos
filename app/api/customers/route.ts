@@ -2,16 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { CustomersService } from '@/lib/supabase/customers'
 import type { CustomerInsert, CustomerStatus } from '@/types/database'
+import { withUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
+import { createSecureErrorResponse, SecureError, validateRequired, validateEmail } from '@/lib/utils/secure-error-handler'
 
 // GET /api/customers - List customers with optional filtering
-export async function GET(request: NextRequest) {
+async function getHandler(request: NextRequest) {
   try {
     const supabase = await createClient()
     
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's profile to get organization_id
@@ -45,23 +47,19 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ customers })
   } catch (error) {
-    console.error('Error fetching customers:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch customers' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }
 
 // POST /api/customers - Create a new customer
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const supabase = await createClient()
     
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's profile to get organization_id
@@ -79,8 +77,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     // Validate required fields
-    if (!body.name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+    validateRequired(body.name, 'name')
+    
+    // Validate email if provided
+    if (body.email) {
+      validateEmail(body.email)
     }
 
     // Prepare customer data
@@ -109,10 +110,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ customer }, { status: 201 })
   } catch (error) {
-    console.error('Error creating customer:', error)
-    return NextResponse.json(
-      { error: 'Failed to create customer' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }
+
+// Apply rate limiting to exports
+export const GET = withUnifiedRateLimit(getHandler, 'general')
+export const POST = withUnifiedRateLimit(postHandler, 'general')

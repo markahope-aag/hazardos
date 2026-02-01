@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 
 export async function GET() {
   try {
@@ -15,7 +16,7 @@ export async function GET() {
       .order('min_miles')
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      return createSecureErrorResponse(error)
     }
 
     return NextResponse.json({ travel_rates: data })
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      return createSecureErrorResponse(error)
     }
 
     return NextResponse.json(data, { status: 201 })
@@ -101,7 +102,7 @@ export async function PATCH(request: NextRequest) {
       .single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      return createSecureErrorResponse(error)
     }
 
     return NextResponse.json(data)
@@ -142,7 +143,7 @@ export async function DELETE(request: NextRequest) {
       .eq('id', id)
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      return createSecureErrorResponse(error)
     }
 
     return NextResponse.json({ success: true })

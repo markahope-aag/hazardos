@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { JobsService } from '@/lib/services/jobs-service'
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 
 export async function POST(
   request: NextRequest,
@@ -26,10 +27,7 @@ export async function POST(
     return NextResponse.json(material, { status: 201 })
   } catch (error) {
     console.error('Add material error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to add material' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -61,10 +59,7 @@ export async function PATCH(
     return NextResponse.json(material)
   } catch (error) {
     console.error('Update material error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to update material' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -91,9 +86,6 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Delete material error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to delete material' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }

@@ -3,6 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useCustomers } from '@/lib/hooks/use-customers'
 import { createMockCustomer } from '@/test/helpers/mock-data'
+import type { Customer } from '@/types/database'
 
 // Mock the customers service
 vi.mock('@/lib/supabase/customers', () => ({
@@ -156,7 +157,7 @@ describe('Performance Tests', () => {
         null,
         undefined,
         { id: 'incomplete' } // Missing required fields
-      ] as unknown as Awaited<ReturnType<typeof import('@/lib/supabase/customers').CustomersService.getCustomers>>
+      ] as unknown as Customer[]
 
       const { CustomersService } = await import('@/lib/supabase/customers')
       vi.mocked(CustomersService.getCustomers).mockResolvedValue(malformedData)

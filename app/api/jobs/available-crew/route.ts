@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { JobsService } from '@/lib/services/jobs-service'
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,9 +33,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(crew)
   } catch (error) {
     console.error('Available crew error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch available crew' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { InvoicesService } from '@/lib/services/invoices-service'
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 
 export async function GET(request: NextRequest) {
   try {
@@ -52,9 +53,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(invoice, { status: 201 })
   } catch (error) {
     console.error('Invoices POST error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to create invoice' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }
