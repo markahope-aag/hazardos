@@ -2,14 +2,22 @@
 
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { SurveyWizard } from '@/components/surveys/mobile/SurveyWizard'
+import MobileSurveyWizard from '@/components/surveys/mobile/MobileSurveyWizard'
 import { Loader2 } from 'lucide-react'
 
-function SurveyWizardWithParams() {
+function MobileSurveyWizardWithParams() {
   const searchParams = useSearchParams()
   const customerId = searchParams.get('customerId') || undefined
+  const surveyId = searchParams.get('surveyId') || undefined
+  const organizationId = searchParams.get('organizationId') || undefined
 
-  return <SurveyWizard customerId={customerId} />
+  return (
+    <MobileSurveyWizard
+      customerId={customerId}
+      surveyId={surveyId}
+      organizationId={organizationId}
+    />
+  )
 }
 
 export default function MobileSurveyPage() {
@@ -22,7 +30,7 @@ export default function MobileSurveyPage() {
           </div>
         }
       >
-        <SurveyWizardWithParams />
+        <MobileSurveyWizardWithParams />
       </Suspense>
     </div>
   )
