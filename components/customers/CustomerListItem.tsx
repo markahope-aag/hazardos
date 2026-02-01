@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { format } from 'date-fns'
 import { TableCell, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
@@ -23,7 +23,7 @@ interface CustomerListItemProps {
   onDelete: (customer: Customer) => void
 }
 
-export default function CustomerListItem({ customer, onEdit, onDelete }: CustomerListItemProps) {
+const CustomerListItem = memo(function CustomerListItem({ customer, onEdit, onDelete }: CustomerListItemProps) {
   const router = useRouter()
   const updateStatusMutation = useUpdateCustomerStatus()
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
@@ -166,4 +166,6 @@ export default function CustomerListItem({ customer, onEdit, onDelete }: Custome
       </TableCell>
     </TableRow>
   )
-}
+})
+
+export default CustomerListItem
