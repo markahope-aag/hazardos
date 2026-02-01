@@ -1,39 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
-
-interface RouteParams {
-  params: Promise<{ id: string }>
-}
+import { NextResponse } from 'next/server'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { updateProposalSchema } from '@/lib/validations/proposals'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
 /**
  * GET /api/proposals/[id]
  * Get a single proposal with all relations
  */
-export async function GET(request: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    // Get user's organization
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id, role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'Profile not found')
-    }
-
-    // Get proposal with relations
-    const { data: proposal, error } = await supabase
+export const GET = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+  },
+  async (_request, context, params) => {
+    const { data: proposal, error } = await context.supabase
       .from('proposals')
       .select(`
         *,
@@ -45,8 +24,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         customer:customers(id, company_name, first_name, last_name, email, phone, address_line1, city, state, zip),
         organization:organizations(id, name, logo_url, address, city, state, zip, phone, email, website)
       `)
-      .eq('id', id)
-      .eq('organization_id', profile.organization_id)
+      .eq('id', params.id)
+      .eq('organization_id', context.profile.organization_id)
       .single()
 
     if (error) {
@@ -72,46 +51,25 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json({ proposal: transformedProposal })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
 /**
  * PATCH /api/proposals/[id]
  * Update a proposal
  */
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    // Get user's organization
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id, role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'Profile not found')
-    }
-
-    // Parse request body
-    const body = await request.json()
-
+export const PATCH = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: updateProposalSchema,
+  },
+  async (_request, context, params, body) => {
     // Check proposal exists and belongs to organization
-    const { data: existing, error: existingError } = await supabase
+    const { data: existing, error: existingError } = await context.supabase
       .from('proposals')
       .select('id, status')
-      .eq('id', id)
-      .eq('organization_id', profile.organization_id)
+      .eq('id', params.id)
+      .eq('organization_id', context.profile.organization_id)
       .single()
 
     if (existingError || !existing) {
@@ -130,10 +88,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (body.status !== undefined) updateData.status = body.status
 
     // Update the proposal
-    const { data: proposal, error: updateError } = await supabase
+    const { data: proposal, error: updateError } = await context.supabase
       .from('proposals')
       .update(updateData)
-      .eq('id', id)
+      .eq('id', params.id)
       .select()
       .single()
 
@@ -142,56 +100,30 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json({ proposal })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
 /**
  * DELETE /api/proposals/[id]
  * Delete a proposal
  */
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    // Get user's organization and role
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id, role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'Profile not found')
-    }
-
-    // Check if user has permission to delete
-    const canDelete = ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'].includes(profile.role)
-    if (!canDelete) {
-      throw new SecureError('FORBIDDEN')
-    }
-
+export const DELETE = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    allowedRoles: ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'],
+  },
+  async (_request, context, params) => {
     // Delete the proposal
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await context.supabase
       .from('proposals')
       .delete()
-      .eq('id', id)
-      .eq('organization_id', profile.organization_id)
+      .eq('id', params.id)
+      .eq('organization_id', context.profile.organization_id)
 
     if (deleteError) {
       throw deleteError
     }
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

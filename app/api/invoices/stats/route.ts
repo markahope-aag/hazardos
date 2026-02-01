@@ -1,21 +1,17 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { InvoicesService } from '@/lib/services/invoices-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandler } from '@/lib/utils/api-handler'
 
-export async function GET() {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
+/**
+ * GET /api/invoices/stats
+ * Get invoice statistics
+ */
+export const GET = createApiHandler(
+  {
+    rateLimit: 'general',
+  },
+  async () => {
     const stats = await InvoicesService.getStats()
-
     return NextResponse.json(stats)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

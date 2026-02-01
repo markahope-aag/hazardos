@@ -1,53 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createSecureErrorResponse, SecureError, validateRequired, validateEmail } from '@/lib/utils/secure-error-handler'
-import type { SendProposalInput } from '@/types/estimates'
-
-interface RouteParams {
-  params: Promise<{ id: string }>
-}
+import { NextResponse } from 'next/server'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { sendProposalSchema } from '@/lib/validations/proposals'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
 /**
  * POST /api/proposals/[id]/send
  * Send a proposal to the customer via email
  */
-export async function POST(request: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    // Get user's organization
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id, role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'Profile not found')
-    }
-
-    // Parse request body
-    const body: Omit<SendProposalInput, 'proposal_id'> = await request.json()
-
-    validateRequired(body.recipient_email, 'recipient_email')
-    validateEmail(body.recipient_email)
-
+export const POST = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: sendProposalSchema,
+  },
+  async (_request, context, params, body) => {
     // Get the proposal
-    const { data: proposal, error: proposalError } = await supabase
+    const { data: proposal, error: proposalError } = await context.supabase
       .from('proposals')
       .select(`
         *,
         organization:organizations(id, name, email)
       `)
-      .eq('id', id)
-      .eq('organization_id', profile.organization_id)
+      .eq('id', params.id)
+      .eq('organization_id', context.profile.organization_id)
       .single()
 
     if (proposalError || !proposal) {
@@ -96,14 +70,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Update proposal status
-    const { data: updated, error: updateError } = await supabase
+    const { data: updated, error: updateError } = await context.supabase
       .from('proposals')
       .update({
         status: 'sent',
         sent_at: new Date().toISOString(),
         sent_to_email: body.recipient_email,
       })
-      .eq('id', id)
+      .eq('id', params.id)
       .select()
       .single()
 
@@ -116,7 +90,5 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       portal_url: portalUrl,
       email_sent: !!resendApiKey,
     })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

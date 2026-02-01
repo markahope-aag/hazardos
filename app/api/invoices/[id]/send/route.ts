@@ -1,28 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { InvoicesService } from '@/lib/services/invoices-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { sendInvoiceSchema } from '@/lib/validations/invoices'
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json().catch(() => ({}))
-    const method = body.method || 'email'
-
-    const invoice = await InvoicesService.send(id, method)
-
+/**
+ * POST /api/invoices/[id]/send
+ * Send an invoice via email
+ */
+export const POST = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: sendInvoiceSchema,
+  },
+  async (_request, _context, params, body) => {
+    const method = body.email ? 'email' : 'email'
+    const invoice = await InvoicesService.send(params.id, method)
     return NextResponse.json(invoice)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

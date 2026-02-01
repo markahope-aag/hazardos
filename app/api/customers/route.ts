@@ -24,7 +24,7 @@ async function getHandler(request: NextRequest) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'Profile not found')
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
     // Parse query parameters
@@ -70,7 +70,7 @@ async function postHandler(request: NextRequest) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'Profile not found')
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
     // Parse request body

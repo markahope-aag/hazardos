@@ -1,13 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 
 export async function GET() {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      throw new SecureError('UNAUTHORIZED')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { data, error } = await supabase
@@ -16,12 +16,13 @@ export async function GET() {
       .order('name')
 
     if (error) {
-      throw error
+      return createSecureErrorResponse(error)
     }
 
     return NextResponse.json({ equipment_rates: data })
   } catch (error) {
-    return createSecureErrorResponse(error)
+    console.error('Error fetching equipment rates:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      throw new SecureError('UNAUTHORIZED')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { data: profile } = await supabase
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!profile || !['admin', 'tenant_owner'].includes(profile.role)) {
-      throw new SecureError('FORBIDDEN')
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const body = await request.json()
@@ -57,12 +58,13 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      throw error
+      return createSecureErrorResponse(error)
     }
 
     return NextResponse.json(data, { status: 201 })
   } catch (error) {
-    return createSecureErrorResponse(error)
+    console.error('Error creating equipment rate:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -71,7 +73,7 @@ export async function PATCH(request: NextRequest) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      throw new SecureError('UNAUTHORIZED')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { data: profile } = await supabase
@@ -81,13 +83,15 @@ export async function PATCH(request: NextRequest) {
       .single()
 
     if (!profile || !['admin', 'tenant_owner'].includes(profile.role)) {
-      throw new SecureError('FORBIDDEN')
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const body = await request.json()
     const { id, ...updateData } = body
 
-    validateRequired(id, 'id')
+    if (!id) {
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 })
+    }
 
     const { data, error } = await supabase
       .from('equipment_rates')
@@ -97,12 +101,13 @@ export async function PATCH(request: NextRequest) {
       .single()
 
     if (error) {
-      throw error
+      return createSecureErrorResponse(error)
     }
 
     return NextResponse.json(data)
   } catch (error) {
-    return createSecureErrorResponse(error)
+    console.error('Error updating equipment rate:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -111,7 +116,7 @@ export async function DELETE(request: NextRequest) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      throw new SecureError('UNAUTHORIZED')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { data: profile } = await supabase
@@ -121,14 +126,14 @@ export async function DELETE(request: NextRequest) {
       .single()
 
     if (!profile || !['admin', 'tenant_owner'].includes(profile.role)) {
-      throw new SecureError('FORBIDDEN')
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
     if (!id) {
-      throw new SecureError('VALIDATION_ERROR', 'ID is required')
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 })
     }
 
     const { error } = await supabase
@@ -137,11 +142,12 @@ export async function DELETE(request: NextRequest) {
       .eq('id', id)
 
     if (error) {
-      throw error
+      return createSecureErrorResponse(error)
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    return createSecureErrorResponse(error)
+    console.error('Error deleting equipment rate:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
