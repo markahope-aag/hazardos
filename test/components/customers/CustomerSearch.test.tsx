@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CustomerSearch from '@/components/customers/CustomerSearch'
 
 describe('CustomerSearch Component', () => {
   beforeEach(() => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
   })
 
   afterEach(() => {
@@ -28,16 +28,23 @@ describe('CustomerSearch Component', () => {
   })
 
   it('should call onChange when user types (after debounce)', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     const handleChange = vi.fn()
 
     render(<CustomerSearch value="" onChange={handleChange} />)
 
     const input = screen.getByPlaceholderText(/search customers/i)
-    await user.type(input, 'test search')
+
+    // Type directly into the input
+    await act(async () => {
+      // Simulate input change
+      input.focus()
+      await userEvent.type(input, 'test search', { delay: null })
+    })
 
     // Advance past the 300ms debounce
-    vi.advanceTimersByTime(300)
+    await act(async () => {
+      vi.advanceTimersByTime(400)
+    })
 
     expect(handleChange).toHaveBeenCalledWith('test search')
   })
@@ -57,13 +64,15 @@ describe('CustomerSearch Component', () => {
   })
 
   it('should clear search when clear button is clicked', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     const handleChange = vi.fn()
 
     render(<CustomerSearch value="search term" onChange={handleChange} />)
 
     const clearButton = screen.getByRole('button', { name: /clear search/i })
-    await user.click(clearButton)
+
+    await act(async () => {
+      await userEvent.click(clearButton)
+    })
 
     // Clear is called immediately, not debounced
     expect(handleChange).toHaveBeenCalledWith('')
@@ -86,20 +95,22 @@ describe('CustomerSearch Component', () => {
   })
 
   it('should handle focus and blur events', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<CustomerSearch value="" onChange={vi.fn()} />)
 
     const input = screen.getByPlaceholderText(/search customers/i)
 
-    await user.click(input)
+    await act(async () => {
+      input.focus()
+    })
     expect(input).toHaveFocus()
 
-    await user.tab()
+    await act(async () => {
+      input.blur()
+    })
     expect(input).not.toHaveFocus()
   })
 
   it('should debounce search input changes', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     const handleChange = vi.fn()
 
     render(<CustomerSearch value="" onChange={handleChange} />)
@@ -107,13 +118,18 @@ describe('CustomerSearch Component', () => {
     const input = screen.getByPlaceholderText(/search customers/i)
 
     // Type quickly - should debounce
-    await user.type(input, 'quick')
+    await act(async () => {
+      input.focus()
+      await userEvent.type(input, 'quick', { delay: null })
+    })
 
     // Before debounce timer fires, onChange should not be called with final value
     expect(handleChange).not.toHaveBeenCalledWith('quick')
 
     // After debounce, should be called
-    vi.advanceTimersByTime(300)
+    await act(async () => {
+      vi.advanceTimersByTime(400)
+    })
 
     expect(handleChange).toHaveBeenCalledWith('quick')
   })

@@ -28,7 +28,7 @@ export class SmsService {
 
     const { data, error } = await supabase
       .from('organization_sms_settings')
-      .select('id, organization_id, sms_enabled, use_platform_twilio, twilio_account_sid, twilio_auth_token, twilio_phone_number, appointment_reminders_enabled, job_status_updates_enabled, lead_notifications_enabled, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, timezone, created_at, updated_at')
+      .select('*')
       .eq('organization_id', organizationId)
       .maybeSingle();
 
@@ -451,7 +451,7 @@ export class SmsService {
 
     let query = supabase
       .from('sms_messages')
-      .select('id, organization_id, customer_id, to_phone, message_type, body, status, twilio_message_sid, segments, error_code, error_message, related_entity_type, related_entity_id, queued_at, sent_at, delivered_at, failed_at, created_at')
+      .select('*')
       .eq('organization_id', organizationId)
       .order('queued_at', { ascending: false });
 

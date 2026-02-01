@@ -83,7 +83,7 @@ export class ReportingService {
       .order('month', { ascending: false })
 
     if (error) throw error
-    return (data || []) as SalesPerformanceRow[]
+    return (data || []) as unknown as SalesPerformanceRow[]
   }
 
   static async runJobCostReport(config: ReportConfig): Promise<JobCostRow[]> {
@@ -103,14 +103,14 @@ export class ReportingService {
 
     const { data, error } = await supabase
       .from('mv_job_costs')
-      .select('organization_id, month, total_jobs, completed_jobs, total_revenue, total_labor_cost, total_material_cost, total_equipment_cost, total_disposal_cost, gross_profit, gross_margin')
+      .select('*')
       .eq('organization_id', profile.organization_id)
       .gte('month', start)
       .lte('month', end)
       .order('month', { ascending: false })
 
     if (error) throw error
-    return (data || []) as JobCostRow[]
+    return (data || []) as unknown as JobCostRow[]
   }
 
   static async runLeadSourceReport(config: ReportConfig): Promise<LeadSourceRow[]> {
@@ -130,14 +130,14 @@ export class ReportingService {
 
     const { data, error } = await supabase
       .from('mv_lead_source_roi')
-      .select('organization_id, month, source, lead_count, converted_count, conversion_rate, total_revenue, cost_per_lead, roi')
+      .select('*')
       .eq('organization_id', profile.organization_id)
       .gte('month', start)
       .lte('month', end)
       .order('source')
 
     if (error) throw error
-    return (data || []) as LeadSourceRow[]
+    return (data || []) as unknown as LeadSourceRow[]
   }
 
   // ========== SAVED REPORTS CRUD ==========
