@@ -1,4 +1,4 @@
 import { describe, it, expect, vi } from 'vitest'
-describe('Billing Portal', () => {
+describe('Customer By ID', () => {
   it('should be tested', () => { expect(true).toBe(true) })
 })
