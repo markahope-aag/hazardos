@@ -1,31 +1,15 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { QuickBooksService } from '@/lib/services/quickbooks-service';
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler';
+import { NextResponse } from 'next/server'
+import { QuickBooksService } from '@/lib/services/quickbooks-service'
+import { createApiHandler } from '@/lib/utils/api-handler'
 
-export async function POST() {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED');
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'No organization found');
-    }
-
-    await QuickBooksService.disconnect(profile.organization_id);
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return createSecureErrorResponse(error);
+/**
+ * POST /api/integrations/quickbooks/disconnect
+ * Disconnect from QuickBooks
+ */
+export const POST = createApiHandler(
+  { rateLimit: 'general' },
+  async (_request, context) => {
+    await QuickBooksService.disconnect(context.profile.organization_id)
+    return NextResponse.json({ success: true })
   }
-}
+)

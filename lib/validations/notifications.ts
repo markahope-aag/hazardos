@@ -1,20 +1,18 @@
 import { z } from 'zod'
 
-// Notification type
+// Notification type (matches NotificationType from types/notifications.ts)
 export const notificationTypeSchema = z.enum([
-  'info',
-  'success',
-  'warning',
-  'error',
   'job_assigned',
-  'job_updated',
   'job_completed',
-  'approval_required',
-  'approval_granted',
-  'approval_rejected',
-  'invoice_sent',
-  'payment_received',
+  'job_completion_review',
   'proposal_signed',
+  'proposal_viewed',
+  'invoice_paid',
+  'invoice_overdue',
+  'invoice_viewed',
+  'feedback_received',
+  'testimonial_pending',
+  'system',
   'reminder',
 ])
 

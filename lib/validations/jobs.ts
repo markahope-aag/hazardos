@@ -215,6 +215,43 @@ export const availableCrewQuerySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 })
 
+// Completion query
+export const completionQuerySchema = z.object({
+  summary: z.string().optional(),
+}).passthrough()
+
+// Create completion
+export const createCompletionSchema = z.object({
+  estimated_hours: z.number().optional(),
+  estimated_material_cost: z.number().optional(),
+  estimated_total: z.number().optional(),
+  field_notes: z.string().max(5000).optional(),
+  issues_encountered: z.string().max(5000).optional(),
+  recommendations: z.string().max(5000).optional(),
+  submit: z.boolean().optional(),
+})
+
+// Update completion
+export const updateCompletionSchema = z.object({
+  field_notes: z.string().max(5000).optional(),
+  issues_encountered: z.string().max(5000).optional(),
+  recommendations: z.string().max(5000).optional(),
+  customer_signed: z.boolean().optional(),
+  customer_signature_name: z.string().max(255).optional(),
+  customer_signature_data: z.string().optional(),
+})
+
+// Approve completion
+export const approveCompletionSchema = z.object({
+  review_notes: z.string().max(2000).optional(),
+})
+
+// Reject completion
+export const rejectCompletionSchema = z.object({
+  rejection_reason: z.string().min(1, 'Rejection reason is required').max(2000),
+  review_notes: z.string().max(2000).optional(),
+})
+
 // Export types
 export type CreateJobInput = z.infer<typeof createJobSchema>
 export type UpdateJobInput = z.infer<typeof updateJobSchema>

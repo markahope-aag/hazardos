@@ -1,53 +1,42 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { JobsService } from '@/lib/services/jobs-service'
-import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { createJobSchema, jobListQuerySchema } from '@/lib/validations/jobs'
 
-export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const searchParams = request.nextUrl.searchParams
+/**
+ * GET /api/jobs
+ * List jobs with optional filters
+ */
+export const GET = createApiHandler(
+  {
+    rateLimit: 'general',
+    querySchema: jobListQuerySchema,
+  },
+  async (_request, _context, _body, query) => {
     const filters = {
-      status: searchParams.get('status') || undefined,
-      customer_id: searchParams.get('customer_id') || undefined,
-      from_date: searchParams.get('from_date') || undefined,
-      to_date: searchParams.get('to_date') || undefined,
-      crew_member_id: searchParams.get('crew_member_id') || undefined,
+      status: query.status || undefined,
+      customer_id: query.customer_id || undefined,
+      from_date: query.from_date || undefined,
+      to_date: query.to_date || undefined,
+      crew_member_id: query.crew_member_id || undefined,
     }
 
     const jobs = await JobsService.list(filters)
     return NextResponse.json(jobs)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json()
-
-    // Validate required fields
-    validateRequired(body.customer_id, 'customer_id')
-    validateRequired(body.scheduled_start_date, 'scheduled_start_date')
-    validateRequired(body.job_address, 'job_address')
-
+/**
+ * POST /api/jobs
+ * Create a new job
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: createJobSchema,
+  },
+  async (_request, _context, body) => {
     const job = await JobsService.create(body)
-
     return NextResponse.json(job, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

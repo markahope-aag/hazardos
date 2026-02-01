@@ -1,56 +1,47 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { JobCompletionService } from '@/lib/services/job-completion-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
-import { createClient } from '@/lib/supabase/server'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import {
+  completionQuerySchema,
+  createCompletionSchema,
+  updateCompletionSchema,
+} from '@/lib/validations/jobs'
 
-type RouteParams = { params: Promise<{ id: string }> }
-
-export async function GET(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const searchParams = request.nextUrl.searchParams
-    const summary = searchParams.get('summary') === 'true'
+/**
+ * GET /api/jobs/[id]/complete
+ * Get completion info for a job
+ */
+export const GET = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    querySchema: completionQuerySchema,
+  },
+  async (_request, _context, params, _body, query) => {
+    const summary = query.summary === 'true'
 
     if (summary) {
-      const completionSummary = await JobCompletionService.getCompletionSummary(id)
+      const completionSummary = await JobCompletionService.getCompletionSummary(params.id)
       return NextResponse.json(completionSummary)
     }
 
-    const completion = await JobCompletionService.getCompletion(id)
+    const completion = await JobCompletionService.getCompletion(params.id)
     return NextResponse.json(completion)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function POST(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json()
-
+/**
+ * POST /api/jobs/[id]/complete
+ * Create or submit a completion
+ */
+export const POST = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: createCompletionSchema,
+  },
+  async (_request, _context, params, body) => {
     // If submit flag is set, submit the completion
     if (body.submit) {
-      const completion = await JobCompletionService.submitCompletion(id, {
+      const completion = await JobCompletionService.submitCompletion(params.id, {
         field_notes: body.field_notes,
         issues_encountered: body.issues_encountered,
         recommendations: body.recommendations,
@@ -60,7 +51,7 @@ export async function POST(
 
     // Create or get completion
     const completion = await JobCompletionService.createCompletion({
-      job_id: id,
+      job_id: params.id,
       estimated_hours: body.estimated_hours,
       estimated_material_cost: body.estimated_material_cost,
       estimated_total: body.estimated_total,
@@ -70,37 +61,20 @@ export async function POST(
     })
 
     return NextResponse.json(completion, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json()
-
-    const completion = await JobCompletionService.updateCompletion(id, {
-      field_notes: body.field_notes,
-      issues_encountered: body.issues_encountered,
-      recommendations: body.recommendations,
-      customer_signed: body.customer_signed,
-      customer_signature_name: body.customer_signature_name,
-      customer_signature_data: body.customer_signature_data,
-    })
-
+/**
+ * PATCH /api/jobs/[id]/complete
+ * Update a completion
+ */
+export const PATCH = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: updateCompletionSchema,
+  },
+  async (_request, _context, params, body) => {
+    const completion = await JobCompletionService.updateCompletion(params.id, body)
     return NextResponse.json(completion)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

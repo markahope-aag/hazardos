@@ -1,74 +1,35 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { SegmentationService } from '@/lib/services/segmentation-service';
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler';
+import { NextResponse } from 'next/server'
+import { SegmentationService } from '@/lib/services/segmentation-service'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { createSegmentSchema } from '@/lib/validations/segments'
 
-export async function GET() {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED');
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'No organization found');
-    }
-
-    const segments = await SegmentationService.list(profile.organization_id);
-    return NextResponse.json({ segments });
-  } catch (error) {
-    return createSecureErrorResponse(error);
+/**
+ * GET /api/segments
+ * List segments
+ */
+export const GET = createApiHandler(
+  { rateLimit: 'general' },
+  async (_request, context) => {
+    const segments = await SegmentationService.list(context.profile.organization_id)
+    return NextResponse.json({ segments })
   }
-}
+)
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED');
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'No organization found');
-    }
-
-    const body = await request.json();
-    const { name, description, segment_type, rules, customer_ids } = body;
-
-    if (!name) {
-      throw new SecureError('VALIDATION_ERROR', 'Name is required', 'name');
-    }
-
+/**
+ * POST /api/segments
+ * Create a segment
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: createSegmentSchema,
+  },
+  async (_request, context, body) => {
     const segment = await SegmentationService.create(
-      profile.organization_id,
-      user.id,
-      {
-        name,
-        description,
-        segment_type: segment_type || 'dynamic',
-        rules,
-        customer_ids,
-      }
-    );
-
-    return NextResponse.json({ segment });
-  } catch (error) {
-    return createSecureErrorResponse(error);
+      context.profile.organization_id,
+      context.profile.id,
+      body
+    )
+    return NextResponse.json({ segment })
   }
-}
+)
