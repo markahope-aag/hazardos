@@ -316,7 +316,7 @@ describe('API Handler Authentication', () => {
 
       // Assert
       expect(response.status).toBe(403)
-      expect(data.error).toBe('Access to this resource is forbidden')
+      expect(data.error).toBe('You do not have permission to access this resource')
       expect(data.type).toBe('FORBIDDEN')
     })
 
