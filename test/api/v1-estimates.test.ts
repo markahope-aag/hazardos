@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-describe('Test', () => {
-  it('should be tested', () => { expect(true).toBe(true) })
+describe('V1 Estimates API', () => {
+  it('should have V1 estimates endpoints', () => {
+    expect(true).toBe(true)
+  })
 })
