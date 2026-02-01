@@ -31,8 +31,11 @@ export function UserMenu({ user, profile }: UserMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center space-x-2 hover:bg-gray-50 rounded-lg p-1 transition-colors">
-          <div className="text-right">
+        <button
+          className="flex items-center space-x-2 hover:bg-gray-50 rounded-lg p-1 transition-colors"
+          aria-label={`User menu for ${userName}`}
+        >
+          <div className="text-right" aria-hidden="true">
             <div className="text-sm font-medium text-gray-900">
               {profile.first_name} {profile.last_name}
             </div>
@@ -40,7 +43,7 @@ export function UserMenu({ user, profile }: UserMenuProps) {
               {profile.role.replace('_', ' ')}
             </div>
           </div>
-          <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
+          <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium" aria-hidden="true">
             {userInitials}
           </div>
         </button>
