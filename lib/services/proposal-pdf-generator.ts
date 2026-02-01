@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf'
 import type { ProposalWithRelations, EstimateLineItem, LineItemType } from '@/types/estimates'
+import { formatCurrency } from '@/lib/utils'
 
 const LINE_ITEM_TYPE_LABELS: Record<LineItemType, string> = {
   labor: 'Labor',
@@ -34,13 +35,6 @@ export function generateProposalPDF(
   const margin = 20
   const contentWidth = pageWidth - 2 * margin
   let y = margin
-
-  const formatCurrency = (value: number | null | undefined): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value || 0)
-  }
 
   const addNewPageIfNeeded = (requiredSpace: number) => {
     if (y + requiredSpace > pageHeight - margin) {

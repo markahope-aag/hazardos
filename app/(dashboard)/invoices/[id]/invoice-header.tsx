@@ -31,7 +31,7 @@ import {
   Loader2,
   Download,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import type { Invoice } from '@/types/invoices'
 import { invoiceStatusConfig } from '@/types/invoices'
 import Link from 'next/link'
@@ -92,13 +92,6 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
     } finally {
       setLoading(false)
     }
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
   }
 
   return (

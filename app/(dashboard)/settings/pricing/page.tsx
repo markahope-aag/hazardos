@@ -56,6 +56,7 @@ import type {
   PricingSettings,
 } from '@/types/pricing'
 import { disposalHazardTypeConfig, commonUnits } from '@/types/pricing'
+import { formatCurrency } from '@/lib/utils'
 
 interface PricingData {
   labor_rates: LaborRate[]
@@ -151,13 +152,6 @@ export default function PricingSettingsPage() {
     } finally {
       setSaving(false)
     }
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
   }
 
   // Labor Rate handlers

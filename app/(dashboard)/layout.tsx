@@ -6,7 +6,7 @@ import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { Home, FileText, Calculator, Calendar, Settings, Users } from 'lucide-react'
+import { Home, FileText, Calculator, Calendar, Settings, Users, Briefcase, DollarSign } from 'lucide-react'
 
 export default function DashboardLayout({
   children,
@@ -126,17 +126,41 @@ export default function DashboardLayout({
             </Link>
             
             <Link
-              href="/schedules"
+              href="/jobs"
               className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
-                pathname.startsWith('/schedules')
+                pathname.startsWith('/jobs')
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Briefcase className="h-4 w-4" />
+              <span>Jobs</span>
+            </Link>
+
+            <Link
+              href="/invoices"
+              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
+                pathname.startsWith('/invoices')
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <DollarSign className="h-4 w-4" />
+              <span>Invoices</span>
+            </Link>
+
+            <Link
+              href="/calendar"
+              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
+                pathname.startsWith('/calendar')
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
               <Calendar className="h-4 w-4" />
-              <span>Schedules</span>
+              <span>Calendar</span>
             </Link>
-            
+
             <Link
               href="/settings"
               className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${

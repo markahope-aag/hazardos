@@ -37,6 +37,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/components/ui/use-toast'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
+import { formatCurrency } from '@/lib/utils'
 import type { EstimateWithRelations, EstimateStatus, LineItemType, EstimateLineItem } from '@/types/estimates'
 
 const STATUS_CONFIG: Record<EstimateStatus, { label: string; color: string; bgColor: string }> = {
@@ -181,13 +182,6 @@ export default function EstimateDetailPage() {
         variant: 'destructive',
       })
     }
-  }
-
-  const formatCurrency = (value: number | null | undefined) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value || 0)
   }
 
   const canApprove = profile?.role && ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'].includes(profile.role)

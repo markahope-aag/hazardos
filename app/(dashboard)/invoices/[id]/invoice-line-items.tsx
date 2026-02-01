@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/dialog'
 import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { formatCurrency } from '@/lib/utils'
 import type { Invoice, InvoiceLineItem } from '@/types/invoices'
 
 interface InvoiceLineItemsProps {
@@ -47,13 +48,6 @@ export function InvoiceLineItems({ invoice, lineItems }: InvoiceLineItemsProps) 
   })
 
   const canEdit = invoice.status === 'draft'
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
-  }
 
   const openAddDialog = () => {
     setEditingItem(null)

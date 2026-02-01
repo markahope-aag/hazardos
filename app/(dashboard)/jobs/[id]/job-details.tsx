@@ -6,20 +6,13 @@ import { Separator } from '@/components/ui/separator'
 import { MapPin, Phone, User, Building, DollarSign, Clock, AlertTriangle } from 'lucide-react'
 import type { Job } from '@/types/jobs'
 import Link from 'next/link'
+import { formatCurrency } from '@/lib/utils'
 
 interface JobDetailsProps {
   job: Job
 }
 
 export function JobDetails({ job }: JobDetailsProps) {
-  const formatCurrency = (amount: number | null) => {
-    if (amount === null) return '-'
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
-  }
-
   return (
     <div className="grid gap-6 md:grid-cols-2">
       {/* Customer Info */}

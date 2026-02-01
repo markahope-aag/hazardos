@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { Activity } from '@/lib/services/activity-service'
 import type {
   Invoice,
   InvoiceLineItem,
@@ -48,6 +49,10 @@ export class InvoicesService {
       .single()
 
     if (error) throw error
+
+    // Log activity
+    await Activity.created('invoice', data.id, data.invoice_number)
+
     return data
   }
 
@@ -231,11 +236,16 @@ export class InvoicesService {
 
   static async send(id: string, method: 'email' | 'sms' = 'email'): Promise<Invoice> {
     // TODO: Integrate with email service to send invoice PDF
-    return this.update(id, {
+    const invoice = await this.update(id, {
       status: 'sent',
       sent_at: new Date().toISOString(),
       sent_via: method,
     } as Partial<Invoice>)
+
+    // Log activity
+    await Activity.sent('invoice', id, invoice.invoice_number)
+
+    return invoice
   }
 
   static async markViewed(id: string): Promise<Invoice> {
@@ -253,7 +263,12 @@ export class InvoicesService {
   }
 
   static async void(id: string): Promise<Invoice> {
-    return this.update(id, { status: 'void' } as Partial<Invoice>)
+    const invoice = await this.update(id, { status: 'void' } as Partial<Invoice>)
+
+    // Log activity
+    await Activity.statusChanged('invoice', id, invoice.invoice_number, 'active', 'void')
+
+    return invoice
   }
 
   // Line items
@@ -368,6 +383,9 @@ export class InvoicesService {
         .update({ status: 'paid', updated_at: new Date().toISOString() })
         .eq('id', invoice.job_id)
     }
+
+    // Log activity
+    await Activity.paid('invoice', invoiceId, invoice?.invoice_number, payment.amount)
 
     return data
   }

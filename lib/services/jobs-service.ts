@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { Activity } from '@/lib/services/activity-service'
 import type {
   Job,
   JobCrew,
@@ -72,6 +73,9 @@ export class JobsService {
 
     // Schedule customer reminders
     await JobsService.scheduleReminders(data.id)
+
+    // Log activity
+    await Activity.created('job', data.id, data.job_number)
 
     return data
   }
@@ -286,6 +290,10 @@ export class JobsService {
   }
 
   static async updateStatus(id: string, status: JobStatus): Promise<Job> {
+    // Get current job to know old status
+    const currentJob = await JobsService.getById(id)
+    const oldStatus = currentJob?.status
+
     const updates: Partial<Job> = { status }
 
     if (status === 'in_progress') {
@@ -294,7 +302,14 @@ export class JobsService {
       updates.actual_end_at = new Date().toISOString()
     }
 
-    return JobsService.update(id, updates as UpdateJobInput)
+    const updatedJob = await JobsService.update(id, updates as UpdateJobInput)
+
+    // Log activity if status actually changed
+    if (oldStatus && oldStatus !== status) {
+      await Activity.statusChanged('job', id, updatedJob.job_number, oldStatus, status)
+    }
+
+    return updatedJob
   }
 
   static async delete(id: string): Promise<void> {

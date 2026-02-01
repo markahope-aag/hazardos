@@ -35,6 +35,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import type { ProposalWithRelations, EstimateLineItem, LineItemType } from '@/types/estimates'
+import { formatCurrency } from '@/lib/utils'
 
 const LINE_ITEM_TYPE_LABELS: Record<LineItemType, string> = {
   labor: 'Labor',
@@ -197,13 +198,6 @@ export default function ProposalPortalPage() {
     } finally {
       setSigning(false)
     }
-  }
-
-  const formatCurrency = (value: number | null | undefined) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value || 0)
   }
 
   if (loading) {

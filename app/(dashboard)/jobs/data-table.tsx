@@ -28,7 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal, Search, MapPin, Users } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import type { Job } from '@/types/jobs'
 import { jobStatusConfig } from '@/types/jobs'
 import Link from 'next/link'
@@ -54,14 +54,6 @@ export function JobsDataTable({ data }: JobsDataTableProps) {
 
     return matchesSearch && matchesStatus
   })
-
-  const formatCurrency = (amount: number | null) => {
-    if (amount === null) return '-'
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
-  }
 
   return (
     <div className="space-y-4">
