@@ -2,17 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
 
 // Mock QuickBooksService
-const mockQuickBooksService = {
-  exchangeCodeForTokens: vi.fn(),
-  storeTokens: vi.fn()
-}
-
 vi.mock('@/lib/services/quickbooks-service', () => ({
-  QuickBooksService: mockQuickBooksService
+  QuickBooksService: {
+    exchangeCodeForTokens: vi.fn(),
+    storeTokens: vi.fn()
+  }
 }))
 
 // Import the route handler
 import { GET } from '@/app/api/integrations/quickbooks/callback/route'
+import { QuickBooksService } from '@/lib/services/quickbooks-service'
 
 describe('QuickBooks Callback API', () => {
   beforeEach(() => {
