@@ -370,7 +370,7 @@ describe('API Handler Module', () => {
   })
 
   describe('createApiHandlerWithParams', () => {
-    it('should pass params to handler', async () => {
+    it('should pass params to handler and measure duration', async () => {
       const mockLogger = {
         info: vi.fn(),
         warn: vi.fn(),
@@ -408,45 +408,11 @@ describe('API Handler Module', () => {
 
       const request = new NextRequest('http://localhost:3000/api/items/item-123')
       const mockParams = { id: 'item-123' }
-      await handler(request, { params: Promise.resolve(mockParams) })
+      const response = await handler(request, { params: Promise.resolve(mockParams) })
 
       expect(capturedParams).toEqual({ id: 'item-123' })
-    })
-
-    it('should measure duration for parameterized routes', async () => {
-      const mockLogger = {
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-      }
-      vi.mocked(createRequestLogger).mockReturnValue(mockLogger as any)
-
-      vi.mocked(createClient).mockResolvedValue({
-        auth: {
-          getUser: vi.fn().mockResolvedValue({
-            data: { user: { id: 'user-123' } },
-            error: null,
-          }),
-        },
-        from: vi.fn(() => ({
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: { organization_id: 'org-123', role: 'user' },
-                error: null,
-              }),
-            })),
-          })),
-        })),
-      } as any)
-
-      const handler = createApiHandlerWithParams({}, async () => {
-        return NextResponse.json({ success: true })
-      })
-
-      const request = new NextRequest('http://localhost:3000/api/items/123')
-      await handler(request, { params: Promise.resolve({ id: '123' }) })
-
+      expect(response.status).toBe(200)
+      expect(mockLogger.info).toHaveBeenCalledWith('Request started')
       expect(mockLogger.info).toHaveBeenCalledWith(
         expect.objectContaining({
           durationMs: expect.any(Number),
