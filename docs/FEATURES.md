@@ -507,6 +507,8 @@ See [TESTING.md](./TESTING.md) for complete testing documentation.
 
 Comprehensive job completion tracking with time entries, material usage, photos, checklists, and variance analysis.
 
+> **See Also**: [Job Lifecycle & Workflows](./BUSINESS-LOGIC.md#job-lifecycle--workflows) for detailed explanation of job status transitions and completion workflow.
+
 ### Features
 
 #### Time Entry Tracking
@@ -1838,6 +1840,8 @@ Create detailed cost estimates from site surveys.
 
 Generate and track invoices.
 
+> **See Also**: [Invoice Generation](./BUSINESS-LOGIC.md#invoice-generation) for detailed explanation of invoice creation from jobs, line item management, payment tracking, and status transitions.
+
 ### Features
 
 - Invoice generation from jobs
@@ -1997,6 +2001,8 @@ REFRESH MATERIALIZED VIEW CONCURRENTLY mv_sales_performance;
 
 Visual Kanban-style sales pipeline with drag-and-drop functionality for tracking opportunities through the sales process.
 
+> **See Also**: [Sales Pipeline Logic](./BUSINESS-LOGIC.md#sales-pipeline-logic) for detailed explanation of weighted value calculations, stage progression, and win/loss tracking.
+
 ### Features
 
 #### Pipeline Stages
@@ -2155,6 +2161,8 @@ Feb 5, 2026 - Created by Mike Wilson
 
 Automated commission calculation and tracking system for sales team compensation management.
 
+> **See Also**: [Commission Calculation](./BUSINESS-LOGIC.md#commission-calculation) for detailed explanation of commission plan types, calculation formulas, and approval workflows.
+
 ### Features
 
 #### Commission Plans
@@ -2286,6 +2294,8 @@ Mark as Paid (Status: Paid)
 ### Overview
 
 Hierarchical approval system for estimates, discounts, and proposals requiring manager sign-off based on configurable thresholds.
+
+> **See Also**: [Approval Workflows](./BUSINESS-LOGIC.md#approval-workflows) for detailed explanation of threshold-based routing, two-level approval flow, and approval decision logic.
 
 ### Features
 
@@ -2591,6 +2601,8 @@ CREATE TABLE competitors (
 ### Overview
 
 Comprehensive SMS communication system powered by Twilio for automated customer notifications and compliance.
+
+> **See Also**: [SMS & Notification Logic](./BUSINESS-LOGIC.md#sms--notification-logic) for detailed explanation of quiet hours enforcement, opt-in/opt-out management, template system, and appointment reminders.
 
 ### Features
 
