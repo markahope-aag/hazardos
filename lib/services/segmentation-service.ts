@@ -63,7 +63,7 @@ export class SegmentationService {
 
     const { data, error } = await supabase
       .from('customer_segments')
-      .select('*')
+      .select('id, organization_id, name, description, segment_type, rules, member_count, is_active, last_calculated_at, mailchimp_tag_id, mailchimp_synced_at, hubspot_synced_at, created_by, created_at, updated_at')
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
 
@@ -76,7 +76,7 @@ export class SegmentationService {
 
     const { data, error } = await supabase
       .from('customer_segments')
-      .select('*')
+      .select('id, organization_id, name, description, segment_type, rules, member_count, is_active, last_calculated_at, mailchimp_tag_id, mailchimp_synced_at, hubspot_synced_at, created_by, created_at, updated_at')
       .eq('id', segmentId)
       .single();
 
@@ -231,7 +231,7 @@ export class SegmentationService {
 
     const { data: segment } = await supabase
       .from('customer_segments')
-      .select('*')
+      .select('id, organization_id, segment_type, rules')
       .eq('id', segmentId)
       .single();
 

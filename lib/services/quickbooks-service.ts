@@ -111,7 +111,7 @@ export class QuickBooksService {
 
     const { data: integration } = await supabase
       .from('organization_integrations')
-      .select('*')
+      .select('id, organization_id, integration_type, access_token, refresh_token, token_expires_at, external_id, is_active, last_sync_at, settings')
       .eq('organization_id', organizationId)
       .eq('integration_type', 'quickbooks')
       .eq('is_active', true)
@@ -149,7 +149,7 @@ export class QuickBooksService {
 
     const { data: integration } = await supabase
       .from('organization_integrations')
-      .select('*')
+      .select('id, external_id, is_active, last_sync_at')
       .eq('organization_id', organizationId)
       .eq('integration_type', 'quickbooks')
       .single();
@@ -242,7 +242,7 @@ export class QuickBooksService {
 
     const { data: customer } = await supabase
       .from('customers')
-      .select('*')
+      .select('id, first_name, last_name, company_name, email, phone, address_line1, city, state, zip, qb_customer_id')
       .eq('id', customerId)
       .single();
 

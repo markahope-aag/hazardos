@@ -58,7 +58,7 @@ export async function getRecentActivity(limit: number = 20): Promise<ActivityLog
 
   const { data } = await supabase
     .from('activity_log')
-    .select('*')
+    .select('id, organization_id, user_id, user_name, action, entity_type, entity_id, entity_name, old_values, new_values, description, created_at')
     .order('created_at', { ascending: false })
     .limit(limit);
 
@@ -70,7 +70,7 @@ export async function getEntityActivity(entityType: string, entityId: string): P
 
   const { data } = await supabase
     .from('activity_log')
-    .select('*')
+    .select('id, organization_id, user_id, user_name, action, entity_type, entity_id, entity_name, old_values, new_values, description, created_at')
     .eq('entity_type', entityType)
     .eq('entity_id', entityId)
     .order('created_at', { ascending: false });

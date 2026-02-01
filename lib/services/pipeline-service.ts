@@ -17,7 +17,7 @@ export class PipelineService {
 
     const { data, error } = await supabase
       .from('pipeline_stages')
-      .select('*')
+      .select('id, organization_id, name, color, stage_type, probability, sort_order, is_active, created_at, updated_at')
       .eq('is_active', true)
       .order('sort_order')
 
@@ -222,7 +222,7 @@ export class PipelineService {
     // Get new stage details
     const { data: newStage } = await supabase
       .from('pipeline_stages')
-      .select('*')
+      .select('id, name, stage_type, probability')
       .eq('id', stageId)
       .single()
 

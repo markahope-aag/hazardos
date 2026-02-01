@@ -1,21 +1,17 @@
 import { z } from 'zod'
 
-// Webhook event type
+// Webhook event type (matches WebhookEventType from types/integrations.ts)
 export const webhookEventTypeSchema = z.enum([
+  'customer.created',
+  'customer.updated',
   'job.created',
   'job.updated',
   'job.completed',
-  'job.cancelled',
   'invoice.created',
-  'invoice.sent',
   'invoice.paid',
-  'invoice.overdue',
   'proposal.created',
-  'proposal.sent',
   'proposal.signed',
-  'customer.created',
-  'customer.updated',
-  'feedback.received',
+  'estimate.approved',
 ])
 
 // Create webhook

@@ -104,7 +104,7 @@ export class MailchimpService {
 
     const { data: integration } = await supabase
       .from('organization_integrations')
-      .select('*')
+      .select('id, access_token, external_id, settings')
       .eq('organization_id', organizationId)
       .eq('integration_type', 'mailchimp')
       .eq('is_active', true)
@@ -125,7 +125,7 @@ export class MailchimpService {
 
     const { data: integration } = await supabase
       .from('organization_integrations')
-      .select('*')
+      .select('id, external_id, is_active, last_sync_at, settings')
       .eq('organization_id', organizationId)
       .eq('integration_type', 'mailchimp')
       .single();
@@ -226,7 +226,7 @@ export class MailchimpService {
     // Fetch customer
     const { data: customer } = await supabase
       .from('customers')
-      .select('*')
+      .select('id, first_name, last_name, company_name, email, phone, address_line1, city, state, zip')
       .eq('id', customerId)
       .single();
 

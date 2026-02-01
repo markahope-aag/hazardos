@@ -1,54 +1,44 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
-import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
+import { NextResponse } from 'next/server'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import {
+  createTravelRateSchema,
+  updateTravelRateSchema,
+  deleteTravelRateQuerySchema,
+} from '@/lib/validations/settings'
 
-export async function GET() {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const { data, error } = await supabase
+/**
+ * GET /api/settings/pricing/travel-rates
+ * List travel rates
+ */
+export const GET = createApiHandler(
+  { rateLimit: 'general' },
+  async (_request, context) => {
+    const { data, error } = await context.supabase
       .from('travel_rates')
-      .select('*')
+      .select('id, organization_id, min_miles, max_miles, flat_fee, per_mile_rate, description, is_active, created_at, updated_at')
       .order('min_miles')
 
-    if (error) {
-      throw error
-    }
+    if (error) throw error
 
     return NextResponse.json({ travel_rates: data })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'tenant_owner'].includes(profile.role)) {
-      throw new SecureError('FORBIDDEN')
-    }
-
-    const body = await request.json()
-
-    const { data, error } = await supabase
+/**
+ * POST /api/settings/pricing/travel-rates
+ * Create a travel rate
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: createTravelRateSchema,
+    allowedRoles: ['admin', 'tenant_owner'],
+  },
+  async (_request, context, body) => {
+    const { data, error } = await context.supabase
       .from('travel_rates')
       .insert({
-        organization_id: profile.organization_id,
+        organization_id: context.profile.organization_id,
         min_miles: body.min_miles,
         max_miles: body.max_miles || null,
         flat_fee: body.flat_fee || null,
@@ -57,92 +47,56 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    if (error) {
-      throw error
-    }
+    if (error) throw error
 
     return NextResponse.json(data, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function PATCH(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'tenant_owner'].includes(profile.role)) {
-      throw new SecureError('FORBIDDEN')
-    }
-
-    const body = await request.json()
+/**
+ * PATCH /api/settings/pricing/travel-rates
+ * Update a travel rate
+ */
+export const PATCH = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: updateTravelRateSchema,
+    allowedRoles: ['admin', 'tenant_owner'],
+  },
+  async (_request, context, body) => {
     const { id, ...updateData } = body
 
-    validateRequired(id, 'id')
-
-    const { data, error } = await supabase
+    const { data, error } = await context.supabase
       .from('travel_rates')
       .update(updateData)
       .eq('id', id)
       .select()
       .single()
 
-    if (error) {
-      throw error
-    }
+    if (error) throw error
 
     return NextResponse.json(data)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function DELETE(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'tenant_owner'].includes(profile.role)) {
-      throw new SecureError('FORBIDDEN')
-    }
-
-    const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
-
-    if (!id) {
-      throw new SecureError('VALIDATION_ERROR', 'ID is required')
-    }
-
-    const { error } = await supabase
+/**
+ * DELETE /api/settings/pricing/travel-rates
+ * Delete a travel rate
+ */
+export const DELETE = createApiHandler(
+  {
+    rateLimit: 'general',
+    querySchema: deleteTravelRateQuerySchema,
+    allowedRoles: ['admin', 'tenant_owner'],
+  },
+  async (_request, context, _body, query) => {
+    const { error } = await context.supabase
       .from('travel_rates')
       .delete()
-      .eq('id', id)
+      .eq('id', query.id)
 
-    if (error) {
-      throw error
-    }
+    if (error) throw error
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
