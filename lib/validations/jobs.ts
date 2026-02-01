@@ -252,6 +252,80 @@ export const rejectCompletionSchema = z.object({
   review_notes: z.string().max(2000).optional(),
 })
 
+// Time entry
+export const createTimeEntrySchema = z.object({
+  profile_id: z.string().uuid().optional(),
+  work_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
+  hours: z.number().positive('Hours must be positive'),
+  work_type: z.string().max(100).optional(),
+  hourly_rate: z.number().positive().optional(),
+  billable: z.boolean().optional().default(true),
+  description: z.string().max(1000).optional(),
+  notes: z.string().max(2000).optional(),
+})
+
+export const updateTimeEntrySchema = z.object({
+  work_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  hours: z.number().positive().optional(),
+  work_type: z.string().max(100).optional(),
+  hourly_rate: z.number().positive().optional(),
+  billable: z.boolean().optional(),
+  description: z.string().max(1000).optional(),
+  notes: z.string().max(2000).optional(),
+})
+
+// Checklist query
+export const checklistQuerySchema = z.object({
+  grouped: z.string().optional(),
+}).passthrough()
+
+// Checklist item update
+export const updateChecklistItemSchema = z.object({
+  is_completed: z.boolean().optional(),
+  completed_at: z.string().datetime().optional().nullable(),
+  notes: z.string().max(1000).optional(),
+})
+
+// Photo
+export const createPhotoSchema = z.object({
+  photo_url: z.string().url('Invalid photo URL'),
+  thumbnail_url: z.string().url().optional(),
+  storage_path: z.string().min(1, 'Storage path is required'),
+  photo_type: z.string().max(50).optional(),
+  caption: z.string().max(500).optional(),
+  taken_at: z.string().datetime().optional(),
+  location_lat: z.number().optional(),
+  location_lng: z.number().optional(),
+  camera_make: z.string().max(100).optional(),
+  camera_model: z.string().max(100).optional(),
+  image_width: z.number().int().positive().optional(),
+  image_height: z.number().int().positive().optional(),
+  file_name: z.string().max(255).optional(),
+  file_size: z.number().int().positive().optional(),
+  mime_type: z.string().max(100).optional(),
+})
+
+export const updatePhotoSchema = z.object({
+  caption: z.string().max(500).optional(),
+  photo_type: z.string().max(50).optional(),
+})
+
+// Material usage
+export const createMaterialUsageSchema = z.object({
+  material_id: z.string().uuid().optional(),
+  material_name: z.string().min(1, 'Material name is required').max(255),
+  quantity: z.number().positive('Quantity must be positive'),
+  unit: z.string().max(50).optional(),
+  unit_cost: z.number().min(0).optional(),
+  notes: z.string().max(500).optional(),
+})
+
+export const updateMaterialUsageSchema = z.object({
+  quantity: z.number().positive().optional(),
+  unit_cost: z.number().min(0).optional(),
+  notes: z.string().max(500).optional(),
+})
+
 // Export types
 export type CreateJobInput = z.infer<typeof createJobSchema>
 export type UpdateJobInput = z.infer<typeof updateJobSchema>

@@ -1,8 +1,16 @@
 'use client'
 
-import { Suspense } from 'react'
-import { CalendarView } from './calendar-view'
+import dynamic from 'next/dynamic'
 import { CalendarSkeleton } from './calendar-skeleton'
+
+// Lazy load CalendarView (contains date-fns and complex client logic)
+const CalendarView = dynamic(
+  () => import('./calendar-view').then(mod => ({ default: mod.CalendarView })),
+  {
+    ssr: false,
+    loading: () => <CalendarSkeleton />,
+  }
+)
 
 export default function CalendarPage() {
   return (
@@ -13,9 +21,7 @@ export default function CalendarPage() {
           View and manage scheduled jobs
         </p>
       </div>
-      <Suspense fallback={<CalendarSkeleton />}>
-        <CalendarView />
-      </Suspense>
+      <CalendarView />
     </div>
   )
 }

@@ -315,7 +315,7 @@ export class InvoicesService {
     if (updates.quantity !== undefined || updates.unit_price !== undefined) {
       const { data: current } = await supabase
         .from('invoice_line_items')
-        .select('*')
+        .select('id, quantity, unit_price')
         .eq('id', id)
         .single()
 

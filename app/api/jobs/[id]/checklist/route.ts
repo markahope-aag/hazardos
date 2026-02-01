@@ -1,56 +1,38 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { JobCompletionService } from '@/lib/services/job-completion-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
-import { createClient } from '@/lib/supabase/server'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { checklistQuerySchema } from '@/lib/validations/jobs'
 
-type RouteParams = { params: Promise<{ id: string }> }
-
-export async function GET(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const searchParams = request.nextUrl.searchParams
-    const grouped = searchParams.get('grouped') === 'true'
+/**
+ * GET /api/jobs/[id]/checklist
+ * Get checklist for a job
+ */
+export const GET = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    querySchema: checklistQuerySchema,
+  },
+  async (_request, _context, params, _body, query) => {
+    const grouped = query.grouped === 'true'
 
     if (grouped) {
-      const checklist = await JobCompletionService.getChecklistGrouped(id)
+      const checklist = await JobCompletionService.getChecklistGrouped(params.id)
       return NextResponse.json(checklist)
     }
 
-    const checklist = await JobCompletionService.getChecklist(id)
+    const checklist = await JobCompletionService.getChecklist(params.id)
     return NextResponse.json(checklist)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function POST(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    // Initialize default checklist for the job
-    const checklist = await JobCompletionService.initializeChecklist(id)
-
+/**
+ * POST /api/jobs/[id]/checklist
+ * Initialize default checklist for a job
+ */
+export const POST = createApiHandlerWithParams(
+  { rateLimit: 'general' },
+  async (_request, _context, params) => {
+    const checklist = await JobCompletionService.initializeChecklist(params.id)
     return NextResponse.json(checklist, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

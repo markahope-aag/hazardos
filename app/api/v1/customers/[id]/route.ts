@@ -20,7 +20,7 @@ async function handleGet(
 
   const { data, error } = await supabase
     .from('customers')
-    .select('*')
+    .select('id, organization_id, name, first_name, last_name, company_name, email, phone, mobile, website, status, customer_type, lead_source, address_line1, address_line2, city, state, zip, country, notes, tags, billing_email, preferred_contact_method, created_at, updated_at')
     .eq('id', params.id)
     .eq('organization_id', context.organizationId)
     .single();
