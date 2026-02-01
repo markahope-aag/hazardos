@@ -3,6 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
 
+// Re-export error boundary wrapper
+export { RecentActivityErrorBoundary } from './error-wrappers';
+
 interface ActivityEntry {
   id: string;
   user_name: string | null;

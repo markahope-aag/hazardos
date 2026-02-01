@@ -1,12 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Sparkles, AlertTriangle, Check, X } from 'lucide-react';
+import { IntegrationErrorBoundary } from '@/components/error-boundaries';
 import type { EstimateSuggestion, SuggestedLineItem } from '@/types/integrations';
+
+/**
+ * Error boundary wrapper for the AI Suggestions Panel
+ */
+export function AISuggestionsPanelErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <IntegrationErrorBoundary
+      integrationName="AI Suggestions"
+      icon={<Sparkles className="h-6 w-6 text-purple-500" />}
+    >
+      {children}
+    </IntegrationErrorBoundary>
+  );
+}
 
 interface AISuggestionsPanelProps {
   hazardTypes: string[];
