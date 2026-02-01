@@ -86,11 +86,44 @@ export const approveEstimateSchema = z.object({
 // Estimate list query
 export const estimateListQuerySchema = z.object({
   status: z.string().optional(),
+  customer_id: z.string().optional(),
+  survey_id: z.string().optional(),
+  from_date: z.string().optional(),
+  to_date: z.string().optional(),
+  limit: z.string().optional(),
+  offset: z.string().optional(),
+}).passthrough()
+
+// Create estimate from survey
+export const createEstimateFromSurveySchema = z.object({
+  site_survey_id: z.string().uuid('Invalid site survey ID'),
   customer_id: z.string().uuid().optional(),
-  from_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  to_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  limit: z.string().transform(Number).optional(),
-  offset: z.string().transform(Number).optional(),
+  project_name: z.string().max(255).optional(),
+  project_description: z.string().max(5000).optional(),
+  scope_of_work: z.string().max(10000).optional(),
+  estimated_duration_days: z.number().int().positive().optional(),
+  estimated_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  estimated_end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  valid_until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  markup_percent: z.number().min(0).max(100).optional(),
+  internal_notes: z.string().max(5000).optional(),
+})
+
+// Bulk update line items
+export const bulkUpdateLineItemsSchema = z.object({
+  line_items: z.array(z.object({
+    id: z.string().uuid(),
+    item_type: lineItemTypeSchema.optional(),
+    category: z.string().max(100).optional(),
+    description: z.string().max(500).optional(),
+    quantity: z.number().positive().optional(),
+    unit: z.string().max(20).optional(),
+    unit_price: z.number().min(0).optional(),
+    is_optional: z.boolean().optional(),
+    is_included: z.boolean().optional(),
+    notes: z.string().max(1000).optional(),
+    sort_order: z.number().int().optional(),
+  })),
 })
 
 // Export types

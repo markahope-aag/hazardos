@@ -1,5 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { QuickBooksCard } from './quickbooks-card';
+import { MailchimpCard } from '@/components/integrations/mailchimp-card';
+import { HubSpotCard } from '@/components/integrations/hubspot-card';
+import { GoogleCalendarCard } from '@/components/integrations/google-calendar-card';
+import { OutlookCalendarCard } from '@/components/integrations/outlook-calendar-card';
 import { SyncHistoryTable } from './sync-history-table';
 
 export default async function IntegrationsPage() {
@@ -12,13 +16,17 @@ export default async function IntegrationsPage() {
     .eq('id', user?.id)
     .single();
 
-  // Get integration status
-  const { data: integration } = await supabase
+  // Get all integrations
+  const { data: integrations } = await supabase
     .from('organization_integrations')
     .select('*')
-    .eq('organization_id', profile?.organization_id)
-    .eq('integration_type', 'quickbooks')
-    .maybeSingle();
+    .eq('organization_id', profile?.organization_id);
+
+  const quickbooksIntegration = integrations?.find(i => i.integration_type === 'quickbooks') || null;
+  const mailchimpIntegration = integrations?.find(i => i.integration_type === 'mailchimp') || null;
+  const hubspotIntegration = integrations?.find(i => i.integration_type === 'hubspot') || null;
+  const googleCalendarIntegration = integrations?.find(i => i.integration_type === 'google_calendar') || null;
+  const outlookCalendarIntegration = integrations?.find(i => i.integration_type === 'outlook_calendar') || null;
 
   // Get recent sync logs
   const { data: syncLogs } = await supabase
@@ -28,20 +36,50 @@ export default async function IntegrationsPage() {
     .order('started_at', { ascending: false })
     .limit(10);
 
+  const hasActiveIntegration = integrations?.some(i => i.is_active);
+
   return (
     <div className="container py-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Integrations</h1>
         <p className="text-muted-foreground">
-          Connect HazardOS with your accounting and business tools
+          Connect HazardOS with your accounting, marketing, calendar, and business tools
         </p>
       </div>
 
-      <div className="grid gap-6">
-        <QuickBooksCard integration={integration} />
+      <div className="space-y-8">
+        {/* Accounting Integrations */}
+        <div>
+          <h2 className="text-lg font-semibold mb-4">Accounting</h2>
+          <div className="grid gap-6">
+            <QuickBooksCard integration={quickbooksIntegration} />
+          </div>
+        </div>
 
-        {integration?.is_active && (
-          <SyncHistoryTable logs={syncLogs || []} />
+        {/* Marketing Integrations */}
+        <div>
+          <h2 className="text-lg font-semibold mb-4">Marketing</h2>
+          <div className="grid gap-6 md:grid-cols-2">
+            <MailchimpCard integration={mailchimpIntegration} />
+            <HubSpotCard integration={hubspotIntegration} />
+          </div>
+        </div>
+
+        {/* Calendar Integrations */}
+        <div>
+          <h2 className="text-lg font-semibold mb-4">Calendar</h2>
+          <div className="grid gap-6 md:grid-cols-2">
+            <GoogleCalendarCard integration={googleCalendarIntegration} />
+            <OutlookCalendarCard integration={outlookCalendarIntegration} />
+          </div>
+        </div>
+
+        {/* Sync History */}
+        {hasActiveIntegration && (
+          <div>
+            <h2 className="text-lg font-semibold mb-4">Sync History</h2>
+            <SyncHistoryTable logs={syncLogs || []} />
+          </div>
         )}
       </div>
     </div>

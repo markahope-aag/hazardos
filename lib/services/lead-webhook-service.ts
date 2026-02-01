@@ -1,0 +1,400 @@
+import { createClient } from '@/lib/supabase/server';
+import { createHmac } from 'crypto';
+import type { LeadWebhookEndpoint, LeadProvider } from '@/types/integrations';
+
+export interface CreateEndpointInput {
+  name: string;
+  slug: string;
+  provider: LeadProvider;
+  api_key?: string;
+  secret?: string;
+  field_mapping?: Record<string, string>;
+}
+
+export interface UpdateEndpointInput {
+  name?: string;
+  api_key?: string;
+  secret?: string;
+  field_mapping?: Record<string, string>;
+  is_active?: boolean;
+}
+
+interface ParsedLead {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  company_name?: string;
+  address_line1?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  notes?: string;
+  lead_source?: string;
+  hazard_types?: string[];
+}
+
+// Default field mappings for known providers
+const PROVIDER_MAPPINGS: Record<LeadProvider, Record<string, string>> = {
+  homeadvisor: {
+    'lead.firstName': 'first_name',
+    'lead.lastName': 'last_name',
+    'lead.email': 'email',
+    'lead.phone': 'phone',
+    'lead.address.street': 'address_line1',
+    'lead.address.city': 'city',
+    'lead.address.state': 'state',
+    'lead.address.zip': 'zip',
+    'lead.description': 'notes',
+  },
+  thumbtack: {
+    'customer.name': 'full_name',
+    'customer.email': 'email',
+    'customer.phone': 'phone',
+    'location.street_address': 'address_line1',
+    'location.city': 'city',
+    'location.state': 'state',
+    'location.postal_code': 'zip',
+    'request.description': 'notes',
+  },
+  angi: {
+    'consumer.firstName': 'first_name',
+    'consumer.lastName': 'last_name',
+    'consumer.email': 'email',
+    'consumer.phone': 'phone',
+    'address.streetAddress': 'address_line1',
+    'address.city': 'city',
+    'address.state': 'state',
+    'address.postalCode': 'zip',
+    'projectDescription': 'notes',
+  },
+  custom: {},
+};
+
+export class LeadWebhookService {
+  // ========== CRUD OPERATIONS ==========
+
+  static async list(organizationId: string): Promise<LeadWebhookEndpoint[]> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from('lead_webhook_endpoints')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async get(endpointId: string): Promise<LeadWebhookEndpoint | null> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from('lead_webhook_endpoints')
+      .select('*')
+      .eq('id', endpointId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async getBySlug(slug: string): Promise<LeadWebhookEndpoint | null> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from('lead_webhook_endpoints')
+      .select('*')
+      .eq('slug', slug)
+      .eq('is_active', true)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  static async create(
+    organizationId: string,
+    input: CreateEndpointInput
+  ): Promise<LeadWebhookEndpoint> {
+    const supabase = await createClient();
+
+    // Get default mapping for provider
+    const defaultMapping = PROVIDER_MAPPINGS[input.provider] || {};
+    const fieldMapping = { ...defaultMapping, ...input.field_mapping };
+
+    const { data, error } = await supabase
+      .from('lead_webhook_endpoints')
+      .insert({
+        organization_id: organizationId,
+        name: input.name,
+        slug: input.slug,
+        provider: input.provider,
+        api_key: input.api_key,
+        secret: input.secret,
+        field_mapping: fieldMapping,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async update(
+    endpointId: string,
+    input: UpdateEndpointInput
+  ): Promise<LeadWebhookEndpoint> {
+    const supabase = await createClient();
+
+    const updateData: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (input.name !== undefined) updateData.name = input.name;
+    if (input.api_key !== undefined) updateData.api_key = input.api_key;
+    if (input.secret !== undefined) updateData.secret = input.secret;
+    if (input.field_mapping !== undefined) updateData.field_mapping = input.field_mapping;
+    if (input.is_active !== undefined) updateData.is_active = input.is_active;
+
+    const { data, error } = await supabase
+      .from('lead_webhook_endpoints')
+      .update(updateData)
+      .eq('id', endpointId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async delete(endpointId: string): Promise<void> {
+    const supabase = await createClient();
+
+    const { error } = await supabase
+      .from('lead_webhook_endpoints')
+      .delete()
+      .eq('id', endpointId);
+
+    if (error) throw error;
+  }
+
+  // ========== LEAD PROCESSING ==========
+
+  static async processLead(
+    endpoint: LeadWebhookEndpoint,
+    payload: Record<string, unknown>,
+    headers: Record<string, string>,
+    ipAddress?: string
+  ): Promise<{ success: boolean; customerId?: string; error?: string }> {
+    const supabase = await createClient();
+
+    try {
+      // Verify authentication if configured
+      if (endpoint.api_key) {
+        const authHeader = headers['authorization'] || headers['x-api-key'];
+        if (!authHeader || !authHeader.includes(endpoint.api_key)) {
+          return this.logAndReturn(endpoint, payload, headers, ipAddress, 'failed', 'Invalid API key');
+        }
+      }
+
+      if (endpoint.secret) {
+        const signature = headers['x-signature'] || headers['x-webhook-signature'];
+        if (!this.verifySignature(payload, endpoint.secret, signature)) {
+          return this.logAndReturn(endpoint, payload, headers, ipAddress, 'failed', 'Invalid signature');
+        }
+      }
+
+      // Parse lead data using field mapping
+      const leadData = this.parseLead(payload, endpoint.field_mapping as Record<string, string>);
+
+      // Check for duplicate (same email within last 24 hours)
+      if (leadData.email) {
+        const { data: existing } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('organization_id', endpoint.organization_id)
+          .eq('email', leadData.email)
+          .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+          .maybeSingle();
+
+        if (existing) {
+          return this.logAndReturn(endpoint, payload, headers, ipAddress, 'duplicate', 'Duplicate lead', existing.id);
+        }
+      }
+
+      // Create customer
+      const { data: customer, error: customerError } = await supabase
+        .from('customers')
+        .insert({
+          organization_id: endpoint.organization_id,
+          first_name: leadData.first_name,
+          last_name: leadData.last_name,
+          email: leadData.email,
+          phone: leadData.phone,
+          company_name: leadData.company_name,
+          address_line1: leadData.address_line1,
+          city: leadData.city,
+          state: leadData.state,
+          zip: leadData.zip,
+          notes: leadData.notes,
+          lead_source: endpoint.provider,
+          status: 'lead',
+        })
+        .select('id')
+        .single();
+
+      if (customerError) throw customerError;
+
+      // Create opportunity if enabled
+      let opportunityId: string | undefined;
+      // TODO: Create opportunity based on org settings
+
+      // Update endpoint stats
+      await supabase
+        .from('lead_webhook_endpoints')
+        .update({
+          leads_received: endpoint.leads_received + 1,
+          last_lead_at: new Date().toISOString(),
+        })
+        .eq('id', endpoint.id);
+
+      // Log success
+      await this.logLead(
+        endpoint,
+        payload,
+        headers,
+        ipAddress,
+        'success',
+        null,
+        customer.id,
+        opportunityId
+      );
+
+      return { success: true, customerId: customer.id };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return this.logAndReturn(endpoint, payload, headers, ipAddress, 'failed', errorMessage);
+    }
+  }
+
+  private static async logAndReturn(
+    endpoint: LeadWebhookEndpoint,
+    payload: Record<string, unknown>,
+    headers: Record<string, string>,
+    ipAddress: string | undefined,
+    status: 'success' | 'failed' | 'duplicate',
+    errorMessage: string | null,
+    customerId?: string
+  ): Promise<{ success: boolean; customerId?: string; error?: string }> {
+    await this.logLead(endpoint, payload, headers, ipAddress, status, errorMessage, customerId);
+
+    return {
+      success: status === 'success' || status === 'duplicate',
+      customerId,
+      error: errorMessage || undefined,
+    };
+  }
+
+  private static async logLead(
+    endpoint: LeadWebhookEndpoint,
+    payload: Record<string, unknown>,
+    headers: Record<string, string>,
+    ipAddress: string | undefined,
+    status: 'success' | 'failed' | 'duplicate',
+    errorMessage: string | null,
+    customerId?: string,
+    opportunityId?: string
+  ): Promise<void> {
+    const supabase = await createClient();
+
+    await supabase.from('lead_webhook_log').insert({
+      endpoint_id: endpoint.id,
+      organization_id: endpoint.organization_id,
+      raw_payload: payload,
+      headers,
+      ip_address: ipAddress,
+      status,
+      error_message: errorMessage,
+      customer_id: customerId,
+      opportunity_id: opportunityId,
+    });
+  }
+
+  // ========== PARSING ==========
+
+  private static parseLead(
+    payload: Record<string, unknown>,
+    fieldMapping: Record<string, string>
+  ): ParsedLead {
+    const lead: ParsedLead = {
+      lead_source: 'webhook',
+    };
+
+    for (const [sourcePath, targetField] of Object.entries(fieldMapping)) {
+      const value = this.getNestedValue(payload, sourcePath);
+      if (value !== undefined && value !== null && value !== '') {
+        if (targetField === 'full_name') {
+          // Split full name into first/last
+          const parts = String(value).trim().split(/\s+/);
+          lead.first_name = parts[0];
+          lead.last_name = parts.slice(1).join(' ') || undefined;
+        } else {
+          (lead as Record<string, unknown>)[targetField] = String(value);
+        }
+      }
+    }
+
+    return lead;
+  }
+
+  private static getNestedValue(obj: Record<string, unknown>, path: string): unknown {
+    const parts = path.split('.');
+    let current: unknown = obj;
+
+    for (const part of parts) {
+      if (current === null || current === undefined) return undefined;
+      if (typeof current !== 'object') return undefined;
+      current = (current as Record<string, unknown>)[part];
+    }
+
+    return current;
+  }
+
+  private static verifySignature(
+    payload: Record<string, unknown>,
+    secret: string,
+    signature: string | undefined
+  ): boolean {
+    if (!signature) return false;
+
+    const body = JSON.stringify(payload);
+    const expectedSignature = createHmac('sha256', secret)
+      .update(body)
+      .digest('hex');
+
+    // Handle both formats: "sha256=xxx" and just "xxx"
+    const providedSignature = signature.startsWith('sha256=')
+      ? signature.substring(7)
+      : signature;
+
+    return expectedSignature === providedSignature;
+  }
+
+  // ========== UTILITIES ==========
+
+  static generateSlug(): string {
+    const { randomBytes } = require('crypto');
+    return randomBytes(12).toString('base64url');
+  }
+
+  static getProviders(): Array<{ value: LeadProvider; label: string }> {
+    return [
+      { value: 'homeadvisor', label: 'HomeAdvisor' },
+      { value: 'thumbtack', label: 'Thumbtack' },
+      { value: 'angi', label: 'Angi' },
+      { value: 'custom', label: 'Custom' },
+    ];
+  }
+}
