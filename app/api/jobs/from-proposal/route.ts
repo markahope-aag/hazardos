@@ -1,22 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { JobsService } from '@/lib/services/jobs-service'
-import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { createJobFromProposalSchema } from '@/lib/validations/jobs'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json()
-
-    validateRequired(body.proposal_id, 'proposal_id')
-    validateRequired(body.scheduled_start_date, 'scheduled_start_date')
-
+export const POST = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: createJobFromProposalSchema,
+  },
+  async (_request, context, body, _query) => {
     // Validate date format
     const scheduledDate = new Date(body.scheduled_start_date)
     if (isNaN(scheduledDate.getTime())) {
@@ -24,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify proposal is signed
-    const { data: proposal, error: propError } = await supabase
+    const { data: proposal, error: propError } = await context.supabase
       .from('proposals')
       .select('status')
       .eq('id', body.proposal_id)
@@ -39,9 +33,6 @@ export async function POST(request: NextRequest) {
     }
 
     const job = await JobsService.createFromProposal(body)
-
     return NextResponse.json(job, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
