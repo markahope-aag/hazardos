@@ -3,27 +3,13 @@ import { Activity } from '@/lib/services/activity-service'
 import type {
   Job,
   JobCrew,
-  JobChangeOrder,
-  JobNote,
-  JobEquipment,
-  JobMaterial,
-  JobDisposal,
   CreateJobInput,
   CreateJobFromProposalInput,
   UpdateJobInput,
-  AssignCrewInput,
-  ClockInOutInput,
-  AddChangeOrderInput,
-  AddJobNoteInput,
-  AddJobEquipmentInput,
-  AddJobMaterialInput,
-  AddJobDisposalInput,
   JobStatus,
 } from '@/types/jobs'
 
 export class JobsService {
-  // ========== JOBS ==========
-
   static async create(input: CreateJobInput): Promise<Job> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -326,400 +312,6 @@ export class JobsService {
     if (error) throw error
   }
 
-  // ========== CREW ==========
-
-  static async assignCrew(input: AssignCrewInput): Promise<JobCrew> {
-    const supabase = await createClient()
-
-    const { data, error } = await supabase
-      .from('job_crew')
-      .insert({
-        job_id: input.job_id,
-        profile_id: input.profile_id,
-        role: input.role || 'crew',
-        is_lead: input.is_lead || false,
-        scheduled_start: input.scheduled_start,
-        scheduled_end: input.scheduled_end,
-      })
-      .select(`
-        *,
-        profile:profiles(id, full_name, email, phone, avatar_url)
-      `)
-      .single()
-
-    if (error) throw error
-    return data
-  }
-
-  static async removeCrew(jobId: string, profileId: string): Promise<void> {
-    const supabase = await createClient()
-
-    const { error } = await supabase
-      .from('job_crew')
-      .delete()
-      .eq('job_id', jobId)
-      .eq('profile_id', profileId)
-
-    if (error) throw error
-  }
-
-  static async updateCrew(crewId: string, updates: Partial<JobCrew>): Promise<JobCrew> {
-    const supabase = await createClient()
-
-    const { data, error } = await supabase
-      .from('job_crew')
-      .update(updates)
-      .eq('id', crewId)
-      .select(`
-        *,
-        profile:profiles(id, full_name, email, phone, avatar_url)
-      `)
-      .single()
-
-    if (error) throw error
-    return data
-  }
-
-  static async clockInOut(input: ClockInOutInput): Promise<JobCrew> {
-    const supabase = await createClient()
-
-    const timestamp = input.timestamp || new Date().toISOString()
-
-    const updates = input.action === 'clock_in'
-      ? { clock_in_at: timestamp }
-      : { clock_out_at: timestamp }
-
-    const { data, error } = await supabase
-      .from('job_crew')
-      .update(updates)
-      .eq('id', input.job_crew_id)
-      .select(`
-        *,
-        profile:profiles(id, full_name, email, phone, avatar_url)
-      `)
-      .single()
-
-    if (error) throw error
-    return data
-  }
-
-  static async getAvailableCrew(date: string): Promise<Array<{ id: string; full_name: string; email: string; role: string; is_available: boolean }>> {
-    const supabase = await createClient()
-
-    // Get all crew members
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, full_name, email, role')
-      .in('role', ['technician', 'estimator', 'admin', 'tenant_owner'])
-
-    // Get jobs on this date
-    const { data: jobs } = await supabase
-      .from('jobs')
-      .select('crew:job_crew(profile_id)')
-      .eq('scheduled_start_date', date)
-      .neq('status', 'cancelled')
-
-    const assignedIds = new Set(
-      jobs?.flatMap(j => (j.crew as { profile_id: string }[])?.map(c => c.profile_id) || [])
-    )
-
-    return profiles?.map(p => ({
-      ...p,
-      is_available: !assignedIds.has(p.id),
-    })) || []
-  }
-
-  // ========== CHANGE ORDERS ==========
-
-  static async addChangeOrder(jobId: string, input: AddChangeOrderInput): Promise<JobChangeOrder> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    // Generate change order number
-    const { data: existing } = await supabase
-      .from('job_change_orders')
-      .select('change_order_number')
-      .eq('job_id', jobId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-
-    const nextNum = existing?.length
-      ? parseInt(existing[0].change_order_number.split('-').pop() || '0') + 1
-      : 1
-
-    const { data: job } = await supabase
-      .from('jobs')
-      .select('job_number')
-      .eq('id', jobId)
-      .single()
-
-    const coNumber = `${job?.job_number}-CO${nextNum.toString().padStart(2, '0')}`
-
-    const { data, error } = await supabase
-      .from('job_change_orders')
-      .insert({
-        job_id: jobId,
-        change_order_number: coNumber,
-        description: input.description,
-        reason: input.reason,
-        amount: input.amount,
-        status: 'pending',
-        created_by: user?.id,
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  }
-
-  static async approveChangeOrder(id: string): Promise<JobChangeOrder> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    const { data, error } = await supabase
-      .from('job_change_orders')
-      .update({
-        status: 'approved',
-        approved_by: user?.id,
-        approved_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  }
-
-  static async rejectChangeOrder(id: string): Promise<JobChangeOrder> {
-    const supabase = await createClient()
-
-    const { data, error } = await supabase
-      .from('job_change_orders')
-      .update({ status: 'rejected' })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  }
-
-  // ========== NOTES ==========
-
-  static async addNote(jobId: string, input: AddJobNoteInput): Promise<JobNote> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    const { data, error } = await supabase
-      .from('job_notes')
-      .insert({
-        job_id: jobId,
-        note_type: input.note_type,
-        content: input.content,
-        attachments: input.attachments || [],
-        is_internal: input.is_internal ?? true,
-        created_by: user?.id,
-      })
-      .select(`
-        *,
-        author:profiles(id, full_name)
-      `)
-      .single()
-
-    if (error) throw error
-    return {
-      ...data,
-      author: Array.isArray(data.author) ? data.author[0] : data.author,
-    }
-  }
-
-  static async deleteNote(id: string): Promise<void> {
-    const supabase = await createClient()
-
-    const { error } = await supabase
-      .from('job_notes')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-  }
-
-  // ========== EQUIPMENT ==========
-
-  static async addEquipment(jobId: string, input: AddJobEquipmentInput): Promise<JobEquipment> {
-    const supabase = await createClient()
-
-    // Calculate rental days and total if rental
-    let rental_days: number | undefined
-    let rental_total: number | undefined
-
-    if (input.is_rental && input.rental_start_date && input.rental_end_date && input.rental_rate_daily) {
-      const start = new Date(input.rental_start_date)
-      const end = new Date(input.rental_end_date)
-      rental_days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
-      rental_total = rental_days * input.rental_rate_daily * (input.quantity || 1)
-    }
-
-    const { data, error } = await supabase
-      .from('job_equipment')
-      .insert({
-        job_id: jobId,
-        equipment_name: input.equipment_name,
-        equipment_type: input.equipment_type,
-        quantity: input.quantity || 1,
-        is_rental: input.is_rental || false,
-        rental_rate_daily: input.rental_rate_daily,
-        rental_start_date: input.rental_start_date,
-        rental_end_date: input.rental_end_date,
-        rental_days,
-        rental_total,
-        notes: input.notes,
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  }
-
-  static async updateEquipmentStatus(id: string, status: string): Promise<JobEquipment> {
-    const supabase = await createClient()
-
-    const { data, error } = await supabase
-      .from('job_equipment')
-      .update({ status })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  }
-
-  static async deleteEquipment(id: string): Promise<void> {
-    const supabase = await createClient()
-
-    const { error } = await supabase
-      .from('job_equipment')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-  }
-
-  // ========== MATERIALS ==========
-
-  static async addMaterial(jobId: string, input: AddJobMaterialInput): Promise<JobMaterial> {
-    const supabase = await createClient()
-
-    const { data, error } = await supabase
-      .from('job_materials')
-      .insert({
-        job_id: jobId,
-        material_name: input.material_name,
-        material_type: input.material_type,
-        quantity_estimated: input.quantity_estimated,
-        unit: input.unit,
-        unit_cost: input.unit_cost,
-        total_cost: input.quantity_estimated && input.unit_cost
-          ? input.quantity_estimated * input.unit_cost
-          : undefined,
-        notes: input.notes,
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  }
-
-  static async updateMaterialUsage(id: string, quantity_used: number): Promise<JobMaterial> {
-    const supabase = await createClient()
-
-    // Get the material to calculate total cost
-    const { data: material } = await supabase
-      .from('job_materials')
-      .select('unit_cost')
-      .eq('id', id)
-      .single()
-
-    const total_cost = material?.unit_cost ? quantity_used * material.unit_cost : undefined
-
-    const { data, error } = await supabase
-      .from('job_materials')
-      .update({ quantity_used, total_cost })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  }
-
-  static async deleteMaterial(id: string): Promise<void> {
-    const supabase = await createClient()
-
-    const { error } = await supabase
-      .from('job_materials')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-  }
-
-  // ========== DISPOSAL ==========
-
-  static async addDisposal(jobId: string, input: AddJobDisposalInput): Promise<JobDisposal> {
-    const supabase = await createClient()
-
-    const { data, error } = await supabase
-      .from('job_disposal')
-      .insert({
-        job_id: jobId,
-        hazard_type: input.hazard_type,
-        disposal_type: input.disposal_type,
-        quantity: input.quantity,
-        unit: input.unit,
-        manifest_number: input.manifest_number,
-        manifest_date: input.manifest_date,
-        disposal_facility_name: input.disposal_facility_name,
-        disposal_facility_address: input.disposal_facility_address,
-        disposal_cost: input.disposal_cost,
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  }
-
-  static async updateDisposal(id: string, updates: Partial<AddJobDisposalInput>): Promise<JobDisposal> {
-    const supabase = await createClient()
-
-    const { data, error } = await supabase
-      .from('job_disposal')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  }
-
-  static async deleteDisposal(id: string): Promise<void> {
-    const supabase = await createClient()
-
-    const { error } = await supabase
-      .from('job_disposal')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-  }
-
   // ========== REMINDERS ==========
 
   static async scheduleReminders(jobId: string): Promise<void> {
@@ -789,5 +381,104 @@ export class JobsService {
   static async rescheduleReminders(jobId: string): Promise<void> {
     await JobsService.cancelReminders(jobId)
     await JobsService.scheduleReminders(jobId)
+  }
+
+  // ========== BACKWARD COMPATIBILITY ==========
+  // These methods delegate to the new services for backward compatibility
+  // They can be removed once all callers are updated
+
+  static async assignCrew(...args: Parameters<typeof import('./job-crew-service').JobCrewService.assign>) {
+    const { JobCrewService } = await import('./job-crew-service')
+    return JobCrewService.assign(...args)
+  }
+
+  static async removeCrew(...args: Parameters<typeof import('./job-crew-service').JobCrewService.remove>) {
+    const { JobCrewService } = await import('./job-crew-service')
+    return JobCrewService.remove(...args)
+  }
+
+  static async updateCrew(...args: Parameters<typeof import('./job-crew-service').JobCrewService.update>) {
+    const { JobCrewService } = await import('./job-crew-service')
+    return JobCrewService.update(...args)
+  }
+
+  static async clockInOut(...args: Parameters<typeof import('./job-crew-service').JobCrewService.clockInOut>) {
+    const { JobCrewService } = await import('./job-crew-service')
+    return JobCrewService.clockInOut(...args)
+  }
+
+  static async getAvailableCrew(...args: Parameters<typeof import('./job-crew-service').JobCrewService.getAvailable>) {
+    const { JobCrewService } = await import('./job-crew-service')
+    return JobCrewService.getAvailable(...args)
+  }
+
+  static async addChangeOrder(...args: Parameters<typeof import('./job-change-orders-service').JobChangeOrdersService.add>) {
+    const { JobChangeOrdersService } = await import('./job-change-orders-service')
+    return JobChangeOrdersService.add(...args)
+  }
+
+  static async approveChangeOrder(...args: Parameters<typeof import('./job-change-orders-service').JobChangeOrdersService.approve>) {
+    const { JobChangeOrdersService } = await import('./job-change-orders-service')
+    return JobChangeOrdersService.approve(...args)
+  }
+
+  static async rejectChangeOrder(...args: Parameters<typeof import('./job-change-orders-service').JobChangeOrdersService.reject>) {
+    const { JobChangeOrdersService } = await import('./job-change-orders-service')
+    return JobChangeOrdersService.reject(...args)
+  }
+
+  static async addNote(...args: Parameters<typeof import('./job-notes-service').JobNotesService.add>) {
+    const { JobNotesService } = await import('./job-notes-service')
+    return JobNotesService.add(...args)
+  }
+
+  static async deleteNote(...args: Parameters<typeof import('./job-notes-service').JobNotesService.remove>) {
+    const { JobNotesService } = await import('./job-notes-service')
+    return JobNotesService.remove(...args)
+  }
+
+  static async addEquipment(...args: Parameters<typeof import('./job-resources-service').JobResourcesService.addEquipment>) {
+    const { JobResourcesService } = await import('./job-resources-service')
+    return JobResourcesService.addEquipment(...args)
+  }
+
+  static async updateEquipmentStatus(...args: Parameters<typeof import('./job-resources-service').JobResourcesService.updateEquipmentStatus>) {
+    const { JobResourcesService } = await import('./job-resources-service')
+    return JobResourcesService.updateEquipmentStatus(...args)
+  }
+
+  static async deleteEquipment(...args: Parameters<typeof import('./job-resources-service').JobResourcesService.deleteEquipment>) {
+    const { JobResourcesService } = await import('./job-resources-service')
+    return JobResourcesService.deleteEquipment(...args)
+  }
+
+  static async addMaterial(...args: Parameters<typeof import('./job-resources-service').JobResourcesService.addMaterial>) {
+    const { JobResourcesService } = await import('./job-resources-service')
+    return JobResourcesService.addMaterial(...args)
+  }
+
+  static async updateMaterialUsage(...args: Parameters<typeof import('./job-resources-service').JobResourcesService.updateMaterialUsage>) {
+    const { JobResourcesService } = await import('./job-resources-service')
+    return JobResourcesService.updateMaterialUsage(...args)
+  }
+
+  static async deleteMaterial(...args: Parameters<typeof import('./job-resources-service').JobResourcesService.deleteMaterial>) {
+    const { JobResourcesService } = await import('./job-resources-service')
+    return JobResourcesService.deleteMaterial(...args)
+  }
+
+  static async addDisposal(...args: Parameters<typeof import('./job-resources-service').JobResourcesService.addDisposal>) {
+    const { JobResourcesService } = await import('./job-resources-service')
+    return JobResourcesService.addDisposal(...args)
+  }
+
+  static async updateDisposal(...args: Parameters<typeof import('./job-resources-service').JobResourcesService.updateDisposal>) {
+    const { JobResourcesService } = await import('./job-resources-service')
+    return JobResourcesService.updateDisposal(...args)
+  }
+
+  static async deleteDisposal(...args: Parameters<typeof import('./job-resources-service').JobResourcesService.deleteDisposal>) {
+    const { JobResourcesService } = await import('./job-resources-service')
+    return JobResourcesService.deleteDisposal(...args)
   }
 }
