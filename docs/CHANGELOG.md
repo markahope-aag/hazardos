@@ -9,13 +9,93 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### In Progress
+- Test coverage expansion (target: 80%+ overall coverage)
+- Component testing suite
+- Integration test workflows
+
 ### Planned
-- Mobile survey wizard UI
+- Mobile survey wizard UI enhancements
 - User registration and invitation system
-- Estimate builder interface
-- Job scheduling calendar
+- Advanced estimate builder interface
 - Equipment tracking
-- Customer portal
+- Customer portal improvements
+
+---
+
+## [0.1.1] - 2026-02-01
+
+### Added - API Standardization & Testing
+
+#### Comprehensive API Test Suite
+- Added 10 API test files covering critical endpoints
+- Customers API tests (15 test cases)
+- Jobs API tests (11 test cases for listing/creation, 9 for operations)
+- Invoices API tests (8 test cases)
+- Estimates API tests (8 test cases)
+- Proposals API tests (14 test cases)
+- Analytics API tests (8 test cases)
+- Settings/Pricing API tests (6 test cases)
+- Integrations API tests (5 test cases)
+- Total: 84+ comprehensive test cases
+
+#### API Standardization
+- Standardized error handling across all API routes
+- Consistent validation using Zod schemas
+- Secure error responses (no internal details exposed)
+- Unified authentication checks
+- Multi-tenant authorization enforcement
+- Input sanitization and validation
+
+#### Code Quality Improvements
+- Updated component architecture with proper TypeScript types
+- Improved validation schemas across forms
+- Enhanced Supabase client configuration
+- Updated middleware and rate limiting
+- Refactored survey store for better state management
+
+### Changed
+
+#### API Error Handling
+- All API routes now return consistent error response structure:
+  ```json
+  {
+    "error": "User-friendly error message",
+    "type": "ERROR_TYPE"
+  }
+  ```
+- Error types: UNAUTHORIZED, FORBIDDEN, VALIDATION_ERROR, NOT_FOUND, INTERNAL_ERROR
+- Internal error details logged server-side only
+- Database errors sanitized for production safety
+
+#### Component Updates
+- CustomerForm - Enhanced validation and error handling
+- DeleteCustomerDialog - Improved confirmation flow
+- SimpleSiteSurveyForm - Updated validation
+- SurveyWizard - Better state management
+- PhotoCapture - Improved error handling
+- Various dashboard components optimized
+
+#### Service Layer Updates
+- Updated Supabase client initialization
+- Enhanced photo upload service with compression
+- Improved survey service with validation
+- Updated database service layer
+- Enhanced middleware with rate limiting
+
+### Fixed
+- TypeScript compilation errors in test files
+- Validation schema edge cases
+- Component prop type mismatches
+- Service layer error handling
+- Database query optimization
+
+### Security
+- Implemented secure error handling (no stack traces in responses)
+- Enhanced input validation across all API routes
+- Rate limiting on all public endpoints
+- Multi-tenant data isolation verified
+- Authentication checks standardized
 
 ---
 

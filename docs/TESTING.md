@@ -725,15 +725,126 @@ Object.defineProperty(window, 'matchMedia', {
 
 ## Test Coverage
 
+### Current Test Suite
+
+**API Route Tests** (10 test files):
+- `test/api/customers.test.ts` - Customer management API
+- `test/api/jobs.test.ts` - Job listing and creation
+- `test/api/jobs-id.test.ts` - Job operations by ID
+- `test/api/invoices.test.ts` - Invoice management
+- `test/api/estimates.test.ts` - Estimate creation and listing
+- `test/api/proposals.test.ts` - Proposal management
+- `test/api/proposals-id.test.ts` - Proposal operations
+- `test/api/analytics.test.ts` - Analytics endpoints
+- `test/api/settings-pricing.test.ts` - Pricing configuration
+- `test/api/integrations.test.ts` - External integrations
+
 ### Coverage Goals
 
-| Category | Target | Current |
-|----------|--------|---------|
-| **Overall** | 80% | In Progress |
-| **Critical Paths** | 100% | In Progress |
-| **API Routes** | 90% | In Progress |
-| **Components** | 70% | In Progress |
-| **Utilities** | 100% | In Progress |
+| Category | Target | Current | Status |
+|----------|--------|---------|--------|
+| **Overall** | 80% | ~12% | In Progress |
+| **Critical Paths** | 100% | ~15% | In Progress |
+| **API Routes** | 90% | ~22% (10/46) | In Progress |
+| **Components** | 70% | ~5% | Pending |
+| **Utilities** | 100% | ~15% | In Progress |
+
+### API Test Suite Details
+
+#### Test Coverage by Route
+
+**Customers API** (`test/api/customers.test.ts` - 15 test cases):
+- GET /api/customers - List, search, filter, pagination
+- POST /api/customers - Create with validation
+- Authentication and authorization
+- Input sanitization and security
+- Error handling (database errors, malformed JSON)
+
+**Jobs API** (`test/api/jobs.test.ts` - 11 test cases):
+- GET /api/jobs - List jobs with filtering
+- POST /api/jobs - Create new jobs
+- Status filtering and pagination
+- Secure error handling
+- Foreign key validation
+
+**Jobs [id] API** (`test/api/jobs-id.test.ts` - 9 test cases):
+- GET /api/jobs/[id] - Retrieve job by ID
+- PATCH /api/jobs/[id] - Update job
+- DELETE /api/jobs/[id] - Delete job
+- Not found scenarios
+- Permission checks
+
+**Invoices API** (`test/api/invoices.test.ts` - 8 test cases):
+- GET /api/invoices - List with pagination
+- POST /api/invoices - Create invoices
+- Status filtering
+- Database constraint handling
+- Complex query support
+
+**Estimates API** (`test/api/estimates.test.ts` - 8 test cases):
+- GET /api/estimates - List estimates
+- POST /api/estimates - Create estimates
+- Validation and error handling
+- Foreign key constraints
+- Search functionality
+
+**Proposals API** (`test/api/proposals.test.ts` - 8 test cases):
+- GET /api/proposals - List proposals
+- POST /api/proposals - Create proposals
+- Estimate linkage validation
+- RPC function calls
+- Malformed input handling
+
+**Proposals [id] API** (`test/api/proposals-id.test.ts` - 6 test cases):
+- GET /api/proposals/[id] - Retrieve proposal
+- PATCH /api/proposals/[id] - Update proposal
+- Status transitions
+- Not found scenarios
+
+**Analytics API** (`test/api/analytics.test.ts` - 8 test cases):
+- GET /api/analytics/jobs-by-status - Job distribution
+- GET /api/analytics/revenue - Revenue analytics
+- Date range filtering
+- RPC function error handling
+- Permission-based access control
+
+**Settings Pricing API** (`test/api/settings-pricing.test.ts` - 6 test cases):
+- GET /api/settings/pricing - Retrieve pricing configuration
+- PATCH /api/settings/pricing - Update pricing
+- Validation of pricing data
+- Multi-tenant isolation
+
+**Integrations API** (`test/api/integrations.test.ts` - 5 test cases):
+- QuickBooks OAuth flow
+- Sync operations
+- Connection status
+- Error handling
+
+### Test Quality Standards
+
+All API tests follow these security and quality standards:
+
+**Security Testing**:
+- No internal error details exposed to clients
+- Generic error messages for production safety
+- Authentication required for all protected routes
+- Authorization checks for multi-tenant isolation
+- Input validation with Zod schemas
+- SQL injection prevention via parameterized queries
+
+**Error Handling Testing**:
+- 401 Unauthorized for missing authentication
+- 403 Forbidden for insufficient permissions
+- 400 Bad Request for validation errors
+- 404 Not Found for missing resources
+- 500 Internal Server Error for server issues
+- Error responses include error type and user-friendly message
+
+**Test Structure**:
+- Descriptive test names following "should [expected behavior] when [condition]" pattern
+- AAA pattern (Arrange, Act, Assert)
+- Proper mock cleanup with `beforeEach(() => vi.clearAllMocks())`
+- Comprehensive edge case coverage
 
 ### Generating Coverage Reports
 
@@ -743,6 +854,12 @@ npm run test:coverage
 
 # View coverage in browser
 open coverage/index.html
+
+# Run specific test file
+npm run test test/api/customers.test.ts
+
+# Run tests in watch mode during development
+npm run test
 ```
 
 ### Coverage Report Locations
@@ -753,6 +870,22 @@ coverage/
 ├── lcov.info           # LCOV format for CI tools
 └── coverage-summary.json
 ```
+
+### Test Coverage Analysis Script
+
+The project includes an automated coverage analysis tool:
+
+```bash
+# Analyze test coverage and generate report
+node scripts/analyze-test-coverage.js
+```
+
+This script:
+- Scans all API routes, components, services, and hooks
+- Compares against existing test files
+- Generates detailed coverage report
+- Identifies critical gaps
+- Provides prioritized recommendations
 
 ### Critical Coverage Areas
 
