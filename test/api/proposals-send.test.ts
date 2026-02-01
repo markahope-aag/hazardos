@@ -366,11 +366,10 @@ describe('Proposals Send API', () => {
         if (table === 'proposals') {
           return {
             select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: mockProposal,
-                  error: null
-                })
+              eq: vi.fn().mockReturnThis(),
+              single: vi.fn().mockResolvedValue({
+                data: mockProposal,
+                error: null
               })
             }),
             update: vi.fn().mockReturnValue({
