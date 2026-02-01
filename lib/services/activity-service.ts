@@ -159,4 +159,38 @@ export const Activity = {
       new_values: amount ? { amount } : undefined,
     });
   },
+
+  async note(
+    entityType: string,
+    entityId: string,
+    entityName: string | undefined,
+    noteText: string
+  ): Promise<void> {
+    await logActivity({
+      action: 'note',
+      entity_type: entityType,
+      entity_id: entityId,
+      entity_name: entityName,
+      description: noteText,
+    });
+  },
+
+  async call(
+    entityType: string,
+    entityId: string,
+    entityName: string | undefined,
+    callDetails: { direction: 'inbound' | 'outbound'; duration?: number; notes?: string }
+  ): Promise<void> {
+    await logActivity({
+      action: 'call',
+      entity_type: entityType,
+      entity_id: entityId,
+      entity_name: entityName,
+      description: callDetails.notes,
+      new_values: {
+        direction: callDetails.direction,
+        duration: callDetails.duration,
+      },
+    });
+  },
 };

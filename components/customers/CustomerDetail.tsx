@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ArrowLeft, Edit, ChevronDown, Trash2 } from 'lucide-react'
+import { ArrowLeft, Edit, ChevronDown, Trash2, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import CustomerInfoCard from './CustomerInfoCard'
 import CustomerSurveysList from './CustomerSurveysList'
@@ -16,6 +16,8 @@ import CustomerActivityFeed from './CustomerActivityFeed'
 import CustomerStatusBadge from './CustomerStatusBadge'
 import EditCustomerModal from './EditCustomerModal'
 import DeleteCustomerDialog from './DeleteCustomerDialog'
+import { ContactsList } from '@/components/contacts/contacts-list'
+import { AddActivityDialog } from '@/components/activity/add-activity-dialog'
 import { useUpdateCustomerStatus } from '@/lib/hooks/use-customers'
 import { CUSTOMER_STATUS_OPTIONS } from '@/lib/validations/customer'
 import type { Customer, CustomerStatus } from '@/types/database'
@@ -28,7 +30,9 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
   const router = useRouter()
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showActivityDialog, setShowActivityDialog] = useState(false)
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
+  const [activityRefreshKey, setActivityRefreshKey] = useState(0)
   const updateStatusMutation = useUpdateCustomerStatus()
 
   const handleBack = () => {
@@ -65,6 +69,10 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
           </Button>
         </div>
         <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={() => setShowActivityDialog(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Log Activity
+          </Button>
           <Button variant="outline" onClick={() => setShowEditModal(true)}>
             <Edit className="mr-2 h-4 w-4" />
             Edit
@@ -125,6 +133,9 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
       {/* Customer Information */}
       <CustomerInfoCard customer={customer} />
 
+      {/* Contacts */}
+      <ContactsList customerId={customer.id} />
+
       {/* Notes */}
       {customer.notes && (
         <div className="bg-white border rounded-lg p-6">
@@ -153,6 +164,15 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
         open={showDeleteDialog}
         onClose={() => setShowDeleteDialog(false)}
         onSuccess={handleDeleteSuccess}
+      />
+
+      <AddActivityDialog
+        open={showActivityDialog}
+        onClose={() => setShowActivityDialog(false)}
+        onSuccess={() => setActivityRefreshKey(k => k + 1)}
+        entityType="customer"
+        entityId={customer.id}
+        entityName={customer.name}
       />
     </div>
   )
