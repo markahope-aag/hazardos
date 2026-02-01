@@ -85,10 +85,12 @@ export default function CustomerForm({
             <Input
               id="name"
               {...register('name')}
-              className={errors.name ? 'border-red-500' : ''}
+              aria-required="true"
+              aria-invalid={!!errors.name}
+              aria-describedby={errors.name ? 'name-error' : undefined}
             />
             {errors.name && (
-              <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>
+              <p id="name-error" className="text-sm text-red-600 mt-1" role="alert">{errors.name.message}</p>
             )}
           </div>
 
@@ -97,10 +99,11 @@ export default function CustomerForm({
             <Input
               id="company_name"
               {...register('company_name')}
-              className={errors.company_name ? 'border-red-500' : ''}
+              aria-invalid={!!errors.company_name}
+              aria-describedby={errors.company_name ? 'company-name-error' : undefined}
             />
             {errors.company_name && (
-              <p className="text-sm text-red-600 mt-1">{errors.company_name.message}</p>
+              <p id="company-name-error" className="text-sm text-red-600 mt-1" role="alert">{errors.company_name.message}</p>
             )}
           </div>
         </div>
@@ -112,10 +115,11 @@ export default function CustomerForm({
               id="email"
               type="email"
               {...register('email')}
-              className={errors.email ? 'border-red-500' : ''}
+              aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? 'email-error' : undefined}
             />
             {errors.email && (
-              <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>
+              <p id="email-error" className="text-sm text-red-600 mt-1" role="alert">{errors.email.message}</p>
             )}
           </div>
 
@@ -125,10 +129,11 @@ export default function CustomerForm({
               id="phone"
               type="tel"
               {...register('phone')}
-              className={errors.phone ? 'border-red-500' : ''}
+              aria-invalid={!!errors.phone}
+              aria-describedby={errors.phone ? 'phone-error' : undefined}
             />
             {errors.phone && (
-              <p className="text-sm text-red-600 mt-1">{errors.phone.message}</p>
+              <p id="phone-error" className="text-sm text-red-600 mt-1" role="alert">{errors.phone.message}</p>
             )}
           </div>
         </div>
@@ -216,7 +221,12 @@ export default function CustomerForm({
           <div>
             <Label htmlFor="status">Status *</Label>
             <Select value={watchedStatus} onValueChange={(value: string) => setValue('status', value as CustomerStatus)}>
-              <SelectTrigger className={errors.status ? 'border-red-500' : ''}>
+              <SelectTrigger
+                aria-required="true"
+                aria-invalid={!!errors.status}
+                aria-describedby={errors.status ? 'status-error' : undefined}
+                className={errors.status ? 'border-red-500' : ''}
+              >
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
@@ -231,7 +241,7 @@ export default function CustomerForm({
               </SelectContent>
             </Select>
             {errors.status && (
-              <p className="text-sm text-red-600 mt-1">{errors.status.message}</p>
+              <p id="status-error" className="text-sm text-red-600 mt-1" role="alert">{errors.status.message}</p>
             )}
           </div>
 

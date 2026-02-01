@@ -23,11 +23,15 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
-    <div className={cn(
-      'flex flex-col items-center justify-center py-12 px-4 text-center',
-      className
-    )}>
-      <div className="p-4 bg-muted rounded-full mb-4">
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center py-12 px-4 text-center',
+        className
+      )}
+      role="status"
+      aria-label={title}
+    >
+      <div className="p-4 bg-muted rounded-full mb-4" aria-hidden="true">
         <Icon className="h-8 w-8 text-muted-foreground" />
       </div>
       <h3 className="text-lg font-semibold mb-2">{title}</h3>
@@ -36,13 +40,13 @@ export function EmptyState({
         action.href ? (
           <Button asChild>
             <Link href={action.href}>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
               {action.label}
             </Link>
           </Button>
         ) : (
           <Button onClick={action.onClick}>
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
             {action.label}
           </Button>
         )
