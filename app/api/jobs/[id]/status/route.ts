@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { JobsService } from '@/lib/services/jobs-service'
 import type { JobStatus } from '@/types/jobs'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
 
 const validStatuses: JobStatus[] = [
   'scheduled',
@@ -23,28 +23,22 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const { id } = await params
     const { status } = await request.json()
 
-    if (!status) {
-      return NextResponse.json({ error: 'status is required' }, { status: 400 })
-    }
+    validateRequired(status, 'status')
 
     if (!validStatuses.includes(status)) {
-      return NextResponse.json(
-        { error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` },
-        { status: 400 }
-      )
+      throw new SecureError('VALIDATION_ERROR', `Invalid status. Must be one of: ${validStatuses.join(', ')}`)
     }
 
     const job = await JobsService.updateStatus(id, status)
 
     return NextResponse.json(job)
   } catch (error) {
-    console.error('Job status error:', error)
     return createSecureErrorResponse(error)
   }
 }

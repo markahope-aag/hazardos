@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { JobsService } from '@/lib/services/jobs-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
 
 export async function POST(
   request: NextRequest,
@@ -12,27 +12,22 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const { id } = await _params
     const body = await request.json()
 
-    if (!body.hazard_type) {
-      return NextResponse.json({ error: 'hazard_type is required' }, { status: 400 })
-    }
+    validateRequired(body.hazard_type, 'hazard_type')
     if (body.quantity === undefined || body.quantity === null) {
-      return NextResponse.json({ error: 'quantity is required' }, { status: 400 })
+      throw new SecureError('VALIDATION_ERROR', 'quantity is required')
     }
-    if (!body.unit) {
-      return NextResponse.json({ error: 'unit is required' }, { status: 400 })
-    }
+    validateRequired(body.unit, 'unit')
 
     const disposal = await JobsService.addDisposal(id, body)
 
     return NextResponse.json(disposal, { status: 201 })
   } catch (error) {
-    console.error('Add disposal error:', error)
     return createSecureErrorResponse(error)
   }
 }
@@ -46,21 +41,18 @@ export async function PATCH(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const body = await request.json()
     const { disposal_id, ...updates } = body
 
-    if (!disposal_id) {
-      return NextResponse.json({ error: 'disposal_id is required' }, { status: 400 })
-    }
+    validateRequired(disposal_id, 'disposal_id')
 
     const disposal = await JobsService.updateDisposal(disposal_id, updates)
 
     return NextResponse.json(disposal)
   } catch (error) {
-    console.error('Update disposal error:', error)
     return createSecureErrorResponse(error)
   }
 }
@@ -74,20 +66,17 @@ export async function DELETE(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const { disposal_id } = await request.json()
 
-    if (!disposal_id) {
-      return NextResponse.json({ error: 'disposal_id is required' }, { status: 400 })
-    }
+    validateRequired(disposal_id, 'disposal_id')
 
     await JobsService.deleteDisposal(disposal_id)
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Delete disposal error:', error)
     return createSecureErrorResponse(error)
   }
 }

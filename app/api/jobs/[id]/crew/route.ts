@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { JobsService } from '@/lib/services/jobs-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
 
 export async function POST(
   request: NextRequest,
@@ -12,15 +12,13 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const { id } = await params
     const body = await request.json()
 
-    if (!body.profile_id) {
-      return NextResponse.json({ error: 'profile_id is required' }, { status: 400 })
-    }
+    validateRequired(body.profile_id, 'profile_id')
 
     const crew = await JobsService.assignCrew({
       job_id: id,
@@ -29,13 +27,9 @@ export async function POST(
 
     return NextResponse.json(crew, { status: 201 })
   } catch (error) {
-    console.error('Assign crew error:', error)
     // Check for duplicate key error
     if (error instanceof Error && error.message.includes('duplicate')) {
-      return NextResponse.json(
-        { error: 'This crew member is already assigned to this job' },
-        { status: 400 }
-      )
+      return createSecureErrorResponse(new SecureError('VALIDATION_ERROR', 'This crew member is already assigned to this job'))
     }
     return createSecureErrorResponse(error)
   }
@@ -50,21 +44,18 @@ export async function DELETE(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const { id } = await params
     const { profile_id } = await request.json()
 
-    if (!profile_id) {
-      return NextResponse.json({ error: 'profile_id is required' }, { status: 400 })
-    }
+    validateRequired(profile_id, 'profile_id')
 
     await JobsService.removeCrew(id, profile_id)
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Remove crew error:', error)
     return createSecureErrorResponse(error)
   }
 }

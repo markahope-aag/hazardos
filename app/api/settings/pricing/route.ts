@@ -9,7 +9,7 @@ export async function GET() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Fetch all pricing data in parallel
@@ -38,8 +38,7 @@ export async function GET() {
       settings: settingsResult.data || null,
     })
   } catch (error) {
-    console.error('Error fetching pricing data:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -50,7 +49,7 @@ export async function PATCH(request: NextRequest) {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Check admin role
@@ -61,7 +60,7 @@ export async function PATCH(request: NextRequest) {
       .single()
 
     if (!profile || !['admin', 'tenant_owner'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      throw new SecureError('FORBIDDEN')
     }
 
     const body = await request.json()
@@ -79,13 +78,11 @@ export async function PATCH(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Error updating pricing settings:', error)
-      return createSecureErrorResponse(error)
+      throw error
     }
 
     return NextResponse.json(settings)
   } catch (error) {
-    console.error('Error updating pricing settings:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }
