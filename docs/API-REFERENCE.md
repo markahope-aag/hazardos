@@ -717,7 +717,312 @@ Create a custom SMS template (admin only).
 
 ---
 
+## 💳 Billing API
+
+### `POST /api/billing/checkout`
+
+Create a Stripe checkout session for subscription signup.
+
+**Request Body:**
+```json
+{
+  "planId": "price_1234567890",
+  "successUrl": "https://hazardos.app/success",
+  "cancelUrl": "https://hazardos.app/cancel"
+}
+```
+
+**Required Fields:**
+- `planId` (string) - Stripe price ID
+- `successUrl` (string) - Redirect URL on success
+- `cancelUrl` (string) - Redirect URL on cancel
+
+**Response:**
+```json
+{
+  "sessionId": "cs_test_1234567890",
+  "url": "https://checkout.stripe.com/pay/cs_test_1234567890"
+}
+```
+
+**Status Codes:**
+- `200` - Checkout session created
+- `400` - Invalid plan ID
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
+### `GET /api/billing/subscription`
+
+Get current organization subscription status.
+
+**Response:**
+```json
+{
+  "status": "active",
+  "planSlug": "professional",
+  "currentPeriodEnd": "2026-03-01T00:00:00.000Z",
+  "cancelAtPeriodEnd": false,
+  "stripeCustomerId": "cus_1234567890",
+  "stripeSubscriptionId": "sub_1234567890"
+}
+```
+
+**Status Codes:**
+- `200` - Success
+- `401` - Unauthorized
+- `404` - No active subscription
+- `500` - Server error
+
+---
+
+### `POST /api/billing/portal`
+
+Create a Stripe customer portal session for subscription management.
+
+**Request Body:**
+```json
+{
+  "returnUrl": "https://hazardos.app/settings/billing"
+}
+```
+
+**Response:**
+```json
+{
+  "url": "https://billing.stripe.com/session/1234567890"
+}
+```
+
+**Status Codes:**
+- `200` - Portal session created
+- `401` - Unauthorized
+- `404` - No Stripe customer
+- `500` - Server error
+
+---
+
+### `GET /api/billing/plans`
+
+Get available subscription plans.
+
+**Response:**
+```json
+[
+  {
+    "id": "starter",
+    "name": "Starter",
+    "description": "Perfect for small teams",
+    "price": 49,
+    "interval": "month",
+    "stripePriceId": "price_1234567890",
+    "features": [
+      "Up to 5 users",
+      "100 jobs per month",
+      "Basic reporting"
+    ]
+  },
+  {
+    "id": "professional",
+    "name": "Professional",
+    "description": "For growing businesses",
+    "price": 99,
+    "interval": "month",
+    "stripePriceId": "price_0987654321",
+    "features": [
+      "Up to 15 users",
+      "Unlimited jobs",
+      "Advanced reporting",
+      "QuickBooks integration"
+    ]
+  }
+]
+```
+
+**Status Codes:**
+- `200` - Success
+- `500` - Server error
+
+---
+
+### `GET /api/billing/features`
+
+Get feature availability for current organization.
+
+**Response:**
+```json
+{
+  "quickbooks": true,
+  "sms": true,
+  "aiEstimates": false,
+  "advancedReporting": true,
+  "maxUsers": 15,
+  "maxJobs": -1
+}
+```
+
+**Status Codes:**
+- `200` - Success
+- `401` - Unauthorized
+- `500` - Server error
+
+---
+
+## 🤖 AI API
+
+### `POST /api/ai/estimate`
+
+Generate AI-powered estimate from site survey data.
+
+**Request Body:**
+```json
+{
+  "surveyId": "550e8400-e29b-41d4-a716-446655440000",
+  "options": {
+    "includeContingency": true,
+    "contingencyPercent": 10
+  }
+}
+```
+
+**Required Fields:**
+- `surveyId` (UUID) - Site survey ID
+
+**Optional Fields:**
+- `options` (object) - AI configuration options
+  - `includeContingency` (boolean) - Add contingency buffer
+  - `contingencyPercent` (number) - Contingency percentage
+
+**Response:**
+```json
+{
+  "estimateId": "550e8400-e29b-41d4-a716-446655440001",
+  "totalCost": 5250.00,
+  "laborHours": 40,
+  "confidence": 0.87,
+  "lineItems": [
+    {
+      "category": "labor",
+      "description": "Lead abatement technician",
+      "quantity": 40,
+      "unit": "hours",
+      "rate": 55.00,
+      "amount": 2200.00
+    }
+  ],
+  "aiInsights": {
+    "complexity": "medium",
+    "riskFactors": ["confined space", "high contamination"],
+    "recommendations": ["Additional PPE recommended", "Consider air quality monitoring"]
+  }
+}
+```
+
+**Status Codes:**
+- `200` - Estimate generated
+- `400` - Invalid survey data
+- `401` - Unauthorized
+- `403` - Feature not available on plan
+- `404` - Survey not found
+- `500` - AI service error
+
+---
+
+### `POST /api/ai/photo-analysis`
+
+Analyze photos using AI for hazard detection.
+
+**Request Body:**
+```json
+{
+  "photoUrls": [
+    "https://storage.hazardos.app/photos/photo1.jpg",
+    "https://storage.hazardos.app/photos/photo2.jpg"
+  ],
+  "analysisType": "hazard_detection"
+}
+```
+
+**Required Fields:**
+- `photoUrls` (array) - URLs of photos to analyze
+- `analysisType` (enum) - Type of analysis: `hazard_detection`, `material_identification`, `area_measurement`
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "photoUrl": "https://storage.hazardos.app/photos/photo1.jpg",
+      "detections": [
+        {
+          "type": "asbestos_tile",
+          "confidence": 0.92,
+          "location": {
+            "x": 120,
+            "y": 45,
+            "width": 200,
+            "height": 150
+          }
+        }
+      ],
+      "measurements": {
+        "estimatedArea": 450,
+        "unit": "sq_ft"
+      }
+    }
+  ],
+  "summary": {
+    "totalHazardsDetected": 3,
+    "averageConfidence": 0.89,
+    "recommendedActions": [
+      "Sample testing recommended",
+      "Professional assessment required"
+    ]
+  }
+}
+```
+
+**Status Codes:**
+- `200` - Analysis complete
+- `400` - Invalid photo URLs
+- `401` - Unauthorized
+- `403` - Feature not available on plan
+- `500` - AI service error
+
+---
+
 ## 🔔 Webhooks API
+
+### `POST /api/webhooks/stripe`
+
+Stripe webhook endpoint for subscription events.
+
+**Request Body:**
+Stripe webhook event payload (validated with signature)
+
+**Supported Events:**
+- `checkout.session.completed` - Subscription created
+- `customer.subscription.updated` - Subscription modified
+- `customer.subscription.deleted` - Subscription cancelled
+- `invoice.paid` - Payment received
+- `invoice.payment_failed` - Payment failed
+
+**Response:**
+```json
+{
+  "received": true
+}
+```
+
+**Status Codes:**
+- `200` - Event processed
+- `400` - Invalid signature
+- `500` - Processing error
+
+**Note:** This endpoint validates Stripe webhook signatures for security.
+
+---
 
 ### `POST /api/webhooks/twilio/status`
 
