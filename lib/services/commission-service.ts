@@ -272,61 +272,58 @@ export class CommissionService {
   static async getSummary(userId?: string): Promise<CommissionSummary> {
     const supabase = await createClient()
 
-    let query = supabase
-      .from('commission_earnings')
-      .select('status, commission_amount, earning_date')
-
-    if (userId) {
-      query = query.eq('user_id', userId)
-    }
-
-    const { data, error } = await query
-
-    if (error) throw error
-
     const now = new Date()
     const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
     const thisQuarter = Math.floor(now.getMonth() / 3)
     const quarterStart = new Date(now.getFullYear(), thisQuarter * 3, 1)
+    const quarterStartStr = quarterStart.toISOString().split('T')[0]
 
-    const earnings = data || []
+    // Build base query filter
+    const baseFilter = userId ? { user_id: userId } : {}
 
-    const summary: CommissionSummary = {
-      total_pending: 0,
-      total_approved: 0,
-      total_paid: 0,
-      this_month: 0,
-      this_quarter: 0,
+    // Run all queries in parallel for better performance
+    const [pendingResult, approvedResult, paidResult, thisMonthResult, thisQuarterResult] = await Promise.all([
+      // Total pending
+      supabase
+        .from('commission_earnings')
+        .select('commission_amount')
+        .match({ ...baseFilter, status: 'pending' }),
+      // Total approved
+      supabase
+        .from('commission_earnings')
+        .select('commission_amount')
+        .match({ ...baseFilter, status: 'approved' }),
+      // Total paid
+      supabase
+        .from('commission_earnings')
+        .select('commission_amount')
+        .match({ ...baseFilter, status: 'paid' }),
+      // This month (all statuses)
+      supabase
+        .from('commission_earnings')
+        .select('commission_amount')
+        .match(baseFilter)
+        .gte('earning_date', `${thisMonth}-01`)
+        .lt('earning_date', `${thisMonth}-32`),
+      // This quarter (all statuses)
+      supabase
+        .from('commission_earnings')
+        .select('commission_amount')
+        .match(baseFilter)
+        .gte('earning_date', quarterStartStr),
+    ])
+
+    // Sum amounts for each category
+    const sumAmounts = (data: { commission_amount: number }[] | null) =>
+      (data || []).reduce((sum, e) => sum + (e.commission_amount || 0), 0)
+
+    return {
+      total_pending: sumAmounts(pendingResult.data),
+      total_approved: sumAmounts(approvedResult.data),
+      total_paid: sumAmounts(paidResult.data),
+      this_month: sumAmounts(thisMonthResult.data),
+      this_quarter: sumAmounts(thisQuarterResult.data),
     }
-
-    earnings.forEach(e => {
-      const amount = e.commission_amount || 0
-
-      switch (e.status) {
-        case 'pending':
-          summary.total_pending += amount
-          break
-        case 'approved':
-          summary.total_approved += amount
-          break
-        case 'paid':
-          summary.total_paid += amount
-          break
-      }
-
-      // This month
-      if (e.earning_date?.startsWith(thisMonth)) {
-        summary.this_month += amount
-      }
-
-      // This quarter
-      const earningDate = new Date(e.earning_date)
-      if (earningDate >= quarterStart) {
-        summary.this_quarter += amount
-      }
-    })
-
-    return summary
   }
 
   // ========== USER ASSIGNMENTS ==========
