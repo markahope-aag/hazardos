@@ -92,8 +92,8 @@ export function PhotoCapture({ category, onCapture }: PhotoCaptureProps) {
       }
 
       onCapture?.()
-    } catch {
-      // Photo processing failed - user sees no image added
+    } catch (error) {
+      console.error('Error processing photo:', error)
     } finally {
       setIsProcessing(false)
       // Reset input to allow capturing same file again
