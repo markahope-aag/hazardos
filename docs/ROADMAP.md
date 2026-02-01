@@ -585,6 +585,12 @@ Build the complete operating system for environmental remediation companies, fro
 
 ---
 
+## Related Documents
+
+- **[Project Status](./PROJECT-STATUS.md)** - Detailed feature-level tracking with priorities, status, and owner assignments
+- **[Changelog](./CHANGELOG.md)** - Version history and release notes
+- **[Features Guide](./FEATURES.md)** - Complete feature documentation
+
 ## Feedback & Updates
 
 This roadmap is a living document that will be updated based on:
