@@ -1,7 +1,11 @@
+'use client';
+
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, FileText, Calendar, TrendingUp } from 'lucide-react';
+import { DollarSign, FileText, Calendar, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { WidgetErrorBoundary } from '@/components/error-boundaries';
+import { Button } from '@/components/ui/button';
 
 export async function StatsCards() {
   const supabase = await createClient();
