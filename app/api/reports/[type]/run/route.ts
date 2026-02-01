@@ -1,23 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { ReportingService } from '@/lib/services/reporting-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { runReportSchema } from '@/lib/validations/reports'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ type: string }> }
-) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { type } = await params
-    const body = await request.json()
-
+/**
+ * POST /api/reports/[type]/run
+ * Run a report
+ */
+export const POST = createApiHandlerWithParams<
+  typeof runReportSchema._type,
+  unknown,
+  { type: string }
+>(
+  {
+    rateLimit: 'heavy',
+    bodySchema: runReportSchema,
+  },
+  async (_request, _context, params, body) => {
     let data: unknown[]
 
-    switch (type) {
+    switch (params.type) {
       case 'sales':
         data = await ReportingService.runSalesReport(body)
         break
@@ -32,7 +35,5 @@ export async function POST(
     }
 
     return NextResponse.json({ data })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
