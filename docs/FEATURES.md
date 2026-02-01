@@ -22,6 +22,11 @@
 11. [Estimate Builder](#estimate-builder)
 12. [Invoice Management](#invoice-management)
 
+## Related Documentation
+
+For in-depth explanations of business rules and domain logic, see:
+- [Business Logic Documentation](./BUSINESS-LOGIC.md) - Deep dive into pricing calculations, job workflows, commission rules, approval workflows, and more
+
 ---
 
 ## Structured Logging System
@@ -1690,6 +1695,8 @@ Multi-step mobile-optimized wizard for field data collection.
 ### Overview
 
 Centralized pricing configuration for accurate estimates.
+
+> **See Also**: [Estimate Calculation Logic](./BUSINESS-LOGIC.md#estimate-calculation-logic) for detailed explanation of how pricing data is used in estimate generation.
 
 ### Pricing Tables
 

@@ -113,12 +113,12 @@ export class EstimateCalculator {
     const supabase = createClient()
 
     const [laborRes, equipmentRes, materialRes, disposalRes, travelRes, settingsRes] = await Promise.all([
-      supabase.from('labor_rates').select('id, organization_id, name, role_title, hourly_rate, overtime_rate, description, is_active').eq('organization_id', this.organizationId).eq('is_active', true),
-      supabase.from('equipment_rates').select('id, organization_id, name, equipment_name, daily_rate, weekly_rate, monthly_rate, description, is_active').eq('organization_id', this.organizationId).eq('is_active', true),
-      supabase.from('material_costs').select('id, organization_id, name, material_name, unit_cost, unit_type, description, is_active').eq('organization_id', this.organizationId).eq('is_active', true),
-      supabase.from('disposal_fees').select('id, organization_id, hazard_type, unit_cost, unit_type, description, is_active').eq('organization_id', this.organizationId).eq('is_active', true),
-      supabase.from('travel_rates').select('id, organization_id, min_miles, max_miles, flat_fee, per_mile_rate, is_active').eq('organization_id', this.organizationId).eq('is_active', true),
-      supabase.from('pricing_settings').select('id, organization_id, default_markup_percentage, default_tax_rate').eq('organization_id', this.organizationId).single(),
+      supabase.from('labor_rates').select('*').eq('organization_id', this.organizationId).eq('is_active', true),
+      supabase.from('equipment_rates').select('*').eq('organization_id', this.organizationId).eq('is_active', true),
+      supabase.from('material_costs').select('*').eq('organization_id', this.organizationId).eq('is_active', true),
+      supabase.from('disposal_fees').select('*').eq('organization_id', this.organizationId).eq('is_active', true),
+      supabase.from('travel_rates').select('*').eq('organization_id', this.organizationId).eq('is_active', true),
+      supabase.from('pricing_settings').select('*').eq('organization_id', this.organizationId).single(),
     ])
 
     this.pricingData = {

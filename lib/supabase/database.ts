@@ -30,7 +30,7 @@ export class DatabaseService {
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, first_name, last_name, phone, role, organization_id, is_platform_user, avatar_url, last_login_at, login_count, created_at, updated_at')
+      .select('*')
       .eq('id', userId)
       .single()
 

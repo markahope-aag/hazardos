@@ -556,7 +556,7 @@ export const useSurveyStore = create<SurveyState>()(
           const supabase = createClient()
           const { data, error } = await supabase
             .from('site_surveys')
-            .select('id, organization_id, customer_id, estimator_id, status, property_type, property_address, property_city, property_state, property_zip, year_built, building_sqft, stories, occupied, occupancy_type, access_restrictions, access_notes, parking_available, equipment_access, key_access, contact_on_site, contact_name, contact_phone, weather_conditions, temperature, humidity, structural_concerns, structural_notes, utility_shutoffs_located, utility_notes, hazard_types, asbestos_data, mold_data, lead_data, other_hazard_data, photos_data, notes, started_at, completed_at, submitted_at, reviewed_by, reviewed_at, created_at, updated_at')
+            .select('*')
             .eq('id', surveyId)
             .single()
 

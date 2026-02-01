@@ -144,7 +144,7 @@ export class ApiKeyService {
     // Look up by hash
     const { data: key, error } = await supabase
       .from('api_keys')
-      .select('id, organization_id, name, key_prefix, key_hash, scopes, rate_limit, is_active, expires_at, revoked_at, last_used_at')
+      .select('*')
       .eq('key_hash', keyHash)
       .eq('key_prefix', keyPrefix)
       .single();
