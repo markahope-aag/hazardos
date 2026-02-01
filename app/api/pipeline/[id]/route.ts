@@ -1,63 +1,53 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 import { PipelineService } from '@/lib/services/pipeline-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { updateOpportunitySchema } from '@/lib/validations/pipeline'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { id } = await params
-    const opportunity = await PipelineService.getOpportunity(id)
+/**
+ * GET /api/pipeline/[id]
+ * Get an opportunity
+ */
+export const GET = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+  },
+  async (_request, _context, params) => {
+    const opportunity = await PipelineService.getOpportunity(params.id)
 
     if (!opportunity) {
       throw new SecureError('NOT_FOUND', 'Opportunity not found')
     }
 
     return NextResponse.json(opportunity)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { id } = await params
-    const body = await request.json()
-
-    const opportunity = await PipelineService.updateOpportunity(id, body)
+/**
+ * PATCH /api/pipeline/[id]
+ * Update an opportunity
+ */
+export const PATCH = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: updateOpportunitySchema,
+  },
+  async (_request, _context, params, body) => {
+    const opportunity = await PipelineService.updateOpportunity(params.id, body)
     return NextResponse.json(opportunity)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { id } = await params
-    await PipelineService.deleteOpportunity(id)
-
+/**
+ * DELETE /api/pipeline/[id]
+ * Delete an opportunity
+ */
+export const DELETE = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+  },
+  async (_request, _context, params) => {
+    await PipelineService.deleteOpportunity(params.id)
     return NextResponse.json({ success: true })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
