@@ -1,75 +1,51 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { WebhookService } from '@/lib/services/webhook-service';
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler';
+import { NextResponse } from 'next/server'
+import { WebhookService } from '@/lib/services/webhook-service'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { updateWebhookSchema } from '@/lib/validations/webhooks'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED');
-    }
-
-    const { id } = await params;
-    const webhook = await WebhookService.get(id);
+/**
+ * GET /api/webhooks/[id]
+ * Get a webhook with delivery history
+ */
+export const GET = createApiHandlerWithParams(
+  { rateLimit: 'general' },
+  async (_request, _context, params) => {
+    const webhook = await WebhookService.get(params.id)
 
     if (!webhook) {
-      throw new SecureError('NOT_FOUND', 'Webhook not found');
+      throw new SecureError('NOT_FOUND', 'Webhook not found')
     }
 
-    const deliveries = await WebhookService.getDeliveries(id);
+    const deliveries = await WebhookService.getDeliveries(params.id)
 
-    return NextResponse.json({ webhook, deliveries });
-  } catch (error) {
-    return createSecureErrorResponse(error);
+    return NextResponse.json({ webhook, deliveries })
   }
-}
+)
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED');
-    }
-
-    const { id } = await params;
-    const body = await request.json();
-
-    const webhook = await WebhookService.update(id, body);
-
-    return NextResponse.json({ webhook });
-  } catch (error) {
-    return createSecureErrorResponse(error);
+/**
+ * PUT /api/webhooks/[id]
+ * Update a webhook
+ */
+export const PUT = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: updateWebhookSchema,
+  },
+  async (_request, _context, params, body) => {
+    const webhook = await WebhookService.update(params.id, body)
+    return NextResponse.json({ webhook })
   }
-}
+)
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED');
-    }
-
-    const { id } = await params;
-    await WebhookService.delete(id);
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return createSecureErrorResponse(error);
+/**
+ * DELETE /api/webhooks/[id]
+ * Delete a webhook
+ */
+export const DELETE = createApiHandlerWithParams(
+  { rateLimit: 'general' },
+  async (_request, _context, params) => {
+    await WebhookService.delete(params.id)
+    return NextResponse.json({ success: true })
   }
-}
+)

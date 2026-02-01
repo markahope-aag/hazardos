@@ -108,7 +108,7 @@ export class NotificationService {
 
     const { data, error } = await supabase
       .from('notifications')
-      .select('*')
+      .select('id, organization_id, user_id, type, title, message, entity_type, entity_id, action_url, action_label, priority, is_read, read_at, created_at, expires_at, metadata')
       .eq('user_id', targetUserId)
       .eq('is_read', false)
       .or('expires_at.is.null,expires_at.gt.now()')
@@ -130,7 +130,7 @@ export class NotificationService {
 
     const { data, error } = await supabase
       .from('notifications')
-      .select('*')
+      .select('id, organization_id, user_id, type, title, message, entity_type, entity_id, action_url, action_label, priority, is_read, read_at, created_at, expires_at, metadata')
       .eq('user_id', targetUserId)
       .or('expires_at.is.null,expires_at.gt.now()')
       .order('created_at', { ascending: false })
@@ -232,7 +232,7 @@ export class NotificationService {
 
     const { data, error } = await supabase
       .from('notification_preferences')
-      .select('*')
+      .select('id, user_id, notification_type, in_app, email, push, created_at, updated_at')
       .eq('user_id', user.id)
       .order('notification_type')
 

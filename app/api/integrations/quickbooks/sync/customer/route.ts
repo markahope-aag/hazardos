@@ -1,38 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { QuickBooksService } from '@/lib/services/quickbooks-service';
-import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
+import { NextResponse } from 'next/server'
+import { QuickBooksService } from '@/lib/services/quickbooks-service'
+import { createApiHandler } from '@/lib/utils/api-handler'
+import { syncCustomerSchema } from '@/lib/validations/integrations'
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED');
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.organization_id) {
-      throw new SecureError('NOT_FOUND', 'No organization found');
-    }
-
-    const { customer_id } = await request.json();
-
-    validateRequired(customer_id, 'customer_id');
-
+/**
+ * POST /api/integrations/quickbooks/sync/customer
+ * Sync a customer to QuickBooks
+ */
+export const POST = createApiHandler(
+  {
+    rateLimit: 'general',
+    bodySchema: syncCustomerSchema,
+  },
+  async (_request, context, body) => {
     const qbId = await QuickBooksService.syncCustomerToQBO(
-      profile.organization_id,
-      customer_id
-    );
+      context.profile.organization_id,
+      body.customer_id
+    )
 
-    return NextResponse.json({ qb_customer_id: qbId });
-  } catch (error) {
-    return createSecureErrorResponse(error);
+    return NextResponse.json({ qb_customer_id: qbId })
   }
-}
+)

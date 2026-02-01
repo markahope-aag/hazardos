@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server'
 import { StripeService } from '@/lib/services/stripe-service'
-import { createSecureErrorResponse } from '@/lib/utils/secure-error-handler'
+import { createPublicApiHandler } from '@/lib/utils/api-handler'
 
-export async function GET() {
-  try {
+/**
+ * GET /api/billing/plans
+ * List available plans (public)
+ */
+export const GET = createPublicApiHandler(
+  { rateLimit: 'general' },
+  async () => {
     const plans = await StripeService.getPlans()
     return NextResponse.json(plans)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

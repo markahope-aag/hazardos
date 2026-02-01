@@ -1,21 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { FeedbackService } from '@/lib/services/feedback-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
-import { createClient } from '@/lib/supabase/server'
+import { createApiHandler } from '@/lib/utils/api-handler'
 
-export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
+/**
+ * GET /api/feedback/stats
+ * Get feedback statistics
+ */
+export const GET = createApiHandler(
+  { rateLimit: 'general' },
+  async () => {
     const stats = await FeedbackService.getFeedbackStats()
-
     return NextResponse.json(stats)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
