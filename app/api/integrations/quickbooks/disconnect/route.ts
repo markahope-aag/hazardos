@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { QuickBooksService } from '@/lib/services/quickbooks-service';
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler';
 
 export async function POST() {
   try {
@@ -8,7 +9,7 @@ export async function POST() {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new SecureError('UNAUTHORIZED');
     }
 
     const { data: profile } = await supabase
@@ -18,14 +19,13 @@ export async function POST() {
       .single();
 
     if (!profile?.organization_id) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 400 });
+      throw new SecureError('NOT_FOUND', 'No organization found');
     }
 
     await QuickBooksService.disconnect(profile.organization_id);
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('QBO disconnect error:', error);
-    return NextResponse.json({ error: 'Failed to disconnect' }, { status: 500 });
+    return createSecureErrorResponse(error);
   }
 }

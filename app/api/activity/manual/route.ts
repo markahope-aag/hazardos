@@ -41,13 +41,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    if (error instanceof SecureError) {
-      return createSecureErrorResponse(error)
-    }
-    console.error('Error logging activity:', error)
-    return NextResponse.json(
-      { error: 'Failed to log activity' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }

@@ -22,21 +22,16 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const { id } = await _params
     const body = await request.json()
 
-    if (!body.content) {
-      return NextResponse.json({ error: 'content is required' }, { status: 400 })
-    }
+    validateRequired(body.content, 'content')
 
     if (body.note_type && !validNoteTypes.includes(body.note_type)) {
-      return NextResponse.json(
-        { error: `Invalid note_type. Must be one of: ${validNoteTypes.join(', ')}` },
-        { status: 400 }
-      )
+      throw new SecureError('VALIDATION_ERROR', `Invalid note_type. Must be one of: ${validNoteTypes.join(', ')}`)
     }
 
     const note = await JobsService.addNote(id, {
@@ -61,14 +56,12 @@ export async function DELETE(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const { note_id } = await request.json()
 
-    if (!note_id) {
-      return NextResponse.json({ error: 'note_id is required' }, { status: 400 })
-    }
+    validateRequired(note_id, 'note_id')
 
     await JobsService.deleteNote(note_id)
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { QuickBooksService } from '@/lib/services/quickbooks-service';
 import { randomBytes } from 'crypto';
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler';
 
 export async function GET() {
   try {
@@ -9,7 +10,7 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new SecureError('UNAUTHORIZED');
     }
 
     const { data: profile } = await supabase
@@ -19,7 +20,7 @@ export async function GET() {
       .single();
 
     if (!profile?.organization_id) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 400 });
+      throw new SecureError('NOT_FOUND', 'No organization found');
     }
 
     // Generate state token for CSRF protection
@@ -37,7 +38,6 @@ export async function GET() {
 
     return response;
   } catch (error) {
-    console.error('QBO connect error:', error);
-    return NextResponse.json({ error: 'Failed to initiate connection' }, { status: 500 });
+    return createSecureErrorResponse(error);
   }
 }

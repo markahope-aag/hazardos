@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { QuickBooksService } from '@/lib/services/quickbooks-service';
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new SecureError('UNAUTHORIZED');
     }
 
     const { data: profile } = await supabase
@@ -19,14 +19,12 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!profile?.organization_id) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 400 });
+      throw new SecureError('NOT_FOUND', 'No organization found');
     }
 
     const { customer_id } = await request.json();
 
-    if (!customer_id) {
-      return NextResponse.json({ error: 'customer_id required' }, { status: 400 });
-    }
+    validateRequired(customer_id, 'customer_id');
 
     const qbId = await QuickBooksService.syncCustomerToQBO(
       profile.organization_id,
@@ -35,7 +33,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ qb_customer_id: qbId });
   } catch (error) {
-    console.error('QBO sync customer error:', error);
     return createSecureErrorResponse(error);
   }
 }
