@@ -2314,6 +2314,526 @@ CREATE TABLE competitors (
 
 ---
 
+## SMS & Notifications Infrastructure
+
+### Overview
+
+Comprehensive SMS communication system powered by Twilio for automated customer notifications and compliance.
+
+### Features
+
+#### SMS Service
+
+Full-featured SMS service with organization-level configuration and TCPA compliance.
+
+**Core Capabilities**:
+- Send individual SMS messages
+- Templated SMS with variable interpolation
+- Appointment reminder automation
+- Job status update notifications
+- Lead follow-up notifications
+- Payment reminder messages
+
+**Twilio Integration**:
+- Platform-level shared Twilio account (default)
+- Organization-specific Twilio accounts (optional)
+- Automatic phone number normalization (E.164 format)
+- Message delivery status tracking
+- Error handling with retry logic
+
+**Implementation**:
+```typescript
+// lib/services/sms-service.ts
+SmsService.send(organizationId, {
+  to: '+15551234567',
+  body: 'Your appointment is tomorrow at 10am',
+  message_type: 'appointment_reminder',
+  customer_id: 'uuid',
+  related_entity_type: 'job',
+  related_entity_id: 'job-uuid'
+})
+```
+
+#### SMS Templates
+
+Pre-built message templates with variable substitution.
+
+**Default System Templates**:
+
+1. **Appointment Reminder**
+   ```
+   Hi {{customer_name}}! Reminder: {{company_name}} is scheduled
+   for {{job_date}} at {{job_time}}. Reply STOP to opt out.
+   ```
+
+2. **Job En Route**
+   ```
+   {{company_name}}: Our crew is on the way! Expected arrival: {{eta}}.
+   Questions? Call {{company_phone}}
+   ```
+
+3. **Job Complete**
+   ```
+   {{company_name}}: Your job is complete! Thank you for your business.
+   Invoice will be sent shortly.
+   ```
+
+4. **New Lead Response**
+   ```
+   Hi {{customer_name}}! Thanks for contacting {{company_name}}.
+   We'll reach out within {{response_time}} to discuss your project.
+   ```
+
+5. **Estimate Follow-up**
+   ```
+   Hi {{customer_name}}! Following up on your estimate from
+   {{company_name}}. Questions? Reply or call {{company_phone}}
+   ```
+
+6. **Payment Reminder**
+   ```
+   {{company_name}}: Reminder - Invoice #{{invoice_number}} for
+   ${{amount}} is due {{due_date}}. Pay online: {{payment_link}}
+   ```
+
+**Custom Templates**:
+- Organizations can create custom templates
+- Template variables automatically replaced
+- System templates cannot be edited (but can be overridden)
+
+**Template Management**:
+```typescript
+// Get all templates (system + org-specific)
+GET /api/sms/templates
+
+// Create custom template
+POST /api/sms/templates
+{
+  "name": "Holiday Greeting",
+  "message_type": "general",
+  "body": "Happy holidays from {{company_name}}! We appreciate your business."
+}
+```
+
+#### SMS Settings
+
+Organization-level configuration for SMS functionality.
+
+**Settings Options**:
+
+**Feature Toggles**:
+- SMS enabled (master switch)
+- Appointment reminders enabled
+- Appointment reminder hours (default: 24)
+- Job status updates enabled
+- Lead notifications enabled
+- Payment reminders enabled
+
+**Quiet Hours (TCPA Compliance)**:
+- Enable/disable quiet hours
+- Start time (default: 21:00)
+- End time (default: 08:00)
+- Timezone selection (7 US timezones supported)
+- Automatic quiet hours enforcement
+
+**Twilio Configuration**:
+- Use platform phone number (recommended)
+- Custom Twilio account SID
+- Custom Twilio auth token
+- Custom Twilio phone number
+
+**Settings UI**:
+- Located at `/settings/sms`
+- Visual toggles for all features
+- Quiet hours time pickers
+- Twilio credentials (secured input)
+- SMS best practices info card
+
+#### Appointment Reminders
+
+Automated appointment reminder system with cron job.
+
+**Reminder Flow**:
+```
+Cron Job (Hourly)
+    ↓
+Query Jobs in Reminder Window
+    ↓
+For Each Job:
+  - Check SMS enabled
+  - Check appointment reminders enabled
+  - Check customer opt-in
+  - Check quiet hours
+    ↓
+Send Reminder via Template
+    ↓
+Mark Job as Reminded
+    ↓
+Log Activity
+```
+
+**Cron Endpoint**: `/api/cron/appointment-reminders`
+- Runs every hour (configurable)
+- Secured with CRON_SECRET or Vercel Cron header
+- Reminder window based on appointment_reminder_hours setting
+- Tracks sent/failed counts
+- Prevents duplicate reminders
+
+**Job Status Updates**:
+- Send when crew is en route
+- Send when crew arrives on site
+- Send when job is completed
+- Includes ETA for en route messages
+
+#### Opt-In/Opt-Out Management
+
+TCPA-compliant customer consent tracking.
+
+**Customer Opt-In Fields**:
+```sql
+ALTER TABLE customers ADD COLUMN sms_opt_in BOOLEAN DEFAULT false;
+ALTER TABLE customers ADD COLUMN sms_opt_in_at TIMESTAMPTZ;
+ALTER TABLE customers ADD COLUMN sms_opt_out_at TIMESTAMPTZ;
+```
+
+**Opt-In Methods**:
+- Manual toggle in customer profile
+- Customer portal self-service
+- First SMS requires explicit opt-in
+
+**Opt-Out Handling**:
+- Automatic keyword detection (STOP, UNSUBSCRIBE, CANCEL, END, QUIT)
+- Inbound webhook at `/api/webhooks/twilio/inbound`
+- Customer matched by phone number
+- Immediate opt-out processing
+- No auto-reply sent
+
+**Opt-In Re-activation**:
+- Keywords: START, SUBSCRIBE, YES, UNSTOP
+- Re-enables SMS for customer
+- Updates opt-in timestamp
+
+#### Message Tracking
+
+Complete audit trail of all SMS communications.
+
+**SMS Message Log**:
+```typescript
+interface SmsMessage {
+  id: string
+  organization_id: string
+  customer_id: string | null
+  to_phone: string
+  message_type: SmsMessageType
+  body: string
+  related_entity_type: string | null
+  related_entity_id: string | null
+  twilio_message_sid: string | null
+  status: SmsStatus
+  error_code: string | null
+  error_message: string | null
+  queued_at: string
+  sent_at: string | null
+  delivered_at: string | null
+  failed_at: string | null
+  segments: number
+  cost: number | null
+}
+```
+
+**Message Statuses**:
+- `queued` - Message created, waiting to send
+- `sending` - Twilio is processing
+- `sent` - Twilio accepted message
+- `delivered` - Message delivered to recipient
+- `failed` - Send failed (with error details)
+- `undelivered` - Failed to deliver
+
+**Status Webhook**:
+- Endpoint: `/api/webhooks/twilio/status`
+- Updates message status in real-time
+- Captures delivery timestamps
+- Logs error codes and messages
+- Graceful error handling (always returns 200)
+
+**Message History**:
+```typescript
+GET /api/sms/messages
+  ?customer_id=uuid      // Filter by customer
+  &status=delivered      // Filter by status
+  &message_type=job_status  // Filter by type
+  &limit=50              // Results limit
+```
+
+#### Database Schema
+
+**Organization SMS Settings**:
+```sql
+CREATE TABLE organization_sms_settings (
+  id UUID PRIMARY KEY,
+  organization_id UUID NOT NULL UNIQUE,
+
+  -- Twilio credentials
+  twilio_account_sid TEXT,
+  twilio_auth_token TEXT,
+  twilio_phone_number TEXT,
+  use_platform_twilio BOOLEAN DEFAULT true,
+
+  -- Feature toggles
+  sms_enabled BOOLEAN DEFAULT false,
+  appointment_reminders_enabled BOOLEAN DEFAULT true,
+  appointment_reminder_hours INTEGER DEFAULT 24,
+  job_status_updates_enabled BOOLEAN DEFAULT true,
+  lead_notifications_enabled BOOLEAN DEFAULT true,
+  payment_reminders_enabled BOOLEAN DEFAULT false,
+
+  -- Quiet hours (TCPA compliance)
+  quiet_hours_enabled BOOLEAN DEFAULT true,
+  quiet_hours_start TIME DEFAULT '21:00',
+  quiet_hours_end TIME DEFAULT '08:00',
+  timezone VARCHAR(50) DEFAULT 'America/Chicago',
+
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+**SMS Messages Log**:
+```sql
+CREATE TABLE sms_messages (
+  id UUID PRIMARY KEY,
+  organization_id UUID NOT NULL,
+  customer_id UUID REFERENCES customers(id),
+  to_phone VARCHAR(20) NOT NULL,
+  message_type sms_message_type NOT NULL,
+  body TEXT NOT NULL,
+  related_entity_type VARCHAR(50),
+  related_entity_id UUID,
+  twilio_message_sid VARCHAR(50),
+  status sms_status DEFAULT 'queued',
+  error_code VARCHAR(20),
+  error_message TEXT,
+  queued_at TIMESTAMPTZ DEFAULT NOW(),
+  sent_at TIMESTAMPTZ,
+  delivered_at TIMESTAMPTZ,
+  failed_at TIMESTAMPTZ,
+  segments INTEGER DEFAULT 1,
+  cost DECIMAL(10,4)
+);
+```
+
+**SMS Templates**:
+```sql
+CREATE TABLE sms_templates (
+  id UUID PRIMARY KEY,
+  organization_id UUID REFERENCES organizations(id),
+  name VARCHAR(100) NOT NULL,
+  message_type sms_message_type NOT NULL,
+  body TEXT NOT NULL,
+  is_active BOOLEAN DEFAULT true,
+  is_system BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+**Job Reminder Tracking**:
+```sql
+ALTER TABLE jobs ADD COLUMN reminder_sent_at TIMESTAMPTZ;
+```
+
+#### Security & Compliance
+
+**TCPA Compliance**:
+- Customer opt-in required before sending
+- Quiet hours enforcement
+- Opt-out keyword detection
+- Timestamp tracking for consent
+- Opt-out instructions in messages
+
+**Rate Limiting**:
+- General API rate limits apply
+- Twilio rate limits respected
+- Error handling for rate limit errors
+
+**Data Security**:
+- Twilio credentials encrypted at rest
+- RLS policies enforce organization isolation
+- Webhook endpoints validated
+- SMS content not logged in plain text
+
+**Privacy**:
+- Customer phone numbers normalized and validated
+- Message history per organization only
+- Platform admins cannot view message content
+
+#### Use Cases
+
+**Appointment Confirmation**:
+```
+Job scheduled tomorrow
+    ↓
+Cron runs 24 hours before
+    ↓
+SMS: "Hi John! Reminder: ABC Remediation is scheduled
+     for 02/15/2026 at 10:00 AM. Reply STOP to opt out."
+    ↓
+Customer confirms verbally or via reply
+```
+
+**Job Status Updates**:
+```
+Crew leaves for job
+    ↓
+Technician marks "En Route" in app
+    ↓
+SMS: "ABC Remediation: Our crew is on the way!
+     Expected arrival: 10:15 AM. Questions? Call (555) 123-4567"
+    ↓
+Job complete
+    ↓
+SMS: "ABC Remediation: Your job is complete!
+     Thank you for your business. Invoice will be sent shortly."
+```
+
+**Lead Follow-Up**:
+```
+New lead created
+    ↓
+Customer phone + opt-in available
+    ↓
+SMS: "Hi Sarah! Thanks for contacting ABC Remediation.
+     We'll reach out within 24 hours to discuss your project."
+    ↓
+Lead logged in CRM
+```
+
+---
+
+## Validation Schemas
+
+### Overview
+
+Comprehensive input validation using Zod schemas for all API routes and form submissions.
+
+### Validation Libraries
+
+**Approvals** (`lib/validations/approvals.ts`):
+- Approval entity types (estimate, discount, proposal, change_order, expense)
+- Approval statuses (pending, approved, rejected)
+- Create approval request validation
+- Process approval action validation
+
+**Commissions** (`lib/validations/commissions.ts`):
+- Commission statuses (pending, approved, paid)
+- Commission plan validation
+- Commission earning creation/update
+- Tiered commission structures
+
+**Feedback** (`lib/validations/feedback.ts`):
+- Feedback survey creation
+- Survey submission (ratings 1-5, NPS 0-10)
+- Testimonial approval
+- Review request validation
+
+**Notifications** (`lib/validations/notifications.ts`):
+- Notification types (job_assigned, job_completed, proposal_signed, etc.)
+- Notification priorities (low, normal, high, urgent)
+- Create notification validation
+- Notification list query params
+
+**Pipeline** (`lib/validations/pipeline.ts`):
+- Opportunity creation/update
+- Pipeline stage management
+- Move opportunity between stages
+- Stage probability and color validation
+
+**Settings** (`lib/validations/settings.ts`):
+- Labor rate validation
+- Disposal fee validation
+- Material cost validation
+- Travel rate validation
+- Pricing configuration
+
+**Platform** (`lib/validations/platform.ts`):
+- Organization filters (search, status, plan)
+- Sort and pagination parameters
+- Platform admin queries
+
+**Reports** (`lib/validations/reports.ts`):
+- Report types (sales, jobs, leads, revenue, custom)
+- Date range types (today, last_7_days, this_month, custom, etc.)
+- Chart types (bar, line, pie, area)
+- Filter operators (equals, contains, gt, gte, lt, lte, in)
+- Column formats (currency, percent, number, date, text)
+- Report configuration validation
+- Export format validation (xlsx, csv, pdf)
+
+### Validation Usage
+
+**API Route Validation**:
+```typescript
+import { createApprovalSchema } from '@/lib/validations/approvals'
+
+export async function POST(request: Request) {
+  const body = await request.json()
+  const validated = createApprovalSchema.parse(body)
+  // Use validated data safely
+}
+```
+
+**Form Validation**:
+```typescript
+import { z } from 'zod'
+import { createCommissionPlanSchema } from '@/lib/validations/commissions'
+
+const form = useForm({
+  resolver: zodResolver(createCommissionPlanSchema),
+  defaultValues: {
+    name: '',
+    rate_percent: 5,
+    is_active: true
+  }
+})
+```
+
+**Query Parameter Validation**:
+```typescript
+import { notificationListQuerySchema } from '@/lib/validations/notifications'
+
+const searchParams = new URL(request.url).searchParams
+const query = notificationListQuerySchema.parse(
+  Object.fromEntries(searchParams)
+)
+```
+
+### Validation Benefits
+
+**Type Safety**:
+- Automatic TypeScript type inference
+- Runtime type checking
+- Compile-time error detection
+
+**Input Sanitization**:
+- Automatic string trimming
+- Email format validation
+- UUID format validation
+- Numeric range validation
+- Enum value validation
+
+**Error Messages**:
+- User-friendly validation errors
+- Field-specific error messages
+- Customizable error text
+
+**Security**:
+- Prevents SQL injection
+- Validates data types
+- Enforces business rules
+- Protects against malformed input
+
+---
+
 ## Upcoming Features
 
 ### Q2 2026
