@@ -86,6 +86,11 @@
   - Security best practices
   - Incident response procedures
 
+### 📅 Planning & Roadmap
+- **[Strategic Roadmap](./ROADMAP.md)** - Quarterly goals, KPIs, resource planning, risk mitigation (Q1 2026 - 2027)
+- **[Project Status](./PROJECT-STATUS.md)** - Detailed feature tracker with priorities, status, and completion percentages
+- **[Changelog](./CHANGELOG.md)** - Version history and release notes
+
 ### 📊 Status & Reports
 - **[Documentation Update Summary](./DOCUMENTATION-UPDATE-SUMMARY.md)** - Recent documentation changes
 - **[Hazardos Architecture Decisions](./Hazardos%20Architecture%20Decisions.md)** - Architectural decision records
@@ -103,9 +108,10 @@
 
 ### For Product/Business
 1. **Overview**: [Project Summary](./PROJECT-SUMMARY.md) → [Project Overview](./HazardOS-Project-Overview.md)
-2. **Features**: [Features Guide](./FEATURES.md) → [Product Requirements Document](./HazardOS-PRD.md)
-3. **Current Status**: [Application Status](./APP-STATUS%20013126.md)
-4. **Competitive Analysis**: [Marketsharp Comparison](./Marketsharp%20Comparison.md)
+2. **Planning**: [Strategic Roadmap](./ROADMAP.md) → [Project Status](./PROJECT-STATUS.md)
+3. **Features**: [Features Guide](./FEATURES.md) → [Product Requirements Document](./HazardOS-PRD.md)
+4. **Current Status**: [Application Status](./APP-STATUS%20013126.md)
+5. **Competitive Analysis**: [Marketsharp Comparison](./Marketsharp%20Comparison.md)
 
 ### For UI/UX
 1. **Mobile Experience**: [Site Survey UI Specification](./hazardos-site-survey-ui-spec.md)
