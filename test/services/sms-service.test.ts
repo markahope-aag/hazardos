@@ -476,7 +476,11 @@ describe('SmsService', () => {
                 sms_enabled: true,
                 appointment_reminders_enabled: true,
                 use_platform_twilio: true,
-                quiet_hours_enabled: false
+                quiet_hours_enabled: false,
+                twilio_account_sid: null,
+                twilio_auth_token: null,
+                twilio_phone_number: null,
+                timezone: 'America/New_York'
               }
             })
           }
@@ -503,6 +507,16 @@ describe('SmsService', () => {
             select: vi.fn().mockReturnThis(),
             single: vi.fn().mockResolvedValue({
               data: { id: 'msg-1', status: 'sent' }
+            })
+          }
+        }
+        if (table === 'customers') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({
+              data: { sms_opt_in: true },
+              error: null
             })
           }
         }

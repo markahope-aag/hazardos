@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { PhotoAnalysisService, PhotoAnalysisContext } from '@/lib/services/photo-analysis-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { photoAnalysisSchema } from '@/lib/validations/ai'
 
 /**
  * POST /api/ai/photo-analysis
@@ -10,19 +10,16 @@ import { SecureError } from '@/lib/utils/secure-error-handler'
 export const POST = createApiHandler(
   {
     rateLimit: 'heavy',
+    bodySchema: photoAnalysisSchema,
   },
   async (_request, context, body) => {
-    // Support single image or multiple images
-    if (body.images && Array.isArray(body.images)) {
+    // Check if this is multiple images or single image
+    if ('images' in body) {
       // Multiple images
-      const images = body.images.map((img: { base64: string; context?: PhotoAnalysisContext }) => ({
+      const images = body.images.map((img) => ({
         base64: img.base64,
-        context: img.context,
+        context: img.context as PhotoAnalysisContext | undefined,
       }))
-
-      if (images.length === 0) {
-        throw new SecureError('VALIDATION_ERROR', 'At least one image is required')
-      }
 
       const result = await PhotoAnalysisService.analyzeMultiplePhotos(
         context.profile.organization_id,
@@ -30,7 +27,7 @@ export const POST = createApiHandler(
       )
 
       return NextResponse.json(result)
-    } else if (body.image) {
+    } else {
       // Single image
       const photoContext: PhotoAnalysisContext | undefined = body.context ? {
         property_type: body.context.property_type,
@@ -45,8 +42,6 @@ export const POST = createApiHandler(
       )
 
       return NextResponse.json(analysis)
-    } else {
-      throw new SecureError('VALIDATION_ERROR', 'Image data is required (image or images field)')
     }
   }
 )
