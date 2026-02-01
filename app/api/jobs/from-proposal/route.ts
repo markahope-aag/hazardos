@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { JobsService } from '@/lib/services/jobs-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,26 +9,18 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const body = await request.json()
 
-    if (!body.proposal_id) {
-      return NextResponse.json({ error: 'proposal_id is required' }, { status: 400 })
-    }
-
-    if (!body.scheduled_start_date) {
-      return NextResponse.json({ error: 'scheduled_start_date is required' }, { status: 400 })
-    }
+    validateRequired(body.proposal_id, 'proposal_id')
+    validateRequired(body.scheduled_start_date, 'scheduled_start_date')
 
     // Validate date format
     const scheduledDate = new Date(body.scheduled_start_date)
     if (isNaN(scheduledDate.getTime())) {
-      return NextResponse.json(
-        { error: 'Invalid scheduled_start_date format. Use YYYY-MM-DD' },
-        { status: 400 }
-      )
+      throw new SecureError('VALIDATION_ERROR', 'Invalid scheduled_start_date format. Use YYYY-MM-DD')
     }
 
     // Verify proposal is signed
@@ -39,24 +31,17 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (propError || !proposal) {
-      return NextResponse.json({ error: 'Proposal not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Proposal not found')
     }
 
     if (proposal.status !== 'signed' && proposal.status !== 'accepted') {
-      return NextResponse.json(
-        { error: 'Proposal must be signed or accepted before creating a job' },
-        { status: 400 }
-      )
+      throw new SecureError('VALIDATION_ERROR', 'Proposal must be signed or accepted before creating a job')
     }
 
     const job = await JobsService.createFromProposal(body)
 
     return NextResponse.json(job, { status: 201 })
   } catch (error) {
-    console.error('Create job from proposal error:', error)
-    return NextResponse.json(
-      createSecureErrorResponse(error),
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }

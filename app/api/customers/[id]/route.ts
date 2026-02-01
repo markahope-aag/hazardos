@@ -12,11 +12,11 @@ export async function GET(
   const { id } = await params
   try {
     const supabase = await createClient()
-    
+
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's profile to verify organization access
@@ -27,7 +27,7 @@ export async function GET(
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Get customer using the service (RLS will ensure organization access)
@@ -35,14 +35,10 @@ export async function GET(
 
     return NextResponse.json({ customer })
   } catch (error) {
-    console.error('Error fetching customer:', error)
     if (error instanceof Error && error.message.includes('Failed to fetch customer')) {
-      return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
+      return createSecureErrorResponse(new SecureError('NOT_FOUND', 'Customer not found'))
     }
-    return NextResponse.json(
-      { error: 'Failed to fetch customer' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -54,11 +50,11 @@ export async function PATCH(
   const { id } = await params
   try {
     const supabase = await createClient()
-    
+
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's profile to verify organization access
@@ -69,15 +65,15 @@ export async function PATCH(
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Parse request body
     const body = await request.json()
-    
+
     // Prepare update data (only include fields that are provided)
     const updateData: CustomerUpdate = {}
-    
+
     if (body.name !== undefined) updateData.name = body.name
     if (body.company_name !== undefined) updateData.company_name = body.company_name
     if (body.email !== undefined) updateData.email = body.email
@@ -99,14 +95,10 @@ export async function PATCH(
 
     return NextResponse.json({ customer })
   } catch (error) {
-    console.error('Error updating customer:', error)
     if (error instanceof Error && error.message.includes('Failed to update customer')) {
-      return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
+      return createSecureErrorResponse(new SecureError('NOT_FOUND', 'Customer not found'))
     }
-    return NextResponse.json(
-      { error: 'Failed to update customer' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -118,11 +110,11 @@ export async function DELETE(
   const { id } = await params
   try {
     const supabase = await createClient()
-    
+
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's profile to verify organization access and role
@@ -133,12 +125,12 @@ export async function DELETE(
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Check if user has permission to delete (admin or tenant_owner)
     if (!['admin', 'tenant_owner', 'platform_owner'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+      throw new SecureError('FORBIDDEN')
     }
 
     // Delete customer using the service (RLS will ensure organization access)
@@ -146,13 +138,9 @@ export async function DELETE(
 
     return NextResponse.json({ message: 'Customer deleted successfully' })
   } catch (error) {
-    console.error('Error deleting customer:', error)
     if (error instanceof Error && error.message.includes('Failed to delete customer')) {
-      return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
+      return createSecureErrorResponse(new SecureError('NOT_FOUND', 'Customer not found'))
     }
-    return NextResponse.json(
-      { error: 'Failed to delete customer' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }

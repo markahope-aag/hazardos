@@ -21,14 +21,7 @@ export async function GET(
 
     return NextResponse.json(contacts)
   } catch (error) {
-    if (error instanceof SecureError) {
-      return createSecureErrorResponse(error)
-    }
-    console.error('Error fetching contacts:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch contacts' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -63,13 +56,6 @@ export async function POST(
 
     return NextResponse.json(contact, { status: 201 })
   } catch (error) {
-    if (error instanceof SecureError) {
-      return createSecureErrorResponse(error)
-    }
-    console.error('Error creating contact:', error)
-    return NextResponse.json(
-      { error: 'Failed to create contact' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }

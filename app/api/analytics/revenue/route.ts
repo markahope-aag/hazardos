@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler';
 import { subMonths, format, startOfMonth, endOfMonth } from 'date-fns';
 
 export async function GET() {
@@ -8,7 +9,7 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new SecureError('UNAUTHORIZED');
     }
 
     const data = [];
@@ -35,7 +36,6 @@ export async function GET() {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Revenue analytics error:', error);
-    return NextResponse.json({ error: 'Failed to get analytics' }, { status: 500 });
+    return createSecureErrorResponse(error);
   }
 }

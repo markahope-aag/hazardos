@@ -12,20 +12,19 @@ export async function GET(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const { id } = await params
     const job = await JobsService.getById(id)
 
     if (!job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Job not found')
     }
 
     return NextResponse.json(job)
   } catch (error) {
-    console.error('Job GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch job' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -38,7 +37,7 @@ export async function PATCH(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const { id } = await params
@@ -52,7 +51,6 @@ export async function PATCH(
 
     return NextResponse.json(job)
   } catch (error) {
-    console.error('Job PATCH error:', error)
     return createSecureErrorResponse(error)
   }
 }
@@ -66,7 +64,7 @@ export async function DELETE(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const { id } = await params
@@ -74,7 +72,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Job DELETE error:', error)
     return createSecureErrorResponse(error)
   }
 }

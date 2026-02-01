@@ -13,20 +13,19 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const body = await request.json()
 
     if (!body.amount || body.amount <= 0) {
-      return NextResponse.json({ error: 'Valid amount is required' }, { status: 400 })
+      throw new SecureError('VALIDATION_ERROR', 'Valid amount is required')
     }
 
     const payment = await InvoicesService.recordPayment(id, body)
 
     return NextResponse.json(payment, { status: 201 })
   } catch (error) {
-    console.error('Record payment error:', error)
     return createSecureErrorResponse(error)
   }
 }
@@ -37,21 +36,20 @@ export async function DELETE(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const { searchParams } = new URL(request.url)
     const paymentId = searchParams.get('payment_id')
 
     if (!paymentId) {
-      return NextResponse.json({ error: 'payment_id is required' }, { status: 400 })
+      throw new SecureError('VALIDATION_ERROR', 'payment_id is required')
     }
 
     await InvoicesService.deletePayment(paymentId)
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Delete payment error:', error)
-    return NextResponse.json({ error: 'Failed to delete payment' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }

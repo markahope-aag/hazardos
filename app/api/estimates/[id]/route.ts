@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 import type { UpdateEstimateInput } from '@/types/estimates'
 
 interface RouteParams {
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's organization
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Get estimate with relations
@@ -49,10 +50,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Estimate not found' }, { status: 404 })
+        throw new SecureError('NOT_FOUND', 'Estimate not found')
       }
-      console.error('Error fetching estimate:', error)
-      return NextResponse.json({ error: 'Failed to fetch estimate' }, { status: 500 })
+      throw error
     }
 
     // Transform relations
@@ -72,8 +72,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ estimate: transformedEstimate })
   } catch (error) {
-    console.error('Error in GET /api/estimates/[id]:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -89,7 +88,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's organization
@@ -100,7 +99,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Parse request body
@@ -115,7 +114,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (existingError || !existing) {
-      return NextResponse.json({ error: 'Estimate not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Estimate not found')
     }
 
     // Build update object
@@ -143,14 +142,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (updateError) {
-      console.error('Error updating estimate:', updateError)
-      return NextResponse.json({ error: 'Failed to update estimate' }, { status: 500 })
+      throw updateError
     }
 
     return NextResponse.json({ estimate })
   } catch (error) {
-    console.error('Error in PATCH /api/estimates/[id]:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -166,7 +163,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's organization and role
@@ -177,13 +174,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Check if user has permission to delete
     const canDelete = ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'].includes(profile.role)
     if (!canDelete) {
-      return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
+      throw new SecureError('FORBIDDEN')
     }
 
     // Delete the estimate (cascade will delete line items)
@@ -194,13 +191,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .eq('organization_id', profile.organization_id)
 
     if (deleteError) {
-      console.error('Error deleting estimate:', deleteError)
-      return NextResponse.json({ error: 'Failed to delete estimate' }, { status: 500 })
+      throw deleteError
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error in DELETE /api/estimates/[id]:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
 import type { CreateLineItemInput, UpdateLineItemInput } from '@/types/estimates'
 
 interface RouteParams {
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's organization
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Verify estimate belongs to organization
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (estimateError || !estimate) {
-      return NextResponse.json({ error: 'Estimate not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Estimate not found')
     }
 
     // Get line items
@@ -52,14 +53,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .order('sort_order', { ascending: true })
 
     if (error) {
-      console.error('Error fetching line items:', error)
-      return NextResponse.json({ error: 'Failed to fetch line items' }, { status: 500 })
+      throw error
     }
 
     return NextResponse.json({ line_items: lineItems || [] })
   } catch (error) {
-    console.error('Error in GET /api/estimates/[id]/line-items:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -75,7 +74,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's organization
@@ -86,7 +85,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Verify estimate belongs to organization
@@ -98,24 +97,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (estimateError || !estimate) {
-      return NextResponse.json({ error: 'Estimate not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Estimate not found')
     }
 
     // Check if estimate can be modified
     if (!['draft', 'pending_approval'].includes(estimate.status)) {
-      return NextResponse.json({
-        error: 'Cannot modify line items for an estimate in this status'
-      }, { status: 400 })
+      throw new SecureError('VALIDATION_ERROR', 'Cannot modify line items for an estimate in this status')
     }
 
     // Parse request body
     const body: CreateLineItemInput = await request.json()
 
-    if (!body.item_type || !body.description || body.unit_price === undefined) {
-      return NextResponse.json({
-        error: 'item_type, description, and unit_price are required'
-      }, { status: 400 })
-    }
+    validateRequired(body.item_type, 'item_type')
+    validateRequired(body.description, 'description')
+    validateRequired(body.unit_price, 'unit_price')
 
     // Get max sort order
     const { data: maxOrder } = await supabase
@@ -153,14 +148,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (createError) {
-      console.error('Error creating line item:', createError)
-      return NextResponse.json({ error: 'Failed to create line item' }, { status: 500 })
+      throw createError
     }
 
     return NextResponse.json({ line_item: lineItem }, { status: 201 })
   } catch (error) {
-    console.error('Error in POST /api/estimates/[id]/line-items:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -176,7 +169,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's organization
@@ -187,7 +180,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Verify estimate belongs to organization
@@ -199,21 +192,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (estimateError || !estimate) {
-      return NextResponse.json({ error: 'Estimate not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Estimate not found')
     }
 
     // Check if estimate can be modified
     if (!['draft', 'pending_approval'].includes(estimate.status)) {
-      return NextResponse.json({
-        error: 'Cannot modify line items for an estimate in this status'
-      }, { status: 400 })
+      throw new SecureError('VALIDATION_ERROR', 'Cannot modify line items for an estimate in this status')
     }
 
     // Parse request body
     const body: { line_items: (UpdateLineItemInput & { id: string })[] } = await request.json()
 
     if (!Array.isArray(body.line_items)) {
-      return NextResponse.json({ error: 'line_items array is required' }, { status: 400 })
+      throw new SecureError('VALIDATION_ERROR', 'line_items array is required')
     }
 
     // Update each line item
@@ -265,13 +256,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       .order('sort_order', { ascending: true })
 
     if (fetchError) {
-      console.error('Error fetching updated line items:', fetchError)
-      return NextResponse.json({ error: 'Failed to fetch updated line items' }, { status: 500 })
+      throw fetchError
     }
 
     return NextResponse.json({ line_items: lineItems || [] })
   } catch (error) {
-    console.error('Error in PUT /api/estimates/[id]/line-items:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }

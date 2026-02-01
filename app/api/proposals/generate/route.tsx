@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { createClient } from '@/lib/supabase/server'
 import { ProposalPDF } from '@/lib/pdf/proposal-template'
+import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
 import type { ProposalData, ProposalGenerateRequest } from '@/types/proposal'
 import type { EquipmentNeeded, MaterialNeeded } from '@/types/database'
 import { generateProposalNumber } from '@/types/proposal'
@@ -13,16 +14,14 @@ export async function POST(request: NextRequest) {
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get request body
     const body: ProposalGenerateRequest = await request.json()
     const { estimateId, customTerms } = body
 
-    if (!estimateId) {
-      return NextResponse.json({ error: 'Estimate ID is required' }, { status: 400 })
-    }
+    validateRequired(estimateId, 'estimateId')
 
     // Fetch estimate with assessment data
     const { data: estimate, error: estimateError } = await supabase
@@ -38,10 +37,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (estimateError || !estimate) {
-      return NextResponse.json(
-        { error: 'Estimate not found' },
-        { status: 404 }
-      )
+      throw new SecureError('NOT_FOUND', 'Estimate not found')
     }
 
     const assessment = estimate.assessments as {
@@ -72,10 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!assessment || !assessment.organizations) {
-      return NextResponse.json(
-        { error: 'Assessment or organization data not found' },
-        { status: 404 }
-      )
+      throw new SecureError('NOT_FOUND', 'Assessment or organization data not found')
     }
 
     const org = assessment.organizations
@@ -182,10 +175,6 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error generating proposal:', error)
-    return NextResponse.json(
-      { error: 'Failed to generate proposal' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }

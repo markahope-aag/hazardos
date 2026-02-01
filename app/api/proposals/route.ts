@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
 import type { CreateProposalInput } from '@/types/estimates'
 
 /**
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's organization
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Parse query params
@@ -59,8 +60,7 @@ export async function GET(request: NextRequest) {
     const { data, error, count } = await query
 
     if (error) {
-      console.error('Error fetching proposals:', error)
-      return NextResponse.json({ error: 'Failed to fetch proposals' }, { status: 500 })
+      throw error
     }
 
     // Transform relations
@@ -77,8 +77,7 @@ export async function GET(request: NextRequest) {
       offset,
     })
   } catch (error) {
-    console.error('Error in GET /api/proposals:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -93,7 +92,7 @@ export async function POST(request: NextRequest) {
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     // Get user's organization
@@ -104,15 +103,13 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Profile not found')
     }
 
     // Parse request body
     const body: CreateProposalInput = await request.json()
 
-    if (!body.estimate_id) {
-      return NextResponse.json({ error: 'estimate_id is required' }, { status: 400 })
-    }
+    validateRequired(body.estimate_id, 'estimate_id')
 
     // Get the estimate
     const { data: estimate, error: estimateError } = await supabase
@@ -123,23 +120,17 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (estimateError || !estimate) {
-      return NextResponse.json({ error: 'Estimate not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Estimate not found')
     }
 
     // Check if estimate is approved
     if (estimate.status !== 'approved' && estimate.status !== 'sent') {
-      return NextResponse.json({
-        error: 'Cannot create proposal from an unapproved estimate'
-      }, { status: 400 })
+      throw new SecureError('VALIDATION_ERROR', 'Cannot create proposal from an unapproved estimate')
     }
 
     // Generate proposal number using RPC
-    const { data: proposalNumber, error: numberError } = await supabase
+    const { data: proposalNumber } = await supabase
       .rpc('generate_proposal_number', { org_id: profile.organization_id })
-
-    if (numberError) {
-      console.error('Error generating proposal number:', numberError)
-    }
 
     // Generate access token
     const { data: accessToken } = await supabase
@@ -175,8 +166,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (createError) {
-      console.error('Error creating proposal:', createError)
-      return NextResponse.json({ error: 'Failed to create proposal' }, { status: 500 })
+      throw createError
     }
 
     // Update estimate status to 'sent'
@@ -187,7 +177,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ proposal }, { status: 201 })
   } catch (error) {
-    console.error('Error in POST /api/proposals:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { InvoicesService } from '@/lib/services/invoices-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const searchParams = request.nextUrl.searchParams
@@ -25,8 +25,7 @@ export async function GET(request: NextRequest) {
     const invoices = await InvoicesService.list(filters)
     return NextResponse.json({ invoices })
   } catch (error) {
-    console.error('Invoices GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch invoices' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -36,23 +35,18 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const body = await request.json()
 
-    if (!body.customer_id) {
-      return NextResponse.json({ error: 'customer_id is required' }, { status: 400 })
-    }
-    if (!body.due_date) {
-      return NextResponse.json({ error: 'due_date is required' }, { status: 400 })
-    }
+    validateRequired(body.customer_id, 'customer_id')
+    validateRequired(body.due_date, 'due_date')
 
     const invoice = await InvoicesService.create(body)
 
     return NextResponse.json(invoice, { status: 201 })
   } catch (error) {
-    console.error('Invoices POST error:', error)
     return createSecureErrorResponse(error)
   }
 }
