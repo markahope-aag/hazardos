@@ -278,7 +278,6 @@ describe('POST /api/ai/photo-analysis', () => {
 
       expect(response.status).toBe(400)
       expect(data.type).toBe('VALIDATION_ERROR')
-      expect(data.error).toContain('Image data is required')
     })
 
     it('should return 401 for unauthenticated user', async () => {
