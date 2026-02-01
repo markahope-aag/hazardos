@@ -16,7 +16,7 @@
 | **2** | Core Workflow | 4-8 | Survey → Estimate → Proposal → Job |
 | **3** | Client Launch | 9-12 | QuickBooks + Dashboard + MarketSharp gaps |
 | **4** | Growth | 13-16 | Job completion + Feedback loops |
-| **5** | Optimization | 17-20 | Ralph Wiggum Loop + Reporting |
+| **5** | Optimization | 17-20 | Advanced Reporting |
 | **6** | Scale | 21+ | Integrations + Enterprise |
 
 ---
@@ -220,6 +220,7 @@
 | 3.30 | Error handling review | P0 | ✅ Done |
 | 3.31 | Data migration script | P0 | ✅ Done |
 | 3.32 | Security headers | P0 | ✅ Done |
+| 3.33 | Performance optimizations | P1 | ✅ Done |
 
 ---
 
@@ -258,17 +259,6 @@
 ---
 
 ## Phase 5: Optimization (Weeks 17-20)
-
-### Ralph Wiggum Loop
-
-| ID | Feature | Priority | Effort |
-|----|---------|----------|--------|
-| 5.01 | Variance data collection | P1 | 2 days |
-| 5.02 | Analysis by hazard type | P1 | 2 days |
-| 5.03 | Analysis by building type | P1 | 1 day |
-| 5.04 | Estimate accuracy scoring | P1 | 2 days |
-| 5.05 | Pricing suggestions | P2 | 3 days |
-| 5.06 | Learning dashboard | P2 | 2 days |
 
 ### Advanced Reporting
 
@@ -382,8 +372,8 @@
 | **🛡️ Security Headers** | 9 | HSTS, CSP, cookies | ✅ Done |
 | **👥 Multiple Contacts** | 10 | Contacts table + UI | ✅ Done |
 | **📝 Manual Activity** | 10 | Note/call logging | ✅ Done |
+| **⚡ Performance** | 10 | React.memo, bundle analyzer | ✅ Done |
 | **🚀 CLIENT LAUNCH** | **10** | **Ready for MarketSharp migration** | ✅ Ready |
-| Ralph Wiggum | 18 | Learning insights | Pending |
 
 ### Effort Summary
 
@@ -448,9 +438,10 @@
 - ✅ Contacts UI (ContactsList, ContactDialog)
 - ✅ Primary contact flag with auto-promotion
 
-**Polish & QA — 5/5 ✅**
+**Polish & QA — 6/6 ✅**
 - ✅ Mobile audit, error handling, data migrations
 - ✅ Security headers (HSTS, CSP, cookies)
+- ✅ Performance optimizations (React.memo, useMemo/useCallback, bundle analyzer)
 - 🔄 Test coverage (~9% → ongoing)
 
 **Phase 4 (100% Complete):** 🎉
@@ -507,17 +498,17 @@ Tests Pending:
 **Progress:**
 - Phase 1: 33/33 features complete (100%) ✅
 - Phase 2: 30/30 features complete (100%) ✅
-- Phase 3: 33/33 features complete (100%) ✅
+- Phase 3: 34/34 features complete (100%) ✅
 - Phase 4: 15/15 features complete (100%) ✅
-- **Total: 111/140 features complete (79%)**
+- **Total: 112/140 features complete (80%)**
 
-**21 Milestones Complete ✅**
+**22 Milestones Complete ✅**
 
 **🎉 CLIENT LAUNCH READY! 🎉**
 
 **Remaining (Post-Launch):**
 - Test coverage expansion (~9% → 80%)
-- Phase 5: Ralph Wiggum learning loop
+- Phase 5: Advanced Reporting
 
 **All critical features complete. Ready to migrate from MarketSharp.**
 
