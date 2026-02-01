@@ -8,15 +8,14 @@ const mailchimpSyncSchema = z.object({
   list_id: z.string().optional(),
 })
 
+type MailchimpSyncBody = z.infer<typeof mailchimpSyncSchema>
+type Params = { id: string }
+
 /**
  * POST /api/segments/[id]/sync/mailchimp
  * Sync segment to Mailchimp
  */
-export const POST = createApiHandlerWithParams<
-  typeof mailchimpSyncSchema._type,
-  unknown,
-  { id: string }
->(
+export const POST = createApiHandlerWithParams<MailchimpSyncBody, unknown, Params>(
   {
     rateLimit: 'heavy',
     bodySchema: mailchimpSyncSchema,

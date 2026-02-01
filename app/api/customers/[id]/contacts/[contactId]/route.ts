@@ -1,18 +1,16 @@
 import { NextResponse } from 'next/server'
 import { ContactsService } from '@/lib/services/contacts-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
-import { updateContactSchema } from '@/lib/validations/customers'
+import { updateContactSchema, UpdateContactInput } from '@/lib/validations/customers'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+
+type Params = { id: string; contactId: string }
 
 /**
  * GET /api/customers/[id]/contacts/[contactId]
  * Get a specific contact
  */
-export const GET = createApiHandlerWithParams<
-  unknown,
-  unknown,
-  { id: string; contactId: string }
->(
+export const GET = createApiHandlerWithParams<unknown, unknown, Params>(
   { rateLimit: 'general' },
   async (_request, _context, params) => {
     const contact = await ContactsService.get(params.contactId)
@@ -29,11 +27,7 @@ export const GET = createApiHandlerWithParams<
  * PATCH /api/customers/[id]/contacts/[contactId]
  * Update a contact
  */
-export const PATCH = createApiHandlerWithParams<
-  typeof updateContactSchema._type,
-  unknown,
-  { id: string; contactId: string }
->(
+export const PATCH = createApiHandlerWithParams<UpdateContactInput, unknown, Params>(
   {
     rateLimit: 'general',
     bodySchema: updateContactSchema,
@@ -59,11 +53,7 @@ export const PATCH = createApiHandlerWithParams<
  * DELETE /api/customers/[id]/contacts/[contactId]
  * Delete a contact
  */
-export const DELETE = createApiHandlerWithParams<
-  unknown,
-  unknown,
-  { id: string; contactId: string }
->(
+export const DELETE = createApiHandlerWithParams<unknown, unknown, Params>(
   { rateLimit: 'general' },
   async (_request, _context, params) => {
     await ContactsService.delete(params.contactId)

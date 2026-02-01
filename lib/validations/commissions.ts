@@ -41,16 +41,16 @@ export const commissionTierSchema = z.object({
 export const createCommissionPlanSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255),
   commission_type: commissionTypeSchema,
-  base_rate: z.number().min(0).optional().nullable(),
-  tiers: z.array(commissionTierSchema).optional().nullable(),
+  base_rate: z.number().min(0).optional(),
+  tiers: z.array(commissionTierSchema).optional(),
   applies_to: commissionAppliesToSchema.optional(),
 })
 
 export const updateCommissionPlanSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   commission_type: commissionTypeSchema.optional(),
-  base_rate: z.number().min(0).optional().nullable(),
-  tiers: z.array(commissionTierSchema).optional().nullable(),
+  base_rate: z.number().min(0).optional(),
+  tiers: z.array(commissionTierSchema).optional(),
   applies_to: commissionAppliesToSchema.optional(),
   is_active: z.boolean().optional(),
 })

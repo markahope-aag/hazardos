@@ -2,16 +2,16 @@ import { NextResponse } from 'next/server'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateLineItemSchema } from '@/lib/validations/estimates'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { z } from 'zod'
+
+type UpdateLineItemBody = z.infer<typeof updateLineItemSchema>
+type Params = { id: string; lineItemId: string }
 
 /**
  * PATCH /api/estimates/[id]/line-items/[lineItemId]
  * Update a single line item
  */
-export const PATCH = createApiHandlerWithParams<
-  typeof updateLineItemSchema._type,
-  unknown,
-  { id: string; lineItemId: string }
->(
+export const PATCH = createApiHandlerWithParams<UpdateLineItemBody, unknown, Params>(
   {
     rateLimit: 'general',
     bodySchema: updateLineItemSchema,
@@ -84,11 +84,7 @@ export const PATCH = createApiHandlerWithParams<
  * DELETE /api/estimates/[id]/line-items/[lineItemId]
  * Delete a line item
  */
-export const DELETE = createApiHandlerWithParams<
-  unknown,
-  unknown,
-  { id: string; lineItemId: string }
->(
+export const DELETE = createApiHandlerWithParams<unknown, unknown, Params>(
   { rateLimit: 'general' },
   async (_request, context, params) => {
     // Verify estimate belongs to organization

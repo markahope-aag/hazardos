@@ -2,16 +2,16 @@ import { NextResponse } from 'next/server'
 import { JobCompletionService } from '@/lib/services/job-completion-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateMaterialUsageSchema } from '@/lib/validations/jobs'
+import { z } from 'zod'
+
+type UpdateMaterialUsageBody = z.infer<typeof updateMaterialUsageSchema>
+type Params = { id: string; usageId: string }
 
 /**
  * PATCH /api/jobs/[id]/material-usage/[usageId]
  * Update a material usage record
  */
-export const PATCH = createApiHandlerWithParams<
-  typeof updateMaterialUsageSchema._type,
-  unknown,
-  { id: string; usageId: string }
->(
+export const PATCH = createApiHandlerWithParams<UpdateMaterialUsageBody, unknown, Params>(
   {
     rateLimit: 'general',
     bodySchema: updateMaterialUsageSchema,
@@ -35,11 +35,7 @@ export const PATCH = createApiHandlerWithParams<
  * DELETE /api/jobs/[id]/material-usage/[usageId]
  * Delete a material usage record
  */
-export const DELETE = createApiHandlerWithParams<
-  unknown,
-  unknown,
-  { id: string; usageId: string }
->(
+export const DELETE = createApiHandlerWithParams<unknown, unknown, Params>(
   { rateLimit: 'general' },
   async (_request, _context, params) => {
     await JobCompletionService.deleteMaterialUsage(params.usageId)
