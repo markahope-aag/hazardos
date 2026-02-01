@@ -1,62 +1,35 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { JobCompletionService } from '@/lib/services/job-completion-service'
-import { createSecureErrorResponse, validateRequired, SecureError } from '@/lib/utils/secure-error-handler'
-import { createClient } from '@/lib/supabase/server'
+import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { createTimeEntrySchema } from '@/lib/validations/jobs'
 
-type RouteParams = { params: Promise<{ id: string }> }
-
-export async function GET(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const timeEntries = await JobCompletionService.getTimeEntries(id)
+/**
+ * GET /api/jobs/[id]/time-entries
+ * Get time entries for a job
+ */
+export const GET = createApiHandlerWithParams(
+  { rateLimit: 'general' },
+  async (_request, _context, params) => {
+    const timeEntries = await JobCompletionService.getTimeEntries(params.id)
     return NextResponse.json(timeEntries)
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)
 
-export async function POST(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new SecureError('UNAUTHORIZED')
-    }
-
-    const body = await request.json()
-
-    validateRequired(body.work_date, 'work_date')
-    validateRequired(body.hours, 'hours')
-
+/**
+ * POST /api/jobs/[id]/time-entries
+ * Create a time entry for a job
+ */
+export const POST = createApiHandlerWithParams(
+  {
+    rateLimit: 'general',
+    bodySchema: createTimeEntrySchema,
+  },
+  async (_request, _context, params, body) => {
     const timeEntry = await JobCompletionService.createTimeEntry({
-      job_id: id,
-      profile_id: body.profile_id,
-      work_date: body.work_date,
-      hours: body.hours,
-      work_type: body.work_type,
-      hourly_rate: body.hourly_rate,
-      billable: body.billable,
-      description: body.description,
-      notes: body.notes,
+      job_id: params.id,
+      ...body,
     })
 
     return NextResponse.json(timeEntry, { status: 201 })
-  } catch (error) {
-    return createSecureErrorResponse(error)
   }
-}
+)

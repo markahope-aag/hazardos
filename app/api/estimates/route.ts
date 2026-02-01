@@ -76,7 +76,7 @@ export const POST = createApiHandler(
     // Get the site survey
     const { data: survey, error: surveyError } = await context.supabase
       .from('site_surveys')
-      .select('*')
+      .select('id, organization_id, customer_id, job_name, hazard_type, containment_level, area_sqft, linear_ft, volume_cuft, access_info, clearance_required, regulatory_notifications_needed, site_address, site_city, site_state, site_zip')
       .eq('id', body.site_survey_id)
       .eq('organization_id', context.profile.organization_id)
       .single()
