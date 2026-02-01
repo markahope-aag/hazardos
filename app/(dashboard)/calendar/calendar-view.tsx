@@ -90,8 +90,8 @@ export function CalendarView() {
       if (data.jobs) {
         setJobs(data.jobs)
       }
-    } catch (error) {
-      console.error('Failed to fetch calendar jobs:', error)
+    } catch {
+      // Calendar data fetch failed - will show empty calendar
     } finally {
       setLoading(false)
     }

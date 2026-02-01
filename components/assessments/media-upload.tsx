@@ -55,8 +55,7 @@ export function MediaUpload({
         type: 'image/jpeg',
         lastModified: Date.now(),
       })
-    } catch (error) {
-      console.error('Image compression failed:', error)
+    } catch {
       return file
     }
   }
@@ -194,8 +193,7 @@ export function MediaUpload({
 
         newMedia.push(mediaFile)
         setProcessingProgress(((i + 1) / totalFiles) * 100)
-      } catch (error) {
-        console.error('Error processing file:', file.name, error)
+      } catch {
         toast({
           title: 'Processing failed',
           description: `Failed to process ${file.name}`,
@@ -270,8 +268,7 @@ export function MediaUpload({
 
       // Clean up stream
       stream.getTracks().forEach(track => track.stop())
-    } catch (error) {
-      console.error('Camera access failed:', error)
+    } catch {
       toast({
         title: 'Camera access denied',
         description: 'Please allow camera access or select files manually',

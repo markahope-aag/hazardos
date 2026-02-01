@@ -83,7 +83,6 @@ export default function ProposalPortalPage() {
         setSigned(true)
       }
     } catch (err) {
-      console.error('Error loading proposal:', err)
       setError(err instanceof Error ? err.message : 'Failed to load proposal')
     } finally {
       setLoading(false)
@@ -193,7 +192,6 @@ export default function ProposalPortalPage() {
       setShowSignDialog(false)
       loadProposal()
     } catch (err) {
-      console.error('Error signing proposal:', err)
       alert(err instanceof Error ? err.message : 'Failed to sign proposal')
     } finally {
       setSigning(false)

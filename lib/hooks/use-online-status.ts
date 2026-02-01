@@ -58,7 +58,6 @@ export function useOnlineSync() {
 
   const syncNow = useCallback(async () => {
     if (!isOnline) {
-      console.warn('Cannot sync while offline')
       return false
     }
 

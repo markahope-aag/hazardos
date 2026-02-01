@@ -67,9 +67,8 @@ export default function CustomerForm({
   const handleFormSubmit = handleSubmit(async (data: CustomerFormData) => {
     try {
       await onSubmit(data)
-    } catch (error) {
+    } catch {
       // Error handling is done in the mutation hooks
-      console.error('Form submission error:', error)
     }
   })
 

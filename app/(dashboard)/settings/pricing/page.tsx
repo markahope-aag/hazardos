@@ -122,8 +122,7 @@ export default function PricingSettingsPage() {
           office_zip: result.settings.office_zip || '',
         })
       }
-    } catch (_error) {
-      console.error('Error fetching pricing data:', _error)
+    } catch {
       toast({ title: 'Error', description: 'Failed to load pricing data', variant: 'destructive' })
     } finally {
       setLoading(false)

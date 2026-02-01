@@ -97,7 +97,6 @@ export function ReviewSection() {
         setSubmitError(syncError || 'Failed to submit survey. Please try again.')
       }
     } catch (error) {
-      console.error('Submission error:', error)
       setSubmitError(
         error instanceof Error ? error.message : 'Failed to submit survey. Please try again.'
       )

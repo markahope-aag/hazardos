@@ -111,8 +111,7 @@ export default function EstimatesPage() {
         ).length,
         totalValue: allEstimates.reduce((sum: number, e: EstimateWithRelations) => sum + (e.total || 0), 0),
       })
-    } catch (error) {
-      console.error('Error loading estimates:', error)
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to load estimates.',
@@ -136,8 +135,7 @@ export default function EstimatesPage() {
 
       toast({ title: 'Success', description: 'Estimate deleted.' })
       loadEstimates()
-    } catch (error) {
-      console.error('Error deleting estimate:', error)
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to delete estimate.',

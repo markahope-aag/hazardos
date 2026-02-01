@@ -13,8 +13,7 @@ interface ErrorBoundaryProps {
 
 export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
   useEffect(() => {
-    // Log the error to an error reporting service
-    console.error('Error boundary caught:', error);
+    // Error is captured by Next.js error boundary - integrate Sentry here if needed
   }, [error]);
 
   return (

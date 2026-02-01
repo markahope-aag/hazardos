@@ -102,8 +102,7 @@ export default function EstimateDetailPage() {
 
       const data = await response.json()
       setEstimate(data.estimate)
-    } catch (error) {
-      console.error('Error loading estimate:', error)
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to load estimate.',
@@ -130,8 +129,7 @@ export default function EstimateDetailPage() {
 
       toast({ title: 'Success', description: 'Estimate approved.' })
       loadEstimate()
-    } catch (error) {
-      console.error('Error approving estimate:', error)
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to approve estimate.',
@@ -152,8 +150,7 @@ export default function EstimateDetailPage() {
 
       toast({ title: 'Success', description: 'Estimate submitted for approval.' })
       loadEstimate()
-    } catch (error) {
-      console.error('Error submitting estimate:', error)
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to submit estimate.',
@@ -174,8 +171,7 @@ export default function EstimateDetailPage() {
 
       toast({ title: 'Success', description: 'Estimate deleted.' })
       router.push('/estimates')
-    } catch (error) {
-      console.error('Error deleting estimate:', error)
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to delete estimate.',

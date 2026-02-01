@@ -28,8 +28,8 @@ export function RevenueChart() {
         const response = await fetch('/api/analytics/revenue');
         const result = await response.json();
         setData(result);
-      } catch (error) {
-        console.error('Failed to fetch revenue data:', error);
+      } catch {
+        // Revenue data fetch failed - chart will show empty state
       } finally {
         setLoading(false);
       }

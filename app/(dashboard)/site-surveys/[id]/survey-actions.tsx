@@ -61,8 +61,7 @@ export function SurveyActions({ survey }: SurveyActionsProps) {
         description: `Survey status changed to ${newStatus}.`,
       })
       router.refresh()
-    } catch (error) {
-      console.error('Error updating status:', error)
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to update status. Please try again.',
@@ -86,8 +85,7 @@ export function SurveyActions({ survey }: SurveyActionsProps) {
         description: 'The survey has been deleted.',
       })
       router.push('/site-surveys')
-    } catch (error) {
-      console.error('Error deleting survey:', error)
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to delete survey. Please try again.',

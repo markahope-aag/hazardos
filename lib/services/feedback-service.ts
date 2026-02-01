@@ -444,16 +444,28 @@ export class FeedbackService {
 
     if (error) throw error
 
+    const stats = data as {
+      total_surveys?: number
+      completed_surveys?: number
+      avg_overall_rating?: number
+      avg_quality_rating?: number
+      avg_communication_rating?: number
+      avg_timeliness_rating?: number
+      nps_score?: number
+      testimonials_count?: number
+      response_rate?: number
+    } | null
+
     return {
-      total_surveys: Number(data.total_surveys) || 0,
-      completed_surveys: Number(data.completed_surveys) || 0,
-      avg_overall_rating: data.avg_overall_rating ? Number(data.avg_overall_rating) : null,
-      avg_quality_rating: data.avg_quality_rating ? Number(data.avg_quality_rating) : null,
-      avg_communication_rating: data.avg_communication_rating ? Number(data.avg_communication_rating) : null,
-      avg_timeliness_rating: data.avg_timeliness_rating ? Number(data.avg_timeliness_rating) : null,
-      nps_score: data.nps_score ? Number(data.nps_score) : null,
-      testimonials_count: Number(data.testimonials_count) || 0,
-      response_rate: data.response_rate ? Number(data.response_rate) : null,
+      total_surveys: Number(stats?.total_surveys) || 0,
+      completed_surveys: Number(stats?.completed_surveys) || 0,
+      avg_overall_rating: stats?.avg_overall_rating ? Number(stats.avg_overall_rating) : null,
+      avg_quality_rating: stats?.avg_quality_rating ? Number(stats.avg_quality_rating) : null,
+      avg_communication_rating: stats?.avg_communication_rating ? Number(stats.avg_communication_rating) : null,
+      avg_timeliness_rating: stats?.avg_timeliness_rating ? Number(stats.avg_timeliness_rating) : null,
+      nps_score: stats?.nps_score ? Number(stats.nps_score) : null,
+      testimonials_count: Number(stats?.testimonials_count) || 0,
+      response_rate: stats?.response_rate ? Number(stats.response_rate) : null,
     }
   }
 

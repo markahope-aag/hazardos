@@ -74,7 +74,6 @@ export function ProposalGenerator({
         description: `PDF downloaded: ${filename}`,
       })
     } catch (error) {
-      console.error('Error generating proposal:', error)
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to generate proposal',
