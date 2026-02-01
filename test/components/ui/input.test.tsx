@@ -47,11 +47,13 @@ describe('Input Component', () => {
   })
 
   it('should handle different input types', () => {
-    const { rerender } = render(<Input type="email" />)
+    const { rerender, container } = render(<Input type="email" />)
     expect(screen.getByRole('textbox')).toHaveAttribute('type', 'email')
 
     rerender(<Input type="password" />)
-    expect(screen.getByLabelText(/password/i) || screen.getByDisplayValue('')).toHaveAttribute('type', 'password')
+    // Password inputs don't have a role, query by element type
+    const passwordInput = container.querySelector('input[type="password"]')
+    expect(passwordInput).toHaveAttribute('type', 'password')
 
     rerender(<Input type="number" />)
     expect(screen.getByRole('spinbutton')).toHaveAttribute('type', 'number')

@@ -90,15 +90,15 @@ describe('Feedback API', () => {
       } as any)
 
       const mockSurvey = {
-        id: 'survey-1',
-        job_id: 'job-123',
+        id: '550e8400-e29b-41d4-a716-446655440001',
+        job_id: '550e8400-e29b-41d4-a716-446655440000',
         status: 'sent'
       }
 
       vi.mocked(FeedbackService.createSurvey).mockResolvedValue(mockSurvey)
 
       const surveyData = {
-        job_id: 'job-123',
+        job_id: '550e8400-e29b-41d4-a716-446655440000',
         send_immediately: true,
         recipient_email: 'customer@example.com'
       }
