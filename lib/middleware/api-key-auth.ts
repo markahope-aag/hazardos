@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ApiKeyService } from '@/lib/services/api-key-service';
+import { createServiceLogger, formatError } from '@/lib/utils/logger';
 import type { ApiKey, ApiKeyScope } from '@/types/integrations';
+
+const log = createServiceLogger('ApiKeyAuth');
 
 export interface ApiKeyAuthContext {
   apiKey: ApiKey;
