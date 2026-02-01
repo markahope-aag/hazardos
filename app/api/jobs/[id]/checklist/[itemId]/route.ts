@@ -2,16 +2,16 @@ import { NextResponse } from 'next/server'
 import { JobCompletionService } from '@/lib/services/job-completion-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateChecklistItemSchema } from '@/lib/validations/jobs'
+import { z } from 'zod'
+
+type UpdateChecklistItemBody = z.infer<typeof updateChecklistItemSchema>
+type Params = { id: string; itemId: string }
 
 /**
  * PATCH /api/jobs/[id]/checklist/[itemId]
  * Update a checklist item
  */
-export const PATCH = createApiHandlerWithParams<
-  typeof updateChecklistItemSchema._type,
-  unknown,
-  { id: string; itemId: string }
->(
+export const PATCH = createApiHandlerWithParams<UpdateChecklistItemBody, unknown, Params>(
   {
     rateLimit: 'general',
     bodySchema: updateChecklistItemSchema,
