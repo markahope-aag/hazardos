@@ -351,13 +351,22 @@ export class HubSpotService {
     let succeeded = 0;
     let failed = 0;
 
-    for (const customer of customers) {
-      try {
-        await this.syncContact(organizationId, customer.id);
-        succeeded++;
-      } catch (error) {
-        console.error(`Failed to sync customer ${customer.id}:`, error);
-        failed++;
+    // Process in parallel batches of 10 for better performance
+    // while respecting HubSpot API rate limits
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < customers.length; i += BATCH_SIZE) {
+      const batch = customers.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(customer => this.syncContact(organizationId, customer.id))
+      );
+
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          succeeded++;
+        } else {
+          console.error('Failed to sync customer:', result.reason);
+          failed++;
+        }
       }
     }
 

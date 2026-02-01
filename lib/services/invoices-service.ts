@@ -450,43 +450,81 @@ export class InvoicesService {
   }> {
     const supabase = await createClient()
 
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile?.organization_id) throw new Error('Organization not found')
+
     const today = new Date().toISOString().split('T')[0]
     const monthStart = new Date()
     monthStart.setDate(1)
+    const monthStartStr = monthStart.toISOString().split('T')[0]
 
-    const { data: invoices } = await supabase
-      .from('invoices')
-      .select('status, balance_due, due_date, total')
+    // Run all queries in parallel for better performance
+    const [
+      draftResult,
+      sentResult,
+      overdueResult,
+      outstandingResult,
+      overdueAmountResult,
+      paymentsResult,
+    ] = await Promise.all([
+      // Draft count
+      supabase
+        .from('invoices')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', profile.organization_id)
+        .eq('status', 'draft'),
+      // Sent count (sent, viewed but not overdue)
+      supabase
+        .from('invoices')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', profile.organization_id)
+        .in('status', ['sent', 'viewed'])
+        .gte('due_date', today),
+      // Overdue count
+      supabase
+        .from('invoices')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', profile.organization_id)
+        .in('status', ['sent', 'viewed'])
+        .lt('due_date', today)
+        .gt('balance_due', 0),
+      // Total outstanding (sum of balance_due for non-paid, non-void)
+      supabase
+        .from('invoices')
+        .select('balance_due')
+        .eq('organization_id', profile.organization_id)
+        .not('status', 'in', '("paid","void")'),
+      // Total overdue amount
+      supabase
+        .from('invoices')
+        .select('balance_due')
+        .eq('organization_id', profile.organization_id)
+        .in('status', ['sent', 'viewed'])
+        .lt('due_date', today)
+        .gt('balance_due', 0),
+      // Paid this month
+      supabase
+        .from('payments')
+        .select('amount')
+        .eq('organization_id', profile.organization_id)
+        .gte('payment_date', monthStartStr),
+    ])
 
-    const { data: paidThisMonth } = await supabase
-      .from('payments')
-      .select('amount')
-      .gte('payment_date', monthStart.toISOString().split('T')[0])
-
-    const stats = {
-      total_outstanding: 0,
-      total_overdue: 0,
-      draft_count: 0,
-      sent_count: 0,
-      overdue_count: 0,
-      paid_this_month: paidThisMonth?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0,
+    return {
+      draft_count: draftResult.count || 0,
+      sent_count: sentResult.count || 0,
+      overdue_count: overdueResult.count || 0,
+      total_outstanding: (outstandingResult.data || []).reduce((sum, i) => sum + (i.balance_due || 0), 0),
+      total_overdue: (overdueAmountResult.data || []).reduce((sum, i) => sum + (i.balance_due || 0), 0),
+      paid_this_month: (paymentsResult.data || []).reduce((sum, p) => sum + (p.amount || 0), 0),
     }
-
-    for (const inv of invoices || []) {
-      if (inv.status === 'void' || inv.status === 'paid') continue
-
-      stats.total_outstanding += inv.balance_due || 0
-
-      if (inv.status === 'draft') {
-        stats.draft_count++
-      } else if (inv.due_date < today && inv.balance_due > 0) {
-        stats.total_overdue += inv.balance_due
-        stats.overdue_count++
-      } else {
-        stats.sent_count++
-      }
-    }
-
-    return stats
   }
 }

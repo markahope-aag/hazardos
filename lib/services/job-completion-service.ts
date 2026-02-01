@@ -760,6 +760,28 @@ export class JobCompletionService {
 
     if (error) throw error
 
+    // Extract job IDs for batch material query
+    const jobIds = (data || [])
+      .map(c => {
+        const job = Array.isArray(c.job) ? c.job[0] : c.job
+        return job?.id
+      })
+      .filter((id): id is string => !!id)
+
+    // Fetch all materials for all jobs in a single query (avoids N+1)
+    const { data: allMaterials } = await supabase
+      .from('job_material_usage')
+      .select('job_id, material_name, quantity_estimated, quantity_used, variance_quantity, variance_percent, unit')
+      .in('job_id', jobIds.length > 0 ? jobIds : [''])
+
+    // Group materials by job_id for efficient lookup
+    const materialsByJobId = new Map<string, typeof allMaterials>()
+    for (const material of allMaterials || []) {
+      const existing = materialsByJobId.get(material.job_id) || []
+      existing.push(material)
+      materialsByJobId.set(material.job_id, existing)
+    }
+
     // Transform data
     const analyses: VarianceAnalysis[] = []
 
@@ -782,11 +804,8 @@ export class JobCompletionService {
         if (variance < filters.variance_threshold) continue
       }
 
-      // Get material usage for breakdown
-      const { data: materials } = await supabase
-        .from('job_material_usage')
-        .select('material_name, quantity_estimated, quantity_used, variance_quantity, variance_percent, unit')
-        .eq('job_id', job?.id)
+      // Get materials from pre-fetched map (O(1) lookup)
+      const materials = materialsByJobId.get(job?.id) || []
 
       analyses.push({
         job_id: job?.id,
@@ -802,7 +821,7 @@ export class JobCompletionService {
         actual_cost: completion.actual_total,
         cost_variance: completion.cost_variance,
         cost_variance_percent: completion.cost_variance_percent,
-        materials_summary: (materials || []).map(m => ({
+        materials_summary: materials.map(m => ({
           material_name: m.material_name,
           estimated_qty: m.quantity_estimated,
           actual_qty: m.quantity_used,
