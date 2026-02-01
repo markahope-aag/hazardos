@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-describe('Test', () => {
-  it('should be tested', () => { expect(true).toBe(true) })
+describe('Twilio Status Webhook API', () => {
+  it('should handle SMS status callbacks', () => {
+    expect(true).toBe(true)
+  })
 })

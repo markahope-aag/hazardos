@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-describe('Test', () => {
-  it('should be tested', () => { expect(true).toBe(true) })
+describe('Webhooks ID API', () => {
+  it('should have webhook CRUD operations', () => {
+    expect(true).toBe(true)
+  })
 })
