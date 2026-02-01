@@ -19,6 +19,7 @@
 - **[Multi-Tenant Setup](./MULTI_TENANT_SETUP.md)** - Architecture and configuration guide
 - **[Database Setup Checklist](./DATABASE-SETUP-CHECKLIST.md)** - Step-by-step database verification
 - **[Site Survey Terminology Update](./SITE-SURVEY-TERMINOLOGY-UPDATE.md)** - Migration from "Assessments" to "Site Surveys"
+- **[Email & SMS Guide](./EMAIL-SMS-GUIDE.md)** - Email audit and SMS implementation guide (Resend + Twilio)
 
 ### 🗄️ Database
 - **[Database Migrations](./database/README.md)** - SQL migration files and documentation (legacy)
