@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { JobsService } from '@/lib/services/jobs-service'
-import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createSecureErrorResponse, SecureError, validateRequired } from '@/lib/utils/secure-error-handler'
 
 export async function POST(
   request: NextRequest,
@@ -12,18 +12,15 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const { id } = await params
     const body = await request.json()
 
-    if (!body.description) {
-      return NextResponse.json({ error: 'description is required' }, { status: 400 })
-    }
-
+    validateRequired(body.description, 'description')
     if (body.amount === undefined || body.amount === null) {
-      return NextResponse.json({ error: 'amount is required' }, { status: 400 })
+      throw new SecureError('VALIDATION_ERROR', 'amount is required')
     }
 
     const changeOrder = await JobsService.addChangeOrder(id, {
@@ -34,7 +31,6 @@ export async function POST(
 
     return NextResponse.json(changeOrder, { status: 201 })
   } catch (error) {
-    console.error('Add change order error:', error)
     return createSecureErrorResponse(error)
   }
 }
@@ -48,21 +44,15 @@ export async function PATCH(
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new SecureError('UNAUTHORIZED')
     }
 
     const body = await request.json()
     const { change_order_id, action } = body
 
-    if (!change_order_id) {
-      return NextResponse.json({ error: 'change_order_id is required' }, { status: 400 })
-    }
-
+    validateRequired(change_order_id, 'change_order_id')
     if (!action || !['approve', 'reject'].includes(action)) {
-      return NextResponse.json(
-        { error: 'action must be "approve" or "reject"' },
-        { status: 400 }
-      )
+      throw new SecureError('VALIDATION_ERROR', 'action must be "approve" or "reject"')
     }
 
     const changeOrder = action === 'approve'
@@ -71,7 +61,6 @@ export async function PATCH(
 
     return NextResponse.json(changeOrder)
   } catch (error) {
-    console.error('Update change order error:', error)
     return createSecureErrorResponse(error)
   }
 }

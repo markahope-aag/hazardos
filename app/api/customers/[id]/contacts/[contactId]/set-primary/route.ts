@@ -21,13 +21,6 @@ export async function POST(
 
     return NextResponse.json(contact)
   } catch (error) {
-    if (error instanceof SecureError) {
-      return createSecureErrorResponse(error)
-    }
-    console.error('Error setting primary contact:', error)
-    return NextResponse.json(
-      { error: 'Failed to set primary contact' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }

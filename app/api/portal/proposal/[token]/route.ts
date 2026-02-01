@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 
 interface RouteParams {
   params: Promise<{ token: string }>
@@ -95,12 +96,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .single()
 
     if (error || !proposal) {
-      return NextResponse.json({ error: 'Proposal not found' }, { status: 404 })
+      throw new SecureError('NOT_FOUND', 'Proposal not found')
     }
 
     // Check if token is expired
     if (new Date(proposal.access_token_expires_at) < new Date()) {
-      return NextResponse.json({ error: 'This proposal link has expired' }, { status: 400 })
+      throw new SecureError('VALIDATION_ERROR', 'This proposal link has expired')
     }
 
     // Transform relations
@@ -140,7 +141,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ proposal: transformedProposal })
   } catch (error) {
-    console.error('Error in GET /api/portal/proposal/[token]:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createSecureErrorResponse(error)
   }
 }

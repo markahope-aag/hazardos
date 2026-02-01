@@ -114,8 +114,7 @@ export async function POST(request: NextRequest) {
       })
 
     if (subError) {
-      // Log but don't fail - subscription can be created later
-      console.error('Failed to create subscription record:', subError)
+      // Subscription creation failed but org exists - continue with trial
     }
 
     // If user wants to subscribe now (not just trial), create Stripe checkout
@@ -134,9 +133,8 @@ export async function POST(request: NextRequest) {
           organizationId: newOrg.id,
           checkoutUrl
         })
-      } catch (stripeError) {
+      } catch (_stripeError) {
         // Stripe checkout failed, but org is created with trial
-        console.error('Stripe checkout error:', stripeError)
         return NextResponse.json({
           success: true,
           organizationId: newOrg.id,

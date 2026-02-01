@@ -25,14 +25,7 @@ export async function GET(
 
     return NextResponse.json(contact)
   } catch (error) {
-    if (error instanceof SecureError) {
-      return createSecureErrorResponse(error)
-    }
-    console.error('Error fetching contact:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch contact' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -66,14 +59,7 @@ export async function PATCH(
 
     return NextResponse.json(contact)
   } catch (error) {
-    if (error instanceof SecureError) {
-      return createSecureErrorResponse(error)
-    }
-    console.error('Error updating contact:', error)
-    return NextResponse.json(
-      { error: 'Failed to update contact' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }
 
@@ -95,13 +81,6 @@ export async function DELETE(
 
     return NextResponse.json({ message: 'Contact deleted successfully' })
   } catch (error) {
-    if (error instanceof SecureError) {
-      return createSecureErrorResponse(error)
-    }
-    console.error('Error deleting contact:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete contact' },
-      { status: 500 }
-    )
+    return createSecureErrorResponse(error)
   }
 }
