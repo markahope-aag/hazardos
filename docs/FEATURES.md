@@ -24,11 +24,250 @@
 
 ---
 
+## Structured Logging System
+
+### Overview
+
+Production-ready structured logging system using Pino for consistent, secure, and performant application-wide logging. Outputs JSON logs compatible with Vercel, Docker, and cloud platforms.
+
+### Features
+
+#### Logger Utility
+
+Centralized logging infrastructure at `C:\Users\markh\projects\hazardos\lib\utils\logger.ts`.
+
+**Core Capabilities**:
+- JSON-structured logging to stdout
+- Environment-based log levels (trace, debug, info, warn, error, fatal)
+- Pretty printing in development, JSON in production
+- Automatic sensitive field redaction
+- Request-scoped logging with context
+- Service-scoped logging
+- Performance timing utilities
+
+**Root Logger**:
+```typescript
+import { logger } from '@/lib/utils/logger'
+
+// Basic logging
+logger.info('Server started')
+logger.error({ err }, 'Database connection failed')
+```
+
+**Request-Scoped Logger**:
+```typescript
+import { createRequestLogger } from '@/lib/utils/logger'
+
+const log = createRequestLogger({
+  requestId: 'abc123',
+  userId: 'user-uuid',
+  organizationId: 'org-uuid',
+  method: 'POST',
+  path: '/api/jobs'
+})
+
+log.info('Request started')
+log.error({ error: { type, message } }, 'Request failed')
+```
+
+**Service-Scoped Logger**:
+```typescript
+import { createServiceLogger } from '@/lib/utils/logger'
+
+const log = createServiceLogger('StripeService')
+log.info({ operation: 'createCheckoutSession', durationMs: 342 }, 'Checkout session created')
+```
+
+**Timing Helper**:
+```typescript
+import { timed } from '@/lib/utils/logger'
+
+const result = await timed(log, 'fetchCustomers', async () => {
+  return await db.customers.findMany()
+})
+```
+
+#### Logging Types
+
+Comprehensive TypeScript types at `C:\Users\markh\projects\hazardos\lib\types\logging.ts`.
+
+**Request Context**:
+- Request ID (nanoid)
+- User ID
+- Organization ID
+- HTTP method and path
+- User agent and IP address
+
+**Log Context**:
+- Flexible metadata fields
+- Request correlation ID
+- User and organization context
+
+**Service Log Context**:
+- Service name
+- Operation being performed
+- Duration metrics
+
+**Error Log Context**:
+- Error type classification
+- Error message
+- Stack trace (development only)
+- Field-level error details
+- Database error codes
+
+**API Key Log Context**:
+- API key ID (never the key itself)
+- Rate limit remaining
+- Rate limit reset time
+
+#### Sensitive Data Redaction
+
+Automatic redaction of sensitive fields:
+- `password`
+- `apiKey`
+- `authorization`
+- `cookie`
+- `token`
+- And nested variants (`*.password`, `*.apiKey`, etc.)
+
+All sensitive fields are completely removed from logs.
+
+#### Error Formatting
+
+Secure error formatting utility:
+
+```typescript
+import { formatError } from '@/lib/utils/logger'
+
+const errorLog = formatError(
+  error,
+  'DATABASE_ERROR',
+  'customer_id'
+)
+
+log.error({ error: errorLog }, 'Failed to create customer')
+```
+
+**Error Details Included**:
+- Error type classification
+- Error message
+- Stack trace (development only)
+- Field that caused error (for validation)
+- Error code (for database errors)
+
+#### Integration with API Handlers
+
+All API routes use structured logging via `C:\Users\markh\projects\hazardos\lib\utils\api-handler.ts`:
+
+**Automatic Request Logging**:
+- Request started with method, path, request ID
+- User context added after authentication
+- Request duration tracking
+- Final status code logging
+- Error logging with context
+
+**Logger in API Context**:
+```typescript
+export const POST = createApiHandler({
+  rateLimit: 'general',
+  bodySchema: createJobSchema
+}, async (request, context, body) => {
+  context.log.info({ jobId: body.customer_id }, 'Creating job')
+
+  // ... API logic
+
+  context.log.info('Job created successfully')
+  return NextResponse.json({ job })
+})
+```
+
+#### Integration with Middleware
+
+**API Key Authentication** (`C:\Users\markh\projects\hazardos\lib\middleware\api-key-auth.ts`):
+- Service-scoped logger for authentication events
+- Error logging with formatError
+- API request tracking
+
+**Secure Error Handler** (`C:\Users\markh\projects\hazardos\lib\utils\secure-error-handler.ts`):
+- Uses logger for all error responses
+- Warn level for client errors (4xx)
+- Error level for server errors (5xx)
+- Full error context in logs, safe messages to clients
+
+#### Log Levels
+
+**trace**: Very detailed debugging information
+**debug**: Debugging information useful for developers
+**info**: General informational messages (default)
+**warn**: Warning messages for potentially harmful situations
+**error**: Error events that might still allow the app to continue
+**fatal**: Critical errors that cause application termination
+
+Set via `LOG_LEVEL` environment variable.
+
+#### Production Logging
+
+**JSON Output**:
+```json
+{
+  "level": 30,
+  "time": "2026-02-01T10:30:00.000Z",
+  "env": "production",
+  "requestId": "abc123xyz",
+  "userId": "user-uuid",
+  "organizationId": "org-uuid",
+  "method": "POST",
+  "path": "/api/jobs",
+  "msg": "Request completed",
+  "durationMs": 342,
+  "status": 201
+}
+```
+
+**Development Pretty Print**:
+```
+[10:30:00.000] INFO (hazardos): Request completed
+    requestId: "abc123xyz"
+    userId: "user-uuid"
+    method: "POST"
+    path: "/api/jobs"
+    durationMs: 342
+    status: 201
+```
+
+#### Benefits
+
+**Observability**:
+- Correlation across requests via request ID
+- User and organization tracking
+- Performance metrics (duration)
+- Error tracking with full context
+
+**Security**:
+- No sensitive data in logs
+- Safe error messages for production
+- Stack traces only in development
+- Automatic field redaction
+
+**Performance**:
+- Fast JSON serialization
+- Low overhead
+- No file I/O (stdout only)
+- Compatible with log aggregation services
+
+**Cloud Integration**:
+- Vercel log collection
+- Docker stdout capture
+- CloudWatch compatibility
+- Datadog/New Relic ready
+
+---
+
 ## API Standardization & Testing
 
 ### Overview
 
-Comprehensive API standardization with secure error handling, consistent validation, and extensive test coverage across all critical endpoints.
+Comprehensive API standardization with secure error handling, consistent validation, structured logging, and extensive test coverage across all critical endpoints.
 
 ### Features
 
