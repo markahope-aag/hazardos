@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
 
 interface RouteParams {
   params: Promise<{ token: string }>
@@ -12,6 +13,12 @@ interface RouteParams {
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    // Apply rate limiting for public endpoints
+    const rateLimitResponse = await applyUnifiedRateLimit(request, 'public')
+    if (rateLimitResponse) {
+      return rateLimitResponse
+    }
+
     const { token } = await params
     const supabase = await createClient()
 

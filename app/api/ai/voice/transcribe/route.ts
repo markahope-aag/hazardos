@@ -4,6 +4,7 @@ import { createApiHandler } from '@/lib/utils/api-handler'
 import { voiceTranscriptionQuerySchema } from '@/lib/validations/ai'
 import { SecureError, createSecureErrorResponse } from '@/lib/utils/secure-error-handler'
 import { createClient } from '@/lib/supabase/server'
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
 
 /**
  * POST /api/ai/voice/transcribe
@@ -12,6 +13,12 @@ import { createClient } from '@/lib/supabase/server'
  */
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting for upload-like heavy operations
+    const rateLimitResponse = await applyUnifiedRateLimit(request, 'upload')
+    if (rateLimitResponse) {
+      return rateLimitResponse
+    }
+
     const supabase = await createClient()
 
     // Verify authentication

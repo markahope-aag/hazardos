@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { FeedbackService } from '@/lib/services/feedback-service'
 import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
 
 type RouteParams = { params: Promise<{ token: string }> }
 
@@ -9,6 +10,12 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
+    // Apply rate limiting for public endpoints
+    const rateLimitResponse = await applyUnifiedRateLimit(request, 'public')
+    if (rateLimitResponse) {
+      return rateLimitResponse
+    }
+
     const { token } = await params
 
     const survey = await FeedbackService.getSurveyByToken(token)
@@ -28,6 +35,12 @@ export async function POST(
   { params }: RouteParams
 ) {
   try {
+    // Apply rate limiting for public endpoints (stricter for submissions)
+    const rateLimitResponse = await applyUnifiedRateLimit(request, 'auth')
+    if (rateLimitResponse) {
+      return rateLimitResponse
+    }
+
     const { token } = await params
     const body = await request.json()
 

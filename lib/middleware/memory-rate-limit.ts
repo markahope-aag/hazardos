@@ -28,6 +28,8 @@ export const rateLimitConfigs = {
   auth: { requests: 10, windowMs: 60 * 1000 }, // 10 requests per minute
   upload: { requests: 20, windowMs: 60 * 1000 }, // 20 requests per minute
   heavy: { requests: 5, windowMs: 60 * 1000 }, // 5 requests per minute
+  webhook: { requests: 200, windowMs: 60 * 1000 }, // 200 requests per minute (higher for webhooks)
+  public: { requests: 60, windowMs: 60 * 1000 }, // 60 requests per minute (moderate for public endpoints)
 }
 
 export type MemoryRateLimiterType = keyof typeof rateLimitConfigs

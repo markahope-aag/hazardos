@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { SmsService } from '@/lib/services/sms-service';
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
 
 // This endpoint should be called by a cron job (e.g., Vercel Cron) every hour
 // Configure in vercel.json:
@@ -13,6 +14,12 @@ import { SmsService } from '@/lib/services/sms-service';
 
 export async function GET(request: NextRequest) {
   try {
+    // Apply rate limiting (use auth type for cron jobs - 10/min is plenty)
+    const rateLimitResponse = await applyUnifiedRateLimit(request, 'auth');
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     // Verify cron secret for security
     const authHeader = request.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

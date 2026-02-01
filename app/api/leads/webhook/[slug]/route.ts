@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LeadWebhookService } from '@/lib/services/lead-webhook-service';
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
 
 // This endpoint is public - no authentication required
 // Authentication is handled per-endpoint using API keys or signatures
@@ -9,6 +10,12 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    // Apply rate limiting for webhook endpoints
+    const rateLimitResponse = await applyUnifiedRateLimit(request, 'webhook');
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const { slug } = await params;
 
     // Get endpoint configuration
@@ -72,9 +79,15 @@ export async function POST(
 
 // Support GET for health checks
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  // Apply rate limiting for public endpoints
+  const rateLimitResponse = await applyUnifiedRateLimit(request, 'public');
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   const { slug } = await params;
   const endpoint = await LeadWebhookService.getBySlug(slug);
 

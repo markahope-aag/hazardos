@@ -13,25 +13,39 @@ export const rateLimiters = {
     limiter: Ratelimit.slidingWindow(100, '1 m'),
     analytics: true,
   }),
-  
+
   // Authentication endpoints - 10 requests per minute (more restrictive)
   auth: new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(10, '1 m'),
     analytics: true,
   }),
-  
+
   // File upload endpoints - 20 requests per minute
   upload: new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(20, '1 m'),
     analytics: true,
   }),
-  
+
   // Heavy operations - 5 requests per minute
   heavy: new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(5, '1 m'),
+    analytics: true,
+  }),
+
+  // Webhook endpoints - 200 requests per minute (higher for third-party webhooks)
+  webhook: new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(200, '1 m'),
+    analytics: true,
+  }),
+
+  // Public endpoints - 60 requests per minute (moderate for public access)
+  public: new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(60, '1 m'),
     analytics: true,
   }),
 }

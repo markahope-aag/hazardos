@@ -313,8 +313,8 @@ describe('GET /api/billing/invoices', () => {
     const response = await GET(request)
     const data = await response.json()
 
-    expect(response.status).toBe(500)
-    expect(data.type).toBe('INTERNAL_ERROR')
+    expect(response.status).toBe(404)
+    expect(data.type).toBe('NOT_FOUND')
   })
 
   it('should handle invoices with refunds', async () => {

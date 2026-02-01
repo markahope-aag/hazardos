@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SmsService } from '@/lib/services/sms-service';
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
 
 // Twilio status callback webhook
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting for webhooks
+    const rateLimitResponse = await applyUnifiedRateLimit(request, 'webhook');
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     // Parse Twilio webhook (form data)
     const formData = await request.formData();
     const messageSid = formData.get('MessageSid') as string;
