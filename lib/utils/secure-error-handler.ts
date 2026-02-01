@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
+import { logger, formatError } from '@/lib/utils/logger'
+import type { Logger } from 'pino'
 
 // Define error types that are safe to expose to clients
-export type SafeErrorType = 
+export type SafeErrorType =
   | 'VALIDATION_ERROR'
   | 'NOT_FOUND'
   | 'UNAUTHORIZED'
@@ -53,30 +55,49 @@ export class SecureError extends Error {
   }
 }
 
-export function createSecureErrorResponse(error: unknown): NextResponse {
-  // Log the full error for debugging (server-side only)
-  console.error('API Error:', error)
+export function createSecureErrorResponse(
+  error: unknown,
+  log?: Logger
+): NextResponse {
+  // Use provided logger or fall back to root logger
+  const errorLog = log || logger
 
   // Check if it's our secure error type
   if (error instanceof SecureError) {
-    const response: any = {
+    // Use warn level for client errors, error level for server errors
+    const logLevel = error.statusCode < 500 ? 'warn' : 'error'
+    errorLog[logLevel](
+      {
+        error: formatError(error, error.type, error.field),
+      },
+      'Request failed'
+    )
+
+    const response: Record<string, unknown> = {
       error: error.message,
       type: error.type,
     }
-    
+
     if (error.field) {
       response.field = error.field
     }
-    
+
     return NextResponse.json(response, { status: error.statusCode })
   }
 
   // Check for common database/auth errors and convert to safe errors
   if (error && typeof error === 'object') {
-    const errorObj = error as any
+    const errorObj = error as Record<string, unknown>
 
     // Supabase auth errors
-    if (errorObj.message?.includes('JWT')) {
+    if (
+      typeof errorObj.message === 'string' &&
+      errorObj.message.includes('JWT')
+    ) {
+      errorLog.warn(
+        { error: formatError(error, 'UNAUTHORIZED') },
+        'JWT authentication failed'
+      )
       return NextResponse.json(
         { error: SAFE_ERROR_MESSAGES.UNAUTHORIZED, type: 'UNAUTHORIZED' },
         { status: 401 }
@@ -84,7 +105,14 @@ export function createSecureErrorResponse(error: unknown): NextResponse {
     }
 
     // Supabase RLS errors
-    if (errorObj.message?.includes('RLS') || errorObj.message?.includes('policy')) {
+    if (
+      typeof errorObj.message === 'string' &&
+      (errorObj.message.includes('RLS') || errorObj.message.includes('policy'))
+    ) {
+      errorLog.warn(
+        { error: formatError(error, 'FORBIDDEN') },
+        'RLS policy violation'
+      )
       return NextResponse.json(
         { error: SAFE_ERROR_MESSAGES.FORBIDDEN, type: 'FORBIDDEN' },
         { status: 403 }
@@ -92,7 +120,15 @@ export function createSecureErrorResponse(error: unknown): NextResponse {
     }
 
     // Database constraint errors
-    if (errorObj.code === '23505' || errorObj.message?.includes('duplicate')) {
+    if (
+      errorObj.code === '23505' ||
+      (typeof errorObj.message === 'string' &&
+        errorObj.message.includes('duplicate'))
+    ) {
+      errorLog.warn(
+        { error: formatError(error, 'CONFLICT') },
+        'Database constraint violation'
+      )
       return NextResponse.json(
         { error: SAFE_ERROR_MESSAGES.CONFLICT, type: 'CONFLICT' },
         { status: 409 }
@@ -101,6 +137,10 @@ export function createSecureErrorResponse(error: unknown): NextResponse {
 
     // Database not found errors
     if (errorObj.code === '23503' || errorObj.message?.includes('not found')) {
+      errorLog.warn(
+        { error: formatError(error, 'NOT_FOUND') },
+        'Resource not found'
+      )
       return NextResponse.json(
         { error: SAFE_ERROR_MESSAGES.NOT_FOUND, type: 'NOT_FOUND' },
         { status: 404 }
@@ -108,15 +148,21 @@ export function createSecureErrorResponse(error: unknown): NextResponse {
     }
   }
 
+  // Log unexpected errors at error level with full details
+  errorLog.error(
+    { error: formatError(error, 'INTERNAL_ERROR') },
+    'Internal server error'
+  )
+
   // For any other error, return a generic server error without exposing details
   return NextResponse.json(
-    { 
-      error: 'An internal server error occurred', 
+    {
+      error: 'An internal server error occurred',
       type: 'INTERNAL_ERROR',
       // In development, include more details
       ...(process.env.NODE_ENV === 'development' && {
-        details: error instanceof Error ? error.message : 'Unknown error'
-      })
+        details: error instanceof Error ? error.message : 'Unknown error',
+      }),
     },
     { status: 500 }
   )

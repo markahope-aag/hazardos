@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z, ZodSchema, ZodError } from 'zod'
+import { nanoid } from 'nanoid'
 import { createClient } from '@/lib/supabase/server'
 import { applyUnifiedRateLimit, UnifiedRateLimiterType } from '@/lib/middleware/unified-rate-limit'
 import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
+import { createRequestLogger } from '@/lib/utils/logger'
+import type { Logger } from 'pino'
 
 export interface ApiContext {
   user: { id: string; email?: string }
   profile: { organization_id: string; role: string }
   supabase: Awaited<ReturnType<typeof createClient>>
+  /** Request-scoped logger with context */
+  log: Logger
+  /** Unique request ID for correlation */
+  requestId: string
 }
 
 export interface ApiHandlerOptions<TBody = unknown, TQuery = unknown> {
@@ -183,10 +190,27 @@ export function createApiHandler<
   } = options
 
   return async (request: NextRequest) => {
+    const startTime = Date.now()
+    const requestId = nanoid(12)
+    const path = new URL(request.url).pathname
+    const method = request.method
+
+    // Create initial logger (will be enriched with user context after auth)
+    let log = createRequestLogger({
+      requestId,
+      method,
+      path,
+      userAgent: request.headers.get('user-agent') || undefined,
+      ip: request.headers.get('x-forwarded-for')?.split(',')[0] || undefined,
+    })
+
+    log.info('Request started')
+
     try {
       // Apply rate limiting
       const rateLimitResponse = await applyUnifiedRateLimit(request, rateLimit)
       if (rateLimitResponse) {
+        log.warn('Rate limit exceeded')
         return rateLimitResponse
       }
 
@@ -195,6 +219,19 @@ export function createApiHandler<
 
       if (requireAuth && !context) {
         throw new SecureError('UNAUTHORIZED')
+      }
+
+      // Enrich logger with user context
+      if (context) {
+        log = createRequestLogger({
+          requestId,
+          userId: context.user.id,
+          organizationId: context.profile.organization_id,
+          method,
+          path,
+          userAgent: request.headers.get('user-agent') || undefined,
+          ip: request.headers.get('x-forwarded-for')?.split(',')[0] || undefined,
+        })
       }
 
       // Check roles if auth is required
@@ -208,15 +245,28 @@ export function createApiHandler<
       // Parse body if schema provided
       const body = bodySchema ? await parseBody(request, bodySchema) : ({} as TBody)
 
-      // Call the handler
-      return await (handler as HandlerWithBody<TBody, TQuery>)(
+      // Call the handler with logger in context
+      const enrichedContext: ApiContext = {
+        ...(context as ApiContext),
+        log,
+        requestId,
+      }
+
+      const response = await (handler as HandlerWithBody<TBody, TQuery>)(
         request,
-        context as ApiContext,
+        enrichedContext,
         body,
         query
       )
+
+      const durationMs = Date.now() - startTime
+      log.info({ durationMs, status: response.status }, 'Request completed')
+
+      return response
     } catch (error) {
-      return createSecureErrorResponse(error)
+      const durationMs = Date.now() - startTime
+      log.error({ durationMs }, 'Request failed')
+      return createSecureErrorResponse(error, log)
     }
   }
 }
@@ -231,10 +281,26 @@ export function createPublicApiHandler<TBody = unknown, TQuery = unknown>(
   const { rateLimit = 'general', bodySchema, querySchema } = options
 
   return async (request: NextRequest) => {
+    const startTime = Date.now()
+    const requestId = nanoid(12)
+    const path = new URL(request.url).pathname
+    const method = request.method
+
+    const log = createRequestLogger({
+      requestId,
+      method,
+      path,
+      userAgent: request.headers.get('user-agent') || undefined,
+      ip: request.headers.get('x-forwarded-for')?.split(',')[0] || undefined,
+    })
+
+    log.info('Request started')
+
     try {
       // Apply rate limiting
       const rateLimitResponse = await applyUnifiedRateLimit(request, rateLimit)
       if (rateLimitResponse) {
+        log.warn('Rate limit exceeded')
         return rateLimitResponse
       }
 
@@ -242,9 +308,16 @@ export function createPublicApiHandler<TBody = unknown, TQuery = unknown>(
       const query = parseQuery(request, querySchema)
       const body = bodySchema ? await parseBody(request, bodySchema) : ({} as TBody)
 
-      return await handler(request, body, query)
+      const response = await handler(request, body, query)
+
+      const durationMs = Date.now() - startTime
+      log.info({ durationMs, status: response.status }, 'Request completed')
+
+      return response
     } catch (error) {
-      return createSecureErrorResponse(error)
+      const durationMs = Date.now() - startTime
+      log.error({ durationMs }, 'Request failed')
+      return createSecureErrorResponse(error, log)
     }
   }
 }
@@ -271,10 +344,27 @@ export function createApiHandlerWithParams<TBody = unknown, TQuery = unknown, TP
   } = options
 
   return async (request: NextRequest, props: { params: Promise<TParams> }) => {
+    const startTime = Date.now()
+    const requestId = nanoid(12)
+    const path = new URL(request.url).pathname
+    const method = request.method
+
+    // Create initial logger
+    let log = createRequestLogger({
+      requestId,
+      method,
+      path,
+      userAgent: request.headers.get('user-agent') || undefined,
+      ip: request.headers.get('x-forwarded-for')?.split(',')[0] || undefined,
+    })
+
+    log.info('Request started')
+
     try {
       // Apply rate limiting
       const rateLimitResponse = await applyUnifiedRateLimit(request, rateLimit)
       if (rateLimitResponse) {
+        log.warn('Rate limit exceeded')
         return rateLimitResponse
       }
 
@@ -288,6 +378,19 @@ export function createApiHandlerWithParams<TBody = unknown, TQuery = unknown, TP
         throw new SecureError('UNAUTHORIZED')
       }
 
+      // Enrich logger with user context
+      if (context) {
+        log = createRequestLogger({
+          requestId,
+          userId: context.user.id,
+          organizationId: context.profile.organization_id,
+          method,
+          path,
+          userAgent: request.headers.get('user-agent') || undefined,
+          ip: request.headers.get('x-forwarded-for')?.split(',')[0] || undefined,
+        })
+      }
+
       // Check roles
       if (context && allowedRoles) {
         checkRoles(context, allowedRoles)
@@ -297,9 +400,23 @@ export function createApiHandlerWithParams<TBody = unknown, TQuery = unknown, TP
       const query = parseQuery(request, querySchema)
       const body = bodySchema ? await parseBody(request, bodySchema) : ({} as TBody)
 
-      return await handler(request, context as ApiContext, params, body, query)
+      // Call the handler with logger in context
+      const enrichedContext: ApiContext = {
+        ...(context as ApiContext),
+        log,
+        requestId,
+      }
+
+      const response = await handler(request, enrichedContext, params, body, query)
+
+      const durationMs = Date.now() - startTime
+      log.info({ durationMs, status: response.status }, 'Request completed')
+
+      return response
     } catch (error) {
-      return createSecureErrorResponse(error)
+      const durationMs = Date.now() - startTime
+      log.error({ durationMs }, 'Request failed')
+      return createSecureErrorResponse(error, log)
     }
   }
 }
