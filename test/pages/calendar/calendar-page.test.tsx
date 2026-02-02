@@ -9,7 +9,7 @@ vi.mock('@/app/(dashboard)/calendar/calendar-skeleton', () => ({
 
 // Mock next/dynamic
 vi.mock('next/dynamic', () => ({
-  default: (fn: () => Promise<{ default: React.ComponentType }>, options: { loading?: () => JSX.Element }) => {
+  default: (fn: () => Promise<{ default: React.ComponentType }>, options: { loading?: () => React.ReactNode }) => {
     // Return the loading component for testing
     return options?.loading || (() => <div data-testid="calendar-view">Calendar</div>)
   },

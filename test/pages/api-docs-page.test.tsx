@@ -4,7 +4,7 @@ import ApiDocsPage from '@/app/(dashboard)/api-docs/page'
 
 // Mock SwaggerUI since it requires SSR=false
 vi.mock('next/dynamic', () => ({
-  default: (fn: () => Promise<{ default: React.ComponentType }>, options: { loading?: () => JSX.Element }) => {
+  default: (fn: () => Promise<{ default: React.ComponentType }>, options: { loading?: () => React.ReactNode }) => {
     // Return the loading component for testing
     return options?.loading || (() => <div data-testid="swagger-ui">SwaggerUI</div>)
   },
