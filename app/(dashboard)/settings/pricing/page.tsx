@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -68,7 +67,6 @@ interface PricingData {
 }
 
 export default function PricingSettingsPage() {
-  const _router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -122,8 +120,7 @@ export default function PricingSettingsPage() {
           office_zip: result.settings.office_zip || '',
         })
       }
-    } catch (_error) {
-      console.error('Error fetching pricing data:', _error)
+    } catch {
       toast({ title: 'Error', description: 'Failed to load pricing data', variant: 'destructive' })
     } finally {
       setLoading(false)
@@ -147,7 +144,7 @@ export default function PricingSettingsPage() {
 
       toast({ title: 'Success', description: 'Settings saved successfully' })
       fetchData()
-    } catch (_error) {
+    } catch {
       toast({ title: 'Error', description: 'Failed to save settings', variant: 'destructive' })
     } finally {
       setSaving(false)
@@ -178,7 +175,7 @@ export default function PricingSettingsPage() {
       setLaborDialog(false)
       setEditingLabor(null)
       fetchData()
-    } catch (_error) {
+    } catch {
       toast({ title: 'Error', description: 'Failed to save labor rate', variant: 'destructive' })
     } finally {
       setSaving(false)
@@ -220,7 +217,7 @@ export default function PricingSettingsPage() {
       setEquipmentDialog(false)
       setEditingEquipment(null)
       fetchData()
-    } catch (_error) {
+    } catch {
       toast({ title: 'Error', description: 'Failed to save equipment rate', variant: 'destructive' })
     } finally {
       setSaving(false)
@@ -263,7 +260,7 @@ export default function PricingSettingsPage() {
       setMaterialDialog(false)
       setEditingMaterial(null)
       fetchData()
-    } catch (_error) {
+    } catch {
       toast({ title: 'Error', description: 'Failed to save material cost', variant: 'destructive' })
     } finally {
       setSaving(false)
@@ -305,7 +302,7 @@ export default function PricingSettingsPage() {
       setDisposalDialog(false)
       setEditingDisposal(null)
       fetchData()
-    } catch (_error) {
+    } catch {
       toast({ title: 'Error', description: 'Failed to save disposal fee', variant: 'destructive' })
     } finally {
       setSaving(false)
@@ -348,7 +345,7 @@ export default function PricingSettingsPage() {
       setTravelDialog(false)
       setEditingTravel(null)
       fetchData()
-    } catch (_error) {
+    } catch {
       toast({ title: 'Error', description: 'Failed to save travel rate', variant: 'destructive' })
     } finally {
       setSaving(false)

@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     try {
       event = getStripe().webhooks.constructEvent(body, signature, webhookSecret)
-    } catch (_err) {
+    } catch {
       throw new SecureError('VALIDATION_ERROR', 'Invalid signature')
     }
 

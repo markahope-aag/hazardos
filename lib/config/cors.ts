@@ -54,18 +54,6 @@ const DEVELOPMENT_ORIGINS = [
 ];
 
 /**
- * Known webhook provider origins/IPs
- * These are allowed to call webhook endpoints
- */
-const WEBHOOK_PROVIDERS = {
-  // Stripe uses IP allowlisting, not origin header
-  // But we keep it here for documentation
-  stripe: [] as string[],
-  // Twilio uses IP allowlisting
-  twilio: [] as string[],
-};
-
-/**
  * Common headers needed for API requests
  */
 const COMMON_API_HEADERS = [

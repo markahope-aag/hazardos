@@ -31,7 +31,6 @@ import {
   Loader2,
   Pencil,
   Trash2,
-  StarOff,
 } from 'lucide-react'
 import { ContactDialog } from './contact-dialog'
 import { useToast } from '@/components/ui/use-toast'

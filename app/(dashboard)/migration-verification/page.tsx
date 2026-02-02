@@ -20,7 +20,7 @@ interface VerificationCategory {
 }
 
 export default function MigrationVerificationPage() {
-  const { user: _user, profile: _profile, organization } = useMultiTenantAuth()
+  const { organization } = useMultiTenantAuth()
   const [verificationResults, setVerificationResults] = useState<VerificationCategory[]>([])
   const [isRunning, setIsRunning] = useState(false)
   const supabase = createClient()
@@ -48,7 +48,7 @@ export default function MigrationVerificationPage() {
 
       for (const tableName of requiredTables) {
         try {
-          const { data: _data, error } = await supabase
+          const { error } = await supabase
             .from(tableName)
             .select('*')
             .limit(1)
@@ -157,7 +157,7 @@ export default function MigrationVerificationPage() {
     if (organization) {
       try {
         // Check if customer_id field exists in site_surveys
-        const { data: _surveys, error: surveyError } = await supabase
+        const { error: surveyError } = await supabase
           .from('site_surveys')
           .select('customer_id, scheduled_date, scheduled_time_start, scheduled_time_end, assigned_to, appointment_status')
           .limit(1)

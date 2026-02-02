@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { JobsService } from '@/lib/services/jobs-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateJobSchema } from '@/lib/validations/jobs'
-import { idParamSchema } from '@/lib/validations/common'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 
 export const GET = createApiHandlerWithParams(

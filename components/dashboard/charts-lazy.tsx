@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { ChartErrorBoundary } from '@/components/error-boundaries'
 
 // Loading component for charts
-function ChartLoadingState({ title }: { title: string }) {
+function ChartLoadingState({ title: _title }: { title: string }) {
   return (
     <Card>
       <CardHeader>

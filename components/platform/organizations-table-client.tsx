@@ -16,7 +16,7 @@ export function OrganizationsTableClient({
   initialTotalPages,
 }: OrganizationsTableClientProps) {
   const [organizations, setOrganizations] = useState(initialData)
-  const [total, setTotal] = useState(initialTotal)
+  const [, setTotal] = useState(initialTotal)
   const [totalPages, setTotalPages] = useState(initialTotalPages)
   const [currentPage, setCurrentPage] = useState(1)
   const [loading, setLoading] = useState(false)

@@ -76,7 +76,7 @@ export function OpportunityActions({ opportunity, stages }: OpportunityActionsPr
 
       setShowMoveDialog(false)
       router.refresh()
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to move opportunity',
@@ -109,7 +109,7 @@ export function OpportunityActions({ opportunity, stages }: OpportunityActionsPr
       })
 
       router.refresh()
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to mark as won',
@@ -155,7 +155,7 @@ export function OpportunityActions({ opportunity, stages }: OpportunityActionsPr
 
       setShowLossDialog(false)
       router.refresh()
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to mark as lost',
@@ -182,7 +182,7 @@ export function OpportunityActions({ opportunity, stages }: OpportunityActionsPr
       })
 
       router.push('/pipeline')
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to delete opportunity',

@@ -13,13 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loader2, StickyNote, Phone, PhoneIncoming, PhoneOutgoing } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'

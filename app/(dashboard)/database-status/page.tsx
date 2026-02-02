@@ -40,12 +40,12 @@ export default function DatabaseStatusPage() {
 
     // Check if migration was run correctly
     try {
-      const { data: _siteSurveys, error: siteSurveysError } = await supabase
+      const { error: siteSurveysError } = await supabase
         .from('site_surveys')
         .select('id')
         .limit(1)
 
-      const { data: _oldAssessments, error: oldAssessmentsError } = await supabase
+      const { error: oldAssessmentsError } = await supabase
         .from('assessments')
         .select('id')
         .limit(1)
@@ -73,12 +73,12 @@ export default function DatabaseStatusPage() {
       }
 
       // Check photos table
-      const { data: _siteSurveyPhotos, error: photosError } = await supabase
+      const { error: photosError } = await supabase
         .from('site_survey_photos')
         .select('id')
         .limit(1)
 
-      const { data: _oldPhotos, error: oldPhotosError } = await supabase
+      const { error: oldPhotosError } = await supabase
         .from('assessment_photos')
         .select('id')
         .limit(1)
@@ -168,7 +168,7 @@ export default function DatabaseStatusPage() {
     }
 
     try {
-      const { data: _data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('assessment-media')
         .list('', { limit: 1 })
 
@@ -242,7 +242,7 @@ export default function DatabaseStatusPage() {
           })
         } else {
           // Test read
-          const { data: _readResult, error: readError } = await supabase
+          const { error: readError } = await supabase
             .from('site_surveys')
             .select('*')
             .eq('id', createResult.id)

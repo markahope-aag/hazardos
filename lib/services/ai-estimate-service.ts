@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
-import { createServiceLogger, formatError } from '@/lib/utils/logger';
+import { createServiceLogger } from '@/lib/utils/logger';
 import type { EstimateSuggestion, SuggestedLineItem } from '@/types/integrations';
 
 const log = createServiceLogger('AIEstimateService');

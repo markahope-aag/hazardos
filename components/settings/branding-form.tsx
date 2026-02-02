@@ -58,7 +58,7 @@ export function BrandingForm({ enabled, config, domains }: BrandingFormProps) {
       } else {
         throw new Error('Failed to save');
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to save branding settings',
@@ -87,7 +87,7 @@ export function BrandingForm({ enabled, config, domains }: BrandingFormProps) {
       } else {
         throw new Error('Failed to add domain');
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to add domain',
@@ -116,7 +116,7 @@ export function BrandingForm({ enabled, config, domains }: BrandingFormProps) {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to verify domain',
@@ -132,7 +132,7 @@ export function BrandingForm({ enabled, config, domains }: BrandingFormProps) {
       await fetch(`/api/settings/domains/${domainId}`, { method: 'DELETE' });
       toast({ title: 'Success', description: 'Domain removed' });
       router.refresh();
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to remove domain',

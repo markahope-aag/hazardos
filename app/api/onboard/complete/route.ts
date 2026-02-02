@@ -108,7 +108,7 @@ export const POST = createApiHandler(
           organizationId: newOrg.id,
           checkoutUrl
         })
-      } catch (_stripeError) {
+      } catch {
         // Stripe checkout failed, but org is created with trial
         return NextResponse.json({
           success: true,

@@ -12,13 +12,6 @@ export type SafeErrorType =
   | 'CONFLICT'
   | 'BAD_REQUEST'
 
-interface ErrorDetails {
-  type: SafeErrorType
-  message: string
-  statusCode: number
-  field?: string // For validation errors
-}
-
 // Map of safe error messages that can be shown to users
 const SAFE_ERROR_MESSAGES: Record<SafeErrorType, string> = {
   VALIDATION_ERROR: 'The provided data is invalid',

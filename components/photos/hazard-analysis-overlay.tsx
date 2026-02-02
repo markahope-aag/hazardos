@@ -18,7 +18,7 @@ interface HazardAnalysisOverlayProps {
 
 export function HazardAnalysisOverlay({
   imageBase64,
-  imageUrl,
+  imageUrl: _imageUrl,
   propertyType,
   knownHazards,
   onAnalysisComplete,

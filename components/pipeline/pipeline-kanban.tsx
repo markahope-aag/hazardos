@@ -92,7 +92,7 @@ export function PipelineKanban({ stages, opportunities: initial }: PipelineKanba
       })
 
       router.refresh()
-    } catch (error) {
+    } catch {
       // Revert on error
       setOpportunities(initial)
       toast({

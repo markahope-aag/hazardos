@@ -56,7 +56,7 @@ export function ApprovalActions({ request }: ApprovalActionsProps) {
       })
 
       router.refresh()
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to approve request',
@@ -89,7 +89,7 @@ export function ApprovalActions({ request }: ApprovalActionsProps) {
 
       setShowRejectDialog(false)
       router.refresh()
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to reject request',

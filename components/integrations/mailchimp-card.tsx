@@ -62,7 +62,7 @@ export function MailchimpCard({ integration }: MailchimpCardProps) {
       }
 
       window.location.href = url;
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to initiate connection',

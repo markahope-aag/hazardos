@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { JobsService } from '@/lib/services/jobs-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { createJobFromProposalSchema } from '@/lib/validations/jobs'

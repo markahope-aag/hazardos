@@ -76,7 +76,7 @@ export function GoogleCalendarCard({ integration }: GoogleCalendarCardProps) {
       }
 
       window.location.href = url;
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to initiate connection',

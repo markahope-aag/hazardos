@@ -15,9 +15,9 @@ interface ProposalPDFGeneratorProps {
 
 export default function ProposalPDFGenerator({
   estimateId,
-  jobName,
+  jobName: _jobName,
   customerName,
-  totalPrice,
+  totalPrice: _totalPrice,
 }: ProposalPDFGeneratorProps) {
   const [isGenerating, setIsGenerating] = useState(false)
   const { toast } = useToast()
@@ -34,7 +34,7 @@ export default function ProposalPDFGenerator({
       }
 
       // Generate PDF using the existing service
-      const { generateProposalPDF } = await import('@/lib/services/proposal-pdf-generator')
+      await import('@/lib/services/proposal-pdf-generator')
       
       // Fetch proposal data
       const response = await fetch(`/api/proposals/generate`, {

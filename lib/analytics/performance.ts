@@ -159,7 +159,7 @@ export function createPerformanceTimer(name: string): {
 export function withPerformanceTracking<T extends (...args: unknown[]) => Promise<unknown>>(
   fn: T,
   name: string,
-  category: PerformanceMetric['category'] = 'custom'
+  _category: PerformanceMetric['category'] = 'custom'
 ): T {
   return (async (...args: Parameters<T>) => {
     const timer = createPerformanceTimer(name);

@@ -15,7 +15,7 @@ interface NotesSectionProps {
 
 export function NotesSection({ survey }: NotesSectionProps) {
   const { toast } = useToast()
-  const [technicianNotes, _setTechnicianNotes] = useState(survey.technician_notes || '')
+  const [technicianNotes] = useState(survey.technician_notes || '')
   const [officeNotes, setOfficeNotes] = useState(survey.notes || '')
   const [isSaving, setIsSaving] = useState(false)
 

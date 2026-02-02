@@ -65,6 +65,8 @@ export default async function JobDetailPage({
   const { data: availableCrew } = await supabase
     .from('profiles')
     .select('id, full_name, email, role')
+    .eq('organization_id', job.organization_id)
+    .eq('is_active', true)
     .in('role', ['technician', 'estimator', 'admin', 'tenant_owner'])
 
   return (

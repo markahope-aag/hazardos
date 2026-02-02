@@ -22,10 +22,35 @@ const CACHE_PROFILES: Record<CacheProfile, string> = {
  */
 export function withCacheHeaders(
   response: NextResponse,
-  profile: CacheProfile
+  profile: CacheProfile,
+  cacheKey?: string
 ): NextResponse {
-  response.headers.set('Cache-Control', CACHE_PROFILES[profile])
+  const cacheControl = CACHE_PROFILES[profile]
+  
+  // If a cache key is provided, make it tenant-specific
+  if (cacheKey) {
+    // Add Vary header to ensure different cache entries per tenant
+    response.headers.set('Vary', 'Authorization, Cookie')
+    // Add custom cache key header for debugging (non-sensitive)
+    response.headers.set('X-Cache-Key-Hash', hashCacheKey(cacheKey))
+  }
+  
+  response.headers.set('Cache-Control', cacheControl)
   return response
+}
+
+/**
+ * Create a simple hash of the cache key for debugging purposes
+ */
+function hashCacheKey(key: string): string {
+  // Simple hash function for cache key identification (not cryptographic)
+  let hash = 0
+  for (let i = 0; i < key.length; i++) {
+    const char = key.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32-bit integer
+  }
+  return Math.abs(hash).toString(16)
 }
 
 /**
@@ -34,9 +59,9 @@ export function withCacheHeaders(
 export function cachedJsonResponse<T>(
   data: T,
   profile: CacheProfile,
-  status = 200
+  status = 200,
+  cacheKey?: string
 ): NextResponse {
   const response = NextResponse.json(data, { status })
-  response.headers.set('Cache-Control', CACHE_PROFILES[profile])
-  return response
+  return withCacheHeaders(response, profile, cacheKey)
 }

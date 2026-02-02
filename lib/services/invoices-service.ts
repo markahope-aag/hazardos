@@ -303,7 +303,7 @@ export class InvoicesService {
     invoice: Invoice,
     customer: NonNullable<Invoice['customer']>,
     organization: { name: string | null; email: string | null; phone: string | null; address: string | null; city: string | null; state: string | null; zip: string | null; website: string | null } | null,
-    organizationId: string
+    _organizationId: string
   ): Promise<void> {
     const resendApiKey = process.env.RESEND_API_KEY
     if (!resendApiKey) {

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createHmac, randomBytes } from 'crypto';
 import type { LeadWebhookEndpoint, LeadProvider } from '@/types/integrations';
+import { logger, formatError } from '@/lib/utils/logger';
 
 export interface CreateEndpointInput {
   name: string;
@@ -462,13 +463,13 @@ export class LeadWebhookService {
         .single();
 
       if (error) {
-        console.error('Failed to create opportunity from lead:', error);
+        logger.error({ error: formatError(error, 'OPPORTUNITY_CREATION_FAILED') }, 'Failed to create opportunity from lead');
         return null;
       }
 
       return opportunity;
     } catch (error) {
-      console.error('Error in createOpportunityFromLead:', error);
+      logger.error({ error: formatError(error, 'OPPORTUNITY_CREATION_ERROR') }, 'Error in createOpportunityFromLead');
       return null;
     }
   }

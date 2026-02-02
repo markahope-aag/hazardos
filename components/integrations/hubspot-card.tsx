@@ -61,7 +61,7 @@ export function HubSpotCard({ integration }: HubSpotCardProps) {
       }
 
       window.location.href = url;
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to initiate connection',

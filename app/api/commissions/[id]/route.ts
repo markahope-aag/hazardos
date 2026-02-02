@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { CommissionService } from '@/lib/services/commission-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
-import { SecureError } from '@/lib/utils/secure-error-handler'
 import { z } from 'zod'
 
 const commissionActionSchema = z.object({

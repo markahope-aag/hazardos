@@ -10,21 +10,21 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
-interface LineChartWrapperProps {
-  data: any[]
-  dataKey: string
-  xAxisKey: string
+interface LineChartWrapperProps<T extends Record<string, unknown>> {
+  data: T[]
+  dataKey: keyof T & string
+  xAxisKey: keyof T & string
   color?: string
   height?: number
 }
 
-export default function LineChartWrapper({
+export default function LineChartWrapper<T extends Record<string, unknown>>({
   data,
   dataKey,
   xAxisKey,
   color = '#3b82f6',
   height = 300,
-}: LineChartWrapperProps) {
+}: LineChartWrapperProps<T>) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data}>

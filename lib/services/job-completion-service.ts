@@ -740,8 +740,6 @@ export class JobCompletionService {
   static async updateCompletionVarianceBatch(jobIds: string[]): Promise<void> {
     if (jobIds.length === 0) return
 
-    const supabase = await createClient()
-
     // Use Promise.all for parallel execution when batch updating
     await Promise.all(
       jobIds.map(jobId => this.updateCompletionVariance(jobId))

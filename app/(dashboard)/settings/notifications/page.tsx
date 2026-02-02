@@ -3,9 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import {
@@ -84,7 +82,7 @@ export default function NotificationSettingsPage() {
           const data = await res.json()
           setPreferences(data)
         }
-      } catch (err) {
+      } catch {
         setError('Failed to load preferences')
       } finally {
         setLoading(false)
@@ -129,7 +127,7 @@ export default function NotificationSettingsPage() {
 
       setSuccess('Preference updated')
       setTimeout(() => setSuccess(null), 2000)
-    } catch (err) {
+    } catch {
       setError('Failed to update preference')
     } finally {
       setSaving(null)

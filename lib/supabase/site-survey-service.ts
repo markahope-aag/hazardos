@@ -168,7 +168,7 @@ export class SiteSurveyService {
     const fileName = `${organizationId}/${siteSurveyId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
     
     // Upload to Supabase Storage
-    const { data: _uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('assessment-media')
       .upload(fileName, file, {
         cacheControl: '3600',
@@ -265,7 +265,7 @@ export class SiteSurveyService {
     }
 
     try {
-      const { data: _data, error } = await supabase
+      const { error } = await supabase
         .from('site_surveys')
         .select('count')
         .limit(1)

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createHmac, randomBytes } from 'crypto';
 import type { Webhook, WebhookDelivery, WebhookEventType } from '@/types/integrations';
+import { logger, formatError } from '@/lib/utils/logger';
 
 const MAX_RETRY_ATTEMPTS = 5;
 const RETRY_DELAYS = [60, 300, 900, 3600, 7200]; // Seconds: 1m, 5m, 15m, 1h, 2h
@@ -137,7 +138,10 @@ export class WebhookService {
       webhooks.map(webhook =>
         this.deliver(webhook as Webhook, eventType, payload).catch(err => {
           // Log error but don't fail other deliveries
-          console.error(`Webhook delivery failed for ${webhook.id}:`, err);
+          logger.error({ 
+            error: formatError(err, 'WEBHOOK_DELIVERY_FAILED'), 
+            webhookId: webhook.id 
+          }, 'Webhook delivery failed');
         })
       )
     );
