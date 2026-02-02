@@ -64,10 +64,12 @@ describe('RevenueChart', () => {
 
   it('should show loading state initially', () => {
     mockFetch.mockImplementation(() => new Promise(() => {})) // Never resolves
-    
+
     render(<RevenueChart />)
-    
-    expect(screen.getByRole('generic', { name: '' })).toHaveClass('animate-spin')
+
+    const spinner = screen.getByText('', { selector: '.animate-spin' })
+    expect(spinner).toBeInTheDocument()
+    expect(spinner).toHaveClass('animate-spin', 'rounded-full', 'h-8', 'w-8', 'border-b-2', 'border-primary')
   })
 
   it('should fetch and display revenue data', async () => {
@@ -169,10 +171,13 @@ describe('RevenueChart', () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 500,
+      json: async () => {
+        throw new Error('Server error')
+      },
     })
 
     render(<RevenueChart />)
-    
+
     await waitFor(() => {
       expect(screen.getByTestId('line-chart')).toBeInTheDocument()
     })

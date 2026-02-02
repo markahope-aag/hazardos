@@ -8,13 +8,14 @@ global.fetch = mockFetch
 // Mock Recharts components
 vi.mock('recharts', () => ({
   PieChart: ({ children }: { children: React.ReactNode }) => <div data-testid="pie-chart">{children}</div>,
-  Pie: ({ data, label }: { data: any[], label: any }) => (
+  Pie: ({ data, label, children }: { data: any[], label: any, children?: React.ReactNode }) => (
     <div data-testid="pie">
       {data.map((entry, index) => (
         <div key={index} data-testid={`pie-segment-${entry.status}`}>
           {label && label(entry)}
         </div>
       ))}
+      {children}
     </div>
   ),
   Cell: ({ fill }: { fill: string }) => <div data-testid="pie-cell" style={{ fill }} />,
@@ -51,10 +52,12 @@ describe('JobsByStatus', () => {
 
   it('should show loading state initially', () => {
     mockFetch.mockImplementation(() => new Promise(() => {})) // Never resolves
-    
+
     render(<JobsByStatus />)
-    
-    expect(screen.getByRole('generic', { name: '' })).toHaveClass('animate-spin')
+
+    const spinner = document.querySelector('.animate-spin')
+    expect(spinner).toBeInTheDocument()
+    expect(spinner).toHaveClass('rounded-full', 'h-8', 'w-8', 'border-b-2', 'border-primary')
   })
 
   it('should fetch and display job data', async () => {

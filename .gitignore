@@ -5,6 +5,8 @@
 
 # testing
 /coverage
+coverage-*.json
+coverage-*.txt
 
 # next.js
 /.next/
@@ -16,6 +18,7 @@
 # misc
 .DS_Store
 *.pem
+nul
 
 # debug
 npm-debug.log*
@@ -37,4 +40,4 @@ next-env.d.ts
 public/sw.js
 public/workbox-*.js
 public/sw.js.map
-public/workbox-*.js.mapnul
+public/workbox-*.js.map

@@ -10,12 +10,15 @@ vi.mock('@/components/ui/use-toast', () => ({
 
 // Mock date-fns
 vi.mock('date-fns', () => ({
-  format: (date: Date, formatStr: string) => {
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    })
+  format: (date: Date | string, formatStr: string) => {
+    const d = new Date(date)
+    if (formatStr === 'MMM d, yyyy') {
+      const month = d.toLocaleDateString('en-US', { month: 'short' })
+      const day = d.getDate()
+      const year = d.getFullYear()
+      return `${month} ${day}, ${year}`
+    }
+    return date.toString()
   },
 }))
 
