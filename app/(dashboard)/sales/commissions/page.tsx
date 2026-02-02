@@ -33,10 +33,12 @@ export default async function CommissionsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [summary, earnings] = await Promise.all([
+  const [summary, earningsResult] = await Promise.all([
     CommissionService.getSummary(),
     CommissionService.getEarnings(),
   ])
+
+  const earnings = earningsResult.earnings
 
   return (
     <div className="space-y-6">

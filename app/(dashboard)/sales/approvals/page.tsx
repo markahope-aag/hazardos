@@ -48,11 +48,12 @@ export default async function ApprovalsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [pendingRequests, allRequests] = await Promise.all([
+  const [pendingRequests, allRequestsResult] = await Promise.all([
     ApprovalService.getMyPendingApprovals(),
     ApprovalService.getRequests(),
   ])
 
+  const allRequests = allRequestsResult.requests
   const pendingCount = pendingRequests.length
   const approvedCount = allRequests.filter(r => r.final_status === 'approved').length
   const rejectedCount = allRequests.filter(r => r.final_status === 'rejected').length

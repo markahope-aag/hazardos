@@ -14,11 +14,13 @@ export default async function PipelinePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [stages, opportunities, metrics] = await Promise.all([
+  const [stages, opportunitiesResult, metrics] = await Promise.all([
     PipelineService.getStages(),
     PipelineService.getOpportunities(),
     PipelineService.getPipelineMetrics(),
   ])
+
+  const opportunities = opportunitiesResult.opportunities
 
   return (
     <div className="space-y-6">
