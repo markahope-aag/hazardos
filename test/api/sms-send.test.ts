@@ -87,6 +87,9 @@ describe('POST /api/sms/send', () => {
   })
 
   it('should send SMS with customer and entity references', async () => {
+    const CUSTOMER_UUID = '550e8400-e29b-41d4-a716-446655440001'
+    const JOB_UUID = '550e8400-e29b-41d4-a716-446655440002'
+
     vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
       data: { user: { id: 'user-1', email: 'user@example.com' } },
       error: null
@@ -116,9 +119,9 @@ describe('POST /api/sms/send', () => {
       to: '+15559876543',
       body: 'Job update',
       message_type: 'job_status',
-      customer_id: 'customer-1',
+      customer_id: CUSTOMER_UUID,
       related_entity_type: 'job',
-      related_entity_id: 'job-123'
+      related_entity_id: JOB_UUID
     }
 
     const request = new NextRequest('http://localhost:3000/api/sms/send', {
@@ -130,9 +133,9 @@ describe('POST /api/sms/send', () => {
 
     expect(response.status).toBe(201)
     expect(SmsService.send).toHaveBeenCalledWith('org-123', expect.objectContaining({
-      customer_id: 'customer-1',
+      customer_id: CUSTOMER_UUID,
       related_entity_type: 'job',
-      related_entity_id: 'job-123'
+      related_entity_id: JOB_UUID
     }))
   })
 
@@ -178,7 +181,8 @@ describe('POST /api/sms/send', () => {
 
     const smsData = {
       to: '+15551234567',
-      body: 'Test message'
+      body: 'Test message',
+      message_type: 'general'
     }
 
     const request = new NextRequest('http://localhost:3000/api/sms/send', {
@@ -209,8 +213,9 @@ describe('POST /api/sms/send', () => {
     } as any)
 
     const smsData = {
-      to: 'invalid-phone',
-      body: 'Test message'
+      to: 'invalid',
+      body: 'Test message',
+      message_type: 'general'
     }
 
     const request = new NextRequest('http://localhost:3000/api/sms/send', {

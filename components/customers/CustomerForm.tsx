@@ -1,5 +1,6 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,6 +14,7 @@ import {
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { customerSchema, US_STATES, CUSTOMER_STATUS_OPTIONS, CUSTOMER_SOURCE_OPTIONS } from '@/lib/validations/customer'
+import { useFormAnalytics } from '@/lib/hooks/use-analytics'
 import type { CustomerFormData } from '@/lib/validations/customer'
 import type { Customer, CustomerStatus, CustomerSource } from '@/types/database'
 
@@ -24,13 +26,16 @@ interface CustomerFormProps {
   submitLabel?: string
 }
 
-export default function CustomerForm({ 
-  customer, 
-  onSubmit, 
-  onCancel, 
+export default function CustomerForm({
+  customer,
+  onSubmit,
+  onCancel,
   isSubmitting = false,
   submitLabel = 'Save Customer'
 }: CustomerFormProps) {
+  // Analytics tracking for form submissions
+  const formAnalytics = useFormAnalytics('customer', customer ? 'edit_customer' : 'create_customer')
+
   const {
     register,
     handleSubmit,
@@ -64,11 +69,18 @@ export default function CustomerForm({
   const watchedSource = watch('source')
   const watchedMarketingConsent = watch('marketing_consent')
 
+  // Start form analytics tracking on mount
+  useEffect(() => {
+    formAnalytics.startTracking(15) // 15 fields in the form
+  }, [formAnalytics])
+
   const handleFormSubmit = handleSubmit(async (data: CustomerFormData) => {
     try {
       await onSubmit(data)
+      formAnalytics.trackSuccess()
     } catch (error) {
       // Error handling is done in the mutation hooks
+      formAnalytics.trackFailure(error instanceof Error ? error.message : 'unknown_error')
       console.error('Form submission error:', error)
     }
   })

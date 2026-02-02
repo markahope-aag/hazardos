@@ -16,44 +16,50 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 }))
 
 describe('Approvals Pending API', () => {
-  const mockProfile = {
-    organization_id: 'org-123',
-    role: 'admin'
-  }
-
-  const setupAuthenticatedUser = () => {
-    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-      data: { user: { id: 'user-123', email: 'user@example.com' } },
-      error: null,
-    })
-
-    vi.mocked(mockSupabaseClient.from).mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({
-            data: mockProfile,
-            error: null
-          })
-        })
-      })
-    } as any)
-  }
-
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   describe('GET /api/approvals/pending', () => {
     it('should return pending approvals', async () => {
-      setupAuthenticatedUser()
-
       const mockApprovals = [
-        { id: 'approval-1', type: 'estimate', status: 'pending', created_at: '2026-03-01' },
-        { id: 'approval-2', type: 'job_completion', status: 'pending', created_at: '2026-03-02' },
+        {
+          id: 'approval-1',
+          entity_type: 'estimate',
+          final_status: 'pending',
+          level1_status: 'pending',
+          created_at: '2026-03-01',
+          requester: { full_name: 'John Doe' }
+        },
+        {
+          id: 'approval-2',
+          entity_type: 'job_completion',
+          final_status: 'pending',
+          level1_status: 'pending',
+          created_at: '2026-03-02',
+          requester: { full_name: 'Jane Smith' }
+        },
       ]
 
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'user@example.com' } },
+        error: null,
+      })
+
       vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
-        if (table === 'approvals') {
+        if (table === 'profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { organization_id: 'org-123', role: 'admin' },
+                  error: null
+                })
+              })
+            })
+          } as any
+        }
+        if (table === 'approval_requests') {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
@@ -69,7 +75,7 @@ describe('Approvals Pending API', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: mockProfile,
+                data: null,
                 error: null
               })
             })
@@ -82,14 +88,30 @@ describe('Approvals Pending API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(Array.isArray(data) || data.approvals).toBeTruthy()
+      expect(Array.isArray(data)).toBeTruthy()
+      expect(data.length).toBe(2)
     })
 
     it('should return empty array when no pending approvals', async () => {
-      setupAuthenticatedUser()
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'user@example.com' } },
+        error: null,
+      })
 
       vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
-        if (table === 'approvals') {
+        if (table === 'profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { organization_id: 'org-123', role: 'admin' },
+                  error: null
+                })
+              })
+            })
+          } as any
+        }
+        if (table === 'approval_requests') {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
@@ -105,7 +127,7 @@ describe('Approvals Pending API', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: mockProfile,
+                data: null,
                 error: null
               })
             })
@@ -118,6 +140,8 @@ describe('Approvals Pending API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
+      expect(Array.isArray(data)).toBeTruthy()
+      expect(data.length).toBe(0)
     })
   })
 })

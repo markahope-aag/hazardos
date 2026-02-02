@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { track as vercelTrack } from '@vercel/analytics';
 
 /**
  * Global Error Boundary
@@ -21,6 +22,18 @@ export default function GlobalError({
   useEffect(() => {
     // Log error to console
     console.error('[GlobalError] Application error:', error);
+
+    // Track critical error in analytics
+    try {
+      vercelTrack('critical_error', {
+        error_name: error.name,
+        error_message: error.message?.slice(0, 200) ?? 'Unknown error',
+        error_digest: error.digest ?? null,
+        url: typeof window !== 'undefined' ? window.location.pathname : null,
+      });
+    } catch {
+      // Silently fail - analytics should never break recovery
+    }
 
     // Attempt to report error (may fail if the app is badly broken)
     try {

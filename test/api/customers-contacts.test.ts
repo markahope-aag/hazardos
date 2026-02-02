@@ -33,6 +33,8 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 
 import { ContactsService } from '@/lib/services/contacts-service'
 
+const CUSTOMER_UUID = '550e8400-e29b-41d4-a716-446655440001'
+
 describe('Customer Contacts API', () => {
   const mockProfile = {
     organization_id: 'org-123',
@@ -66,18 +68,18 @@ describe('Customer Contacts API', () => {
       setupAuthenticatedUser()
 
       const mockContacts = [
-        { id: 'contact-1', customer_id: 'customer-123', name: 'John Doe', email: 'john@example.com', is_primary: true },
-        { id: 'contact-2', customer_id: 'customer-123', name: 'Jane Smith', email: 'jane@example.com', is_primary: false },
+        { id: 'contact-1', customer_id: CUSTOMER_UUID, name: 'John Doe', email: 'john@example.com', is_primary: true },
+        { id: 'contact-2', customer_id: CUSTOMER_UUID, name: 'Jane Smith', email: 'jane@example.com', is_primary: false },
       ]
       vi.mocked(ContactsService.list).mockResolvedValue(mockContacts)
 
-      const request = new NextRequest('http://localhost:3000/api/customers/customer-123/contacts')
-      const response = await GET(request, { params: { id: 'customer-123' } })
+      const request = new NextRequest(`http://localhost:3000/api/customers/${CUSTOMER_UUID}/contacts`)
+      const response = await GET(request, { params: Promise.resolve({ id: CUSTOMER_UUID }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)
       expect(data).toEqual(mockContacts)
-      expect(ContactsService.list).toHaveBeenCalledWith('customer-123')
+      expect(ContactsService.list).toHaveBeenCalledWith(CUSTOMER_UUID)
     })
 
     it('should return empty array when customer has no contacts', async () => {
@@ -85,8 +87,8 @@ describe('Customer Contacts API', () => {
 
       vi.mocked(ContactsService.list).mockResolvedValue([])
 
-      const request = new NextRequest('http://localhost:3000/api/customers/customer-123/contacts')
-      const response = await GET(request, { params: { id: 'customer-123' } })
+      const request = new NextRequest(`http://localhost:3000/api/customers/${CUSTOMER_UUID}/contacts`)
+      const response = await GET(request, { params: Promise.resolve({ id: CUSTOMER_UUID }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -100,7 +102,7 @@ describe('Customer Contacts API', () => {
 
       const newContact = {
         id: 'contact-new',
-        customer_id: 'customer-123',
+        customer_id: CUSTOMER_UUID,
         name: 'New Contact',
         email: 'new@example.com',
         phone: '555-1234',
@@ -108,7 +110,7 @@ describe('Customer Contacts API', () => {
       }
       vi.mocked(ContactsService.create).mockResolvedValue(newContact)
 
-      const request = new NextRequest('http://localhost:3000/api/customers/customer-123/contacts', {
+      const request = new NextRequest(`http://localhost:3000/api/customers/${CUSTOMER_UUID}/contacts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -118,14 +120,14 @@ describe('Customer Contacts API', () => {
         }),
       })
 
-      const response = await POST(request, { params: { id: 'customer-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: CUSTOMER_UUID }) })
       const data = await response.json()
 
       expect(response.status).toBe(201)
       expect(data).toEqual(newContact)
       expect(ContactsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          customer_id: 'customer-123',
+          customer_id: CUSTOMER_UUID,
           name: 'New Contact',
           email: 'new@example.com',
           phone: '555-1234',
@@ -138,14 +140,14 @@ describe('Customer Contacts API', () => {
 
       const primaryContact = {
         id: 'contact-primary',
-        customer_id: 'customer-123',
+        customer_id: CUSTOMER_UUID,
         name: 'Primary Contact',
         email: 'primary@example.com',
         is_primary: true,
       }
       vi.mocked(ContactsService.create).mockResolvedValue(primaryContact)
 
-      const request = new NextRequest('http://localhost:3000/api/customers/customer-123/contacts', {
+      const request = new NextRequest(`http://localhost:3000/api/customers/${CUSTOMER_UUID}/contacts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -155,7 +157,7 @@ describe('Customer Contacts API', () => {
         }),
       })
 
-      const response = await POST(request, { params: { id: 'customer-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: CUSTOMER_UUID }) })
       const data = await response.json()
 
       expect(response.status).toBe(201)
@@ -167,19 +169,19 @@ describe('Customer Contacts API', () => {
 
       const fullContact = {
         id: 'contact-full',
-        customer_id: 'customer-123',
+        customer_id: CUSTOMER_UUID,
         name: 'Full Contact',
         title: 'Property Manager',
         email: 'full@example.com',
         phone: '555-1234',
         mobile: '555-5678',
-        role: 'decision_maker',
+        role: 'billing',
         preferred_contact_method: 'email',
         notes: 'Prefers morning calls',
       }
       vi.mocked(ContactsService.create).mockResolvedValue(fullContact)
 
-      const request = new NextRequest('http://localhost:3000/api/customers/customer-123/contacts', {
+      const request = new NextRequest(`http://localhost:3000/api/customers/${CUSTOMER_UUID}/contacts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -188,13 +190,13 @@ describe('Customer Contacts API', () => {
           email: 'full@example.com',
           phone: '555-1234',
           mobile: '555-5678',
-          role: 'decision_maker',
+          role: 'billing',
           preferred_contact_method: 'email',
           notes: 'Prefers morning calls',
         }),
       })
 
-      const response = await POST(request, { params: { id: 'customer-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: CUSTOMER_UUID }) })
       const data = await response.json()
 
       expect(response.status).toBe(201)
