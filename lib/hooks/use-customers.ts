@@ -84,10 +84,10 @@ export function useCreateCustomer() {
       })
     },
     onSuccess: (newCustomer) => {
-      // Invalidate and refetch customers list
-      queryClient.invalidateQueries({ queryKey: ['customers'] })
-      queryClient.invalidateQueries({ queryKey: ['customer-stats'] })
-      
+      // Invalidate customers list for this organization only
+      queryClient.invalidateQueries({ queryKey: ['customers', organization?.id] })
+      queryClient.invalidateQueries({ queryKey: ['customer-stats', organization?.id] })
+
       toast({
         title: 'Customer created',
         description: `${newCustomer.name} has been added successfully.`,
@@ -107,6 +107,7 @@ export function useCreateCustomer() {
 export function useUpdateCustomer() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { organization } = useMultiTenantAuth()
 
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: CustomerUpdate }) =>
@@ -114,11 +115,11 @@ export function useUpdateCustomer() {
     onSuccess: (updatedCustomer) => {
       // Update the specific customer in cache
       queryClient.setQueryData(['customer', updatedCustomer.id], updatedCustomer)
-      
-      // Invalidate customers list to refresh
-      queryClient.invalidateQueries({ queryKey: ['customers'] })
-      queryClient.invalidateQueries({ queryKey: ['customer-stats'] })
-      
+
+      // Invalidate customers list for this organization only
+      queryClient.invalidateQueries({ queryKey: ['customers', organization?.id] })
+      queryClient.invalidateQueries({ queryKey: ['customer-stats', organization?.id] })
+
       toast({
         title: 'Customer updated',
         description: `${updatedCustomer.name} has been updated successfully.`,
@@ -138,14 +139,15 @@ export function useUpdateCustomer() {
 export function useDeleteCustomer() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { organization } = useMultiTenantAuth()
 
   return useMutation({
     mutationFn: (id: string) => CustomersService.deleteCustomer(id),
     onSuccess: () => {
-      // Invalidate customers list and stats
-      queryClient.invalidateQueries({ queryKey: ['customers'] })
-      queryClient.invalidateQueries({ queryKey: ['customer-stats'] })
-      
+      // Invalidate customers list for this organization only
+      queryClient.invalidateQueries({ queryKey: ['customers', organization?.id] })
+      queryClient.invalidateQueries({ queryKey: ['customer-stats', organization?.id] })
+
       toast({
         title: 'Customer deleted',
         description: 'Customer has been deleted successfully.',
@@ -165,6 +167,7 @@ export function useDeleteCustomer() {
 export function useUpdateCustomerStatus() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { organization } = useMultiTenantAuth()
 
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: CustomerStatus }) =>
@@ -172,11 +175,11 @@ export function useUpdateCustomerStatus() {
     onSuccess: (updatedCustomer) => {
       // Update the specific customer in cache
       queryClient.setQueryData(['customer', updatedCustomer.id], updatedCustomer)
-      
-      // Invalidate customers list to refresh
-      queryClient.invalidateQueries({ queryKey: ['customers'] })
-      queryClient.invalidateQueries({ queryKey: ['customer-stats'] })
-      
+
+      // Invalidate customers list for this organization only
+      queryClient.invalidateQueries({ queryKey: ['customers', organization?.id] })
+      queryClient.invalidateQueries({ queryKey: ['customer-stats', organization?.id] })
+
       toast({
         title: 'Status updated',
         description: `Customer status changed to ${updatedCustomer.status}.`,

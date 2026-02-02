@@ -70,10 +70,11 @@ describe('ReportsPage', () => {
     const page = await ReportsPage()
     render(page)
 
-    expect(screen.getByText('Sales Performance')).toBeInTheDocument()
-    expect(screen.getByText('Job Costs')).toBeInTheDocument()
-    expect(screen.getByText('Lead Sources')).toBeInTheDocument()
-    expect(screen.getByText('Revenue Trends')).toBeInTheDocument()
+    // Use getAllByText since text may appear multiple times
+    expect(screen.getAllByText('Sales Performance').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Job Costs').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Lead Sources').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Revenue Trends').length).toBeGreaterThan(0)
   })
 
   it('displays saved reports section', async () => {

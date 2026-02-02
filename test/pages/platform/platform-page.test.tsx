@@ -159,7 +159,8 @@ describe('PlatformDashboardPage', () => {
     const page = await PlatformDashboardPage()
     render(page)
 
-    // Should show growth comparisons
-    expect(screen.getByText(/vs last month/)).toBeInTheDocument()
+    // Should show growth comparisons (may appear multiple times)
+    const growthIndicators = screen.getAllByText(/vs last month/)
+    expect(growthIndicators.length).toBeGreaterThan(0)
   })
 })
