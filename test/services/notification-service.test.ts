@@ -363,16 +363,16 @@ describe('NotificationService', () => {
     })
 
     it('should respect custom limit', async () => {
-      let limitValue = 0
+      let rangeEnd = 0
 
       mockSupabase.from = vi.fn(() => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             or: vi.fn(() => ({
               order: vi.fn(() => ({
-                limit: vi.fn((num) => {
-                  limitValue = num
-                  return Promise.resolve({ data: [], error: null })
+                range: vi.fn((start, end) => {
+                  rangeEnd = end
+                  return Promise.resolve({ data: [], error: null, count: 0 })
                 }),
               })),
             })),
@@ -380,8 +380,8 @@ describe('NotificationService', () => {
         })),
       }))
 
-      await NotificationService.getAll(undefined, 100)
-      expect(limitValue).toBe(100)
+      await NotificationService.getAll({ limit: 100 })
+      expect(rangeEnd).toBe(99) // range is inclusive, so 100 items = 0 to 99
     })
   })
 
