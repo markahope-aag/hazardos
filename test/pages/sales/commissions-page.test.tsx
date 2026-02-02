@@ -10,7 +10,7 @@ vi.mock('@/lib/supabase/server', () => ({
   }),
 }))
 
-// Mock CommissionService
+// Mock CommissionService - must return arrays not undefined
 vi.mock('@/lib/services/commission-service', () => ({
   CommissionService: {
     getSummary: () => Promise.resolve({
@@ -19,28 +19,30 @@ vi.mock('@/lib/services/commission-service', () => ({
       this_month: 1500,
       total_paid: 15000,
     }),
-    getEarnings: () => Promise.resolve([
-      {
-        id: 'earning-1',
-        earning_date: '2024-01-15',
-        user: { full_name: 'John Doe' },
-        plan: { name: 'Standard Plan' },
-        base_amount: 10000,
-        commission_rate: 10,
-        commission_amount: 1000,
-        status: 'pending',
-      },
-      {
-        id: 'earning-2',
-        earning_date: '2024-01-14',
-        user: { full_name: 'Jane Smith' },
-        plan: { name: 'Premium Plan' },
-        base_amount: 20000,
-        commission_rate: 15,
-        commission_amount: 3000,
-        status: 'paid',
-      },
-    ]),
+    getEarnings: () => Promise.resolve({
+      earnings: [
+        {
+          id: 'earning-1',
+          earning_date: '2024-01-15',
+          user: { full_name: 'John Doe' },
+          plan: { name: 'Standard Plan' },
+          base_amount: 10000,
+          commission_rate: 10,
+          commission_amount: 1000,
+          status: 'pending',
+        },
+        {
+          id: 'earning-2',
+          earning_date: '2024-01-14',
+          user: { full_name: 'Jane Smith' },
+          plan: { name: 'Premium Plan' },
+          base_amount: 20000,
+          commission_rate: 15,
+          commission_amount: 3000,
+          status: 'paid',
+        },
+      ],
+    }),
   },
 }))
 

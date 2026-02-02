@@ -713,24 +713,25 @@ export class JobCompletionService {
 
     // Use a single query that calculates variance via RPC if completion exists
     // This avoids the N+1 pattern of fetching completion ID first
-    await supabase.rpc('calculate_completion_variance_by_job', {
+    const { error } = await supabase.rpc('calculate_completion_variance_by_job', {
       p_job_id: jobId,
-    }).catch(() => {
-      // If the new RPC doesn't exist, fall back to the legacy 2-query pattern
-      // This allows gradual migration without breaking changes
-      return supabase
+    })
+
+    // If the new RPC doesn't exist, fall back to the legacy 2-query pattern
+    // This allows gradual migration without breaking changes
+    if (error) {
+      const { data: completion } = await supabase
         .from('job_completions')
         .select('id')
         .eq('job_id', jobId)
         .single()
-        .then(({ data: completion }) => {
-          if (completion) {
-            return supabase.rpc('calculate_completion_variance', {
-              p_completion_id: completion.id,
-            })
-          }
+
+      if (completion) {
+        await supabase.rpc('calculate_completion_variance', {
+          p_completion_id: completion.id,
         })
-    })
+      }
+    }
   }
 
   /**

@@ -3,10 +3,10 @@ import { z } from 'zod'
 // ========== Shared Utilities ==========
 
 export function formatZodError(error: z.ZodError): string {
-  if (!error.errors || !Array.isArray(error.errors)) {
+  if (!error.issues || !Array.isArray(error.issues)) {
     return 'Validation error'
   }
-  return error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+  return error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')
 }
 
 // Reusable pagination query schema
