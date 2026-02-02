@@ -37,7 +37,8 @@ describe('WebhookForm', () => {
   it('renders Create Webhook title when no webhook provided', () => {
     render(<WebhookForm availableEvents={availableEvents} />)
 
-    expect(screen.getByText('Create Webhook')).toBeInTheDocument()
+    // Title appears in CardTitle
+    expect(screen.getByRole('heading', { name: /create webhook/i })).toBeInTheDocument()
   })
 
   it('renders Edit Webhook title when webhook is provided', () => {
@@ -57,7 +58,7 @@ describe('WebhookForm', () => {
 
     render(<WebhookForm webhook={webhook} availableEvents={availableEvents} />)
 
-    expect(screen.getByText('Edit Webhook')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /edit webhook/i })).toBeInTheDocument()
   })
 
   it('renders name input field', () => {

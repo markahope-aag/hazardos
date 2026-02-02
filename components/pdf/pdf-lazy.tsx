@@ -39,9 +39,7 @@ export const ProposalPDFGenerator = dynamic(
 )
 
 export const InvoicePDFGenerator = dynamic(
-  () => import('@/components/invoices/invoice-pdf-generator').catch(() => ({
-    default: () => <PDFErrorState error="PDF generator not available" />
-  })),
+  () => import('@/components/invoices/invoice-pdf-generator'),
   {
     ssr: false,
     loading: () => <PDFLoadingState action="Loading Invoice Generator" />,
@@ -49,9 +47,7 @@ export const InvoicePDFGenerator = dynamic(
 )
 
 export const ReportPDFExporter = dynamic(
-  () => import('@/components/reports/report-pdf-exporter').catch(() => ({
-    default: () => <PDFErrorState error="PDF exporter not available" />
-  })),
+  () => import('@/components/reports/report-pdf-exporter'),
   {
     ssr: false,
     loading: () => <PDFLoadingState action="Loading Report Exporter" />,

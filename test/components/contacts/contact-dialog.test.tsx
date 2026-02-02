@@ -10,6 +10,21 @@ vi.mock('@/components/ui/use-toast', () => ({
   }),
 }))
 
+// Mock Select components to avoid Radix UI issues with empty string values
+vi.mock('@/components/ui/select', () => ({
+  Select: ({ children, value, onValueChange }: any) => (
+    <div data-testid="select" data-value={value}>
+      {children}
+    </div>
+  ),
+  SelectTrigger: ({ children }: any) => <button type="button">{children}</button>,
+  SelectValue: () => <span>Select...</span>,
+  SelectContent: ({ children }: any) => <div>{children}</div>,
+  SelectItem: ({ children, value }: any) => (
+    <div data-value={value}>{children}</div>
+  ),
+}))
+
 // Mock fetch
 global.fetch = vi.fn()
 
@@ -35,7 +50,7 @@ describe('ContactDialog', () => {
       />
     )
 
-    expect(screen.getByText('Add Contact')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Add Contact' })).toBeInTheDocument()
   })
 
   it('renders Edit Contact title when contact is provided', () => {
@@ -65,7 +80,7 @@ describe('ContactDialog', () => {
       />
     )
 
-    expect(screen.getByText('Edit Contact')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Edit Contact' })).toBeInTheDocument()
   })
 
   it('renders name input field', () => {
