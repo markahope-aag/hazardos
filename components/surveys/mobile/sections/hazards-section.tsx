@@ -1,11 +1,13 @@
 'use client'
 
 import { useSurveyStore } from '@/lib/stores/survey-store'
-import { HazardTypeSelector } from '../hazards/HazardTypeSelector'
-import { AsbestosForm } from '../hazards/AsbestosForm'
-import { MoldForm } from '../hazards/MoldForm'
-import { LeadForm } from '../hazards/LeadForm'
-import { OtherHazardForm } from '../hazards/OtherHazardForm'
+import {
+  HazardTypeSelector,
+  AsbestosForm,
+  MoldForm,
+  LeadForm,
+  OtherHazardForm,
+} from '../hazards'
 
 export function HazardsSection() {
   const { formData } = useSurveyStore()
