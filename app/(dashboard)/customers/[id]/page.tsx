@@ -76,7 +76,7 @@ export default function CustomerDetailPage({ params }: CustomerDetailPageProps) 
         <Card>
           <CardContent className="p-6">
             <div className="text-center">
-              <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+              <AlertCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
               <h2 className="text-lg font-semibold text-gray-900 mb-2">
                 Error Loading Customer
               </h2>

@@ -29,7 +29,7 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
   trialing: { label: 'Trialing', color: 'text-blue-800', bgColor: 'bg-blue-100' },
   past_due: { label: 'Past Due', color: 'text-yellow-800', bgColor: 'bg-yellow-100' },
   canceled: { label: 'Canceled', color: 'text-gray-800', bgColor: 'bg-gray-100' },
-  unpaid: { label: 'Unpaid', color: 'text-red-800', bgColor: 'bg-red-100' },
+  unpaid: { label: 'Unpaid', color: 'text-destructive', bgColor: 'bg-destructive/10' },
   none: { label: 'No Plan', color: 'text-gray-600', bgColor: 'bg-gray-50' },
 }
 
@@ -75,6 +75,7 @@ export function OrganizationsTable({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   className="pl-9"
+                  aria-label="Search organizations by name or email"
                 />
               </div>
               <Button onClick={handleSearch}>Search</Button>
@@ -156,7 +157,7 @@ export function OrganizationsTable({
                       {format(new Date(org.createdAt), 'MMM d, yyyy')}
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" asChild>
+                      <Button variant="ghost" size="icon" asChild aria-label="View organization details">
                         <Link href={`/platform/organizations/${org.id}`}>
                           <ExternalLink className="h-4 w-4" />
                         </Link>

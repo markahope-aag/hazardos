@@ -46,6 +46,7 @@ export default function CustomerSearch({
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
         className="pl-10 pr-10"
+        aria-label="Search customers by name, company, email, or phone"
       />
       {localValue && (
         <Button

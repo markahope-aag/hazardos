@@ -61,7 +61,7 @@ export function LeadForm() {
           onChange={(value) => update({ childrenUnder6Present: value })}
         />
         {lead.childrenUnder6Present && (
-          <div className="flex items-start gap-2 p-3 bg-red-100 rounded-lg text-sm text-red-700">
+          <div className="flex items-start gap-2 p-3 bg-destructive/10 rounded-lg text-sm text-destructive">
             <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <p>Enhanced lead-safe work practices required for child-occupied facilities</p>
           </div>

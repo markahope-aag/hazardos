@@ -21,7 +21,7 @@ function getStatusBadge(status: string) {
     case 'approved':
       return <Badge variant="default">Approved</Badge>
     case 'paid':
-      return <Badge className="bg-green-500">Paid</Badge>
+      return <Badge className="bg-green-500 text-white">Paid</Badge>
     default:
       return <Badge variant="outline">{status}</Badge>
   }

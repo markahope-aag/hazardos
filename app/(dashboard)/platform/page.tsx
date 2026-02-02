@@ -27,7 +27,7 @@ function GrowthIndicator({ current, previous }: { current: number; previous: num
   const isPositive = diff >= 0
 
   return (
-    <div className={`flex items-center text-xs ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+    <div className={`flex items-center text-xs ${isPositive ? 'text-green-600' : 'text-destructive'}`}>
       {isPositive ? (
         <ArrowUpRight className="h-3 w-3 mr-0.5" />
       ) : (

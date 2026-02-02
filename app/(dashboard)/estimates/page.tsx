@@ -223,6 +223,7 @@ export default function EstimatesPage() {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="pl-9"
+            aria-label="Search estimates by name, customer, or amount"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -308,7 +309,7 @@ export default function EstimatesPage() {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          <Button variant="ghost" size="icon" aria-label="Estimate actions">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>

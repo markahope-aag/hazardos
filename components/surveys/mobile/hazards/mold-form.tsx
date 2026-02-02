@@ -82,7 +82,7 @@ export function MoldForm() {
                 className="mt-2"
               />
               {mold.moistureSourceStatus === 'active' && (
-                <p className="text-sm text-red-600 mt-2">
+                <p className="text-sm text-destructive mt-2">
                   ⚠️ Active moisture must be addressed before remediation
                 </p>
               )}

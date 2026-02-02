@@ -66,7 +66,7 @@ export default function CustomerList({ onEditCustomer, onDeleteCustomer }: Custo
       <Card>
         <CardContent className="p-6">
           <div className="text-center">
-            <div className="text-red-600 mb-2">Error loading customers</div>
+            <div className="text-destructive mb-2">Error loading customers</div>
             <div className="text-sm text-gray-500">
               {error instanceof Error ? error.message : 'An unexpected error occurred'}
             </div>

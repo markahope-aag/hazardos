@@ -86,7 +86,7 @@ export function JobHeader({ job }: JobHeaderProps) {
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" asChild>
+            <Button variant="ghost" size="icon" asChild aria-label="Back to jobs">
               <Link href="/jobs">
                 <ArrowLeft className="h-4 w-4" />
               </Link>
@@ -127,7 +127,7 @@ export function JobHeader({ job }: JobHeaderProps) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" aria-label="More job actions">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>

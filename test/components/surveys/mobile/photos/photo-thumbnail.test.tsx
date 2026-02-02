@@ -5,14 +5,16 @@ import { PhotoThumbnail } from '@/components/surveys/mobile/photos/photo-thumbna
 
 const mockPhoto = {
   id: 'photo-1',
-  category: 'general' as const,
+  category: 'exterior' as const, // Use valid PhotoCategory
   dataUrl: 'data:image/png;base64,abc123',
   caption: 'Test photo caption',
   gpsCoordinates: {
     latitude: 40.7128,
     longitude: -74.0060,
   },
-  timestamp: Date.now(),
+  timestamp: Date.now().toString(),
+  blob: null, // Required by PhotoData type
+  location: 'Test location', // Required by PhotoData type
 }
 
 describe('PhotoThumbnail', () => {

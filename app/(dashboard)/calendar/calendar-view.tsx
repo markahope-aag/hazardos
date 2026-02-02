@@ -338,10 +338,10 @@ export function CalendarView() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => navigate('prev')}>
+            <Button variant="outline" size="icon" onClick={() => navigate('prev')} aria-label="Previous period">
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon" onClick={() => navigate('next')}>
+            <Button variant="outline" size="icon" onClick={() => navigate('next')} aria-label="Next period">
               <ChevronRight className="h-4 w-4" />
             </Button>
             <Button variant="outline" onClick={goToToday}>

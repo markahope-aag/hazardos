@@ -21,7 +21,7 @@ function getStatusBadge(status: string) {
     case 'pending':
       return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" /> Pending</Badge>
     case 'approved':
-      return <Badge className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" /> Approved</Badge>
+      return <Badge className="bg-green-500 text-white"><CheckCircle className="h-3 w-3 mr-1" /> Approved</Badge>
     case 'rejected':
       return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" /> Rejected</Badge>
     default:
@@ -83,7 +83,7 @@ export default async function ApprovalsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Approved</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
+            <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{approvedCount}</div>
@@ -94,10 +94,10 @@ export default async function ApprovalsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Rejected</CardTitle>
-            <XCircle className="h-4 w-4 text-red-500" />
+            <XCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{rejectedCount}</div>
+            <div className="text-2xl font-bold text-destructive">{rejectedCount}</div>
             <p className="text-xs text-muted-foreground">Total rejected</p>
           </CardContent>
         </Card>

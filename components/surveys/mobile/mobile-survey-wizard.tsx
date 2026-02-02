@@ -473,7 +473,7 @@ export default function MobileSurveyWizard({
               )}
 
               {syncError && (
-                <CloudOff className="w-4 h-4 text-red-500" />
+                <CloudOff className="w-4 h-4 text-destructive" />
               )}
 
               {/* Save Button */}
@@ -531,7 +531,7 @@ export default function MobileSurveyWizard({
                 <span>{pendingPhotos} photo{pendingPhotos !== 1 ? 's' : ''} uploading...</span>
               )}
               {failedPhotos > 0 && (
-                <span className="text-red-600 ml-2">
+                <span className="text-destructive ml-2">
                   {failedPhotos} failed
                 </span>
               )}
@@ -540,7 +540,7 @@ export default function MobileSurveyWizard({
 
           {/* Submit error */}
           {submitError && (
-            <div className="px-4 py-2 bg-red-50 text-red-700 text-sm text-center border-b border-red-100">
+            <div className="px-4 py-2 bg-destructive/5 text-destructive text-sm text-center border-b border-destructive/10">
               {submitError}
             </div>
           )}
@@ -707,7 +707,7 @@ function ExitConfirmDialog({ onConfirm, onCancel, onDiscard }: ExitConfirmDialog
           <Button
             variant="outline"
             onClick={onDiscard}
-            className="w-full min-h-[48px] touch-manipulation text-red-600 hover:text-red-700 hover:bg-red-50"
+            className="w-full min-h-[48px] touch-manipulation text-destructive hover:text-destructive/90 hover:bg-destructive/5"
           >
             Discard Changes
           </Button>
