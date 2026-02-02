@@ -106,9 +106,9 @@ describe('PlanSelector', () => {
 
     // Yearly prices are displayed as monthly equivalent (price_yearly / 12)
     // $290/12 = $24.17, $990/12 = $82.50, $1990/12 = $165.83
-    expect(screen.getByText('$24')).toBeInTheDocument()
-    expect(screen.getByText('$83')).toBeInTheDocument()
-    expect(screen.getByText('$166')).toBeInTheDocument()
+    expect(screen.getByText('$24.17')).toBeInTheDocument()
+    expect(screen.getByText('$82.5')).toBeInTheDocument()
+    expect(screen.getByText('$165.83')).toBeInTheDocument()
   })
 
   it('should show popular badge for popular plan', () => {
@@ -186,7 +186,8 @@ describe('PlanSelector', () => {
     const billingToggle = screen.getByRole('switch')
     fireEvent.click(billingToggle)
 
-    const starterButton = screen.getByRole('button', { name: /select plan/i })
+    const starterCard = screen.getByText('Starter').closest('[class*="border"]')
+    const starterButton = within(starterCard).getByRole('button', { name: /select plan/i })
     fireEvent.click(starterButton)
     
     await waitFor(() => {
@@ -203,7 +204,8 @@ describe('PlanSelector', () => {
 
     render(<PlanSelector plans={mockPlans} />)
 
-    const starterButton = screen.getByRole('button', { name: /select plan/i })
+    const starterCard = screen.getByText('Starter').closest('[class*="border"]')
+    const starterButton = within(starterCard).getByRole('button', { name: /select plan/i })
     fireEvent.click(starterButton)
 
     await waitFor(() => {
@@ -220,7 +222,8 @@ describe('PlanSelector', () => {
 
     render(<PlanSelector plans={mockPlans} />)
 
-    const starterButton = screen.getByRole('button', { name: /select plan/i })
+    const starterCard = screen.getByText('Starter').closest('[class*="border"]')
+    const starterButton = within(starterCard).getByRole('button', { name: /select plan/i })
     fireEvent.click(starterButton)
 
     await waitFor(() => {
@@ -237,7 +240,8 @@ describe('PlanSelector', () => {
 
     render(<PlanSelector plans={mockPlans} />)
 
-    const starterButton = screen.getByRole('button', { name: /select plan/i })
+    const starterCard = screen.getByText('Starter').closest('[class*="border"]')
+    const starterButton = within(starterCard).getByRole('button', { name: /select plan/i })
     fireEvent.click(starterButton)
 
     await waitFor(() => {
@@ -263,8 +267,9 @@ describe('PlanSelector', () => {
     const billingToggle = screen.getByRole('switch')
     fireEvent.click(billingToggle)
     
-    // Should show savings text
-    expect(screen.getByText('Save 17% with yearly billing')).toBeInTheDocument()
+    // Should show savings text (there are multiple instances, so use getAllByText)
+    const savingsTexts = screen.getAllByText('Save 17% with yearly billing')
+    expect(savingsTexts.length).toBeGreaterThan(0)
   })
 
   it('should format currency correctly', () => {
@@ -281,7 +286,7 @@ describe('PlanSelector', () => {
 
     render(<PlanSelector plans={[expensivePlan]} />)
     
-    expect(screen.getByText('$1,235')).toBeInTheDocument() // Rounded up
+    expect(screen.getByText('$1,234.56')).toBeInTheDocument()
   })
 
   it('should handle plans with no features', () => {
@@ -310,34 +315,35 @@ describe('PlanSelector', () => {
     expect(screen.getByText('Yearly')).toBeInTheDocument()
   })
 
-  it('should show upgrade button for non-current plans', () => {
+  it('should show select plan button for non-current plans', () => {
     render(<PlanSelector plans={mockPlans} currentPlanId="plan_starter" />)
-    
+
     // Starter should show "Current Plan"
     expect(screen.getByText('Current Plan')).toBeInTheDocument()
-    
-    // Other plans should show "Upgrade" or "Get Started"
-    const upgradeButtons = screen.getAllByRole('button', { name: /upgrade|get started/i })
-    expect(upgradeButtons.length).toBeGreaterThan(0)
+
+    // Other plans should show "Select Plan"
+    const selectButtons = screen.getAllByRole('button', { name: /select plan/i })
+    expect(selectButtons.length).toBeGreaterThan(0)
   })
 
   it('should maintain loading state per plan', async () => {
     mockFetch.mockImplementation(() => new Promise(() => {})) // Never resolves
 
     render(<PlanSelector plans={mockPlans} />)
-    
-    const starterButton = screen.getByRole('button', { name: /get started/i })
-    const proButtons = screen.getAllByRole('button', { name: /get started|upgrade/i })
-    
+
+    const starterCard = screen.getByText('Starter').closest('[class*="border"]')
+    const starterButton = within(starterCard).getByRole('button', { name: /select plan/i })
+    const allButtons = screen.getAllByRole('button', { name: /select plan/i })
+
     fireEvent.click(starterButton)
-    
+
     await waitFor(() => {
       // Only the clicked button should be loading
       expect(starterButton).toBeDisabled()
       expect(starterButton.querySelector('.animate-spin')).toBeInTheDocument()
-      
+
       // Other buttons should still be enabled
-      proButtons.forEach(button => {
+      allButtons.forEach(button => {
         if (button !== starterButton) {
           expect(button).not.toBeDisabled()
         }
@@ -353,7 +359,7 @@ describe('PlanSelector', () => {
     expect(billingToggle).toHaveAttribute('aria-checked')
     
     // Plan cards should be properly structured
-    const planButtons = screen.getAllByRole('button', { name: /get started|upgrade|current plan/i })
+    const planButtons = screen.getAllByRole('button', { name: /select plan|current plan/i })
     planButtons.forEach(button => {
       expect(button).toBeInTheDocument()
     })

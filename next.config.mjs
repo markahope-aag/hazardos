@@ -1,3 +1,4 @@
+import { withSentryConfig } from '@sentry/nextjs';
 import withPWA from 'next-pwa';
 
 /** @type {import('next').NextConfig} */
@@ -69,7 +70,7 @@ const nextConfig = {
       // Fonts - allow self and data URIs (for inline fonts)
       'font-src': ["'self'", 'data:'],
 
-      // Connect (fetch, XHR, WebSocket) - allow self, Supabase, and Stripe
+      // Connect (fetch, XHR, WebSocket) - allow self, Supabase, Stripe, and Sentry
       'connect-src': isDev
         ? [
             "'self'",
@@ -78,6 +79,8 @@ const nextConfig = {
             'https://api.stripe.com',
             'https://api.openai.com',
             'https://api.anthropic.com',
+            'https://*.ingest.sentry.io',
+            'https://*.sentry.io',
             'ws://localhost:*',
             'http://localhost:*',
           ]
@@ -88,6 +91,8 @@ const nextConfig = {
             'https://api.stripe.com',
             'https://api.openai.com',
             'https://api.anthropic.com',
+            'https://*.ingest.sentry.io',
+            'https://*.sentry.io',
           ],
 
       // Frames - allow self and Stripe for checkout
@@ -324,9 +329,30 @@ const nextConfig = {
   },
 };
 
-export default withPWA({
+const configWithPWA = withPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
 })(nextConfig);
+
+export default withSentryConfig(configWithPWA, {
+  // Sentry organization and project
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+
+  // Only upload source maps in production builds
+  silent: !process.env.CI,
+
+  // Upload source maps for better stack traces
+  widenClientFileUpload: true,
+
+  // Automatically tree-shake Sentry logger statements
+  disableLogger: true,
+
+  // Prevent source map comments in production
+  hideSourceMaps: true,
+
+  // Tunnel Sentry requests through Next.js to avoid ad blockers
+  tunnelRoute: '/monitoring',
+});

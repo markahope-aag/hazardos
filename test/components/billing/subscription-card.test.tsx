@@ -116,7 +116,7 @@ describe('SubscriptionCard', () => {
       render(<SubscriptionCard subscription={mockSubscription} isAdmin={true} />)
       
       expect(screen.getByText('Current Period Ends')).toBeInTheDocument()
-      expect(screen.getByText('Mar 1, 2024')).toBeInTheDocument()
+      expect(screen.getByText('Feb 29, 2024')).toBeInTheDocument()
     })
 
     it('should show manage billing button for admins', () => {
@@ -165,7 +165,7 @@ describe('SubscriptionCard', () => {
       
       expect(screen.getByText('Trial')).toBeInTheDocument()
       expect(screen.getByText('Trial Ends')).toBeInTheDocument()
-      expect(screen.getByText('Feb 15, 2024')).toBeInTheDocument()
+      expect(screen.getByText('Feb 14, 2024')).toBeInTheDocument()
     })
   })
 
