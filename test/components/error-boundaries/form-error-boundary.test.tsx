@@ -1,11 +1,10 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { FormErrorBoundary } from '@/components/error-boundaries/form-error-boundary'
 
 // Mock error-boundary
 vi.mock('@/components/error-boundaries/error-boundary', () => ({
-  ErrorBoundary: ({ children, fallback }: { children: React.ReactNode, fallback: (props: { error: Error, resetError: () => void }) => React.ReactNode }) => {
+  ErrorBoundary: ({ children, fallback: _fallback }: { children: React.ReactNode, fallback: (props: { error: Error, resetError: () => void }) => React.ReactNode }) => {
     // For testing, we'll just render children normally
     return <>{children}</>
   },

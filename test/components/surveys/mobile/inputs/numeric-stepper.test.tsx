@@ -45,10 +45,10 @@ describe('NumericStepper', () => {
   })
 
   it('respects min value', async () => {
-    const user = userEvent.setup()
-    const handleChange = vi.fn()
+    const _user = userEvent.setup()
+    const _handleChange = vi.fn()
 
-    render(<NumericStepper value={0} onChange={handleChange} min={0} />)
+    render(<NumericStepper value={0} onChange={_handleChange} min={0} />)
 
     // Decrease button should be disabled at min
     const decreaseBtn = screen.getByRole('button', { name: /decrease/i })
@@ -56,10 +56,10 @@ describe('NumericStepper', () => {
   })
 
   it('respects max value', async () => {
-    const user = userEvent.setup()
-    const handleChange = vi.fn()
+    const _user = userEvent.setup()
+    const _handleChange = vi.fn()
 
-    render(<NumericStepper value={100} onChange={handleChange} max={100} />)
+    render(<NumericStepper value={100} onChange={_handleChange} max={100} />)
 
     // Increase button should be disabled at max
     const increaseBtn = screen.getByRole('button', { name: /increase/i })

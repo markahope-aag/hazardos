@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PhotoCategoryGroup } from '@/components/surveys/mobile/photos/photo-category-group'
-import { PhotoCategory, PhotoData } from '@/lib/stores/survey-types'
+import type { PhotoData } from '@/lib/stores/survey-types'
 
 // Mock components
 vi.mock('@/components/surveys/mobile/photos/photo-thumbnail', () => ({

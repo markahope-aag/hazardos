@@ -12,7 +12,7 @@ vi.mock('@/components/ui/use-toast', () => ({
 
 // Mock Select components to avoid Radix UI issues with empty string values
 vi.mock('@/components/ui/select', () => ({
-  Select: ({ children, value, onValueChange }: any) => (
+  Select: ({ children, value, onValueChange: _onValueChange }: any) => (
     <div data-testid="select" data-value={value}>
       {children}
     </div>

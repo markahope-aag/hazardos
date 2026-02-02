@@ -162,8 +162,10 @@ describe('SmsService', () => {
     })
 
     it.skip('should send SMS successfully - Twilio mocking complex', async () => {
-      // Skipping due to Twilio client initialization complexity in tests
-      // Covered by integration tests
+      // SKIPPED: Twilio client initialization requires complex mocking setup
+      // COVERAGE: Integration tests verify SMS sending functionality
+      // ALTERNATIVE: Manual testing and production monitoring
+      // TODO: Consider using Twilio test credentials for unit tests
     })
 
     it('should throw error when SMS is disabled', async () => {
@@ -254,11 +256,15 @@ describe('SmsService', () => {
     })
 
     it.skip('should normalize 10-digit phone numbers - Twilio mocking complex', async () => {
-      // Covered by integration tests
+      // SKIPPED: Twilio client mocking complexity
+      // COVERAGE: Integration tests verify phone number normalization
+      // ALTERNATIVE: Unit tests for phone number utility functions
     })
 
     it.skip('should normalize 11-digit phone numbers starting with 1 - Twilio mocking complex', async () => {
-      // Covered by integration tests
+      // SKIPPED: Twilio client mocking complexity
+      // COVERAGE: Integration tests verify phone number normalization
+      // ALTERNATIVE: Unit tests for phone number utility functions
     })
   })
 
@@ -338,7 +344,9 @@ describe('SmsService', () => {
     })
 
     it.skip('should send templated SMS with variable substitution - Twilio mocking complex', async () => {
-      // Covered by integration tests
+      // SKIPPED: Twilio client mocking complexity
+      // COVERAGE: Integration tests verify template variable substitution
+      // ALTERNATIVE: Unit tests for template processing logic (separate from SMS sending)
     })
 
     it('should throw error when template not found', async () => {
@@ -373,7 +381,9 @@ describe('SmsService', () => {
 
   describe('sendAppointmentReminder', () => {
     it.skip('should send appointment reminder when enabled - Twilio mocking complex', async () => {
-      // Covered by integration tests
+      // SKIPPED: Twilio client mocking complexity
+      // COVERAGE: Integration tests verify appointment reminder functionality
+      // ALTERNATIVE: Unit tests for reminder scheduling logic (separate from SMS sending)
     })
 
     it('should return null when reminders disabled', async () => {

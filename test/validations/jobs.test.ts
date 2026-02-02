@@ -15,13 +15,13 @@ import {
   deleteJobNoteSchema,
   addJobEquipmentSchema,
   updateJobEquipmentSchema,
-  deleteJobEquipmentSchema,
+  deleteJobEquipmentSchema as _deleteJobEquipmentSchema,
   addJobMaterialSchema,
   updateJobMaterialSchema,
-  deleteJobMaterialSchema,
+  deleteJobMaterialSchema as _deleteJobMaterialSchema,
   addJobDisposalSchema,
-  updateJobDisposalSchema,
-  deleteJobDisposalSchema,
+  updateJobDisposalSchema as _updateJobDisposalSchema,
+  deleteJobDisposalSchema as _deleteJobDisposalSchema,
   jobListQuerySchema,
   calendarQuerySchema,
   availableCrewQuerySchema
@@ -99,19 +99,19 @@ describe('Job Validation Schemas', () => {
     })
 
     it('should require customer_id', () => {
-      const { customer_id, ...withoutCustomer } = validJob
+      const { customer_id: _customer_id, ...withoutCustomer } = validJob
       const result = createJobSchema.safeParse(withoutCustomer)
       expect(result.success).toBe(false)
     })
 
     it('should require scheduled_start_date', () => {
-      const { scheduled_start_date, ...withoutDate } = validJob
+      const { scheduled_start_date: _scheduled_start_date, ...withoutDate } = validJob
       const result = createJobSchema.safeParse(withoutDate)
       expect(result.success).toBe(false)
     })
 
     it('should require job_address', () => {
-      const { job_address, ...withoutAddress } = validJob
+      const { job_address: _job_address, ...withoutAddress } = validJob
       const result = createJobSchema.safeParse(withoutAddress)
       expect(result.success).toBe(false)
     })
@@ -511,7 +511,7 @@ describe('Job Validation Schemas', () => {
     })
 
     it('should require hazard_type', () => {
-      const { hazard_type, ...withoutType } = validDisposal
+      const { hazard_type: _hazard_type, ...withoutType } = validDisposal
       const result = addJobDisposalSchema.safeParse(withoutType)
       expect(result.success).toBe(false)
     })
@@ -525,7 +525,7 @@ describe('Job Validation Schemas', () => {
     })
 
     it('should require unit', () => {
-      const { unit, ...withoutUnit } = validDisposal
+      const { unit: _unit, ...withoutUnit } = validDisposal
       const result = addJobDisposalSchema.safeParse(withoutUnit)
       expect(result.success).toBe(false)
     })

@@ -195,7 +195,7 @@ describe('Proposal Validation Schemas', () => {
     })
 
     it('should require access_token', () => {
-      const { access_token, ...withoutToken } = validSignature
+      const { access_token: _access_token, ...withoutToken } = validSignature
       const result = signProposalSchema.safeParse(withoutToken)
       expect(result.success).toBe(false)
     })
@@ -209,7 +209,7 @@ describe('Proposal Validation Schemas', () => {
     })
 
     it('should require signer_name', () => {
-      const { signer_name, ...withoutName } = validSignature
+      const { signer_name: _signer_name, ...withoutName } = validSignature
       const result = signProposalSchema.safeParse(withoutName)
       expect(result.success).toBe(false)
     })
@@ -231,7 +231,7 @@ describe('Proposal Validation Schemas', () => {
     })
 
     it('should require signature_data', () => {
-      const { signature_data, ...withoutSig } = validSignature
+      const { signature_data: _signature_data, ...withoutSig } = validSignature
       const result = signProposalSchema.safeParse(withoutSig)
       expect(result.success).toBe(false)
     })

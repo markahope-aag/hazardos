@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ReportingService } from '@/lib/services/reporting-service'
-import type { DateRange } from '@/types/reporting'
+import type { DateRange as _DateRange } from '@/types/reporting'
 
 // Mock dependencies
 vi.mock('@/lib/supabase/server', () => ({

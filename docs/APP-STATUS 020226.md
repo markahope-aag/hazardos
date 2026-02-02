@@ -6,7 +6,7 @@
 
 ## Overview
 
-HazardOS is a multi-tenant SaaS application for environmental remediation companies to manage field assessments, estimates, proposals, and jobs. Built with Next.js 14, Supabase, and TypeScript.
+HazardOS is a multi-tenant SaaS application for environmental remediation companies to manage field assessments, estimates, proposals, and jobs. Built with Next.js 16.1.6, Supabase, and TypeScript.
 
 ## Tech Stack
 

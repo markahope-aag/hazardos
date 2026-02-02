@@ -27,7 +27,7 @@ vi.mock('cmdk', () => {
       {children}
     </div>
   )
-  MockCommand.Input = ({ children, className, ...props }: any) => (
+  MockCommand.Input = ({ children: _children, className, ...props }: any) => (
     <input data-testid="command-input" className={className} {...props} />
   )
   MockCommand.List = ({ children, className, ...props }: any) => (

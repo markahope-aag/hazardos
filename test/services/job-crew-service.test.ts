@@ -286,7 +286,7 @@ describe('JobCrewService', () => {
         }),
       }))
 
-      const result = await JobCrewService.clockInOut({
+      const _result = await JobCrewService.clockInOut({
         job_crew_id: 'crew-1',
         action: 'clock_in',
       })
@@ -317,7 +317,7 @@ describe('JobCrewService', () => {
         }),
       }))
 
-      const result = await JobCrewService.clockInOut({
+      const _result = await JobCrewService.clockInOut({
         job_crew_id: 'crew-1',
         action: 'clock_out',
       })

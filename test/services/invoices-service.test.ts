@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { InvoicesService } from '@/lib/services/invoices-service'
-import type { Invoice, InvoiceLineItem, Payment } from '@/types/invoices'
+import type { Invoice as _Invoice, InvoiceLineItem as _InvoiceLineItem, Payment as _Payment } from '@/types/invoices'
 
 // Mock dependencies
 vi.mock('@/lib/supabase/server', () => ({

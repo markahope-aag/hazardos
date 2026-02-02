@@ -13,7 +13,7 @@ const createMockMediaRecorder = () => ({
   state: 'inactive',
 })
 
-const mockStream = {
+const _mockStream = {
   getTracks: vi.fn(() => [{ stop: vi.fn() }]),
 }
 
@@ -41,7 +41,7 @@ global.fetch = mockFetch
 // Mock btoa
 global.btoa = vi.fn((str) => Buffer.from(str, 'binary').toString('base64'))
 
-const mockTranscription = {
+const _mockTranscription = {
   id: 'transcription_123',
   raw_transcription: 'This is a test transcription',
   processed_text: 'This is a test transcription.',
@@ -61,7 +61,7 @@ describe('VoiceRecorder', () => {
     mockMediaRecorder = null
 
     // Mock getUserMedia to resolve with stream
-    ;(navigator.mediaDevices.getUserMedia as any).mockResolvedValue(mockStream)
+    ;(navigator.mediaDevices.getUserMedia as any).mockResolvedValue(_mockStream)
   })
 
   afterEach(() => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { Job, CreateJobInput, CreateJobFromProposalInput, UpdateJobInput } from '@/types/jobs'
+import type { Job as _Job, CreateJobInput, CreateJobFromProposalInput as _CreateJobFromProposalInput, UpdateJobInput } from '@/types/jobs'
 
 // Use vi.hoisted to create mocks before vi.mock is processed
 const mockSupabase = vi.hoisted(() => ({

@@ -21,7 +21,7 @@ function DelayedErrorThrower({ shouldThrow }: { shouldThrow: boolean }) {
 }
 
 // For tests that need synchronous error throwing, use a class component
-class SyncErrorThrower extends React.Component<{ shouldThrow: boolean }> {
+class _SyncErrorThrower extends React.Component<{ shouldThrow: boolean }> {
   render() {
     if (this.props.shouldThrow) {
       throw new Error('Test error message')

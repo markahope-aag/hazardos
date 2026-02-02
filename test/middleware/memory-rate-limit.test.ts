@@ -4,7 +4,7 @@ import {
   applyMemoryRateLimit,
   withMemoryRateLimit,
   rateLimitConfigs,
-  type MemoryRateLimiterType,
+  type MemoryRateLimiterType as _MemoryRateLimiterType,
 } from '@/lib/middleware/memory-rate-limit'
 
 describe('Memory Rate Limit Middleware', () => {
