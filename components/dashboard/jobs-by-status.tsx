@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
   Legend,
   Tooltip,
-} from 'recharts';
+} from '@/components/charts/recharts-lazy';
 
 interface JobStatusData {
   status: string;

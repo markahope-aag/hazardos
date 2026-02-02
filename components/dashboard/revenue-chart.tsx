@@ -10,7 +10,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from 'recharts';
+} from '@/components/charts/recharts-lazy';
 import { formatCurrency } from '@/lib/utils';
 
 interface RevenueData {
