@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { HazardTypeSelector } from '@/components/surveys/mobile/hazards/hazard-type-selector'
 
 // Mock the survey store

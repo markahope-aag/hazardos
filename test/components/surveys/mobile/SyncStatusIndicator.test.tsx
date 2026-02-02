@@ -1,16 +1,19 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { SyncStatusIndicator, InlineSyncStatus } from '@/components/surveys/mobile/sync-status-indicator'
 
 // Mock the offline sync hook
 const mockUseOfflineSync = {
-  status: 'synced' as const,
+  status: 'synced' as 'synced' | 'syncing' | 'pending' | 'offline' | 'error',
   isOnline: true,
   pendingSurveys: 0,
   pendingPhotos: 0,
   failedPhotos: 0,
+  storageUsed: 0,
+  storageQuota: 0,
   storagePercentUsed: 25,
   lastSyncAt: new Date().toISOString(),
-  lastSyncError: null,
+  lastSyncError: null as string | null,
   syncNow: vi.fn(),
   retryFailed: vi.fn(),
 }
