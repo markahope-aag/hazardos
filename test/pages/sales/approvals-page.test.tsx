@@ -24,24 +24,26 @@ vi.mock('@/lib/services/approval-service', () => ({
         requested_at: '2024-01-15T10:00:00Z',
       },
     ]),
-    getRequests: () => Promise.resolve([
-      {
-        id: 'request-1',
-        entity_type: 'estimate',
-        requester: { full_name: 'John Doe' },
-        amount: 5000,
-        final_status: 'pending',
-        requested_at: '2024-01-15T10:00:00Z',
-      },
-      {
-        id: 'request-2',
-        entity_type: 'discount',
-        requester: { full_name: 'Jane Smith' },
-        amount: 500,
-        final_status: 'approved',
-        requested_at: '2024-01-14T10:00:00Z',
-      },
-    ]),
+    getRequests: () => Promise.resolve({
+      requests: [
+        {
+          id: 'request-1',
+          entity_type: 'estimate',
+          requester: { full_name: 'John Doe' },
+          amount: 5000,
+          final_status: 'pending',
+          requested_at: '2024-01-15T10:00:00Z',
+        },
+        {
+          id: 'request-2',
+          entity_type: 'discount',
+          requester: { full_name: 'Jane Smith' },
+          amount: 500,
+          final_status: 'approved',
+          requested_at: '2024-01-14T10:00:00Z',
+        },
+      ],
+    }),
   },
 }))
 
