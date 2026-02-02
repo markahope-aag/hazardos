@@ -37,7 +37,7 @@ describe('PhotoThumbnail', () => {
 
   it('renders default alt text when no caption', () => {
     const onClick = vi.fn()
-    const photoWithoutCaption = { ...mockPhoto, caption: undefined }
+    const photoWithoutCaption = { ...mockPhoto, caption: '' }
     render(<PhotoThumbnail photo={photoWithoutCaption} onClick={onClick} />)
 
     const img = screen.getByRole('img')
@@ -46,7 +46,7 @@ describe('PhotoThumbnail', () => {
 
   it('shows No image placeholder when no dataUrl', () => {
     const onClick = vi.fn()
-    const photoWithoutData = { ...mockPhoto, dataUrl: undefined }
+    const photoWithoutData = { ...mockPhoto, dataUrl: null }
     render(<PhotoThumbnail photo={photoWithoutData} onClick={onClick} />)
 
     expect(screen.getByText('No image')).toBeInTheDocument()
@@ -62,7 +62,7 @@ describe('PhotoThumbnail', () => {
 
   it('does not show caption overlay when no caption', () => {
     const onClick = vi.fn()
-    const photoWithoutCaption = { ...mockPhoto, caption: undefined }
+    const photoWithoutCaption = { ...mockPhoto, caption: '' }
     render(<PhotoThumbnail photo={photoWithoutCaption} onClick={onClick} />)
 
     expect(screen.queryByText('Test photo caption')).not.toBeInTheDocument()
@@ -80,7 +80,7 @@ describe('PhotoThumbnail', () => {
 
   it('does not show GPS indicator when no gpsCoordinates', () => {
     const onClick = vi.fn()
-    const photoWithoutGps = { ...mockPhoto, gpsCoordinates: undefined }
+    const photoWithoutGps = { ...mockPhoto, gpsCoordinates: null }
     render(<PhotoThumbnail photo={photoWithoutGps} onClick={onClick} />)
 
     // No GPS indicator container

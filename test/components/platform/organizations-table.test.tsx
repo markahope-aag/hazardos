@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { OrganizationsTable } from '@/components/platform/organizations-table'
 import type { OrganizationSummary } from '@/types/platform-admin'
 

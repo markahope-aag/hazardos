@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { WizardNavigation, WizardNavigationLabel } from '@/components/surveys/mobile/wizard-navigation'
 
 // Mock the survey store

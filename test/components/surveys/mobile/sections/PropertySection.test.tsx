@@ -15,8 +15,8 @@ const mockUseSurveyStore = {
       zip: '',
       buildingType: 'residential_single',
       constructionType: 'wood_frame',
-      yearBuilt: null,
-      squareFootage: null,
+      yearBuilt: null as number | null,
+      squareFootage: null as number | null,
       stories: 1,
       occupancyStatus: 'occupied',
       occupiedHoursStart: '',
@@ -166,8 +166,8 @@ describe('PropertySection', () => {
       zip: '90210',
       buildingType: 'commercial',
       constructionType: 'steel',
-      yearBuilt: 1990,
-      squareFootage: 5000,
+      yearBuilt: 1990 as number | null,
+      squareFootage: 5000 as number | null,
       stories: 2,
       occupancyStatus: 'occupied',
       occupiedHoursStart: '',
@@ -230,7 +230,7 @@ describe('PropertySection', () => {
   })
 
   it('should show warning for pre-1978 buildings', () => {
-    mockUseSurveyStore.formData.property.yearBuilt = 1975
+    ;(mockUseSurveyStore.formData.property.yearBuilt as number | null) = 1975
 
     render(<PropertySection />)
 
@@ -239,7 +239,7 @@ describe('PropertySection', () => {
   })
 
   it('should not show warning for buildings after 1978', () => {
-    mockUseSurveyStore.formData.property.yearBuilt = 1985
+    ;(mockUseSurveyStore.formData.property.yearBuilt as number | null) = 1985
 
     render(<PropertySection />)
 
