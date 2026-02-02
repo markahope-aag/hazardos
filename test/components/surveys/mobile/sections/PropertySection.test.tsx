@@ -70,6 +70,7 @@ global.fetch = vi.fn(() =>
 describe('PropertySection', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useRealTimers() // Ensure real timers are used by default
     mockUseSurveyStore.formData.property = {
       address: '',
       city: '',
