@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { PlanSelector } from '@/components/billing/plan-selector'
 import type { SubscriptionPlan } from '@/types/billing'
 
@@ -154,7 +154,8 @@ describe('PlanSelector', () => {
 
     render(<PlanSelector plans={mockPlans} />)
 
-    const starterButton = screen.getByRole('button', { name: /select plan/i })
+    const starterCard = screen.getByText('Starter').closest('[class*="border"]')
+    const starterButton = within(starterCard).getByRole('button', { name: /select plan/i })
     fireEvent.click(starterButton)
     
     await waitFor(() => {
@@ -263,7 +264,7 @@ describe('PlanSelector', () => {
     fireEvent.click(billingToggle)
     
     // Should show savings text
-    expect(screen.getByText(/save/i)).toBeInTheDocument()
+    expect(screen.getByText('Save 17% with yearly billing')).toBeInTheDocument()
   })
 
   it('should format currency correctly', () => {
