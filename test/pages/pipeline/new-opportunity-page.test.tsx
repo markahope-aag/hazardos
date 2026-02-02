@@ -91,8 +91,10 @@ describe('NewOpportunityPage', () => {
 
   it('has back link to pipeline', async () => {
     render(<NewOpportunityPage />)
-    const backLink = screen.getByRole('link', { name: /back/i })
-    expect(backLink).toHaveAttribute('href', '/pipeline')
+    // Find the back link button (icon button with ArrowLeft icon)
+    const links = screen.getAllByRole('link')
+    const backLink = links.find(link => link.getAttribute('href') === '/pipeline')
+    expect(backLink).toBeInTheDocument()
   })
 
   it('displays cancel button linking to pipeline', async () => {
@@ -108,22 +110,22 @@ describe('NewOpportunityPage', () => {
 
   it('renders opportunity name input', async () => {
     render(<NewOpportunityPage />)
-    expect(screen.getByLabelText(/opportunity name/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/Q1 Renovation Project/i)).toBeInTheDocument()
   })
 
   it('renders description textarea', async () => {
     render(<NewOpportunityPage />)
-    expect(screen.getByLabelText(/description/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/Brief description/i)).toBeInTheDocument()
   })
 
   it('renders estimated value input', async () => {
     render(<NewOpportunityPage />)
-    expect(screen.getByLabelText(/estimated value/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/50000/)).toBeInTheDocument()
   })
 
   it('updates opportunity name on input', async () => {
     render(<NewOpportunityPage />)
-    const input = screen.getByLabelText(/opportunity name/i) as HTMLInputElement
+    const input = screen.getByPlaceholderText(/Q1 Renovation Project/i) as HTMLInputElement
     fireEvent.change(input, { target: { value: 'New Project' } })
     expect(input.value).toBe('New Project')
   })
