@@ -263,9 +263,10 @@ describe('NotificationService', () => {
             eq: vi.fn(() => ({
               or: vi.fn(() => ({
                 order: vi.fn(() => ({
-                  limit: vi.fn().mockResolvedValue({
+                  range: vi.fn().mockResolvedValue({
                     data: mockNotifications,
                     error: null,
+                    count: 2,
                   }),
                 })),
               })),
@@ -274,10 +275,10 @@ describe('NotificationService', () => {
         })),
       }))
 
-      const notifications = await NotificationService.getUnread()
+      const result = await NotificationService.getUnread()
 
-      expect(notifications).toHaveLength(2)
-      expect(notifications[0].is_read).toBe(false)
+      expect(result.notifications).toHaveLength(2)
+      expect(result.notifications[0].is_read).toBe(false)
     })
 
     it('should use current user when userId not provided', async () => {
@@ -290,9 +291,10 @@ describe('NotificationService', () => {
               eq: vi.fn(() => ({
                 or: vi.fn(() => ({
                   order: vi.fn(() => ({
-                    limit: vi.fn().mockResolvedValue({
+                    range: vi.fn().mockResolvedValue({
                       data: [],
                       error: null,
+                      count: 0,
                     }),
                   })),
                 })),
@@ -306,7 +308,7 @@ describe('NotificationService', () => {
     })
 
     it('should limit to 50 notifications', async () => {
-      let limitCalled = false
+      let rangeCalled = false
 
       mockSupabase.from = vi.fn(() => ({
         select: vi.fn(() => ({
@@ -314,10 +316,11 @@ describe('NotificationService', () => {
             eq: vi.fn(() => ({
               or: vi.fn(() => ({
                 order: vi.fn(() => ({
-                  limit: vi.fn((num) => {
-                    expect(num).toBe(50)
-                    limitCalled = true
-                    return Promise.resolve({ data: [], error: null })
+                  range: vi.fn((start, end) => {
+                    expect(start).toBe(0)
+                    expect(end).toBe(49) // range is inclusive, so 50 items = 0 to 49
+                    rangeCalled = true
+                    return Promise.resolve({ data: [], error: null, count: 0 })
                   }),
                 })),
               })),
@@ -327,7 +330,7 @@ describe('NotificationService', () => {
       }))
 
       await NotificationService.getUnread()
-      expect(limitCalled).toBe(true)
+      expect(rangeCalled).toBe(true)
     })
   })
 
@@ -343,9 +346,10 @@ describe('NotificationService', () => {
           eq: vi.fn(() => ({
             or: vi.fn(() => ({
               order: vi.fn(() => ({
-                limit: vi.fn().mockResolvedValue({
+                range: vi.fn().mockResolvedValue({
                   data: mockNotifications,
                   error: null,
+                  count: 2,
                 }),
               })),
             })),
@@ -353,9 +357,9 @@ describe('NotificationService', () => {
         })),
       }))
 
-      const notifications = await NotificationService.getAll()
+      const result = await NotificationService.getAll()
 
-      expect(notifications).toHaveLength(2)
+      expect(result.notifications).toHaveLength(2)
     })
 
     it('should respect custom limit', async () => {
