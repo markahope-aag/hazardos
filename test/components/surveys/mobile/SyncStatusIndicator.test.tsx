@@ -39,8 +39,8 @@ describe('SyncStatusIndicator', () => {
     it('should render status icon only', () => {
       render(<SyncStatusIndicator variant="compact" />)
       
-      // Should have an icon but no text
-      expect(screen.getByRole('generic')).toBeInTheDocument()
+      // Should have a container but no text
+      expect(screen.getAllByRole('generic')).toHaveLength(2) // Container and icon
       expect(screen.queryByText('All changes saved')).not.toBeInTheDocument()
     })
 
@@ -48,17 +48,17 @@ describe('SyncStatusIndicator', () => {
       const { rerender } = render(<SyncStatusIndicator variant="compact" />)
       
       // Test synced status
-      expect(screen.getByRole('generic')).toBeInTheDocument()
+      expect(screen.getAllByRole('generic')).toHaveLength(2)
       
       // Test syncing status
       mockUseOfflineSync.status = 'syncing'
       rerender(<SyncStatusIndicator variant="compact" />)
-      expect(screen.getByRole('generic')).toBeInTheDocument()
+      expect(screen.getAllByRole('generic')).toHaveLength(2)
       
       // Test error status
       mockUseOfflineSync.status = 'error'
       rerender(<SyncStatusIndicator variant="compact" />)
-      expect(screen.getByRole('generic')).toBeInTheDocument()
+      expect(screen.getAllByRole('generic')).toHaveLength(2)
     })
   })
 
@@ -221,7 +221,13 @@ describe('SyncStatusIndicator', () => {
       mockUseOfflineSync.status = 'syncing'
       render(<SyncStatusIndicator variant="full" showDetails={true} />)
       
-      const syncButton = screen.getByRole('button', { name: /syncing/i })
+      // The sync button should be disabled when syncing
+      const syncButtons = screen.getAllByRole('button')
+      const syncButton = syncButtons.find(btn => 
+        btn.textContent?.includes('Syncing') || 
+        btn.querySelector('.animate-spin')
+      )
+      expect(syncButton).toBeDefined()
       expect(syncButton).toBeDisabled()
     })
 

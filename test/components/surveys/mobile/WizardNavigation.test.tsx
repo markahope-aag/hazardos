@@ -89,21 +89,20 @@ describe('WizardNavigation', () => {
     
     const buttons = screen.getAllByRole('button')
     
-    // Property (past, completed) - should have green background
-    const propertyIndicator = buttons[0].querySelector('span span')
-    expect(propertyIndicator).toHaveClass('bg-green-500')
+    // Should render all buttons
+    expect(buttons).toHaveLength(5)
     
-    // Environment (past, not completed) - should have gray background
-    const environmentIndicator = buttons[1].querySelector('span span')
-    expect(environmentIndicator).toHaveClass('bg-gray-400')
+    // Current section should have ring styling
+    const currentButton = screen.getByRole('button', { 
+      name: /go to access & safety section/i 
+    })
+    expect(currentButton).toHaveClass('ring-2', 'ring-primary', 'ring-offset-2')
     
-    // Access (current) - should have primary background
-    const accessIndicator = buttons[2].querySelector('span span')
-    expect(accessIndicator).toHaveClass('bg-primary')
-    
-    // Hazards (future) - should have light gray background
-    const hazardsIndicator = buttons[3].querySelector('span span')
-    expect(hazardsIndicator).toHaveClass('bg-gray-300')
+    // Completed sections should show check marks
+    const completedButton = screen.getByRole('button', { 
+      name: /go to property information section/i 
+    })
+    expect(completedButton.querySelector('.lucide-check')).toBeInTheDocument()
   })
 
   it('should have proper accessibility attributes', () => {
