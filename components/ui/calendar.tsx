@@ -1,6 +1,6 @@
 import React from 'react'
 
-interface CalendarProps extends React.HTMLAttributes<HTMLDivElement> {
+interface CalendarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onSelect'> {
   mode?: 'single' | 'multiple' | 'range'
   onSelect?: (date: Date | undefined) => void
   selected?: Date

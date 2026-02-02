@@ -49,16 +49,16 @@ export async function POST(
     try {
       body = await request.json()
     } catch {
-      throw new SecureError('VALIDATION', 'Invalid JSON body')
+      throw new SecureError('VALIDATION_ERROR', 'Invalid JSON body')
     }
 
     const validationResult = submitFeedbackSchema.safeParse(body)
 
     if (!validationResult.success) {
-      const errors = validationResult.error.errors
-        .map(e => `${e.path.join('.')}: ${e.message}`)
+      const errors = validationResult.error.issues
+        .map((e) => `${e.path.join('.')}: ${e.message}`)
         .join(', ')
-      throw new SecureError('VALIDATION', `Invalid feedback data: ${errors}`)
+      throw new SecureError('VALIDATION_ERROR', `Invalid feedback data: ${errors}`)
     }
 
     const feedbackData = validationResult.data

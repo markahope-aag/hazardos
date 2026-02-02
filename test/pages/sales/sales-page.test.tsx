@@ -77,7 +77,9 @@ describe('SalesPage', () => {
     render(page)
 
     expect(screen.getByText('Commissions This Month')).toBeInTheDocument()
-    expect(screen.getByText('$2,500')).toBeInTheDocument()
+    // Multiple instances of the formatted value may exist
+    const values = screen.getAllByText('$2,500')
+    expect(values.length).toBeGreaterThan(0)
   })
 
   it('displays pending approvals stat card', async () => {
