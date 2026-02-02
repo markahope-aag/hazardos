@@ -10,6 +10,7 @@ export type NotificationType =
   | 'invoice_paid'
   | 'invoice_overdue'
   | 'invoice_viewed'
+  | 'payment_failed'
   | 'feedback_received'
   | 'testimonial_pending'
   | 'system'
@@ -180,6 +181,13 @@ export const notificationTypeConfig: Record<NotificationType, {
     color: 'text-blue-700',
     bgColor: 'bg-blue-100',
   },
+  payment_failed: {
+    label: 'Payment Failed',
+    description: 'When a payment attempt fails',
+    icon: 'AlertCircle',
+    color: 'text-red-700',
+    bgColor: 'bg-red-100',
+  },
   feedback_received: {
     label: 'Feedback Received',
     description: 'When customer feedback is submitted',
@@ -235,6 +243,7 @@ export const defaultNotificationPreferences: Record<NotificationType, {
   invoice_paid: { in_app: true, email: true, push: true },
   invoice_overdue: { in_app: true, email: true, push: false },
   invoice_viewed: { in_app: true, email: false, push: false },
+  payment_failed: { in_app: true, email: true, push: true },
   feedback_received: { in_app: true, email: true, push: false },
   testimonial_pending: { in_app: true, email: true, push: false },
   system: { in_app: true, email: true, push: false },

@@ -1,33 +1,65 @@
 import React from 'react'
 
-// Placeholder Sheet component
-export function Sheet({ children, defaultOpen, onOpenChange, ...props }: { children: React.ReactNode; defaultOpen?: boolean; onOpenChange?: (open: boolean) => void; [key: string]: any }) {
+type SheetProps = {
+  children: React.ReactNode
+  defaultOpen?: boolean
+  onOpenChange?: (open: boolean) => void
+  [key: string]: unknown
+}
+
+type SheetContentProps = {
+  children: React.ReactNode
+  onClose?: () => void
+  className?: string
+  [key: string]: unknown
+}
+
+type SheetChildProps = {
+  children: React.ReactNode
+  [key: string]: unknown
+}
+
+type SheetTriggerProps = {
+  children: React.ReactNode
+  asChild?: boolean
+  [key: string]: unknown
+}
+
+type SheetCloseProps = {
+  children: React.ReactNode
+  asChild?: boolean
+  [key: string]: unknown
+}
+
+export function Sheet({ children, defaultOpen, onOpenChange, ...props }: SheetProps) {
   const [isOpen, setIsOpen] = React.useState(defaultOpen || false)
-  
+
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open)
     onOpenChange?.(open)
   }
-  
+
   return (
     <div {...props}>
       {React.Children.map(children, child => {
-        if (React.isValidElement(child)) {
-          if (child.type === SheetTrigger) {
-            return React.cloneElement(child, {
-              onClick: () => handleOpenChange(true),
-              ...child.props
-            })
-          }
-          if (child.type === SheetContent && isOpen) {
-            return React.cloneElement(child, {
-              onClose: () => handleOpenChange(false),
-              ...child.props
-            })
-          }
-          if (child.type === SheetContent && !isOpen) {
-            return null
-          }
+        if (!React.isValidElement(child)) return child
+
+        const childProps = child.props as Record<string, unknown>
+
+        if (child.type === SheetTrigger) {
+          return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
+            onClick: () => handleOpenChange(true),
+            ...childProps
+          })
+        }
+        if (child.type === SheetContent && isOpen) {
+          return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
+            onClose: () => handleOpenChange(false),
+            ...childProps
+          })
+        }
+        if (child.type === SheetContent && !isOpen) {
+          return null
         }
         return child
       })}
@@ -35,85 +67,92 @@ export function Sheet({ children, defaultOpen, onOpenChange, ...props }: { child
   )
 }
 
-export function SheetContent({ children, onClose, className, ...props }: { children: React.ReactNode; onClose?: () => void; className?: string; [key: string]: any }) {
+export function SheetContent({ children, onClose, className, ...props }: SheetContentProps) {
   const titleId = React.useId()
   const descriptionId = React.useId()
-  
+
   React.useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && onClose) {
         onClose()
       }
     }
-    
+
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
   }, [onClose])
-  
+
   return (
-    <div 
-      role="dialog" 
+    <div
+      role="dialog"
       aria-labelledby={titleId}
       aria-describedby={descriptionId}
       className={className}
       {...props}
     >
       {React.Children.map(children, child => {
-        if (React.isValidElement(child)) {
-          if (child.type === SheetClose) {
-            return React.cloneElement(child, {
-              onClick: onClose,
-              ...child.props
+        if (!React.isValidElement(child)) return child
+
+        const childProps = child.props as Record<string, unknown>
+
+        if (child.type === SheetClose) {
+          return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
+            onClick: onClose,
+            ...childProps
+          })
+        }
+        if (child.type === SheetTitle) {
+          return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
+            id: titleId,
+            ...childProps
+          })
+        }
+        if (child.type === SheetDescription) {
+          return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
+            id: descriptionId,
+            ...childProps
+          })
+        }
+        if (child.type === SheetHeader) {
+          const headerChildren = childProps.children as React.ReactNode
+          return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
+            children: React.Children.map(headerChildren, headerChild => {
+              if (!React.isValidElement(headerChild)) return headerChild
+
+              const headerChildProps = headerChild.props as Record<string, unknown>
+
+              if (headerChild.type === SheetTitle) {
+                return React.cloneElement(headerChild as React.ReactElement<Record<string, unknown>>, {
+                  id: titleId,
+                  ...headerChildProps
+                })
+              }
+              if (headerChild.type === SheetDescription) {
+                return React.cloneElement(headerChild as React.ReactElement<Record<string, unknown>>, {
+                  id: descriptionId,
+                  ...headerChildProps
+                })
+              }
+              return headerChild
             })
-          }
-          if (child.type === SheetTitle) {
-            return React.cloneElement(child, {
-              id: titleId,
-              ...child.props
+          })
+        }
+        if (child.type === SheetFooter) {
+          const footerChildren = childProps.children as React.ReactNode
+          return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
+            children: React.Children.map(footerChildren, footerChild => {
+              if (!React.isValidElement(footerChild)) return footerChild
+
+              if (footerChild.type === SheetClose) {
+                const footerChildProps = footerChild.props as Record<string, unknown>
+                return React.cloneElement(footerChild as React.ReactElement<Record<string, unknown>>, {
+                  onClick: onClose,
+                  ...footerChildProps
+                })
+              }
+              return footerChild
             })
-          }
-          if (child.type === SheetDescription) {
-            return React.cloneElement(child, {
-              id: descriptionId,
-              ...child.props
-            })
-          }
-          // Handle nested SheetHeader containing SheetTitle/SheetDescription
-          if (child.type === SheetHeader) {
-            return React.cloneElement(child, {
-              children: React.Children.map(child.props.children, headerChild => {
-                if (React.isValidElement(headerChild)) {
-                  if (headerChild.type === SheetTitle) {
-                    return React.cloneElement(headerChild, {
-                      id: titleId,
-                      ...headerChild.props
-                    })
-                  }
-                  if (headerChild.type === SheetDescription) {
-                    return React.cloneElement(headerChild, {
-                      id: descriptionId,
-                      ...headerChild.props
-                    })
-                  }
-                }
-                return headerChild
-              })
-            })
-          }
-          // Handle nested SheetFooter containing SheetClose
-          if (child.type === SheetFooter) {
-            return React.cloneElement(child, {
-              children: React.Children.map(child.props.children, footerChild => {
-                if (React.isValidElement(footerChild) && footerChild.type === SheetClose) {
-                  return React.cloneElement(footerChild, {
-                    onClick: onClose,
-                    ...footerChild.props
-                  })
-                }
-                return footerChild
-              })
-            })
-          }
+          })
         }
         return child
       })}
@@ -121,32 +160,34 @@ export function SheetContent({ children, onClose, className, ...props }: { child
   )
 }
 
-export function SheetHeader({ children, ...props }: { children: React.ReactNode; [key: string]: any }) {
+export function SheetHeader({ children, ...props }: SheetChildProps) {
   return <div {...props}>{children}</div>
 }
 
-export function SheetTitle({ children, ...props }: { children: React.ReactNode; [key: string]: any }) {
+export function SheetTitle({ children, ...props }: SheetChildProps) {
   return <h2 {...props}>{children}</h2>
 }
 
-export function SheetDescription({ children, ...props }: { children: React.ReactNode; [key: string]: any }) {
+export function SheetDescription({ children, ...props }: SheetChildProps) {
   return <p {...props}>{children}</p>
 }
 
-export function SheetTrigger({ children, asChild, ...props }: { children: React.ReactNode; asChild?: boolean; [key: string]: any }) {
+export function SheetTrigger({ children, asChild, ...props }: SheetTriggerProps) {
   if (asChild && React.isValidElement(children)) {
-    return React.cloneElement(children, { ...props, ...children.props })
+    const childProps = children.props as Record<string, unknown>
+    return React.cloneElement(children as React.ReactElement<Record<string, unknown>>, { ...props, ...childProps })
   }
   return <button {...props}>{children}</button>
 }
 
-export function SheetFooter({ children, ...props }: { children: React.ReactNode; [key: string]: any }) {
+export function SheetFooter({ children, ...props }: SheetChildProps) {
   return <div {...props}>{children}</div>
 }
 
-export function SheetClose({ children, asChild, ...props }: { children: React.ReactNode; asChild?: boolean; [key: string]: any }) {
+export function SheetClose({ children, asChild, ...props }: SheetCloseProps) {
   if (asChild && React.isValidElement(children)) {
-    return React.cloneElement(children, { ...props, ...children.props })
+    const childProps = children.props as Record<string, unknown>
+    return React.cloneElement(children as React.ReactElement<Record<string, unknown>>, { ...props, ...childProps })
   }
   return <button {...props}>{children}</button>
 }
