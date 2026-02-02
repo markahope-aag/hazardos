@@ -38,6 +38,7 @@ const iconMap: Record<NotificationType, React.ReactNode> = {
   invoice_paid: <DollarSign className="w-5 h-5" />,
   invoice_overdue: <AlertCircle className="w-5 h-5" />,
   invoice_viewed: <Eye className="w-5 h-5" />,
+  payment_failed: <AlertCircle className="w-5 h-5" />,
   feedback_received: <MessageSquare className="w-5 h-5" />,
   testimonial_pending: <MessageSquare className="w-5 h-5" />,
   system: <Info className="w-5 h-5" />,

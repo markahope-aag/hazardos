@@ -347,9 +347,6 @@ export default withSentryConfig(configWithPWA, {
   // Upload source maps for better stack traces
   widenClientFileUpload: true,
 
-  // Automatically tree-shake Sentry logger statements
-  disableLogger: true,
-
   // Prevent source map comments in production
   hideSourceMaps: true,
 
