@@ -247,9 +247,17 @@ export class LeadWebhookService {
 
       if (customerError) throw customerError;
 
-      // Create opportunity if enabled
+      // Create opportunity if enabled in org settings
       let opportunityId: string | undefined;
-      // TODO: Create opportunity based on org settings
+      const opportunityResult = await this.createOpportunityFromLead(
+        endpoint.organization_id,
+        customer.id,
+        leadData,
+        endpoint.provider
+      );
+      if (opportunityResult) {
+        opportunityId = opportunityResult.id;
+      }
 
       // Update endpoint stats
       await supabase
@@ -380,6 +388,89 @@ export class LeadWebhookService {
       : signature;
 
     return expectedSignature === providedSignature;
+  }
+
+  // ========== OPPORTUNITY CREATION ==========
+
+  /**
+   * Creates a pipeline opportunity from a lead if auto-creation is enabled
+   */
+  private static async createOpportunityFromLead(
+    organizationId: string,
+    customerId: string,
+    leadData: ParsedLead,
+    provider: LeadProvider
+  ): Promise<{ id: string } | null> {
+    const supabase = await createClient();
+
+    try {
+      // Check if organization has auto-opportunity creation enabled
+      // Look for this setting in the organizations table
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('settings')
+        .eq('id', organizationId)
+        .single();
+
+      // Check if auto-opportunity creation is enabled in org settings
+      // Default to true if settings don't exist (opt-out rather than opt-in)
+      const settings = org?.settings as Record<string, unknown> | null;
+      const autoCreateOpportunity = settings?.auto_create_opportunity_from_lead !== false;
+
+      if (!autoCreateOpportunity) {
+        return null;
+      }
+
+      // Get the initial "lead" stage for this organization
+      const { data: leadStage } = await supabase
+        .from('pipeline_stages')
+        .select('id, probability')
+        .eq('organization_id', organizationId)
+        .eq('stage_type', 'lead')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+        .limit(1)
+        .single();
+
+      if (!leadStage) {
+        // No lead stage configured - skip opportunity creation
+        console.warn(`No lead pipeline stage found for organization ${organizationId}`);
+        return null;
+      }
+
+      // Build opportunity name from lead data
+      const customerName = leadData.company_name ||
+        [leadData.first_name, leadData.last_name].filter(Boolean).join(' ') ||
+        'New Lead';
+      const opportunityName = `${customerName} - ${provider.charAt(0).toUpperCase() + provider.slice(1)} Lead`;
+
+      // Create the opportunity
+      const { data: opportunity, error } = await supabase
+        .from('opportunities')
+        .insert({
+          organization_id: organizationId,
+          customer_id: customerId,
+          name: opportunityName,
+          description: leadData.notes || `Lead from ${provider}`,
+          stage_id: leadStage.id,
+          estimated_value: null, // Will be set when estimate is created
+          weighted_value: null,
+          expected_close_date: null,
+          owner_id: null, // Will be assigned manually or via round-robin
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Failed to create opportunity from lead:', error);
+        return null;
+      }
+
+      return opportunity;
+    } catch (error) {
+      console.error('Error in createOpportunityFromLead:', error);
+      return null;
+    }
   }
 
   // ========== UTILITIES ==========

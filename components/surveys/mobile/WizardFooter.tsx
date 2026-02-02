@@ -4,15 +4,16 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useSurveyStore } from '@/lib/stores/survey-store'
 import { SURVEY_SECTIONS } from '@/lib/stores/survey-types'
-import { ChevronLeft, ChevronRight, Check, Send } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, Send, Loader2 } from 'lucide-react'
 
 interface WizardFooterProps {
   className?: string
   onSubmit?: () => void
   onSaveDraft?: () => void
+  isSubmitting?: boolean
 }
 
-export function WizardFooter({ className, onSubmit, onSaveDraft: _onSaveDraft }: WizardFooterProps) {
+export function WizardFooter({ className, onSubmit, onSaveDraft: _onSaveDraft, isSubmitting = false }: WizardFooterProps) {
   const { currentSection, setCurrentSection, validateSection, validateAll } = useSurveyStore()
 
   const currentIndex = SURVEY_SECTIONS.indexOf(currentSection)
@@ -70,10 +71,20 @@ export function WizardFooter({ className, onSubmit, onSaveDraft: _onSaveDraft }:
           <Button
             size="lg"
             onClick={handleSubmit}
+            disabled={isSubmitting}
             className="flex-1 min-h-[52px] touch-manipulation bg-green-600 hover:bg-green-700"
           >
-            <Send className="w-5 h-5 mr-2" />
-            Submit
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              <>
+                <Send className="w-5 h-5 mr-2" />
+                Submit
+              </>
+            )}
           </Button>
         ) : (
           <Button

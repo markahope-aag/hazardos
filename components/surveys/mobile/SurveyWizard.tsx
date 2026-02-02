@@ -201,7 +201,7 @@ export function SurveyWizard({ surveyId, customerId, className }: SurveyWizardPr
       </main>
 
       {/* Footer Navigation */}
-      <WizardFooter onSubmit={handleSubmit} onSaveDraft={() => markSaved()} />
+      <WizardFooter onSubmit={handleSubmit} onSaveDraft={() => markSaved()} isSubmitting={isSubmitting} />
     </div>
   )
 }

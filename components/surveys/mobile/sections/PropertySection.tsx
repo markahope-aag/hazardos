@@ -100,15 +100,82 @@ export function PropertySection() {
         })
       })
 
-      // TODO: Reverse geocode to get address
-      // For now, just show that we got coordinates
-      console.log('Got location:', position.coords.latitude, position.coords.longitude)
+      const { latitude, longitude } = position.coords
 
-      // In production, you'd use a geocoding service here
-      // updateProperty({ address: geocodedAddress, city, state, zip })
+      // Reverse geocode using Nominatim (OpenStreetMap)
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+          {
+            headers: {
+              'Accept-Language': 'en',
+              'User-Agent': 'HazardOS-SiteSurvey/1.0',
+            },
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error('Geocoding service unavailable')
+        }
+
+        const data = await response.json()
+
+        if (data.address) {
+          const addr = data.address
+
+          // Extract street address (try different field combinations)
+          const houseNumber = addr.house_number || ''
+          const road = addr.road || addr.street || addr.pedestrian || ''
+          const streetAddress = houseNumber && road
+            ? `${houseNumber} ${road}`
+            : road || data.display_name?.split(',')[0] || ''
+
+          // Extract city (try different field names used by Nominatim)
+          const city = addr.city || addr.town || addr.village || addr.municipality || addr.hamlet || ''
+
+          // Extract state
+          const state = addr.state || ''
+          // Try to find the state abbreviation if full name is returned
+          const stateAbbr = US_STATES.find(
+            s => state.toUpperCase().includes(s) || s === state.toUpperCase()
+          ) || ''
+
+          // Extract ZIP/postal code
+          const zip = addr.postcode || ''
+
+          // Update the form with geocoded address
+          updateProperty({
+            address: streetAddress,
+            city: city,
+            state: stateAbbr || state,
+            zip: zip,
+          })
+        } else {
+          alert('Could not determine address from location. Please enter manually.')
+        }
+      } catch (geocodeError) {
+        console.error('Geocoding error:', geocodeError)
+        alert('Could not look up address. Please enter it manually.')
+      }
     } catch (error) {
       console.error('Error getting location:', error)
-      alert('Unable to get your location. Please enter the address manually.')
+      if (error instanceof GeolocationPositionError) {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            alert('Location permission denied. Please allow location access or enter the address manually.')
+            break
+          case error.POSITION_UNAVAILABLE:
+            alert('Location information unavailable. Please enter the address manually.')
+            break
+          case error.TIMEOUT:
+            alert('Location request timed out. Please try again or enter the address manually.')
+            break
+          default:
+            alert('Unable to get your location. Please enter the address manually.')
+        }
+      } else {
+        alert('Unable to get your location. Please enter the address manually.')
+      }
     } finally {
       setIsGettingLocation(false)
     }

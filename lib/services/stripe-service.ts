@@ -432,7 +432,7 @@ export class StripeService {
 
     const { data: org } = await supabase
       .from('organizations')
-      .select('id')
+      .select('id, name')
       .eq('stripe_customer_id', customerId)
       .single()
 
@@ -444,6 +444,132 @@ export class StripeService {
       .update({ subscription_status: 'past_due' })
       .eq('id', org.id)
 
-    // TODO: Send payment failed notification
+    // Send payment failed notification to organization owner(s)
+    await this.sendPaymentFailedNotification(org.id, invoice)
+  }
+
+  private static async sendPaymentFailedNotification(
+    organizationId: string,
+    invoice: Stripe.Invoice
+  ): Promise<void> {
+    const supabase = await createClient()
+
+    // Get organization owners/admins
+    const { data: owners } = await supabase
+      .from('profiles')
+      .select('id, email, full_name')
+      .eq('organization_id', organizationId)
+      .in('role', ['owner', 'admin'])
+
+    if (!owners || owners.length === 0) {
+      log.warn({ operation: 'sendPaymentFailedNotification', organizationId }, 'No owners found')
+      return
+    }
+
+    // Get organization name
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('name')
+      .eq('id', organizationId)
+      .single()
+
+    const inv = invoice as unknown as {
+      id: string
+      number?: string | null
+      amount_due?: number
+      hosted_invoice_url?: string | null
+    }
+
+    const invoiceAmount = inv.amount_due ? `$${(inv.amount_due / 100).toFixed(2)}` : 'your subscription'
+    const billingUrl = `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing`
+    const retryUrl = inv.hosted_invoice_url || billingUrl
+
+    // Send email notification to each owner
+    const resendApiKey = process.env.RESEND_API_KEY
+    if (resendApiKey) {
+      try {
+        const { Resend } = await import('resend')
+        const resend = new Resend(resendApiKey)
+
+        for (const owner of owners) {
+          if (!owner.email) continue
+
+          await resend.emails.send({
+            from: `HazardOS Billing <billing@${process.env.RESEND_DOMAIN || 'resend.dev'}>`,
+            to: owner.email,
+            subject: `Action Required: Payment Failed for ${org?.name || 'your organization'}`,
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background-color: #ef4444; padding: 24px; text-align: center;">
+                  <h1 style="color: white; margin: 0;">Payment Failed</h1>
+                </div>
+
+                <div style="padding: 24px;">
+                  <p>Hi ${owner.full_name || 'there'},</p>
+
+                  <p>We were unable to process your payment of <strong>${invoiceAmount}</strong> for ${org?.name || 'your HazardOS subscription'}.</p>
+
+                  <p>To avoid any interruption to your service, please update your payment method or retry the payment.</p>
+
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${retryUrl}" style="display: inline-block; padding: 14px 32px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Update Payment Method</a>
+                  </div>
+
+                  <p><strong>What happens next?</strong></p>
+                  <ul>
+                    <li>We'll retry the payment automatically in a few days</li>
+                    <li>Your account will remain active during this time</li>
+                    <li>If payment continues to fail, some features may be limited</li>
+                  </ul>
+
+                  <p>If you have any questions, please contact our support team.</p>
+
+                  <hr style="margin-top: 30px; border: none; border-top: 1px solid #e5e7eb;" />
+
+                  <p style="font-size: 12px; color: #6b7280; text-align: center;">
+                    This is an automated message from HazardOS Billing.
+                    <a href="${billingUrl}">Manage your billing settings</a>
+                  </p>
+                </div>
+              </div>
+            `,
+          })
+
+          log.info(
+            { operation: 'sendPaymentFailedNotification', organizationId, userEmail: owner.email },
+            'Payment failed notification sent'
+          )
+        }
+      } catch (error) {
+        log.error(
+          { operation: 'sendPaymentFailedNotification', error: formatError(error), organizationId },
+          'Failed to send payment failed notification email'
+        )
+      }
+    }
+
+    // Also create in-app notifications using the notification service
+    try {
+      const { NotificationService } = await import('@/lib/services/notification-service')
+
+      for (const owner of owners) {
+        await NotificationService.create({
+          user_id: owner.id,
+          type: 'payment_failed',
+          title: 'Payment Failed',
+          message: `Your payment of ${invoiceAmount} was declined. Please update your payment method to avoid service interruption.`,
+          entity_type: 'billing',
+          entity_id: inv.id,
+          action_url: '/settings/billing',
+          action_label: 'Update Payment',
+          priority: 'urgent',
+        })
+      }
+    } catch (error) {
+      log.error(
+        { operation: 'sendPaymentFailedNotification', error: formatError(error), organizationId },
+        'Failed to create in-app notification'
+      )
+    }
   }
 }
