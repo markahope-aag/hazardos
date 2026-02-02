@@ -1,5 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
+import { SmsService } from '@/lib/services/sms-service'
+import { formatCurrency } from '@/lib/utils'
+import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type {
   Invoice,
   InvoiceLineItem,
@@ -9,6 +12,8 @@ import type {
   AddLineItemInput,
   RecordPaymentInput,
 } from '@/types/invoices'
+
+const log = createServiceLogger('InvoicesService')
 
 export class InvoicesService {
   static async create(input: CreateInvoiceInput): Promise<Invoice> {
@@ -243,8 +248,46 @@ export class InvoicesService {
   }
 
   static async send(id: string, method: 'email' | 'sms' = 'email'): Promise<Invoice> {
-    // TODO: Integrate with email service to send invoice PDF
-    const invoice = await this.update(id, {
+    const supabase = await createClient()
+
+    // Get the full invoice with customer data
+    const invoice = await this.getById(id)
+    if (!invoice) throw new Error('Invoice not found')
+
+    const customer = invoice.customer
+    if (!customer) throw new Error('Invoice has no customer')
+
+    // Get organization info for branding
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .single()
+
+    if (!profile?.organization_id) throw new Error('Organization not found')
+
+    const { data: organization } = await supabase
+      .from('organizations')
+      .select('name, email, phone, address, city, state, zip, website')
+      .eq('id', profile.organization_id)
+      .single()
+
+    try {
+      if (method === 'email') {
+        await this.sendInvoiceEmail(invoice, customer, organization, profile.organization_id)
+      } else if (method === 'sms') {
+        await this.sendInvoiceSms(invoice, customer, profile.organization_id)
+      }
+    } catch (error) {
+      log.error(
+        { operation: 'send', error: formatError(error), invoiceId: id, method },
+        'Failed to send invoice'
+      )
+      // Still update status even if send fails, but log the error
+      throw error
+    }
+
+    // Update invoice status
+    const updatedInvoice = await this.update(id, {
       status: 'sent',
       sent_at: new Date().toISOString(),
       sent_via: method,
@@ -253,7 +296,127 @@ export class InvoicesService {
     // Log activity
     await Activity.sent('invoice', id, invoice.invoice_number)
 
-    return invoice
+    return updatedInvoice
+  }
+
+  private static async sendInvoiceEmail(
+    invoice: Invoice,
+    customer: NonNullable<Invoice['customer']>,
+    organization: { name: string | null; email: string | null; phone: string | null; address: string | null; city: string | null; state: string | null; zip: string | null; website: string | null } | null,
+    organizationId: string
+  ): Promise<void> {
+    const resendApiKey = process.env.RESEND_API_KEY
+    if (!resendApiKey) {
+      throw new Error('Email service not configured (RESEND_API_KEY missing)')
+    }
+
+    if (!customer.email) {
+      throw new Error('Customer has no email address')
+    }
+
+    const { Resend } = await import('resend')
+    const resend = new Resend(resendApiKey)
+
+    const customerName = customer.company_name || customer.name || 'Customer'
+    const companyName = organization?.name || 'HazardOS'
+    const paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/pay/${invoice.id}`
+
+    // Generate line items HTML
+    const lineItemsHtml = invoice.line_items?.map(item => `
+      <tr>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${item.description}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.unit_price)}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.line_total)}</td>
+      </tr>
+    `).join('') || ''
+
+    const emailHtml = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f97316; padding: 24px; text-align: center;">
+          <h1 style="color: white; margin: 0;">${companyName}</h1>
+        </div>
+
+        <div style="padding: 24px;">
+          <h2 style="color: #1f2937;">Invoice ${invoice.invoice_number}</h2>
+
+          <p>Dear ${customerName},</p>
+
+          <p>Please find your invoice details below. The total amount due is <strong>${formatCurrency(invoice.balance_due)}</strong> by ${new Date(invoice.due_date).toLocaleDateString()}.</p>
+
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+              <tr style="background-color: #f3f4f6;">
+                <th style="padding: 8px; text-align: left;">Description</th>
+                <th style="padding: 8px; text-align: center;">Qty</th>
+                <th style="padding: 8px; text-align: right;">Price</th>
+                <th style="padding: 8px; text-align: right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${lineItemsHtml}
+            </tbody>
+          </table>
+
+          <div style="text-align: right; margin-top: 20px;">
+            <p style="margin: 4px 0;">Subtotal: ${formatCurrency(invoice.subtotal)}</p>
+            ${invoice.tax_amount > 0 ? `<p style="margin: 4px 0;">Tax: ${formatCurrency(invoice.tax_amount)}</p>` : ''}
+            ${invoice.discount_amount > 0 ? `<p style="margin: 4px 0;">Discount: -${formatCurrency(invoice.discount_amount)}</p>` : ''}
+            <p style="margin: 8px 0; font-size: 18px; font-weight: bold;">Total Due: ${formatCurrency(invoice.balance_due)}</p>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${paymentUrl}" style="display: inline-block; padding: 14px 32px; background-color: #f97316; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Pay Now</a>
+          </div>
+
+          ${invoice.notes ? `<p style="margin-top: 20px; padding: 12px; background-color: #f3f4f6; border-radius: 4px;"><strong>Notes:</strong> ${invoice.notes}</p>` : ''}
+
+          <hr style="margin-top: 30px; border: none; border-top: 1px solid #e5e7eb;" />
+
+          <p style="font-size: 12px; color: #6b7280; text-align: center;">
+            ${companyName}${organization?.address ? ` | ${organization.address}` : ''}${organization?.phone ? ` | ${organization.phone}` : ''}
+          </p>
+        </div>
+      </div>
+    `
+
+    await resend.emails.send({
+      from: `${companyName} <invoices@${process.env.RESEND_DOMAIN || 'resend.dev'}>`,
+      to: customer.email,
+      subject: `Invoice ${invoice.invoice_number} from ${companyName} - ${formatCurrency(invoice.balance_due)} Due`,
+      html: emailHtml,
+    })
+
+    log.info(
+      { operation: 'sendInvoiceEmail', invoiceId: invoice.id, customerEmail: customer.email },
+      'Invoice email sent'
+    )
+  }
+
+  private static async sendInvoiceSms(
+    invoice: Invoice,
+    customer: NonNullable<Invoice['customer']>,
+    organizationId: string
+  ): Promise<void> {
+    if (!customer.phone) {
+      throw new Error('Customer has no phone number')
+    }
+
+    const paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/pay/${invoice.id}`
+
+    await SmsService.send(organizationId, {
+      to: customer.phone,
+      body: `Invoice ${invoice.invoice_number}: ${formatCurrency(invoice.balance_due)} due by ${new Date(invoice.due_date).toLocaleDateString()}. Pay now: ${paymentUrl}`,
+      message_type: 'invoice',
+      customer_id: customer.id,
+      related_entity_type: 'invoice',
+      related_entity_id: invoice.id,
+    })
+
+    log.info(
+      { operation: 'sendInvoiceSms', invoiceId: invoice.id, customerPhone: customer.phone },
+      'Invoice SMS sent'
+    )
   }
 
   static async markViewed(id: string): Promise<Invoice> {
