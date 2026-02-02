@@ -16,6 +16,69 @@ const nextConfig = {
   },
   turbopack: {},
 
+  // Optimize bundle splitting for heavy dependencies
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Split heavy chart library into separate chunk
+      config.optimization.splitChunks = {
+        ...config.optimization.splitChunks,
+        cacheGroups: {
+          ...config.optimization.splitChunks?.cacheGroups,
+          // Recharts bundle (~200KB) - lazy load
+          recharts: {
+            test: /[\\/]node_modules[\\/]recharts[\\/]/,
+            name: 'recharts',
+            chunks: 'async',
+            priority: 30,
+          },
+          // PDF libraries bundle (~150KB) - lazy load
+          pdf: {
+            test: /[\\/]node_modules[\\/](jspdf|@react-pdf)[\\/]/,
+            name: 'pdf-libs',
+            chunks: 'async',
+            priority: 30,
+          },
+          // Excel export library (~100KB) - lazy load
+          excel: {
+            test: /[\\/]node_modules[\\/]exceljs[\\/]/,
+            name: 'excel-lib',
+            chunks: 'async',
+            priority: 30,
+          },
+          // AI libraries bundle (~300KB) - lazy load
+          ai: {
+            test: /[\\/]node_modules[\\/](@anthropic-ai|openai)[\\/]/,
+            name: 'ai-libs',
+            chunks: 'async',
+            priority: 30,
+          },
+          // Common vendor libraries
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'initial',
+            priority: 10,
+            minChunks: 2,
+          },
+        },
+      }
+    }
+    return config
+  },
+
+  // Experimental features for better performance
+  experimental: {
+    // Enable optimizeCss for better CSS bundling
+    optimizeCss: true,
+    // Enable optimizePackageImports for better tree shaking
+    optimizePackageImports: [
+      'recharts',
+      'lucide-react',
+      '@radix-ui/react-icons',
+      'date-fns',
+    ],
+  },
+
   /**
    * Security and CORS Headers Configuration
    *

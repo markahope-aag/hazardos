@@ -77,8 +77,8 @@ describe('CommissionsPage', () => {
     const page = await CommissionsPage()
     render(page)
 
-    const pendingCard = screen.getByText('Pending')
-    expect(pendingCard).toBeInTheDocument()
+    // "Pending" may appear multiple times (card + badges)
+    expect(screen.getAllByText('Pending').length).toBeGreaterThan(0)
     expect(screen.getByText('Awaiting approval')).toBeInTheDocument()
   })
 

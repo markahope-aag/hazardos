@@ -32,7 +32,7 @@ import {
   PieChart,
   Pie,
   Cell,
-} from 'recharts'
+} from '@/components/charts/recharts-lazy'
 import { Download, RefreshCw, Save, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { ChartErrorBoundary, DataErrorBoundary } from '@/components/error-boundaries'
