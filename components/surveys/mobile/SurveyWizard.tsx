@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, ReactNode } from 'react'
+import { useEffect, useState, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -8,8 +8,9 @@ import { useSurveyStore } from '@/lib/stores/survey-store'
 import { SurveySection } from '@/lib/stores/survey-types'
 import { WizardNavigation, WizardNavigationLabel } from './WizardNavigation'
 import { WizardFooter } from './WizardFooter'
-import { Save, X, ClipboardList } from 'lucide-react'
+import { Save, X, ClipboardList, Loader2 } from 'lucide-react'
 import { FormErrorBoundary, ErrorBoundary } from '@/components/error-boundaries'
+import { useToast } from '@/components/ui/use-toast'
 
 // Section components will be imported here
 import { PropertySection } from './sections/PropertySection'
@@ -73,6 +74,8 @@ const sectionComponents: Record<SurveySection, React.ComponentType> = {
 
 export function SurveyWizard({ surveyId, customerId, className }: SurveyWizardProps) {
   const router = useRouter()
+  const { toast } = useToast()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const {
     currentSection,
     isDirty,
@@ -80,6 +83,9 @@ export function SurveyWizard({ surveyId, customerId, className }: SurveyWizardPr
     markSaved,
     setCurrentSurveyId,
     setCustomerId,
+    submitSurvey,
+    resetSurvey,
+    syncError,
   } = useSurveyStore()
 
   // Initialize survey IDs
@@ -107,10 +113,41 @@ export function SurveyWizard({ surveyId, customerId, className }: SurveyWizardPr
     router.push('/site-surveys')
   }
 
-  const handleSubmit = () => {
-    // TODO: Submit to API
-    console.log('Submitting survey...')
-    router.push('/site-surveys')
+  const handleSubmit = async () => {
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
+
+    try {
+      const success = await submitSurvey()
+
+      if (success) {
+        // Clear local storage after successful submission
+        resetSurvey()
+
+        toast({
+          title: 'Survey Submitted',
+          description: 'Your site survey has been successfully submitted.',
+        })
+
+        router.push('/site-surveys')
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Submission Failed',
+          description: syncError || 'Failed to submit survey. Please try again.',
+        })
+      }
+    } catch (error) {
+      console.error('Survey submission error:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Submission Error',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const CurrentSectionComponent = sectionComponents[currentSection]
