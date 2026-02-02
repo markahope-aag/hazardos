@@ -1,5 +1,3 @@
-import { ProfileRelation } from './jobs'
-
 // Notification types
 export type NotificationType =
   | 'job_assigned'

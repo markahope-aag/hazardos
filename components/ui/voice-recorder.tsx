@@ -49,67 +49,7 @@ export function VoiceRecorder({
     };
   }, []);
 
-  const startRecording = useCallback(async () => {
-    try {
-      setError(null);
-      setTranscription(null);
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4',
-      });
-
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(chunksRef.current, { type: mediaRecorder.mimeType });
-        await processAudio(audioBlob);
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordingTime(0);
-
-      // Start timer
-      timerRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
-    } catch (err) {
-      if (err instanceof Error && err.name === 'NotAllowedError') {
-        setError('Microphone access denied. Please allow microphone access and try again.');
-      } else {
-        setError('Failed to start recording. Please check your microphone.');
-      }
-    }
-  }, []);
-
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
-      }
-    }
-  }, [isRecording]);
-
-  const processAudio = async (audioBlob: Blob) => {
+  const processAudio = useCallback(async (audioBlob: Blob) => {
     setIsProcessing(true);
 
     try {
@@ -154,7 +94,67 @@ export function VoiceRecorder({
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [contextType, contextId, onTranscriptionComplete, onTextExtracted]);
+
+  const startRecording = useCallback(async () => {
+    try {
+      setError(null);
+      setTranscription(null);
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4',
+      });
+
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: mediaRecorder.mimeType });
+        await processAudio(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+
+      // Start timer
+      timerRef.current = setInterval(() => {
+        setRecordingTime((prev) => prev + 1);
+      }, 1000);
+    } catch (err) {
+      if (err instanceof Error && err.name === 'NotAllowedError') {
+        setError('Microphone access denied. Please allow microphone access and try again.');
+      } else {
+        setError('Failed to start recording. Please check your microphone.');
+      }
+    }
+  }, [processAudio]);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+    }
+  }, [isRecording]);
 
   const clearRecording = () => {
     setTranscription(null);

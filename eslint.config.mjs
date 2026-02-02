@@ -35,5 +35,16 @@ export default tseslint.config(
         version: "detect",
       },
     },
+  },
+  // Relaxed rules for test files
+  {
+    files: ["test/**/*.{ts,tsx}", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        argsIgnorePattern: "^_|^req$|^res$|^next$|^body$|^query$|^args$|^value$|^field$|^error$",
+        varsIgnorePattern: "^_|^vi$|^render$|^screen$|^waitFor$|^act$|^fireEvent$|^userEvent$|^container$|^rerender$|^beforeEach$|^afterEach$|^beforeAll$|^afterAll$"
+      }],
+    },
   }
 );
