@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
+import { GET } from '@/app/api/analytics/revenue/route'
+import { format, subMonths } from 'date-fns'
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -42,31 +44,26 @@ describe('Analytics Revenue API', () => {
     vi.clearAllMocks()
   })
 
-  describe('Revenue Analytics', () => {
-    it('should calculate total revenue', async () => {
+  describe('GET /api/analytics/revenue', () => {
+    it('should return revenue data for last 6 months', async () => {
       setupAuthenticatedUser()
 
-      const mockRevenue = {
-        total_revenue: 250000,
-        revenue_by_month: [
-          { month: '2026-01', revenue: 80000 },
-          { month: '2026-02', revenue: 90000 },
-          { month: '2026-03', revenue: 80000 },
-        ],
-      }
+      const mockPayments = [
+        { amount: 1000, payment_date: format(new Date(), 'yyyy-MM-dd') },
+        { amount: 1500, payment_date: format(subMonths(new Date(), 1), 'yyyy-MM-dd') },
+        { amount: 2000, payment_date: format(subMonths(new Date(), 2), 'yyyy-MM-dd') },
+      ]
 
       vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
-        if (table === 'invoices') {
+        if (table === 'payments') {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                order: vi.fn().mockResolvedValue({
-                  data: [
-                    { total: 80000, payment_status: 'paid' },
-                    { total: 90000, payment_status: 'paid' },
-                    { total: 80000, payment_status: 'paid' },
-                  ],
-                  error: null
+                gte: vi.fn().mockReturnValue({
+                  lte: vi.fn().mockResolvedValue({
+                    data: mockPayments,
+                    error: null
+                  })
                 })
               })
             })
@@ -84,33 +81,153 @@ describe('Analytics Revenue API', () => {
         } as any
       })
 
-      expect(mockRevenue.total_revenue).toBe(250000)
-      expect(mockRevenue.revenue_by_month).toHaveLength(3)
+      const request = new NextRequest('http://localhost:3000/api/analytics/revenue')
+      const response = await GET(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(Array.isArray(data)).toBe(true)
+      expect(data).toHaveLength(6)
+      expect(data[0]).toHaveProperty('month')
+      expect(data[0]).toHaveProperty('revenue')
     })
 
-    it('should break down revenue by service type', async () => {
-      setupAuthenticatedUser()
+    it('should return 401 for unauthenticated user', async () => {
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+        data: { user: null },
+        error: null
+      })
 
-      const mockBreakdown = {
-        asbestos_removal: 150000,
-        mold_remediation: 75000,
-        lead_abatement: 25000,
-      }
+      const request = new NextRequest('http://localhost:3000/api/analytics/revenue')
+      const response = await GET(request)
+      const data = await response.json()
 
-      expect(mockBreakdown.asbestos_removal).toBeGreaterThan(mockBreakdown.lead_abatement)
+      expect(response.status).toBe(401)
+      expect(data.error).toBe('Authentication is required')
+      expect(data.type).toBe('UNAUTHORIZED')
     })
 
-    it('should calculate revenue growth rate', async () => {
+    it('should return zero revenue for months with no payments', async () => {
       setupAuthenticatedUser()
 
-      const mockGrowth = {
-        current_month: 90000,
-        previous_month: 80000,
-        growth_rate: 12.5,
-      }
+      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
+        if (table === 'payments') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                gte: vi.fn().mockReturnValue({
+                  lte: vi.fn().mockResolvedValue({
+                    data: [],
+                    error: null
+                  })
+                })
+              })
+            })
+          } as any
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: mockProfile,
+                error: null
+              })
+            })
+          })
+        } as any
+      })
 
-      expect(mockGrowth.growth_rate).toBe(12.5)
-      expect(mockGrowth.current_month).toBeGreaterThan(mockGrowth.previous_month)
+      const request = new NextRequest('http://localhost:3000/api/analytics/revenue')
+      const response = await GET(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data).toHaveLength(6)
+      expect(data.every((month: any) => month.revenue === 0)).toBe(true)
+    })
+
+    it('should handle database errors securely', async () => {
+      setupAuthenticatedUser()
+
+      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
+        if (table === 'payments') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                gte: vi.fn().mockReturnValue({
+                  lte: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: new Error('Database connection failed')
+                  })
+                })
+              })
+            })
+          } as any
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: mockProfile,
+                error: null
+              })
+            })
+          })
+        } as any
+      })
+
+      const request = new NextRequest('http://localhost:3000/api/analytics/revenue')
+      const response = await GET(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(500)
+      expect(data.error).toBe('An internal server error occurred')
+      expect(data.type).toBe('INTERNAL_ERROR')
+    })
+
+    it('should aggregate payments correctly by month', async () => {
+      setupAuthenticatedUser()
+
+      const currentMonth = format(new Date(), 'yyyy-MM')
+      const mockPayments = [
+        { amount: 1000, payment_date: format(new Date(), 'yyyy-MM-dd') },
+        { amount: 500, payment_date: format(new Date(), 'yyyy-MM-dd') },
+      ]
+
+      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
+        if (table === 'payments') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                gte: vi.fn().mockReturnValue({
+                  lte: vi.fn().mockResolvedValue({
+                    data: mockPayments,
+                    error: null
+                  })
+                })
+              })
+            })
+          } as any
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: mockProfile,
+                error: null
+              })
+            })
+          })
+        } as any
+      })
+
+      const request = new NextRequest('http://localhost:3000/api/analytics/revenue')
+      const response = await GET(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      const currentMonthData = data.find((item: any) => item.month === format(new Date(), 'MMM'))
+      expect(currentMonthData?.revenue).toBe(1500)
     })
   })
 })

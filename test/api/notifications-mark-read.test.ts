@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
+import { POST } from '@/app/api/notifications/[id]/read/route'
+import { NotificationService } from '@/lib/services/notification-service'
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -8,6 +10,12 @@ const mockSupabaseClient = {
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => Promise.resolve(mockSupabaseClient))
+}))
+
+vi.mock('@/lib/services/notification-service', () => ({
+  NotificationService: {
+    markAsRead: vi.fn()
+  }
 }))
 
 vi.mock('@/lib/middleware/unified-rate-limit', () => ({
@@ -42,82 +50,89 @@ describe('Notification Mark Read API', () => {
     vi.clearAllMocks()
   })
 
-  describe('Mark Notifications as Read', () => {
-    it('should mark single notification as read', async () => {
+  describe('POST /api/notifications/[id]/read', () => {
+    it('should mark notification as read', async () => {
       setupAuthenticatedUser()
 
-      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
-        if (table === 'notifications') {
-          return {
-            update: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                select: vi.fn().mockReturnValue({
-                  single: vi.fn().mockResolvedValue({
-                    data: { id: 'notif-1', read: true, read_at: '2026-03-01T10:00:00Z' },
-                    error: null
-                  })
-                })
-              })
-            })
-          } as any
-        }
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: mockProfile,
-                error: null
-              })
-            })
-          })
-        } as any
+      vi.mocked(NotificationService.markAsRead).mockResolvedValue()
+
+      const request = new NextRequest('http://localhost:3000/api/notifications/notif-123/read', {
+        method: 'POST'
       })
 
-      const notification = { id: 'notif-1', read: true }
-      expect(notification.read).toBe(true)
+      const response = await POST(request, { params: { id: 'notif-123' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(NotificationService.markAsRead).toHaveBeenCalledWith('notif-123')
     })
 
-    it('should mark all notifications as read', async () => {
-      setupAuthenticatedUser()
-
-      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
-        if (table === 'notifications') {
-          return {
-            update: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({
-                data: null,
-                error: null
-              })
-            })
-          } as any
-        }
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: mockProfile,
-                error: null
-              })
-            })
-          })
-        } as any
+    it('should return 401 for unauthenticated user', async () => {
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+        data: { user: null },
+        error: null
       })
 
-      const result = { success: true, count: 5 }
-      expect(result.success).toBe(true)
+      const request = new NextRequest('http://localhost:3000/api/notifications/notif-123/read', {
+        method: 'POST'
+      })
+
+      const response = await POST(request, { params: { id: 'notif-123' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(401)
+      expect(data.error).toBe('Authentication is required')
     })
 
-    it('should track read timestamp', async () => {
+    it('should handle errors securely', async () => {
       setupAuthenticatedUser()
 
-      const notification = {
-        id: 'notif-1',
-        read: true,
-        read_at: '2026-03-01T10:00:00Z',
-      }
+      vi.mocked(NotificationService.markAsRead).mockRejectedValue(
+        new Error('Database error')
+      )
 
-      expect(notification.read_at).toBeDefined()
-      expect(new Date(notification.read_at)).toBeInstanceOf(Date)
+      const request = new NextRequest('http://localhost:3000/api/notifications/notif-123/read', {
+        method: 'POST'
+      })
+
+      const response = await POST(request, { params: { id: 'notif-123' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(500)
+      expect(data.error).toBe('An internal server error occurred')
+      expect(data.type).toBe('INTERNAL_ERROR')
+    })
+
+    it('should accept valid UUID notification ID', async () => {
+      setupAuthenticatedUser()
+
+      vi.mocked(NotificationService.markAsRead).mockResolvedValue()
+
+      const notificationId = '550e8400-e29b-41d4-a716-446655440001'
+      const request = new NextRequest(`http://localhost:3000/api/notifications/${notificationId}/read`, {
+        method: 'POST'
+      })
+
+      const response = await POST(request, { params: { id: notificationId } })
+
+      expect(response.status).toBe(200)
+      expect(NotificationService.markAsRead).toHaveBeenCalledWith(notificationId)
+    })
+
+    it('should work for any notification belonging to user', async () => {
+      setupAuthenticatedUser()
+
+      vi.mocked(NotificationService.markAsRead).mockResolvedValue()
+
+      const request = new NextRequest('http://localhost:3000/api/notifications/notif-456/read', {
+        method: 'POST'
+      })
+
+      const response = await POST(request, { params: { id: 'notif-456' } })
+
+      expect(response.status).toBe(200)
+      expect(NotificationService.markAsRead).toHaveBeenCalledWith('notif-456')
     })
   })
 })
