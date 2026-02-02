@@ -201,13 +201,16 @@ describe('PropertySection', () => {
     expect(mockGeolocation.getCurrentPosition).toHaveBeenCalled()
   })
 
-  it('should show loading state when fetching location', async () => {
-    vi.useFakeTimers()
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    let resolvePosition: (value: any) => void
+  it('should call geolocation when fetching location', async () => {
+    const user = userEvent.setup()
     mockGeolocation.getCurrentPosition = vi.fn((success) => {
-      // Store the resolve function to control timing
-      resolvePosition = success
+      // Call success immediately for test simplicity
+      success({
+        coords: {
+          latitude: 40.7128,
+          longitude: -74.0060,
+        },
+      })
     })
 
     render(<PropertySection />)
@@ -215,20 +218,8 @@ describe('PropertySection', () => {
     const locationButton = screen.getByRole('button', { name: /use location/i })
     await user.click(locationButton)
 
-    // While location is being fetched, button should show loading state
-    // The button may or may not be disabled depending on implementation
-    // Just verify the geolocation was called
+    // Verify geolocation API was called
     expect(mockGeolocation.getCurrentPosition).toHaveBeenCalled()
-
-    // Resolve the position
-    resolvePosition!({
-      coords: {
-        latitude: 40.7128,
-        longitude: -74.0060,
-      },
-    })
-
-    vi.useRealTimers()
   })
 
   it('should show building type descriptions', () => {

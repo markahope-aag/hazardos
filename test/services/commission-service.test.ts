@@ -310,19 +310,12 @@ describe('CommissionService', () => {
     })
 
     it('should filter by status', async () => {
-      const queryChain = {
-        eq: vi.fn().mockReturnValue(mockSupabase),
-        range: vi.fn().mockResolvedValue({ data: [mockEarnings[0]], error: null, count: 1 }),
-      }
-
-      mockSupabase.from.mockReturnValue(mockSupabase)
-      mockSupabase.select.mockReturnValue(mockSupabase)
-      mockSupabase.order.mockReturnValue(queryChain)
-      mockSupabase.range.mockReturnValue(queryChain)
+      mockSupabase.eq.mockReturnValue(mockSupabase)
+      mockSupabase.range.mockResolvedValue({ data: [mockEarnings[0]], error: null, count: 1 })
 
       const result = await CommissionService.getEarnings({ status: 'pending' })
 
-      expect(queryChain.eq).toHaveBeenCalledWith('status', 'pending')
+      expect(mockSupabase.eq).toHaveBeenCalledWith('status', 'pending')
       expect(result.earnings).toHaveLength(1)
     })
 
@@ -344,26 +337,17 @@ describe('CommissionService', () => {
     })
 
     it('should filter by date range', async () => {
-      const queryChain = {
-        gte: vi.fn().mockReturnValue(mockSupabase),
-        lte: vi.fn().mockReturnValue(mockSupabase),
-        range: vi.fn().mockResolvedValue({ data: mockEarnings, error: null, count: 2 }),
-      }
-
-      mockSupabase.from.mockReturnValue(mockSupabase)
-      mockSupabase.select.mockReturnValue(mockSupabase)
-      mockSupabase.order.mockReturnValue(queryChain)
-      mockSupabase.gte.mockReturnValue(queryChain)
-      mockSupabase.lte.mockReturnValue(queryChain)
-      mockSupabase.range.mockReturnValue(queryChain)
+      mockSupabase.gte.mockReturnValue(mockSupabase)
+      mockSupabase.lte.mockReturnValue(mockSupabase)
+      mockSupabase.range.mockResolvedValue({ data: mockEarnings, error: null, count: 2 })
 
       const result = await CommissionService.getEarnings({
         start_date: '2026-02-01',
         end_date: '2026-02-28',
       })
 
-      expect(queryChain.gte).toHaveBeenCalledWith('earning_date', '2026-02-01')
-      expect(queryChain.lte).toHaveBeenCalledWith('earning_date', '2026-02-28')
+      expect(mockSupabase.gte).toHaveBeenCalledWith('earning_date', '2026-02-01')
+      expect(mockSupabase.lte).toHaveBeenCalledWith('earning_date', '2026-02-28')
       expect(result.earnings).toHaveLength(2)
     })
   })
