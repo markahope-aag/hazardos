@@ -77,7 +77,12 @@ describe('Pipeline API', () => {
       }
 
       vi.mocked(PipelineService.getStages).mockResolvedValue(mockStages)
-      vi.mocked(PipelineService.getOpportunities).mockResolvedValue(mockOpportunities)
+      vi.mocked(PipelineService.getOpportunities).mockResolvedValue({
+        opportunities: mockOpportunities,
+        total: 1,
+        limit: 50,
+        offset: 0
+      })
       vi.mocked(PipelineService.getPipelineMetrics).mockResolvedValue(mockMetrics)
 
       const request = new NextRequest('http://localhost:3000/api/pipeline')

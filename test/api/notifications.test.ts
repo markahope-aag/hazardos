@@ -100,7 +100,7 @@ describe('Notifications API', () => {
       const request = new NextRequest('http://localhost:3000/api/notifications?limit=10')
       await GET(request)
 
-      expect(NotificationService.getAll).toHaveBeenCalledWith(undefined, 10)
+      expect(NotificationService.getAll).toHaveBeenCalledWith({ limit: 10, offset: undefined })
     })
 
     it('should return 401 for unauthenticated user', async () => {
