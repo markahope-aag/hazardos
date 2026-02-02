@@ -1,4 +1,4 @@
-import { useState, memo } from 'react'
+import { useState, memo, useCallback, useMemo } from 'react'
 import { format } from 'date-fns'
 import { TableCell, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
@@ -28,7 +28,18 @@ function CustomerListItem({ customer, onEdit, onDelete }: CustomerListItemProps)
   const updateStatusMutation = useUpdateCustomerStatus()
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
 
-  const handleStatusChange = async (newStatus: CustomerStatus) => {
+  // Memoize expensive computations
+  const formattedDate = useMemo(() => {
+    return format(new Date(customer.created_at), 'MMM d, yyyy')
+  }, [customer.created_at])
+
+  const sourceLabel = useMemo(() => {
+    if (!customer.source) return '-'
+    return customer.source.charAt(0).toUpperCase() + customer.source.slice(1)
+  }, [customer.source])
+
+  // Memoize event handlers to prevent unnecessary re-renders of child components
+  const handleStatusChange = useCallback(async (newStatus: CustomerStatus) => {
     if (newStatus === customer.status) return
     
     setIsUpdatingStatus(true)
@@ -40,20 +51,23 @@ function CustomerListItem({ customer, onEdit, onDelete }: CustomerListItemProps)
     } finally {
       setIsUpdatingStatus(false)
     }
-  }
+  }, [customer.id, customer.status, updateStatusMutation])
 
-  const handleViewCustomer = () => {
+  const handleViewCustomer = useCallback(() => {
     router.push(`/customers/${customer.id}`)
-  }
+  }, [router, customer.id])
 
-  const handleCreateSurvey = () => {
+  const handleCreateSurvey = useCallback(() => {
     router.push(`/site-surveys/new?customer_id=${customer.id}`)
-  }
+  }, [router, customer.id])
 
-  const getSourceLabel = (source: string | null) => {
-    if (!source) return '-'
-    return source.charAt(0).toUpperCase() + source.slice(1)
-  }
+  const handleEdit = useCallback(() => {
+    onEdit(customer)
+  }, [onEdit, customer])
+
+  const handleDelete = useCallback(() => {
+    onDelete(customer)
+  }, [onDelete, customer])
 
   return (
     <TableRow className="hover:bg-gray-50">
@@ -118,14 +132,14 @@ function CustomerListItem({ customer, onEdit, onDelete }: CustomerListItemProps)
       {/* Source */}
       <TableCell>
         <span className="text-sm text-gray-600">
-          {getSourceLabel(customer.source)}
+          {sourceLabel}
         </span>
       </TableCell>
 
       {/* Created Date */}
       <TableCell>
         <span className="text-sm text-gray-500">
-          {format(new Date(customer.created_at), 'MMM d, yyyy')}
+          {formattedDate}
         </span>
       </TableCell>
 
@@ -145,7 +159,7 @@ function CustomerListItem({ customer, onEdit, onDelete }: CustomerListItemProps)
               <Eye className="mr-2 h-4 w-4" />
               View Details
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onEdit(customer)}>
+            <DropdownMenuItem onClick={handleEdit}>
               <Edit className="mr-2 h-4 w-4" />
               Edit Customer
             </DropdownMenuItem>
@@ -155,7 +169,7 @@ function CustomerListItem({ customer, onEdit, onDelete }: CustomerListItemProps)
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
-              onClick={() => onDelete(customer)}
+              onClick={handleDelete}
               className="text-red-600 focus:text-red-600"
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -168,4 +182,34 @@ function CustomerListItem({ customer, onEdit, onDelete }: CustomerListItemProps)
   )
 }
 
-export default memo(CustomerListItem)
+// Custom comparison function to prevent unnecessary re-renders
+const arePropsEqual = (prevProps: CustomerListItemProps, nextProps: CustomerListItemProps) => {
+  // Compare customer object properties that affect rendering
+  const prevCustomer = prevProps.customer
+  const nextCustomer = nextProps.customer
+  
+  // Check if it's the same customer instance
+  if (prevCustomer === nextCustomer) return true
+  
+  // Deep comparison of customer properties that affect the UI
+  const customerPropsEqual = (
+    prevCustomer.id === nextCustomer.id &&
+    prevCustomer.name === nextCustomer.name &&
+    prevCustomer.company_name === nextCustomer.company_name &&
+    prevCustomer.email === nextCustomer.email &&
+    prevCustomer.phone === nextCustomer.phone &&
+    prevCustomer.status === nextCustomer.status &&
+    prevCustomer.source === nextCustomer.source &&
+    prevCustomer.created_at === nextCustomer.created_at
+  )
+  
+  // Check if callback functions are the same (they should be memoized in parent)
+  const callbacksEqual = (
+    prevProps.onEdit === nextProps.onEdit &&
+    prevProps.onDelete === nextProps.onDelete
+  )
+  
+  return customerPropsEqual && callbacksEqual
+}
+
+export default memo(CustomerListItem, arePropsEqual)

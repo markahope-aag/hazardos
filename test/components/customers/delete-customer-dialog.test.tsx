@@ -55,7 +55,7 @@ describe('DeleteCustomerDialog', () => {
       />
     )
 
-    expect(screen.getByText('Delete Customer')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Delete Customer' })).toBeInTheDocument()
   })
 
   it('shows customer name in confirmation message', () => {

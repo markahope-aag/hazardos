@@ -29,8 +29,8 @@ export const metadata: Metadata = {
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // Allow zoom for accessibility (low-vision users need to be able to zoom)
+  userScalable: true,
   themeColor: '#FF6B35',
 }
 

@@ -70,11 +70,13 @@ describe('ReportsPage', () => {
     const page = await ReportsPage()
     render(page)
 
-    // Use getAllByText since text may appear multiple times
+    // Check for report type cards
     expect(screen.getAllByText('Sales Performance').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Job Costs').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Lead Sources').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Revenue Trends').length).toBeGreaterThan(0)
+    // The leads report label is "Lead Source ROI"
+    expect(screen.getAllByText('Lead Source ROI').length).toBeGreaterThan(0)
+    // Revenue is just "Revenue"
+    expect(screen.getAllByText('Revenue').length).toBeGreaterThan(0)
   })
 
   it('displays saved reports section', async () => {

@@ -126,7 +126,7 @@ describe('ApprovalActions', () => {
 
     await user.click(screen.getByRole('button', { name: /reject/i }))
 
-    expect(screen.getByText('Reject Request')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Reject Request' })).toBeInTheDocument()
     expect(screen.getByText('Please provide a reason for rejecting this request.')).toBeInTheDocument()
   })
 
@@ -164,10 +164,10 @@ describe('ApprovalActions', () => {
     render(<ApprovalActions request={request} />)
 
     await user.click(screen.getByRole('button', { name: /reject/i }))
-    expect(screen.getByText('Reject Request')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Reject Request' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /cancel/i }))
-    expect(screen.queryByText('Reject Request')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Reject Request' })).not.toBeInTheDocument()
   })
 
   it('shows error toast on API failure', async () => {

@@ -6,6 +6,7 @@ import { applyUnifiedRateLimit, UnifiedRateLimiterType } from '@/lib/middleware/
 import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 import { createRequestLogger } from '@/lib/utils/logger'
 import { sanitizeObject } from '@/lib/utils/sanitize'
+import { withCacheHeaders, CacheProfile } from '@/lib/utils/cache-headers'
 import type { SanitizeOptions } from '@/lib/types/sanitize'
 import type { Logger } from 'pino'
 
@@ -39,6 +40,9 @@ export interface ApiHandlerOptions<TBody = unknown, TQuery = unknown> {
 
   // Sanitization options (defaults to enabled)
   sanitize?: boolean | SanitizeOptions
+
+  // HTTP cache headers for GET requests
+  cache?: CacheProfile
 }
 
 type HandlerWithBody<TBody, TQuery> = (
@@ -208,6 +212,7 @@ export function createApiHandler<
     bodySchema,
     querySchema,
     sanitize,
+    cache,
   } = options
 
   return async (request: NextRequest) => {
@@ -275,12 +280,17 @@ export function createApiHandler<
         requestId,
       }
 
-      const response = await (handler as HandlerWithBody<TBody, TQuery>)(
+      let response = await (handler as HandlerWithBody<TBody, TQuery>)(
         request,
         enrichedContext,
         body,
         query
       )
+
+      // Apply cache headers for GET requests if configured
+      if (cache && method === 'GET') {
+        response = withCacheHeaders(response, cache)
+      }
 
       const durationMs = Date.now() - startTime
       log.info({ durationMs, status: response.status }, 'Request completed')
@@ -367,6 +377,7 @@ export function createApiHandlerWithParams<TBody = unknown, TQuery = unknown, TP
     bodySchema,
     querySchema,
     sanitize,
+    cache,
   } = options
 
   return async (request: NextRequest, props: { params: Promise<TParams> }) => {
@@ -435,7 +446,12 @@ export function createApiHandlerWithParams<TBody = unknown, TQuery = unknown, TP
         requestId,
       }
 
-      const response = await handler(request, enrichedContext, params, body, query)
+      let response = await handler(request, enrichedContext, params, body, query)
+
+      // Apply cache headers for GET requests if configured
+      if (cache && method === 'GET') {
+        response = withCacheHeaders(response, cache)
+      }
 
       const durationMs = Date.now() - startTime
       log.info({ durationMs, status: response.status }, 'Request completed')

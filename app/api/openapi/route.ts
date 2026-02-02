@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { openApiSpec } from '@/lib/openapi/openapi-spec'
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
 import { addCorsHeaders, handlePreflight } from '@/lib/middleware/cors'
+import { withCacheHeaders } from '@/lib/utils/cache-headers'
 
 /**
  * GET /api/openapi
@@ -20,6 +21,9 @@ export async function GET(request: NextRequest) {
       'Content-Type': 'application/json',
     },
   })
+
+  // Add cache headers - OpenAPI spec is stable, cache for 1 hour
+  withCacheHeaders(response, 'stable')
 
   // Add CORS headers for openapi documentation
   return addCorsHeaders(response, request, 'openapi')
