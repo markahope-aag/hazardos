@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import NextImage from 'next/image'
 import {
   Clock,
   Package,
@@ -21,7 +22,6 @@ import {
   X,
   Plus,
   Trash2,
-  Upload,
   AlertCircle,
   Loader2,
   ChevronLeft,
@@ -31,16 +31,10 @@ import type {
   JobTimeEntry,
   JobMaterialUsage,
   JobCompletionPhoto,
-  JobCompletionChecklist,
   JobCompletion,
-  CreateTimeEntryInput,
-  CreateMaterialUsageInput,
   PhotoType,
   TimeEntryWorkType,
   GroupedChecklists,
-  workTypeConfig,
-  photoTypeConfig,
-  checklistCategoryConfig,
 } from '@/types/job-completion'
 
 type CompletionTab = 'time' | 'materials' | 'photos' | 'checklist' | 'review'
@@ -776,19 +770,21 @@ export default function JobCompletionPage() {
 
             <div className="grid grid-cols-2 gap-2">
               {data?.photos.map((photo) => (
-                <div key={photo.id} className="relative group">
-                  <img
+                <div key={photo.id} className="relative group h-32">
+                  <NextImage
                     src={photo.photo_url}
                     alt={photo.caption || 'Job photo'}
-                    className="w-full h-32 object-cover rounded-lg"
+                    fill
+                    className="object-cover rounded-lg"
+                    unoptimized
                   />
-                  <Badge className="absolute top-2 left-2 text-xs">
+                  <Badge className="absolute top-2 left-2 text-xs z-10">
                     {photo.photo_type}
                   </Badge>
                   <Button
                     variant="destructive"
                     size="sm"
-                    className="absolute top-2 right-2 p-1 h-auto opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 p-1 h-auto opacity-0 group-hover:opacity-100 transition-opacity z-10"
                     onClick={() => handleDeletePhoto(photo.id)}
                   >
                     <Trash2 className="w-3 h-3" />

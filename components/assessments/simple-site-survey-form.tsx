@@ -42,7 +42,7 @@ interface SiteSurveyFormProps {
 export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFormProps) {
   const router = useRouter()
   const { toast } = useToast()
-  const { user, profile: _profile, organization } = useMultiTenantAuth()
+  const { user, organization } = useMultiTenantAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDraft, setIsDraft] = useState(true)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
@@ -227,15 +227,6 @@ export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFo
     }
   }
 
-  const _accessIssueOptions = [
-    'Limited parking',
-    'Narrow access',
-    'Stairs only',
-    'Elevator required',
-    'Security clearance needed',
-    'After hours access only',
-    'Other'
-  ]
 
   return (
     <form id="site-survey-form" onSubmit={onSubmit} className="space-y-6">

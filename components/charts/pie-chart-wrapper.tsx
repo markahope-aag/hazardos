@@ -9,10 +9,10 @@ import {
   Tooltip,
 } from 'recharts'
 
-interface PieChartWrapperProps {
-  data: any[]
-  dataKey: string
-  nameKey: string
+interface PieChartWrapperProps<T extends Record<string, unknown>> {
+  data: T[]
+  dataKey: keyof T & string
+  nameKey: keyof T & string
   colors?: string[]
   height?: number
   showLegend?: boolean
@@ -29,14 +29,14 @@ const DEFAULT_COLORS = [
   '#84cc16', // lime
 ]
 
-export default function PieChartWrapper({
+export default function PieChartWrapper<T extends Record<string, unknown>>({
   data,
   dataKey,
   nameKey,
   colors = DEFAULT_COLORS,
   height = 300,
   showLegend = true,
-}: PieChartWrapperProps) {
+}: PieChartWrapperProps<T>) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <PieChart>

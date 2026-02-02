@@ -62,7 +62,7 @@ export function QuickBooksCard({ integration }: QuickBooksCardProps) {
       }
 
       window.location.href = url;
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to initiate connection',

@@ -3,7 +3,6 @@ import { createClient } from '@/lib/supabase/server'
 import { ApprovalService } from '@/lib/services/approval-service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,

@@ -88,7 +88,7 @@ HazardOS is a multi-tenant SaaS platform built for environmental remediation com
 | Layer | Technology | Version | Purpose |
 |-------|------------|---------|---------|
 | **Framework** | Next.js | 16.1.6 | React framework with App Router |
-| **Language** | TypeScript | 5.9 | Type-safe JavaScript |
+| **Language** | TypeScript | 5.9.3 | Type-safe JavaScript (strict mode) |
 | **UI Library** | React | 19.2.4 | Component-based UI |
 | **Styling** | Tailwind CSS | 4.1.18 | Utility-first CSS framework |
 | **Components** | Radix UI | Latest | Accessible component primitives |
@@ -104,12 +104,12 @@ HazardOS is a multi-tenant SaaS platform built for environmental remediation com
 | Layer | Technology | Version | Purpose |
 |-------|------------|---------|---------|
 | **Database** | PostgreSQL | 15+ | Relational database via Supabase |
-| **BaaS** | Supabase | Latest | Backend services platform |
-| **Authentication** | Supabase Auth | Latest | User authentication & sessions |
-| **Storage** | Supabase Storage | Latest | File storage with CDN |
-| **Real-time** | Supabase Realtime | Latest | WebSocket subscriptions |
-| **API** | Next.js API Routes | 16 | RESTful API endpoints |
-| **Rate Limiting** | Upstash Redis | Latest | DoS protection |
+| **BaaS** | Supabase | 2.93.3 | Backend services platform |
+| **Authentication** | Supabase Auth | 2.93.3 | User authentication & sessions |
+| **Storage** | Supabase Storage | 2.93.3 | File storage with CDN |
+| **Real-time** | Supabase Realtime | 2.93.3 | WebSocket subscriptions |
+| **API** | Next.js API Routes | 16.1.6 | RESTful API endpoints |
+| **Rate Limiting** | Upstash Redis | 1.36.1 | DoS protection |
 
 ### Development & Deployment
 

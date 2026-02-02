@@ -36,7 +36,7 @@ export function SubscriptionCard({ subscription, isAdmin }: SubscriptionCardProp
 
       const { url } = await response.json()
       window.location.href = url
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to open billing portal',

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -13,18 +14,13 @@ import {
   CheckSquare,
   AlertTriangle,
   TrendingUp,
-  TrendingDown,
   FileText,
   User,
-  Calendar,
 } from 'lucide-react'
 import { CompletionReviewActions } from './review-actions'
 import { cn } from '@/lib/utils'
 import {
   completionStatusConfig,
-  checklistCategoryConfig,
-  photoTypeConfig,
-  workTypeConfig,
 } from '@/types/job-completion'
 
 export default async function JobReviewPage({
@@ -314,14 +310,18 @@ export default async function JobReviewPage({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {photos.map((photo) => (
                 <div key={photo.id} className="relative group">
-                  <img
-                    src={photo.photo_url}
-                    alt={photo.caption || 'Job photo'}
-                    className="w-full h-32 object-cover rounded-lg"
-                  />
-                  <Badge className="absolute top-2 left-2 text-xs">
-                    {photo.photo_type}
-                  </Badge>
+                  <div className="relative h-32">
+                    <Image
+                      src={photo.photo_url}
+                      alt={photo.caption || 'Job photo'}
+                      fill
+                      className="object-cover rounded-lg"
+                      unoptimized
+                    />
+                    <Badge className="absolute top-2 left-2 text-xs z-10">
+                      {photo.photo_type}
+                    </Badge>
+                  </div>
                   {photo.caption && (
                     <p className="text-xs text-muted-foreground mt-1 truncate">{photo.caption}</p>
                   )}

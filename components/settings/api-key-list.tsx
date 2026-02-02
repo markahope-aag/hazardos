@@ -59,7 +59,7 @@ export function ApiKeyList({ apiKeys, availableScopes }: ApiKeyListProps) {
       } else {
         throw new Error('Failed to revoke');
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to revoke API key',

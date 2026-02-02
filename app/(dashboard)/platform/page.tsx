@@ -14,7 +14,7 @@ import {
   ArrowDownRight,
 } from 'lucide-react'
 import { OrganizationsTable } from '@/components/platform/organizations-table'
-import type { PlatformStats, GrowthMetrics, PlanDistribution } from '@/types/platform-admin'
+import type { PlanDistribution } from '@/types/platform-admin'
 import { formatCurrencyFromCents } from '@/lib/utils'
 
 function formatNumber(num: number): string {

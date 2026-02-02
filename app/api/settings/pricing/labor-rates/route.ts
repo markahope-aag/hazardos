@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { createLaborRateSchema, updateLaborRateSchema, deleteLaborRateQuerySchema } from '@/lib/validations/settings'
-import { SecureError } from '@/lib/utils/secure-error-handler'
 
 const adminRoles = ['platform_owner', 'platform_admin', 'tenant_owner', 'admin']
 

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { InvoicesService } from '@/lib/services/invoices-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
-import { addInvoiceLineItemSchema, updateInvoiceLineItemSchema, deleteInvoiceLineItemSchema } from '@/lib/validations/invoices'
+import { addInvoiceLineItemSchema, updateInvoiceLineItemSchema } from '@/lib/validations/invoices'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { z } from 'zod'
 

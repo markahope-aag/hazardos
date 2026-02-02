@@ -8,7 +8,6 @@
 import { track as vercelTrack } from '@vercel/analytics';
 import { shouldTrack, sanitizeProperties, isExcludedPath } from './config';
 import type {
-  TrackingEvent,
   FormSubmissionEvent,
   UserActionEvent,
   FeatureUsageEvent,

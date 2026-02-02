@@ -37,11 +37,13 @@
 | [Security Documentation](./SECURITY.md) | Security architecture | ✅ Current | Feb 1, 2026 |
 | [Multi-Tenant Setup](./MULTI_TENANT_SETUP.md) | Architecture config | ✅ Current | - |
 | [Deployment Guide](./DEPLOYMENT.md) | Production deployment | ✅ Current | Feb 2, 2026 |
+| [Performance Optimization](./PERFORMANCE-OPTIMIZATION.md) | Performance guide | ✅ Current | Feb 2, 2026 |
 
 ### 📊 Project Management (Status)
 | Document | Purpose | Status | Last Updated |
 |----------|---------|--------|--------------|
 | [Application Status](./APP-STATUS%20020226.md) | Current feature status | ✅ Current | Feb 2, 2026 |
+| [Current Status Report](./CURRENT-STATUS-FEB-2026.md) | Comprehensive status report | ✅ Current | Feb 2, 2026 |
 | [Project Status](./PROJECT-STATUS.md) | Development roadmap | ✅ Current | Feb 1, 2026 |
 | [Changelog](./CHANGELOG.md) | Version history | ✅ Current | Feb 1, 2026 |
 | [Roadmap](./ROADMAP.md) | Future planning | ✅ Current | Jan 31, 2026 |
@@ -81,7 +83,7 @@
 - **Multiple formats**: Quick reference + detailed guides
 
 ### 📊 Documentation Metrics
-- **Total Files**: 32 documentation files
+- **Total Files**: 33 documentation files
 - **Current Status**: 28 files current, 4 legacy reference
 - **Coverage**: 100% of production features documented
 - **API Coverage**: 140+ endpoints documented

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, ReactNode } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -33,7 +32,7 @@ import {
   Pie,
   Cell,
 } from '@/components/charts/recharts-lazy'
-import { Download, RefreshCw, Save, Loader2 } from 'lucide-react'
+import { Download, RefreshCw, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { ChartErrorBoundary, DataErrorBoundary } from '@/components/error-boundaries'
 import type { ReportType, ReportConfig, ReportColumn, DateRangeType, ChartType } from '@/types/reporting'
@@ -89,7 +88,6 @@ export function ReportViewer({
   initialData,
   columns,
 }: ReportViewerProps) {
-  const router = useRouter()
   const { toast } = useToast()
   const [config, setConfig] = useState(initialConfig)
   const [data, setData] = useState(initialData)
@@ -112,7 +110,7 @@ export function ReportViewer({
 
       const result = await response.json()
       setData(result.data)
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to run report',
@@ -153,7 +151,7 @@ export function ReportViewer({
         title: 'Export complete',
         description: `Report exported as ${format.toUpperCase()}`,
       })
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to export report',

@@ -8,7 +8,7 @@ interface CalendarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onSe
 }
 
 // Placeholder Calendar component
-export function Calendar({ mode, onSelect, selected, initialFocus, ...props }: CalendarProps) {
+export function Calendar({ mode: _mode, onSelect: _onSelect, selected, initialFocus: _initialFocus, ...props }: CalendarProps) {
   return (
     <div className="p-4 border rounded-md" {...props}>
       <p className="text-muted-foreground">Calendar component placeholder</p>

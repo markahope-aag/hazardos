@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateEstimateSchema } from '@/lib/validations/estimates'
-import { idParamSchema } from '@/lib/validations/common'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 
 /**

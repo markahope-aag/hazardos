@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     response.cookies.delete('qbo_state');
 
     return response;
-  } catch (_error) {
+  } catch {
     return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=callback_failed`
     );

@@ -323,8 +323,6 @@ export class PipelineService {
   // ========== METRICS ==========
 
   static async getPipelineMetrics(): Promise<PipelineMetrics> {
-    const supabase = await createClient()
-
     // For metrics, get all opportunities (use high limit)
     const { opportunities } = await this.getOpportunities({ limit: 10000 })
     const stages = await this.getStages()

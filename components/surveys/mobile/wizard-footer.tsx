@@ -29,7 +29,7 @@ export function WizardFooter({ className, onSubmit, onSaveDraft: _onSaveDraft, i
 
   const handleNext = () => {
     // Validate current section before moving forward
-    const _validation = validateSection(currentSection)
+    validateSection(currentSection)
 
     if (!isLastSection) {
       setCurrentSection(SURVEY_SECTIONS[currentIndex + 1])

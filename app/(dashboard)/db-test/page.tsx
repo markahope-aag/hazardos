@@ -73,14 +73,14 @@ export default function DatabaseTestPage() {
 
     // Test 4: Site Surveys Table Structure
     try {
-      const { data: _data, error } = await supabase
+      const { error } = await supabase
         .from('site_surveys')
         .select('id')
         .limit(1)
 
       if (error) {
         // Check if old assessments table still exists
-        const { data: _oldData, error: oldError } = await supabase
+        const { error: oldError } = await supabase
           .from('assessments')
           .select('id')
           .limit(1)
@@ -116,14 +116,14 @@ export default function DatabaseTestPage() {
 
     // Test 5: Site Survey Photos Table
     try {
-      const { data: _data2, error } = await supabase
+      const { error } = await supabase
         .from('site_survey_photos')
         .select('id')
         .limit(1)
 
       if (error) {
         // Check if old assessment_photos table still exists
-        const { data: _oldData, error: oldError } = await supabase
+        const { error: oldError } = await supabase
           .from('assessment_photos')
           .select('id')
           .limit(1)
@@ -160,7 +160,7 @@ export default function DatabaseTestPage() {
 
     // Test 6: Storage Bucket Access
     try {
-      const { data: _data3, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('assessment-media')
         .list('', { limit: 1 })
 

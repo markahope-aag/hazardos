@@ -59,7 +59,7 @@ export function OutlookCalendarCard({ integration }: OutlookCalendarCardProps) {
       }
 
       window.location.href = url;
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to initiate connection',

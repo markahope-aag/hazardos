@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -77,7 +78,7 @@ export default function FeedbackSurveyPage() {
           setFeedbackText(data.feedback_text || '')
           setTestimonialText(data.testimonial_text || '')
         }
-      } catch (err) {
+      } catch {
         setError('Failed to load survey')
       } finally {
         setLoading(false)
@@ -258,11 +259,15 @@ export default function FeedbackSurveyPage() {
         {/* Header */}
         <div className="text-center mb-8">
           {survey?.organization_logo ? (
-            <img
-              src={survey.organization_logo}
-              alt={survey.organization_name}
-              className="h-12 mx-auto mb-4"
-            />
+            <div className="relative h-12 w-32 mx-auto mb-4">
+              <Image
+                src={survey.organization_logo}
+                alt={survey.organization_name}
+                fill
+                className="object-contain"
+                unoptimized
+              />
+            </div>
           ) : (
             <Building2 className="w-12 h-12 text-primary mx-auto mb-4" />
           )}

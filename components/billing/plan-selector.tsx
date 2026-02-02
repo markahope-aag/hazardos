@@ -39,7 +39,7 @@ export function PlanSelector({ plans, currentPlanId }: PlanSelectorProps) {
 
       const { url } = await response.json()
       window.location.href = url
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to start checkout',

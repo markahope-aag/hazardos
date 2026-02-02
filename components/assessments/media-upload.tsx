@@ -37,7 +37,6 @@ export function MediaUpload({
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingProgress, setProcessingProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const _videoRef = useRef<HTMLVideoElement>(null)
 
   // Compress image files
   const compressImage = async (file: File): Promise<File> => {

@@ -25,7 +25,7 @@ export async function uploadPhotoToStorage(photo: QueuedPhoto): Promise<string> 
   const path = `surveys/${photo.surveyId}/${photo.category}/${photo.id}.${extension}`
 
   // Upload to Supabase Storage
-  const { data: _data, error } = await supabase.storage
+  const { error } = await supabase.storage
     .from(STORAGE_BUCKET)
     .upload(path, blob, {
       contentType: mimeType,

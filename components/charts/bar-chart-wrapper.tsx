@@ -10,21 +10,21 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
-interface BarChartWrapperProps {
-  data: any[]
-  dataKey: string
-  xAxisKey: string
+interface BarChartWrapperProps<T extends Record<string, unknown>> {
+  data: T[]
+  dataKey: keyof T & string
+  xAxisKey: keyof T & string
   color?: string
   height?: number
 }
 
-export default function BarChartWrapper({
+export default function BarChartWrapper<T extends Record<string, unknown>>({
   data,
   dataKey,
   xAxisKey,
   color = '#3b82f6',
   height = 300,
-}: BarChartWrapperProps) {
+}: BarChartWrapperProps<T>) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data}>

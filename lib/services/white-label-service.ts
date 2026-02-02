@@ -149,7 +149,7 @@ export class WhiteLabelService {
       } else {
         return { verified: false, error: 'DNS records not found' };
       }
-    } catch (error) {
+    } catch {
       return { verified: false, error: 'DNS lookup failed' };
     }
   }

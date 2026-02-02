@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { z, ZodSchema, ZodError } from 'zod'
+import { ZodSchema, ZodError } from 'zod'
 import { nanoid } from 'nanoid'
 import { createClient } from '@/lib/supabase/server'
 import { applyUnifiedRateLimit, UnifiedRateLimiterType } from '@/lib/middleware/unified-rate-limit'
@@ -50,16 +50,6 @@ type HandlerWithBody<TBody, TQuery> = (
   context: ApiContext,
   body: TBody,
   query: TQuery
-) => Promise<NextResponse>
-
-type HandlerWithoutBody<TQuery> = (
-  request: NextRequest,
-  context: ApiContext,
-  query: TQuery
-) => Promise<NextResponse>
-
-type PublicHandler = (
-  request: NextRequest
 ) => Promise<NextResponse>
 
 // Convert Zod errors to SecureError
@@ -289,7 +279,11 @@ export function createApiHandler<
 
       // Apply cache headers for GET requests if configured
       if (cache && method === 'GET') {
-        response = withCacheHeaders(response, cache)
+        // Create tenant-aware cache key if user context is available
+        const cacheKey = context?.profile?.organization_id 
+          ? `${context.profile.organization_id}:${path}${request.nextUrl.search}`
+          : undefined
+        response = withCacheHeaders(response, cache, cacheKey)
       }
 
       const durationMs = Date.now() - startTime
@@ -450,7 +444,11 @@ export function createApiHandlerWithParams<TBody = unknown, TQuery = unknown, TP
 
       // Apply cache headers for GET requests if configured
       if (cache && method === 'GET') {
-        response = withCacheHeaders(response, cache)
+        // Create tenant-aware cache key if user context is available
+        const cacheKey = context?.profile?.organization_id 
+          ? `${context.profile.organization_id}:${path}${request.nextUrl.search}`
+          : undefined
+        response = withCacheHeaders(response, cache, cacheKey)
       }
 
       const durationMs = Date.now() - startTime

@@ -8,7 +8,7 @@ import { useSurveyStore } from '@/lib/stores/survey-store'
 import { SurveySection } from '@/lib/stores/survey-types'
 import { WizardNavigation, WizardNavigationLabel } from './wizard-navigation'
 import { WizardFooter } from './wizard-footer'
-import { Save, X, ClipboardList, Loader2 } from 'lucide-react'
+import { Save, X } from 'lucide-react'
 import { FormErrorBoundary, ErrorBoundary } from '@/components/error-boundaries'
 import { useToast } from '@/components/ui/use-toast'
 

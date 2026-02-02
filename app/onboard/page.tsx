@@ -12,7 +12,8 @@ import { useToast } from '@/components/ui/use-toast'
 
 export default function OnboardPage() {
   const [loading, setLoading] = useState(false)
-  const [_step, _setStep] = useState(1)
+  // Step state for future multi-step onboarding
+  useState(1)
   const [formData, setFormData] = useState({
     // Organization details
     organizationName: '',

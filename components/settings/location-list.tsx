@@ -47,7 +47,7 @@ export function LocationList({ locations }: LocationListProps) {
       } else {
         throw new Error('Failed to delete');
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to delete location',

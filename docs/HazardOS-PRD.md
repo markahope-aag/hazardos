@@ -802,21 +802,22 @@ HazardOS provides:
 ### TR-1: Technology Stack
 
 **Frontend:**
-- Framework: Next.js 14 (App Router)
-- Language: TypeScript (strict mode)
-- UI: React 18
-- Styling: Tailwind CSS 3.x
+- Framework: Next.js 16.1.6 (App Router)
+- Language: TypeScript 5.9 (strict mode)
+- UI: React 19.2.4
+- Styling: Tailwind CSS 4.1.18
 - Component Library: shadcn/ui
-- State Management: Zustand + React Query
-- Forms: React Hook Form + Zod validation
-- PWA: next-pwa plugin
+- State Management: Zustand 5.0.10 + TanStack Query 5.90.20
+- Forms: React Hook Form 7.71.1 + Zod 4.3.6 validation
+- PWA: next-pwa 5.6.0
 
 **Backend:**
 - Database: Supabase (PostgreSQL 15+)
-- Authentication: Supabase Auth
+- Authentication: Supabase Auth 2.93.3
 - Storage: Supabase Storage
-- API: Next.js API Routes (Edge Runtime)
+- API: Next.js 16.1.6 API Routes (Edge Runtime)
 - Real-time: Supabase Realtime
+- Rate Limiting: Upstash Redis 1.36.1
 
 **DevOps:**
 - Hosting: Vercel (Edge Network)
@@ -829,9 +830,10 @@ HazardOS provides:
 **Development:**
 - Version Control: Git + GitHub
 - Package Manager: pnpm
-- Code Quality: ESLint + Prettier
-- Testing: Vitest (unit) + Playwright (E2E)
-- Documentation: Markdown + Storybook
+- Code Quality: ESLint 9.39.2 + Prettier
+- Testing: Vitest 4.0.18 (unit) + Testing Library 16.3.2
+- Documentation: Markdown (52 comprehensive docs)
+- Error Tracking: Sentry 10.38.0
 
 ---
 

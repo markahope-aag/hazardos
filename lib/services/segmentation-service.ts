@@ -18,22 +18,6 @@ export interface UpdateSegmentInput {
   is_active?: boolean;
 }
 
-// Map rule operators to SQL
-const OPERATOR_MAP: Record<string, string> = {
-  '=': '=',
-  '!=': '!=',
-  '>': '>',
-  '<': '<',
-  '>=': '>=',
-  '<=': '<=',
-  'contains': 'ILIKE',
-  'not_contains': 'NOT ILIKE',
-  'starts_with': 'ILIKE',
-  'ends_with': 'ILIKE',
-  'is_null': 'IS NULL',
-  'is_not_null': 'IS NOT NULL',
-};
-
 // Map segment fields to actual database columns/queries
 const FIELD_MAP: Record<string, { table: string; column: string; type: 'direct' | 'aggregate' }> = {
   // Direct customer fields
