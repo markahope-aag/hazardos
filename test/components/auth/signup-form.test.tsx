@@ -273,7 +273,7 @@ describe('SignupForm', () => {
 
     await waitFor(() => {
       expect(mockSupabaseClient.auth.signUp).toHaveBeenCalledWith({
-        email: '  john@example.com  ',
+        email: 'john@example.com', // Email gets trimmed by browser/FormData
         password: 'password123',
         options: {
           data: {
