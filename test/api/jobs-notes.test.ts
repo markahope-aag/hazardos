@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST, DELETE } from '@/app/api/jobs/[id]/notes/route'
 
+// Mock rate limit
+vi.mock('@/lib/middleware/unified-rate-limit', () => ({
+  applyUnifiedRateLimit: vi.fn(() => Promise.resolve(null))
+}))
+
 // Mock Supabase client
 const mockSupabaseClient = {
   auth: {
@@ -29,25 +34,44 @@ vi.mock('@/lib/services/jobs-service', () => ({
 
 import { JobsService } from '@/lib/services/jobs-service'
 
+const mockProfile = {
+  organization_id: 'org-123',
+  role: 'admin'
+}
+
+const setupAuthenticatedUser = () => {
+  vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+    data: { user: { id: 'user-1', email: 'test@example.com' } },
+    error: null
+  })
+
+  vi.mocked(mockSupabaseClient.from).mockReturnValue({
+    select: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: mockProfile,
+          error: null
+        })
+      })
+    })
+  } as any)
+}
+
 describe('Job Notes API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-
-    // Default auth mock - authenticated user
-    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-      data: { user: { id: 'user-123' } },
-      error: null,
-    })
   })
 
   describe('POST /api/jobs/[id]/notes', () => {
     it('should add a note to a job', async () => {
       // Arrange
+      setupAuthenticatedUser()
+
       const newNote = {
-        id: 'note-123',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         job_id: 'job-123',
         content: 'Important note about safety',
-        created_by: 'user-123',
+        created_by: 'user-1',
         created_at: new Date().toISOString(),
       }
       vi.mocked(JobsService.addNote).mockResolvedValue(newNote)
@@ -69,13 +93,17 @@ describe('Job Notes API', () => {
       expect(data.content).toBe('Important note about safety')
       expect(JobsService.addNote).toHaveBeenCalledWith('job-123', {
         content: 'Important note about safety',
+        note_type: 'general',
+        is_internal: true,
       })
     })
 
     it('should add a note with visibility setting', async () => {
       // Arrange
+      setupAuthenticatedUser()
+
       const newNote = {
-        id: 'note-123',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         job_id: 'job-123',
         content: 'Internal note',
         is_internal: true,
@@ -102,6 +130,8 @@ describe('Job Notes API', () => {
 
     it('should reject note without content', async () => {
       // Arrange
+      setupAuthenticatedUser()
+
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -117,7 +147,7 @@ describe('Job Notes API', () => {
 
     it('should reject unauthenticated requests', async () => {
       // Arrange
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
         data: { user: null },
         error: { message: 'Not authenticated' },
       })
@@ -139,13 +169,15 @@ describe('Job Notes API', () => {
   describe('DELETE /api/jobs/[id]/notes', () => {
     it('should delete a note from a job', async () => {
       // Arrange
+      setupAuthenticatedUser()
+
       vi.mocked(JobsService.deleteNote).mockResolvedValue(undefined)
 
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/notes', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          note_id: 'note-123',
+          note_id: '550e8400-e29b-41d4-a716-446655440001',
         }),
       })
 
@@ -156,11 +188,13 @@ describe('Job Notes API', () => {
       // Assert
       expect(response.status).toBe(200)
       expect(data.success).toBe(true)
-      expect(JobsService.deleteNote).toHaveBeenCalledWith('note-123')
+      expect(JobsService.deleteNote).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440001')
     })
 
     it('should reject deletion without note_id', async () => {
       // Arrange
+      setupAuthenticatedUser()
+
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/notes', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -176,7 +210,7 @@ describe('Job Notes API', () => {
 
     it('should reject unauthenticated requests', async () => {
       // Arrange
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
         data: { user: null },
         error: { message: 'Not authenticated' },
       })
@@ -184,7 +218,7 @@ describe('Job Notes API', () => {
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/notes', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ note_id: 'note-123' }),
+        body: JSON.stringify({ note_id: '550e8400-e29b-41d4-a716-446655440001' }),
       })
 
       // Act

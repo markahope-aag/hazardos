@@ -34,27 +34,31 @@ describe('Notifications API', () => {
   })
 
   const mockProfile = {
-    organization_id: 'org-123',
+    organization_id: '550e8400-e29b-41d4-a716-446655440000',
     role: 'user'
+  }
+
+  const setupAuthenticatedUser = () => {
+    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+      data: { user: { id: 'user-1', email: 'user@example.com' } },
+      error: null
+    })
+
+    vi.mocked(mockSupabaseClient.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: mockProfile,
+            error: null
+          })
+        })
+      })
+    } as any)
   }
 
   describe('GET /api/notifications', () => {
     it('should get all notifications', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'user@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const mockNotifications = [
         { id: 'notif-1', title: 'New Job', message: 'Job assigned', is_read: false },
@@ -72,21 +76,7 @@ describe('Notifications API', () => {
     })
 
     it('should get unread notifications only', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'user@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const mockUnread = [
         { id: 'notif-1', title: 'New Job', message: 'Job assigned', is_read: false }
@@ -103,21 +93,7 @@ describe('Notifications API', () => {
     })
 
     it('should respect limit parameter', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'user@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       vi.mocked(NotificationService.getAll).mockResolvedValue([])
 
@@ -126,29 +102,27 @@ describe('Notifications API', () => {
 
       expect(NotificationService.getAll).toHaveBeenCalledWith(undefined, 10)
     })
+
+    it('should return 401 for unauthenticated user', async () => {
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+        data: { user: null },
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost:3000/api/notifications')
+      const response = await GET(request)
+
+      expect(response.status).toBe(401)
+    })
   })
 
   describe('POST /api/notifications', () => {
     it('should create notification', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'user@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const mockNotification = {
         id: 'notif-1',
-        user_id: 'user-2',
+        user_id: '550e8400-e29b-41d4-a716-446655440001',
         type: 'job_assigned',
         title: 'New Job',
         message: 'You have been assigned a job'
@@ -157,7 +131,7 @@ describe('Notifications API', () => {
       vi.mocked(NotificationService.create).mockResolvedValue(mockNotification)
 
       const notificationData = {
-        user_id: 'user-2',
+        user_id: '550e8400-e29b-41d4-a716-446655440001',
         type: 'job_assigned',
         title: 'New Job',
         message: 'You have been assigned a job'
@@ -182,7 +156,7 @@ describe('Notifications API', () => {
       })
 
       const notificationData = {
-        user_id: 'user-2',
+        user_id: '550e8400-e29b-41d4-a716-446655440001',
         type: 'job_assigned',
         title: 'New Job',
         message: 'Test'

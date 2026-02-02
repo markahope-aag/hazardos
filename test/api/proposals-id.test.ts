@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
+// Mock the rate limiter
+vi.mock('@/lib/middleware/unified-rate-limit', () => ({
+  applyUnifiedRateLimit: vi.fn(() => Promise.resolve(null))
+}))
+
 // Mock the dependencies
 const mockSupabaseClient = {
   auth: {
@@ -15,31 +20,40 @@ vi.mock('@/lib/supabase/server', () => ({
 
 // Import the route handlers
 import { GET, PATCH, DELETE } from '@/app/api/proposals/[id]/route'
-import { createClient } from '@/lib/supabase/server'
 
 describe('Proposals [id] API', () => {
-  const mockProposalId = 'proposal-123'
+  const mockProposalId = 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
   const mockProposal = {
     id: mockProposalId,
     proposal_number: 'PROP-001',
-    estimate_id: 'estimate-1',
-    customer_id: 'customer-1',
+    estimate_id: 'a47ac10b-58cc-4372-a567-0e02b2c3d479',
+    customer_id: 'b47ac10b-58cc-4372-a567-0e02b2c3d479',
     status: 'draft',
     created_at: '2026-01-31T10:00:00Z',
     estimate: {
-      id: 'estimate-1',
+      id: 'a47ac10b-58cc-4372-a567-0e02b2c3d479',
       estimate_number: 'EST-001',
       project_name: 'Test Project',
       total: 5400.00,
       status: 'approved'
     },
     customer: {
-      id: 'customer-1',
+      id: 'b47ac10b-58cc-4372-a567-0e02b2c3d479',
       company_name: 'Test Company',
       first_name: 'John',
       last_name: 'Doe',
       email: 'john@test.com'
     }
+  }
+
+  const mockProfile = {
+    organization_id: 'org-123',
+    role: 'user'
+  }
+
+  const mockAdminProfile = {
+    organization_id: 'org-123',
+    role: 'admin'
   }
 
   beforeEach(() => {
@@ -60,7 +74,7 @@ describe('Proposals [id] API', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { organization_id: 'org-1' },
+                  data: mockProfile,
                   error: null
                 })
               })
@@ -70,12 +84,14 @@ describe('Proposals [id] API', () => {
         if (table === 'proposals') {
           return {
             select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: mockProposal,
-                  error: null
+              eq: vi.fn().mockImplementation(() => ({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: mockProposal,
+                    error: null
+                  })
                 })
-              })
+              }))
             })
           } as any
         }
@@ -101,7 +117,7 @@ describe('Proposals [id] API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(401)
-      expect(data.error).toBe('Unauthorized')
+      expect(data.error).toBe('Authentication is required')
     })
 
     it('should return 404 for non-existent proposal', async () => {
@@ -116,7 +132,7 @@ describe('Proposals [id] API', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { organization_id: 'org-1' },
+                  data: mockProfile,
                   error: null
                 })
               })
@@ -126,12 +142,14 @@ describe('Proposals [id] API', () => {
         if (table === 'proposals') {
           return {
             select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: { message: 'No rows found', code: 'PGRST116' }
+              eq: vi.fn().mockImplementation(() => ({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: { message: 'No rows found', code: 'PGRST116' }
+                  })
                 })
-              })
+              }))
             })
           } as any
         }
@@ -160,8 +178,8 @@ describe('Proposals [id] API', () => {
         error: null
       })
 
-      const updatedProposal = { 
-        ...mockProposal, 
+      const updatedProposal = {
+        ...mockProposal,
         ...updateData,
         updated_at: '2026-01-31T12:00:00Z'
       }
@@ -172,7 +190,7 @@ describe('Proposals [id] API', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { organization_id: 'org-1' },
+                  data: mockProfile,
                   error: null
                 })
               })
@@ -182,12 +200,14 @@ describe('Proposals [id] API', () => {
         if (table === 'proposals') {
           return {
             select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: mockProposalId, status: 'draft' },
-                  error: null
+              eq: vi.fn().mockImplementation(() => ({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: mockProposalId, status: 'draft' },
+                    error: null
+                  })
                 })
-              })
+              }))
             }),
             update: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
@@ -231,7 +251,7 @@ describe('Proposals [id] API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(401)
-      expect(data.error).toBe('Unauthorized')
+      expect(data.error).toBe('Authentication is required')
     })
 
     it('should return 404 for non-existent proposal', async () => {
@@ -246,7 +266,7 @@ describe('Proposals [id] API', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { organization_id: 'org-1' },
+                  data: mockProfile,
                   error: null
                 })
               })
@@ -256,12 +276,14 @@ describe('Proposals [id] API', () => {
         if (table === 'proposals') {
           return {
             select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: { message: 'No rows found', code: 'PGRST116' }
+              eq: vi.fn().mockImplementation(() => ({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: { message: 'No rows found', code: 'PGRST116' }
+                  })
                 })
-              })
+              }))
             })
           } as any
         }
@@ -294,7 +316,7 @@ describe('Proposals [id] API', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { organization_id: 'org-1', role: 'admin' },
+                  data: mockAdminProfile,
                   error: null
                 })
               })
@@ -304,10 +326,12 @@ describe('Proposals [id] API', () => {
         if (table === 'proposals') {
           return {
             delete: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({
-                data: null,
-                error: null
-              })
+              eq: vi.fn().mockImplementation(() => ({
+                eq: vi.fn().mockResolvedValue({
+                  data: null,
+                  error: null
+                })
+              }))
             })
           } as any
         }
@@ -339,7 +363,7 @@ describe('Proposals [id] API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(401)
-      expect(data.error).toBe('Unauthorized')
+      expect(data.error).toBe('Authentication is required')
     })
 
     it('should return 403 for user without delete permissions', async () => {
@@ -354,7 +378,7 @@ describe('Proposals [id] API', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { organization_id: 'org-1', role: 'user' },
+                  data: mockProfile, // role: 'user' which is not in allowedRoles
                   error: null
                 })
               })
@@ -372,7 +396,7 @@ describe('Proposals [id] API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(403)
-      expect(data.error).toBe('Permission denied')
+      expect(data.error).toBe('You do not have permission to access this resource')
     })
   })
 })

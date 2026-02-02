@@ -156,7 +156,7 @@ describe('Invoice Line Items Management', () => {
 
       expect(response.status).toBe(400)
       expect(data.type).toBe('VALIDATION_ERROR')
-      expect(data.error).toContain('Description is required')
+      expect(data.field).toBe('description')
     })
   })
 

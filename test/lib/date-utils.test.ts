@@ -60,44 +60,48 @@ describe('Date Utilities', () => {
 
   describe('Date Calculations', () => {
     it('should add days correctly', () => {
-      const baseDate = new Date('2026-01-31')
-      
+      // Use noon to avoid timezone issues
+      const baseDate = new Date('2026-01-31T12:00:00')
+
       const nextDay = addDays(baseDate, 1)
       expect(format(nextDay, 'yyyy-MM-dd')).toBe('2026-02-01')
-      
+
       const nextWeek = addDays(baseDate, 7)
       expect(format(nextWeek, 'yyyy-MM-dd')).toBe('2026-02-07')
     })
 
     it('should subtract days correctly', () => {
-      const baseDate = new Date('2026-02-01')
-      
+      // Use noon to avoid timezone issues
+      const baseDate = new Date('2026-02-01T12:00:00')
+
       const prevDay = subDays(baseDate, 1)
       expect(format(prevDay, 'yyyy-MM-dd')).toBe('2026-01-31')
-      
+
       const prevWeek = subDays(baseDate, 7)
       expect(format(prevWeek, 'yyyy-MM-dd')).toBe('2026-01-25')
     })
 
     it('should handle month boundaries', () => {
-      const endOfJan = new Date('2026-01-31')
+      // Use noon to avoid timezone issues
+      const endOfJan = new Date('2026-01-31T12:00:00')
       const startOfFeb = addDays(endOfJan, 1)
-      
+
       expect(format(startOfFeb, 'yyyy-MM-dd')).toBe('2026-02-01')
-      
+
       const backToJan = subDays(startOfFeb, 1)
       expect(format(backToJan, 'yyyy-MM-dd')).toBe('2026-01-31')
     })
 
     it('should handle leap years', () => {
-      const leapYear = new Date('2024-02-28')
+      // Use noon to avoid timezone issues
+      const leapYear = new Date('2024-02-28T12:00:00')
       const leapDay = addDays(leapYear, 1)
-      
+
       expect(format(leapDay, 'yyyy-MM-dd')).toBe('2024-02-29')
-      
-      const nonLeapYear = new Date('2025-02-28')
+
+      const nonLeapYear = new Date('2025-02-28T12:00:00')
       const marchFirst = addDays(nonLeapYear, 1)
-      
+
       expect(format(marchFirst, 'yyyy-MM-dd')).toBe('2025-03-01')
     })
   })
@@ -208,7 +212,7 @@ describe('Date Utilities', () => {
       const getBusinessDaysBetween = (startDate: Date, endDate: Date) => {
         let count = 0
         const current = new Date(startDate)
-        
+
         while (current <= endDate) {
           const dayOfWeek = current.getDay()
           if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Not Sunday (0) or Saturday (6)
@@ -216,13 +220,14 @@ describe('Date Utilities', () => {
           }
           current.setDate(current.getDate() + 1)
         }
-        
+
         return count
       }
 
-      const monday = new Date('2026-02-02') // Monday
-      const friday = new Date('2026-02-06') // Friday
-      
+      // Use noon to avoid timezone issues
+      const monday = new Date('2026-02-02T12:00:00') // Monday
+      const friday = new Date('2026-02-06T12:00:00') // Friday
+
       expect(getBusinessDaysBetween(monday, friday)).toBe(5)
     })
   })

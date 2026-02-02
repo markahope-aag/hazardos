@@ -37,35 +37,39 @@ describe('Job Crew Management', () => {
     role: 'admin'
   }
 
-  describe('POST /api/jobs/[id]/crew', () => {
-    it('should assign crew member to job', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'admin@example.com' } },
-        error: null
-      })
+  const setupAuthenticatedUser = () => {
+    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+      data: { user: { id: 'user-1', email: 'admin@example.com' } },
+      error: null
+    })
 
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
+    vi.mocked(mockSupabaseClient.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: mockProfile,
+            error: null
           })
         })
-      } as any)
+      })
+    } as any)
+  }
+
+  describe('POST /api/jobs/[id]/crew', () => {
+    it('should assign crew member to job', async () => {
+      setupAuthenticatedUser()
 
       const mockCrew = {
-        id: 'crew-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         job_id: 'job-123',
-        profile_id: 'profile-1'
+        profile_id: '550e8400-e29b-41d4-a716-446655440002'
       }
 
       vi.mocked(JobsService.assignCrew).mockResolvedValue(mockCrew)
 
       const crewData = {
-        profile_id: 'profile-1',
-        role: 'foreman'
+        profile_id: '550e8400-e29b-41d4-a716-446655440002',
+        role: 'lead'
       }
 
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/crew', {
@@ -83,27 +87,13 @@ describe('Job Crew Management', () => {
 
   describe('DELETE /api/jobs/[id]/crew', () => {
     it('should remove crew member from job', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'admin@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       vi.mocked(JobsService.removeCrew).mockResolvedValue(undefined)
 
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/crew', {
         method: 'DELETE',
-        body: JSON.stringify({ profile_id: 'profile-1' })
+        body: JSON.stringify({ profile_id: '550e8400-e29b-41d4-a716-446655440002' })
       })
 
       const response = await DELETE(request, { params: Promise.resolve({ id: 'job-123' }) })

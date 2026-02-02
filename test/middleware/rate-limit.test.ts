@@ -506,9 +506,21 @@ describe('rate-limit middleware', () => {
 
     it('should have all expected limiter types', () => {
       // Assert
-      const expectedTypes = ['general', 'auth', 'upload', 'heavy']
+      const expectedTypes = ['general', 'auth', 'upload', 'heavy', 'webhook', 'public']
       const actualTypes = Object.keys(rateLimiters)
       expect(actualTypes).toEqual(expectedTypes)
+    })
+
+    it('should export webhook limiter', () => {
+      // Assert
+      expect(rateLimiters.webhook).toBeDefined()
+      expect(rateLimiters.webhook.limit).toBeDefined()
+    })
+
+    it('should export public limiter', () => {
+      // Assert
+      expect(rateLimiters.public).toBeDefined()
+      expect(rateLimiters.public.limit).toBeDefined()
     })
   })
 

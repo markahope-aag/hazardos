@@ -35,27 +35,31 @@ describe('Pipeline API', () => {
   })
 
   const mockProfile = {
-    organization_id: 'org-123',
+    organization_id: '550e8400-e29b-41d4-a716-446655440000',
     role: 'user'
+  }
+
+  const setupAuthenticatedUser = () => {
+    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+      data: { user: { id: 'user-1', email: 'user@example.com' } },
+      error: null
+    })
+
+    vi.mocked(mockSupabaseClient.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: mockProfile,
+            error: null
+          })
+        })
+      })
+    } as any)
   }
 
   describe('GET /api/pipeline', () => {
     it('should return pipeline data with stages, opportunities, and metrics', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'user@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const mockStages = [
         { id: 'stage-1', name: 'Lead', order: 1 },
@@ -63,7 +67,7 @@ describe('Pipeline API', () => {
       ]
 
       const mockOpportunities = [
-        { id: 'opp-1', title: 'Office Renovation', value: 50000, stage_id: 'stage-1' }
+        { id: 'opp-1', name: 'Office Renovation', value: 50000, stage_id: 'stage-1' }
       ]
 
       const mockMetrics = {
@@ -85,40 +89,38 @@ describe('Pipeline API', () => {
       expect(data.opportunities).toEqual(mockOpportunities)
       expect(data.metrics).toEqual(mockMetrics)
     })
+
+    it('should return 401 for unauthenticated user', async () => {
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+        data: { user: null },
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost:3000/api/pipeline')
+      const response = await GET(request)
+
+      expect(response.status).toBe(401)
+    })
   })
 
   describe('POST /api/pipeline', () => {
     it('should create new opportunity', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'user@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const mockOpportunity = {
         id: 'opp-1',
-        title: 'Factory Abatement',
+        name: 'Factory Abatement',
         value: 100000,
-        stage_id: 'stage-1'
+        stage_id: '550e8400-e29b-41d4-a716-446655440002'
       }
 
       vi.mocked(PipelineService.createOpportunity).mockResolvedValue(mockOpportunity)
 
       const oppData = {
-        title: 'Factory Abatement',
+        name: 'Factory Abatement',
         value: 100000,
-        stage_id: 'stage-1',
-        customer_id: 'customer-1'
+        stage_id: '550e8400-e29b-41d4-a716-446655440002',
+        customer_id: '550e8400-e29b-41d4-a716-446655440001'
       }
 
       const request = new NextRequest('http://localhost:3000/api/pipeline', {
@@ -131,6 +133,29 @@ describe('Pipeline API', () => {
 
       expect(response.status).toBe(201)
       expect(data).toEqual(mockOpportunity)
+    })
+
+    it('should return 401 for unauthenticated user', async () => {
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+        data: { user: null },
+        error: null
+      })
+
+      const oppData = {
+        name: 'Factory Abatement',
+        value: 100000,
+        stage_id: '550e8400-e29b-41d4-a716-446655440002',
+        customer_id: '550e8400-e29b-41d4-a716-446655440001'
+      }
+
+      const request = new NextRequest('http://localhost:3000/api/pipeline', {
+        method: 'POST',
+        body: JSON.stringify(oppData)
+      })
+
+      const response = await POST(request)
+
+      expect(response.status).toBe(401)
     })
   })
 })

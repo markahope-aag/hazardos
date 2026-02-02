@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/jobs/[id]/status/route'
 
+// Mock rate limit
+vi.mock('@/lib/middleware/unified-rate-limit', () => ({
+  applyUnifiedRateLimit: vi.fn(() => Promise.resolve(null))
+}))
+
 // Mock Supabase client
 const mockSupabaseClient = {
   auth: {
@@ -28,20 +33,39 @@ vi.mock('@/lib/services/jobs-service', () => ({
 
 import { JobsService } from '@/lib/services/jobs-service'
 
+const mockProfile = {
+  organization_id: 'org-123',
+  role: 'admin'
+}
+
+const setupAuthenticatedUser = () => {
+  vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+    data: { user: { id: 'user-1', email: 'test@example.com' } },
+    error: null
+  })
+
+  vi.mocked(mockSupabaseClient.from).mockReturnValue({
+    select: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: mockProfile,
+          error: null
+        })
+      })
+    })
+  } as any)
+}
+
 describe('Job Status API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-
-    // Default auth mock - authenticated user
-    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-      data: { user: { id: 'user-123' } },
-      error: null,
-    })
   })
 
   describe('POST /api/jobs/[id]/status', () => {
     it('should update job status to scheduled', async () => {
       // Arrange
+      setupAuthenticatedUser()
+
       const updatedJob = {
         id: 'job-123',
         status: 'scheduled',
@@ -69,6 +93,8 @@ describe('Job Status API', () => {
 
     it('should update job status to in_progress', async () => {
       // Arrange
+      setupAuthenticatedUser()
+
       const updatedJob = {
         id: 'job-123',
         status: 'in_progress',
@@ -94,6 +120,8 @@ describe('Job Status API', () => {
 
     it('should update job status to completed', async () => {
       // Arrange
+      setupAuthenticatedUser()
+
       const updatedJob = {
         id: 'job-123',
         status: 'completed',
@@ -119,6 +147,8 @@ describe('Job Status API', () => {
 
     it('should reject invalid status', async () => {
       // Arrange
+      setupAuthenticatedUser()
+
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -136,6 +166,8 @@ describe('Job Status API', () => {
 
     it('should reject request without status', async () => {
       // Arrange
+      setupAuthenticatedUser()
+
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -151,7 +183,7 @@ describe('Job Status API', () => {
 
     it('should reject unauthenticated requests', async () => {
       // Arrange
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
         data: { user: null },
         error: { message: 'Not authenticated' },
       })

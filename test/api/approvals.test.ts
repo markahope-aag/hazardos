@@ -33,27 +33,31 @@ describe('Approvals API', () => {
   })
 
   const mockProfile = {
-    organization_id: 'org-123',
+    organization_id: '550e8400-e29b-41d4-a716-446655440000',
     role: 'admin'
+  }
+
+  const setupAuthenticatedUser = () => {
+    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+      data: { user: { id: 'user-1', email: 'admin@example.com' } },
+      error: null
+    })
+
+    vi.mocked(mockSupabaseClient.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: mockProfile,
+            error: null
+          })
+        })
+      })
+    } as any)
   }
 
   describe('GET /api/approvals', () => {
     it('should list approval requests', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'admin@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const mockRequests = [
         { id: 'approval-1', entity_type: 'estimate', status: 'pending', amount: 5000 },
@@ -71,21 +75,7 @@ describe('Approvals API', () => {
     })
 
     it('should filter by entity type', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'admin@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       vi.mocked(ApprovalService.getRequests).mockResolvedValue([])
 
@@ -98,21 +88,7 @@ describe('Approvals API', () => {
     })
 
     it('should filter pending only', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'admin@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       vi.mocked(ApprovalService.getRequests).mockResolvedValue([])
 
@@ -123,30 +99,28 @@ describe('Approvals API', () => {
         expect.objectContaining({ pending_only: true })
       )
     })
+
+    it('should return 401 for unauthenticated user', async () => {
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+        data: { user: null },
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost:3000/api/approvals')
+      const response = await GET(request)
+
+      expect(response.status).toBe(401)
+    })
   })
 
   describe('POST /api/approvals', () => {
     it('should create approval request', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'admin@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const mockRequest = {
         id: 'approval-1',
         entity_type: 'estimate',
-        entity_id: 'est-123',
+        entity_id: '550e8400-e29b-41d4-a716-446655440001',
         amount: 5000,
         status: 'pending'
       }
@@ -155,7 +129,7 @@ describe('Approvals API', () => {
 
       const approvalData = {
         entity_type: 'estimate',
-        entity_id: 'est-123',
+        entity_id: '550e8400-e29b-41d4-a716-446655440001',
         amount: 5000
       }
 
@@ -179,7 +153,7 @@ describe('Approvals API', () => {
 
       const approvalData = {
         entity_type: 'estimate',
-        entity_id: 'est-123',
+        entity_id: '550e8400-e29b-41d4-a716-446655440001',
         amount: 5000
       }
 

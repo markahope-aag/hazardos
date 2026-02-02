@@ -33,31 +33,35 @@ describe('Reports API', () => {
   })
 
   const mockProfile = {
-    organization_id: 'org-123',
+    organization_id: '550e8400-e29b-41d4-a716-446655440000',
     role: 'admin'
+  }
+
+  const setupAuthenticatedUser = () => {
+    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+      data: { user: { id: 'user-1', email: 'admin@example.com' } },
+      error: null
+    })
+
+    vi.mocked(mockSupabaseClient.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: mockProfile,
+            error: null
+          })
+        })
+      })
+    } as any)
   }
 
   describe('GET /api/reports', () => {
     it('should list all reports', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'admin@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const mockReports = [
-        { id: 'report-1', name: 'Monthly Revenue', type: 'financial' },
-        { id: 'report-2', name: 'Job Completion', type: 'operational' }
+        { id: 'report-1', name: 'Monthly Revenue', report_type: 'revenue' },
+        { id: 'report-2', name: 'Job Completion', report_type: 'jobs' }
       ]
 
       vi.mocked(ReportingService.listReports).mockResolvedValue(mockReports)
@@ -69,38 +73,42 @@ describe('Reports API', () => {
       expect(response.status).toBe(200)
       expect(data).toEqual(mockReports)
     })
+
+    it('should return 401 for unauthenticated user', async () => {
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+        data: { user: null },
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost:3000/api/reports')
+      const response = await GET(request)
+
+      expect(response.status).toBe(401)
+    })
   })
 
   describe('POST /api/reports', () => {
     it('should create a new report', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'admin@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const mockReport = {
         id: 'report-1',
         name: 'Q1 Revenue',
-        type: 'financial'
+        report_type: 'revenue'
       }
 
       vi.mocked(ReportingService.createReport).mockResolvedValue(mockReport)
 
       const reportData = {
         name: 'Q1 Revenue',
-        type: 'financial',
-        date_range: { start: '2026-01-01', end: '2026-03-31' }
+        report_type: 'revenue',
+        config: {
+          date_range: { type: 'this_quarter' },
+          filters: [],
+          metrics: ['total_revenue'],
+          columns: [{ field: 'revenue', label: 'Revenue', visible: true }],
+          chart_type: 'bar'
+        }
       }
 
       const request = new NextRequest('http://localhost:3000/api/reports', {
@@ -113,6 +121,34 @@ describe('Reports API', () => {
 
       expect(response.status).toBe(201)
       expect(data).toEqual(mockReport)
+    })
+
+    it('should return 401 for unauthenticated user', async () => {
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+        data: { user: null },
+        error: null
+      })
+
+      const reportData = {
+        name: 'Q1 Revenue',
+        report_type: 'revenue',
+        config: {
+          date_range: { type: 'this_quarter' },
+          filters: [],
+          metrics: ['total_revenue'],
+          columns: [{ field: 'revenue', label: 'Revenue', visible: true }],
+          chart_type: 'bar'
+        }
+      }
+
+      const request = new NextRequest('http://localhost:3000/api/reports', {
+        method: 'POST',
+        body: JSON.stringify(reportData)
+      })
+
+      const response = await POST(request)
+
+      expect(response.status).toBe(401)
     })
   })
 })
