@@ -44,13 +44,14 @@ describe('VisuallyHidden Component', () => {
       </VisuallyHidden>
     )
 
-    const element = screen.getByText(/complex/i)
-    expect(element).toBeInTheDocument()
-    expect(element).toHaveClass('sr-only')
-    
     // Check that nested elements are rendered
-    expect(screen.getByText('Complex')).toBeInTheDocument()
+    const complexElement = screen.getByText('Complex')
+    expect(complexElement).toBeInTheDocument()
     expect(screen.getByText('content')).toBeInTheDocument()
+
+    // The parent span should have sr-only class
+    const parentSpan = complexElement.parentElement
+    expect(parentSpan).toHaveClass('sr-only')
   })
 
   it('should handle empty children', () => {

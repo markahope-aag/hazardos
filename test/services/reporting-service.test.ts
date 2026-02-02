@@ -115,20 +115,20 @@ describe('ReportingService', () => {
     })
 
     it('should return custom date range', () => {
+      const customStart = new Date('2026-01-01T00:00:00.000Z')
+      const customEnd = new Date('2026-01-31T23:59:59.999Z')
+
       const result = ReportingService.getDateRange({
         type: 'custom',
-        start: '2026-01-01',
-        end: '2026-01-31',
+        start: customStart.toISOString(),
+        end: customEnd.toISOString(),
       })
 
       const startDate = new Date(result.start)
       const endDate = new Date(result.end)
 
-      expect(startDate.getFullYear()).toBe(2026)
-      expect(startDate.getMonth()).toBe(0)
-      expect(startDate.getDate()).toBe(1)
-      expect(endDate.getMonth()).toBe(0)
-      expect(endDate.getDate()).toBe(31)
+      expect(startDate.getTime()).toBe(customStart.getTime())
+      expect(endDate.getTime()).toBe(customEnd.getTime())
     })
 
     it('should use defaults for custom range without dates', () => {

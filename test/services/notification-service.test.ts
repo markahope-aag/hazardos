@@ -435,9 +435,17 @@ describe('NotificationService', () => {
       mockSupabase.from = vi.fn(() => ({
         update: vi.fn(() => ({
           eq: vi.fn((field, value) => {
-            if (field === 'user_id') {
-              expect(value).toBe('user-1')
-              userIdChecked = true
+            if (field === 'id') {
+              expect(value).toBe('notif-1')
+              return {
+                eq: vi.fn((field2, value2) => {
+                  if (field2 === 'user_id') {
+                    expect(value2).toBe('user-1')
+                    userIdChecked = true
+                  }
+                  return { error: null }
+                }),
+              }
             }
             return {
               eq: vi.fn().mockResolvedValue({ error: null }),
@@ -651,6 +659,18 @@ describe('NotificationService', () => {
               eq: vi.fn(() => ({
                 single: vi.fn().mockResolvedValue({
                   data: { email: 'user@example.com' },
+                  error: null,
+                }),
+              })),
+            })),
+          }
+        }
+        if (table === 'organizations') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn().mockResolvedValue({
+                  data: { name: 'Test Organization' },
                   error: null,
                 }),
               })),

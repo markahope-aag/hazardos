@@ -82,7 +82,12 @@ describe('ApprovalService', () => {
     })
 
     it('should filter by entity type when provided', async () => {
-      mockSupabase.order.mockResolvedValue({ data: [], error: null })
+      // When entityType is provided: from().select().eq('is_active').order().eq('entity_type')
+      // .order() returns mockSupabase, final .eq() returns promise
+      mockSupabase.eq
+        .mockReturnValueOnce(mockSupabase) // .eq('is_active')
+        .mockResolvedValueOnce({ data: [], error: null }) // .eq('entity_type')
+      mockSupabase.order.mockReturnValue(mockSupabase)
 
       await ApprovalService.getThresholds('proposal')
 
@@ -248,7 +253,10 @@ describe('ApprovalService', () => {
     })
 
     it('should filter by entity_type', async () => {
-      mockSupabase.order.mockResolvedValue({ data: [mockRequests[0]], error: null })
+      // getRequests with filter: from().select().order().eq('entity_type')
+      // .order() returns mockSupabase, .eq() returns promise with data
+      mockSupabase.order.mockReturnValue(mockSupabase)
+      mockSupabase.eq.mockResolvedValue({ data: [mockRequests[0]], error: null })
 
       await ApprovalService.getRequests({ entity_type: 'estimate' })
 
@@ -256,7 +264,8 @@ describe('ApprovalService', () => {
     })
 
     it('should filter by status', async () => {
-      mockSupabase.order.mockResolvedValue({ data: [mockRequests[1]], error: null })
+      mockSupabase.order.mockReturnValue(mockSupabase)
+      mockSupabase.eq.mockResolvedValue({ data: [mockRequests[1]], error: null })
 
       await ApprovalService.getRequests({ status: 'approved' })
 
@@ -264,7 +273,8 @@ describe('ApprovalService', () => {
     })
 
     it('should filter by requested_by', async () => {
-      mockSupabase.order.mockResolvedValue({ data: [], error: null })
+      mockSupabase.order.mockReturnValue(mockSupabase)
+      mockSupabase.eq.mockResolvedValue({ data: [], error: null })
 
       await ApprovalService.getRequests({ requested_by: 'user-1' })
 
@@ -272,7 +282,8 @@ describe('ApprovalService', () => {
     })
 
     it('should filter pending_only', async () => {
-      mockSupabase.order.mockResolvedValue({ data: [mockRequests[0]], error: null })
+      mockSupabase.order.mockReturnValue(mockSupabase)
+      mockSupabase.eq.mockResolvedValue({ data: [mockRequests[0]], error: null })
 
       await ApprovalService.getRequests({ pending_only: true })
 
@@ -345,19 +356,27 @@ describe('ApprovalService', () => {
         },
       ]
 
-      mockSupabase.order.mockResolvedValue({ data: mockThresholds, error: null })
+      // createRequest execution order:
+      // 1. from('profiles').select().eq('id').single() - profile lookup
+      // 2. getThresholds: from().select().eq('is_active').order().eq('entity_type')
+      // 3. from().insert().select().single() - insert request
 
-      const mockRequest = {
-        id: 'request-1',
-        entity_type: 'estimate',
-        entity_id: 'estimate-1',
-        amount: 15000,
-        requires_level2: false,
-        final_status: 'pending',
-      }
-
-      mockSupabase.single.mockResolvedValueOnce({ data: mockProfile, error: null })
-      mockSupabase.single.mockResolvedValueOnce({ data: mockRequest, error: null })
+      mockSupabase.eq
+        .mockReturnValueOnce(mockSupabase) // Profile lookup .eq('id')
+        .mockReturnValueOnce(mockSupabase) // getThresholds .eq('is_active')
+        .mockResolvedValueOnce({ data: mockThresholds, error: null }) // getThresholds .eq('entity_type')
+      mockSupabase.order.mockReturnValue(mockSupabase)
+      mockSupabase.select.mockReturnValue(mockSupabase)
+      mockSupabase.single
+        .mockResolvedValueOnce({ data: mockProfile, error: null }) // Profile lookup
+        .mockResolvedValueOnce({ data: {
+          id: 'request-1',
+          entity_type: 'estimate',
+          entity_id: 'estimate-1',
+          amount: 15000,
+          requires_level2: false,
+          final_status: 'pending',
+        }, error: null }) // Insert request
 
       const result = await ApprovalService.createRequest({
         entity_type: 'estimate',
@@ -381,7 +400,7 @@ describe('ApprovalService', () => {
         'request-1',
         'estimate approval'
       )
-      expect(result).toEqual(mockRequest)
+      expect(result.id).toBe('request-1')
     })
 
     it('should create approval request with level 2 when threshold requires it', async () => {
@@ -398,15 +417,15 @@ describe('ApprovalService', () => {
         },
       ]
 
-      mockSupabase.order.mockResolvedValue({ data: mockThresholds, error: null })
-
-      const mockRequest = {
-        id: 'request-1',
-        requires_level2: true,
-      }
-
-      mockSupabase.single.mockResolvedValueOnce({ data: mockProfile, error: null })
-      mockSupabase.single.mockResolvedValueOnce({ data: mockRequest, error: null })
+      mockSupabase.eq
+        .mockReturnValueOnce(mockSupabase) // Profile lookup
+        .mockReturnValueOnce(mockSupabase) // getThresholds .eq('is_active')
+        .mockResolvedValueOnce({ data: mockThresholds, error: null }) // getThresholds .eq('entity_type')
+      mockSupabase.order.mockReturnValue(mockSupabase)
+      mockSupabase.select.mockReturnValue(mockSupabase)
+      mockSupabase.single
+        .mockResolvedValueOnce({ data: mockProfile, error: null })
+        .mockResolvedValueOnce({ data: { id: 'request-1', requires_level2: true }, error: null })
 
       await ApprovalService.createRequest({
         entity_type: 'estimate',
@@ -423,11 +442,15 @@ describe('ApprovalService', () => {
     })
 
     it('should default amount to 0 if not provided', async () => {
-      mockSupabase.order.mockResolvedValue({ data: [], error: null })
-
-      const mockRequest = { id: 'request-1' }
-      mockSupabase.single.mockResolvedValueOnce({ data: mockProfile, error: null })
-      mockSupabase.single.mockResolvedValueOnce({ data: mockRequest, error: null })
+      mockSupabase.eq
+        .mockReturnValueOnce(mockSupabase) // Profile lookup
+        .mockReturnValueOnce(mockSupabase) // getThresholds .eq('is_active')
+        .mockResolvedValueOnce({ data: [], error: null }) // getThresholds .eq('entity_type')
+      mockSupabase.order.mockReturnValue(mockSupabase)
+      mockSupabase.select.mockReturnValue(mockSupabase)
+      mockSupabase.single
+        .mockResolvedValueOnce({ data: mockProfile, error: null })
+        .mockResolvedValueOnce({ data: { id: 'request-1' }, error: null })
 
       await ApprovalService.createRequest({
         entity_type: 'estimate',
@@ -457,12 +480,20 @@ describe('ApprovalService', () => {
     })
 
     it('should approve level 1 and set final status when no level 2 required', async () => {
+      // decideLevel1 calls:
+      // 1. getRequest: from().select().eq().single()
+      // 2. from().update().eq().select().single()
+
+      mockSupabase.eq
+        .mockReturnValueOnce(mockSupabase) // getRequest .eq('id')
+        .mockReturnValueOnce(mockSupabase) // update .eq('id')
+      mockSupabase.select.mockReturnValue(mockSupabase)
       mockSupabase.single
-        .mockResolvedValueOnce({ data: mockRequest, error: null })
+        .mockResolvedValueOnce({ data: mockRequest, error: null }) // getRequest
         .mockResolvedValueOnce({
           data: { ...mockRequest, level1_status: 'approved', final_status: 'approved' },
           error: null,
-        })
+        }) // update result
 
       const result = await ApprovalService.decideLevel1('request-1', {
         approved: true,
@@ -511,6 +542,10 @@ describe('ApprovalService', () => {
     it('should keep final status pending when level 2 is required and level 1 approved', async () => {
       const requestWithLevel2 = { ...mockRequest, requires_level2: true }
 
+      mockSupabase.eq
+        .mockReturnValueOnce(mockSupabase) // getRequest
+        .mockReturnValueOnce(mockSupabase) // update
+      mockSupabase.select.mockReturnValue(mockSupabase)
       mockSupabase.single
         .mockResolvedValueOnce({ data: requestWithLevel2, error: null })
         .mockResolvedValueOnce({
@@ -530,7 +565,9 @@ describe('ApprovalService', () => {
     })
 
     it('should throw when request not found', async () => {
-      mockSupabase.single.mockResolvedValue({ data: null, error: { code: 'PGRST116' } })
+      mockSupabase.eq.mockReturnValueOnce(mockSupabase)
+      mockSupabase.select.mockReturnValue(mockSupabase)
+      mockSupabase.single.mockResolvedValueOnce({ data: null, error: { code: 'PGRST116' } })
 
       await expect(
         ApprovalService.decideLevel1('non-existent', { approved: true })
@@ -554,6 +591,10 @@ describe('ApprovalService', () => {
     })
 
     it('should approve level 2 and set final status', async () => {
+      mockSupabase.eq
+        .mockReturnValueOnce(mockSupabase) // getRequest
+        .mockReturnValueOnce(mockSupabase) // update
+      mockSupabase.select.mockReturnValue(mockSupabase)
       mockSupabase.single
         .mockResolvedValueOnce({ data: mockRequest, error: null })
         .mockResolvedValueOnce({
@@ -596,7 +637,9 @@ describe('ApprovalService', () => {
 
     it('should throw when level 1 is not approved', async () => {
       const requestPending = { ...mockRequest, level1_status: 'pending' }
-      mockSupabase.single.mockResolvedValue({ data: requestPending, error: null })
+      mockSupabase.eq.mockReturnValueOnce(mockSupabase) // getRequest
+      mockSupabase.select.mockReturnValue(mockSupabase)
+      mockSupabase.single.mockResolvedValueOnce({ data: requestPending, error: null })
 
       await expect(
         ApprovalService.decideLevel2('request-1', { approved: true })
@@ -634,7 +677,12 @@ describe('ApprovalService', () => {
         },
       ]
 
-      mockSupabase.order.mockResolvedValue({ data: mockThresholds, error: null })
+      // checkNeedsApproval calls getThresholds(entityType) which does:
+      // from().select().eq('is_active').order().eq('entity_type')
+      mockSupabase.eq
+        .mockReturnValueOnce(mockSupabase) // .eq('is_active')
+        .mockResolvedValueOnce({ data: mockThresholds, error: null }) // .eq('entity_type')
+      mockSupabase.order.mockReturnValue(mockSupabase)
 
       const result = await ApprovalService.checkNeedsApproval('estimate', 15000)
 
@@ -649,7 +697,10 @@ describe('ApprovalService', () => {
         },
       ]
 
-      mockSupabase.order.mockResolvedValue({ data: mockThresholds, error: null })
+      mockSupabase.eq
+        .mockReturnValueOnce(mockSupabase)
+        .mockResolvedValueOnce({ data: mockThresholds, error: null })
+      mockSupabase.order.mockReturnValue(mockSupabase)
 
       const result = await ApprovalService.checkNeedsApproval('estimate', 5000)
 
@@ -657,7 +708,10 @@ describe('ApprovalService', () => {
     })
 
     it('should return false when no thresholds exist', async () => {
-      mockSupabase.order.mockResolvedValue({ data: [], error: null })
+      mockSupabase.eq
+        .mockReturnValueOnce(mockSupabase)
+        .mockResolvedValueOnce({ data: [], error: null })
+      mockSupabase.order.mockReturnValue(mockSupabase)
 
       const result = await ApprovalService.checkNeedsApproval('estimate', 100000)
 

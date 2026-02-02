@@ -108,17 +108,20 @@ describe('Logo Component', () => {
   })
 
   it('should add w-auto class for non-icon variants', () => {
-    render(<Logo variant="horizontal" />)
-    const horizontalImage = screen.getByTestId('logo-image')
+    const { rerender, unmount } = render(<Logo variant="horizontal" />)
+    let horizontalImage = screen.getByTestId('logo-image')
     expect(horizontalImage).toHaveClass('w-auto')
+    unmount()
 
-    const { rerender } = render(<Logo variant="vertical" />)
-    const verticalImage = screen.getByTestId('logo-image')
+    const { rerender: rerender2, unmount: unmount2 } = render(<Logo variant="vertical" />)
+    let verticalImage = screen.getByTestId('logo-image')
     expect(verticalImage).toHaveClass('w-auto')
+    unmount2()
 
-    rerender(<Logo variant="icon" />)
-    const iconImage = screen.getByTestId('logo-image')
+    const { unmount: unmount3 } = render(<Logo variant="icon" />)
+    let iconImage = screen.getByTestId('logo-image')
     expect(iconImage).not.toHaveClass('w-auto')
+    unmount3()
   })
 
   it('should have correct alt text', () => {
@@ -225,20 +228,23 @@ describe('Logo Edge Cases', () => {
 
   it('should maintain consistent dimensions', () => {
     // Icon variant should always have square dimensions
-    render(<Logo variant="icon" />)
+    const { unmount: unmount1 } = render(<Logo variant="icon" />)
     const iconImage = screen.getByTestId('logo-image')
     expect(iconImage).toHaveAttribute('width', '32')
     expect(iconImage).toHaveAttribute('height', '32')
+    unmount1()
 
     // Non-icon variants should have consistent dimensions
-    const { rerender } = render(<Logo variant="horizontal" />)
+    const { unmount: unmount2 } = render(<Logo variant="horizontal" />)
     const horizontalImage = screen.getByTestId('logo-image')
     expect(horizontalImage).toHaveAttribute('width', '120')
     expect(horizontalImage).toHaveAttribute('height', '40')
+    unmount2()
 
-    rerender(<Logo variant="vertical" />)
+    const { unmount: unmount3 } = render(<Logo variant="vertical" />)
     const verticalImage = screen.getByTestId('logo-image')
     expect(verticalImage).toHaveAttribute('width', '120')
     expect(verticalImage).toHaveAttribute('height', '40')
+    unmount3()
   })
 })

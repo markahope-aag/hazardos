@@ -220,15 +220,21 @@ describe('SyncStatusIndicator', () => {
     it('should disable sync button when syncing', () => {
       mockUseOfflineSync.status = 'syncing'
       render(<SyncStatusIndicator variant="full" showDetails={true} />)
-      
-      // The sync button should be disabled when syncing
-      const syncButtons = screen.getAllByRole('button')
-      const syncButton = syncButtons.find(btn => 
-        btn.textContent?.includes('Syncing') || 
-        btn.querySelector('.animate-spin')
-      )
-      expect(syncButton).toBeDefined()
-      expect(syncButton).toBeDisabled()
+
+      // The "Sync Now" button inside the panel should be disabled when syncing
+      // It shows "Syncing..." text when syncing
+      const buttons = screen.getAllByRole('button')
+      // Find the button within the panel (not the toggle button)
+      // It should contain "Syncing..." with an animated spinner icon
+      const syncActionButton = buttons.find(btn => {
+        const hasSpinner = btn.querySelector('.animate-spin')
+        const hasSyncText = btn.textContent?.includes('Syncing')
+        // The toggle button also has "Syncing" but doesn't have the spinner as child
+        const isInPanel = btn.closest('.absolute')
+        return hasSpinner && hasSyncText && isInPanel
+      })
+      expect(syncActionButton).toBeDefined()
+      expect(syncActionButton).toBeDisabled()
     })
 
     it('should show retry button when there are errors', () => {

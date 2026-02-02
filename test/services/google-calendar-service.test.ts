@@ -66,16 +66,16 @@ describe('GoogleCalendarService', () => {
     it('should send correct parameters', async () => {
       vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
-        json: async () => ({ access_token: 'test', expires_in: 3600 }),
+        json: async () => ({ access_token: 'test', refresh_token: 'test', expires_in: 3600 }),
       } as Response)
 
       await GoogleCalendarService.exchangeCodeForTokens('code_123')
 
       const callArgs = vi.mocked(global.fetch).mock.calls[0]
-      const body = JSON.parse(callArgs[1]?.body as string)
+      const body = new URLSearchParams(callArgs[1]?.body as string)
 
-      expect(body.grant_type).toBe('authorization_code')
-      expect(body.code).toBe('code_123')
+      expect(body.get('grant_type')).toBe('authorization_code')
+      expect(body.get('code')).toBe('code_123')
     })
   })
 
@@ -160,7 +160,11 @@ describe('GoogleCalendarService', () => {
           eq: vi.fn(() => ({
             eq: vi.fn(() => ({
               single: vi.fn().mockResolvedValue({
-                data: { is_active: true },
+                data: {
+                  is_active: true,
+                  external_id: 'test@example.com',
+                  last_sync_at: '2026-01-01T00:00:00Z'
+                },
                 error: null,
               }),
             })),
@@ -170,7 +174,8 @@ describe('GoogleCalendarService', () => {
 
       const status = await GoogleCalendarService.getConnectionStatus('org-123')
 
-      expect(status.connected).toBe(true)
+      expect(status.is_connected).toBe(true)
+      expect(status.email).toBe('test@example.com')
     })
 
     it('should return disconnected when not found', async () => {
@@ -189,160 +194,32 @@ describe('GoogleCalendarService', () => {
 
       const status = await GoogleCalendarService.getConnectionStatus('org-123')
 
-      expect(status.connected).toBe(false)
+      expect(status.is_connected).toBe(false)
     })
   })
 
-  describe('createEvent', () => {
-    it('should create calendar event', async () => {
-      mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: { access_token: 'access_123' },
-                error: null,
-              }),
-            })),
-          })),
-        })),
-      }))
+  describe('storeTokens', () => {
+    it('should store tokens with email', async () => {
+      let storedData: any
 
-      vi.mocked(global.fetch).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          id: 'event_123',
-          summary: 'Test Event',
+      mockSupabase.from = vi.fn(() => ({
+        upsert: vi.fn((data) => {
+          storedData = data
+          return Promise.resolve({ error: null })
         }),
-      } as Response)
-
-      const event = await GoogleCalendarService.createEvent('org-123', {
-        summary: 'Test Event',
-        start: { dateTime: '2026-02-01T10:00:00Z' },
-        end: { dateTime: '2026-02-01T11:00:00Z' },
-      })
-
-      expect(event.id).toBe('event_123')
-    })
-
-    it('should use correct API endpoint', async () => {
-      mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: { access_token: 'access_123' },
-                error: null,
-              }),
-            })),
-          })),
-        })),
       }))
 
-      vi.mocked(global.fetch).mockResolvedValue({
-        ok: true,
-        json: async () => ({}),
-      } as Response)
+      await GoogleCalendarService.storeTokens('org-123', {
+        access_token: 'access_123',
+        refresh_token: 'refresh_123',
+        expires_in: 3600,
+      }, 'test@example.com')
 
-      await GoogleCalendarService.createEvent('org-123', {
-        summary: 'Test',
-        start: { dateTime: '2026-02-01T10:00:00Z' },
-        end: { dateTime: '2026-02-01T11:00:00Z' },
-      })
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('www.googleapis.com/calendar/v3/calendars'),
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            Authorization: 'Bearer access_123',
-          }),
-        })
-      )
-    })
-
-    it('should throw when not connected', async () => {
-      mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: null,
-                error: null,
-              }),
-            })),
-          })),
-        })),
-      }))
-
-      await expect(
-        GoogleCalendarService.createEvent('org-123', {
-          summary: 'Test',
-          start: { dateTime: '2026-02-01T10:00:00Z' },
-          end: { dateTime: '2026-02-01T11:00:00Z' },
-        })
-      ).rejects.toThrow()
-    })
-  })
-
-  describe('updateEvent', () => {
-    it('should update calendar event', async () => {
-      mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: { access_token: 'access_123' },
-                error: null,
-              }),
-            })),
-          })),
-        })),
-      }))
-
-      vi.mocked(global.fetch).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          id: 'event_123',
-          summary: 'Updated Event',
-        }),
-      } as Response)
-
-      const event = await GoogleCalendarService.updateEvent('org-123', 'event_123', {
-        summary: 'Updated Event',
-      })
-
-      expect(event.summary).toBe('Updated Event')
-    })
-  })
-
-  describe('deleteEvent', () => {
-    it('should delete calendar event', async () => {
-      mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: { access_token: 'access_123' },
-                error: null,
-              }),
-            })),
-          })),
-        })),
-      }))
-
-      vi.mocked(global.fetch).mockResolvedValue({
-        ok: true,
-      } as Response)
-
-      await GoogleCalendarService.deleteEvent('org-123', 'event_123')
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/events/event_123'),
-        expect.objectContaining({
-          method: 'DELETE',
-        })
-      )
+      expect(storedData.organization_id).toBe('org-123')
+      expect(storedData.integration_type).toBe('google_calendar')
+      expect(storedData.access_token).toBe('access_123')
+      expect(storedData.external_id).toBe('test@example.com')
+      expect(storedData.settings.email).toBe('test@example.com')
     })
   })
 

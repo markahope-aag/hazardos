@@ -55,7 +55,7 @@ const mockNotifications = [
 describe('NotificationBell', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.useFakeTimers()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
   })
 
   afterEach(() => {
@@ -74,7 +74,7 @@ describe('NotificationBell', () => {
       })
 
     render(<NotificationBell />)
-    
+
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /notifications/i })).toBeInTheDocument()
     })
@@ -185,11 +185,14 @@ describe('NotificationBell', () => {
     mockFetch.mockImplementation(() => new Promise(() => {})) // Never resolves
 
     render(<NotificationBell />)
-    
+
     const button = screen.getByRole('button', { name: /notifications/i })
     fireEvent.click(button)
 
-    expect(screen.getByRole('generic', { name: '' })).toHaveClass('animate-spin')
+    // Find the loading spinner by class
+    const spinner = document.querySelector('.animate-spin')
+    expect(spinner).toBeInTheDocument()
+    expect(spinner).toHaveClass('lucide-loader-circle')
   })
 
   it('should show empty state when no notifications', async () => {
@@ -341,7 +344,7 @@ describe('NotificationBell', () => {
       .mockImplementationOnce(() => new Promise(() => {})) // Never resolves
 
     render(<NotificationBell />)
-    
+
     await waitFor(() => {
       const button = screen.getByRole('button', { name: /notifications/i })
       fireEvent.click(button)
@@ -351,24 +354,28 @@ describe('NotificationBell', () => {
     fireEvent.click(notification)
 
     await waitFor(() => {
-      expect(notification.querySelector('.animate-spin')).toBeInTheDocument()
+      const spinner = notification.querySelector('.animate-spin')
+      expect(spinner).toBeInTheDocument()
     })
   })
 
   it('should poll for notifications at regular intervals', async () => {
-    mockFetch
-      .mockResolvedValue({
-        ok: true,
-        json: async () => ({ count: 0 }),
-      })
-      .mockResolvedValue({
+    mockFetch.mockImplementation((url) => {
+      if (url.includes('/count')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ count: 0 }),
+        })
+      }
+      return Promise.resolve({
         ok: true,
         json: async () => [],
       })
+    })
 
     render(<NotificationBell />)
-    
-    // Initial fetch
+
+    // Initial fetch (2 calls: notifications list + count)
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledTimes(2)
     })

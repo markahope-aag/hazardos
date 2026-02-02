@@ -187,6 +187,9 @@ describe('JobsService', () => {
     })
 
     it('should handle database errors during job creation', async () => {
+      // Mock profile lookup success
+      mockSupabase.single.mockResolvedValueOnce({ data: mockProfile, error: null })
+      // Mock job creation error
       mockSupabase.single.mockResolvedValueOnce({
         data: null,
         error: { message: 'Database error' },
@@ -284,58 +287,77 @@ describe('JobsService', () => {
     })
 
     it('should filter by single status', async () => {
-      // Create a mock query chain that tracks eq calls
-      const mockQuery = {
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: [mockJobs[0]], error: null }),
+      setupChainableMock()
+
+      const eqCalled = vi.fn()
+
+      // Mock the query chain - the .eq() call returns a promise-like object
+      const mockQueryWithEq = {
+        then: (resolve: any) => {
+          eqCalled('status', 'scheduled')
+          resolve({ data: [mockJobs[0]], error: null })
+        },
       }
 
-      mockSupabase.select.mockReturnValue(mockQuery)
+      mockSupabase.eq.mockReturnValue(mockQueryWithEq)
+      mockSupabase.order.mockReturnValue(mockSupabase)
 
       await JobsService.list({ status: 'scheduled' })
 
-      expect(mockQuery.eq).toHaveBeenCalledWith('status', 'scheduled')
+      expect(mockSupabase.eq).toHaveBeenCalledWith('status', 'scheduled')
     })
 
     it('should filter by multiple statuses', async () => {
-      const mockQuery = {
-        in: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: mockJobs, error: null }),
+      setupChainableMock()
+
+      const mockQueryWithIn = {
+        then: (resolve: any) => {
+          resolve({ data: mockJobs, error: null })
+        },
       }
 
-      mockSupabase.select.mockReturnValue(mockQuery)
+      mockSupabase.in.mockReturnValue(mockQueryWithIn)
+      mockSupabase.order.mockReturnValue(mockSupabase)
 
       await JobsService.list({ status: ['scheduled', 'in_progress'] })
 
-      expect(mockQuery.in).toHaveBeenCalledWith('status', ['scheduled', 'in_progress'])
+      expect(mockSupabase.in).toHaveBeenCalledWith('status', ['scheduled', 'in_progress'])
     })
 
     it('should filter by customer_id', async () => {
-      const mockQuery = {
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: [mockJobs[0]], error: null }),
+      setupChainableMock()
+
+      const mockQueryWithEq = {
+        then: (resolve: any) => {
+          resolve({ data: [mockJobs[0]], error: null })
+        },
       }
 
-      mockSupabase.select.mockReturnValue(mockQuery)
+      mockSupabase.eq.mockReturnValue(mockQueryWithEq)
+      mockSupabase.order.mockReturnValue(mockSupabase)
 
       await JobsService.list({ customer_id: 'customer-1' })
 
-      expect(mockQuery.eq).toHaveBeenCalledWith('customer_id', 'customer-1')
+      expect(mockSupabase.eq).toHaveBeenCalledWith('customer_id', 'customer-1')
     })
 
     it('should filter by date range', async () => {
-      const mockQuery = {
-        gte: vi.fn().mockReturnThis(),
-        lte: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: mockJobs, error: null }),
+      setupChainableMock()
+
+      const mockQueryWithLte = {
+        then: (resolve: any) => {
+          resolve({ data: mockJobs, error: null })
+        },
       }
 
-      mockSupabase.select.mockReturnValue(mockQuery)
+      mockSupabase.gte.mockReturnValue(mockSupabase)
+      mockSupabase.lte.mockReturnValue(mockQueryWithLte)
+      mockSupabase.order.mockReturnValue(mockSupabase)
 
       await JobsService.list({ from_date: '2026-02-01', to_date: '2026-02-28' })
 
-      expect(mockQuery.gte).toHaveBeenCalledWith('scheduled_start_date', '2026-02-01')
-      expect(mockQuery.lte).toHaveBeenCalledWith('scheduled_start_date', '2026-02-28')
+      expect(mockSupabase.gte).toHaveBeenCalledWith('scheduled_start_date', '2026-02-01')
+      expect(mockSupabase.lte).toHaveBeenCalledWith('scheduled_start_date', '2026-02-28')
     })
 
     it('should filter by crew member after query', async () => {
@@ -512,17 +534,37 @@ describe('JobsService', () => {
 
   describe('delete', () => {
     it('should delete job successfully', async () => {
-      mockSupabase.eq.mockResolvedValue({ error: null })
+      // Mock cancelReminders (which calls update on scheduled_reminders)
+      const mockUpdateChain = {
+        eq: vi.fn().mockReturnThis(),
+      }
+      mockSupabase.update.mockReturnValue(mockUpdateChain)
+
+      // Mock delete chain
+      const mockDeleteChain = {
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }
+      mockSupabase.delete.mockReturnValue(mockDeleteChain)
 
       await JobsService.delete('job-1')
 
       expect(mockSupabase.from).toHaveBeenCalledWith('jobs')
       expect(mockSupabase.delete).toHaveBeenCalled()
-      expect(mockSupabase.eq).toHaveBeenCalledWith('id', 'job-1')
+      expect(mockDeleteChain.eq).toHaveBeenCalledWith('id', 'job-1')
     })
 
     it('should handle delete errors', async () => {
-      mockSupabase.eq.mockResolvedValue({ error: { message: 'Delete failed' } })
+      // Mock cancelReminders
+      const mockUpdateChain = {
+        eq: vi.fn().mockReturnThis(),
+      }
+      mockSupabase.update.mockReturnValue(mockUpdateChain)
+
+      // Mock delete chain with error
+      const mockDeleteChain = {
+        eq: vi.fn().mockResolvedValue({ error: { message: 'Delete failed' } }),
+      }
+      mockSupabase.delete.mockReturnValue(mockDeleteChain)
 
       await expect(JobsService.delete('job-1')).rejects.toThrow('Delete failed')
     })

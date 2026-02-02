@@ -1,37 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Use vi.hoisted to create mocks before vi.mock is processed
-const mockSupabase = vi.hoisted(() => ({
-  from: vi.fn(),
-  select: vi.fn(),
-  insert: vi.fn(),
-  update: vi.fn(),
-  delete: vi.fn(),
-  eq: vi.fn(),
-  order: vi.fn(),
-  single: vi.fn(),
-  auth: {
-    getUser: vi.fn(),
-  },
-}))
-
-// Setup chainable mock
-const setupChainableMock = () => {
-  mockSupabase.from.mockReturnValue(mockSupabase)
-  mockSupabase.select.mockReturnValue(mockSupabase)
-  mockSupabase.insert.mockReturnValue(mockSupabase)
-  mockSupabase.update.mockReturnValue(mockSupabase)
-  mockSupabase.delete.mockReturnValue(mockSupabase)
-  mockSupabase.eq.mockReturnValue(mockSupabase)
-  mockSupabase.order.mockReturnValue(mockSupabase)
-}
-
 // Mock activity service
 const mockActivity = vi.hoisted(() => ({
   created: vi.fn(),
   updated: vi.fn(),
   deleted: vi.fn(),
 }))
+
+// Create mock Supabase client with chainable methods
+const mockSupabase = vi.hoisted(() => {
+  const chain: any = {
+    from: vi.fn(),
+    select: vi.fn(),
+    insert: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    eq: vi.fn(),
+    order: vi.fn(),
+    single: vi.fn(),
+    auth: {
+      getUser: vi.fn(),
+    },
+  }
+
+  // Make chain methods return the chain itself by default
+  chain.from.mockImplementation(() => chain)
+  chain.select.mockImplementation(() => chain)
+  chain.insert.mockImplementation(() => chain)
+  chain.update.mockImplementation(() => chain)
+  chain.delete.mockImplementation(() => chain)
+  chain.eq.mockImplementation(() => chain)
+  chain.order.mockImplementation(() => chain)
+
+  return chain
+})
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => Promise.resolve(mockSupabase)),
@@ -49,7 +51,17 @@ describe('ContactsService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    setupChainableMock()
+
+    // Reset the chain implementations to default behavior
+    const chain = mockSupabase as any
+    chain.from.mockImplementation(() => chain)
+    chain.select.mockImplementation(() => chain)
+    chain.insert.mockImplementation(() => chain)
+    chain.update.mockImplementation(() => chain)
+    chain.delete.mockImplementation(() => chain)
+    chain.eq.mockImplementation(() => chain)
+    chain.order.mockImplementation(() => chain)
+
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null })
   })
 
@@ -72,7 +84,8 @@ describe('ContactsService', () => {
         },
       ]
 
-      mockSupabase.order.mockResolvedValue({ data: mockContacts, error: null })
+      // Last .order() in the chain returns the data
+      mockSupabase.order.mockImplementationOnce(() => mockSupabase).mockImplementationOnce(() => Promise.resolve({ data: mockContacts, error: null }))
 
       const result = await ContactsService.list('customer-1')
 
@@ -90,7 +103,7 @@ describe('ContactsService', () => {
     })
 
     it('should return empty array when no contacts found', async () => {
-      mockSupabase.order.mockResolvedValue({ data: null, error: null })
+      mockSupabase.order.mockImplementationOnce(() => mockSupabase).mockImplementationOnce(() => Promise.resolve({ data: null, error: null }))
 
       const result = await ContactsService.list('customer-1')
 
@@ -136,7 +149,6 @@ describe('ContactsService', () => {
 
   describe('create', () => {
     beforeEach(() => {
-      mockSupabase.single.mockResolvedValue({ data: mockProfile, error: null })
       mockActivity.created.mockResolvedValue(undefined)
     })
 
@@ -149,18 +161,32 @@ describe('ContactsService', () => {
         role: 'decision_maker',
       }
 
-      mockSupabase.eq.mockResolvedValue({ count: 0, error: null })
-
       const mockCreatedContact = {
         id: 'contact-1',
         ...input,
         is_primary: true,
       }
 
+      // The create method does:
+      // 1. .from('profiles').select().eq().single() -> get profile
+      // 2. .from('customer_contacts').select().eq() -> count (no single!)
+      // 3. .from('customer_contacts').insert().select().single() -> create contact
+      // 4. .from('customers').select().eq().single() -> get customer name
       mockSupabase.single
         .mockResolvedValueOnce({ data: mockProfile, error: null })
         .mockResolvedValueOnce({ data: mockCreatedContact, error: null })
         .mockResolvedValueOnce({ data: { name: 'Acme Corp' }, error: null })
+
+      // For the count query, the final .eq() returns a promise-like with count
+      let eqCallCount = 0
+      mockSupabase.eq.mockImplementation((...args) => {
+        eqCallCount++
+        // The second from() call is for counting, return count on its eq() call
+        if (eqCallCount === 2) {
+          return Promise.resolve({ count: 0, error: null })
+        }
+        return mockSupabase
+      })
 
       const result = await ContactsService.create(input)
 
@@ -189,8 +215,6 @@ describe('ContactsService', () => {
         email: 'jane@example.com',
       }
 
-      mockSupabase.eq.mockResolvedValue({ count: 2, error: null })
-
       const mockCreatedContact = {
         id: 'contact-2',
         ...input,
@@ -201,6 +225,15 @@ describe('ContactsService', () => {
         .mockResolvedValueOnce({ data: mockProfile, error: null })
         .mockResolvedValueOnce({ data: mockCreatedContact, error: null })
         .mockResolvedValueOnce({ data: { name: 'Acme Corp' }, error: null })
+
+      let eqCallCount = 0
+      mockSupabase.eq.mockImplementation((...args) => {
+        eqCallCount++
+        if (eqCallCount === 2) {
+          return Promise.resolve({ count: 2, error: null })
+        }
+        return mockSupabase
+      })
 
       await ContactsService.create(input)
 
@@ -219,14 +252,21 @@ describe('ContactsService', () => {
         is_primary: true,
       }
 
-      mockSupabase.eq.mockResolvedValue({ count: 2, error: null })
-
       const mockCreatedContact = { id: 'contact-2', ...input }
 
       mockSupabase.single
         .mockResolvedValueOnce({ data: mockProfile, error: null })
         .mockResolvedValueOnce({ data: mockCreatedContact, error: null })
         .mockResolvedValueOnce({ data: { name: 'Acme Corp' }, error: null })
+
+      let eqCallCount = 0
+      mockSupabase.eq.mockImplementation((...args) => {
+        eqCallCount++
+        if (eqCallCount === 2) {
+          return Promise.resolve({ count: 2, error: null })
+        }
+        return mockSupabase
+      })
 
       await ContactsService.create(input)
 
@@ -244,14 +284,21 @@ describe('ContactsService', () => {
         email: 'john@example.com',
       }
 
-      mockSupabase.eq.mockResolvedValue({ count: 0, error: null })
-
       const mockCreatedContact = { id: 'contact-1', ...input, role: 'general' }
 
       mockSupabase.single
         .mockResolvedValueOnce({ data: mockProfile, error: null })
         .mockResolvedValueOnce({ data: mockCreatedContact, error: null })
         .mockResolvedValueOnce({ data: { name: 'Acme Corp' }, error: null })
+
+      let eqCallCount = 0
+      mockSupabase.eq.mockImplementation((...args) => {
+        eqCallCount++
+        if (eqCallCount === 2) {
+          return Promise.resolve({ count: 0, error: null })
+        }
+        return mockSupabase
+      })
 
       await ContactsService.create(input)
 
@@ -279,7 +326,7 @@ describe('ContactsService', () => {
     const mockCurrentContact = {
       id: 'contact-1',
       name: 'John Doe',
-      customer: [{ name: 'Acme Corp' }],
+      customer: { name: 'Acme Corp' },
     }
 
     beforeEach(() => {
@@ -293,6 +340,9 @@ describe('ContactsService', () => {
         title: 'Manager',
       }
 
+      // Update method does:
+      // 1. .from('customer_contacts').select().eq().single() -> get current contact
+      // 2. .from('customer_contacts').update().eq().select().single() -> update and return
       mockSupabase.single
         .mockResolvedValueOnce({ data: mockCurrentContact, error: null })
         .mockResolvedValueOnce({
@@ -332,7 +382,7 @@ describe('ContactsService', () => {
   describe('delete', () => {
     const mockContact = {
       name: 'John Doe',
-      customer: [{ name: 'Acme Corp' }],
+      customer: { name: 'Acme Corp' },
     }
 
     beforeEach(() => {
@@ -340,8 +390,21 @@ describe('ContactsService', () => {
     })
 
     it('should delete contact successfully', async () => {
+      // Delete method does:
+      // 1. .from('customer_contacts').select().eq().single() -> get contact for activity log
+      // 2. .from('customer_contacts').delete().eq() -> perform deletion
       mockSupabase.single.mockResolvedValue({ data: mockContact, error: null })
-      mockSupabase.eq.mockResolvedValue({ error: null })
+
+      // Track eq() calls: first is for select chain, second is for delete chain
+      let eqCallCount = 0
+      mockSupabase.eq.mockImplementation((field, value) => {
+        eqCallCount++
+        if (eqCallCount === 2) {
+          // This is the delete().eq() call, return the final result
+          return Promise.resolve({ error: null })
+        }
+        return mockSupabase
+      })
 
       await ContactsService.delete('contact-1')
 
@@ -357,7 +420,15 @@ describe('ContactsService', () => {
 
     it('should handle delete without activity log if contact fetch fails', async () => {
       mockSupabase.single.mockResolvedValue({ data: null, error: null })
-      mockSupabase.eq.mockResolvedValue({ error: null })
+
+      let eqCallCount = 0
+      mockSupabase.eq.mockImplementation((field, value) => {
+        eqCallCount++
+        if (eqCallCount === 2) {
+          return Promise.resolve({ error: null })
+        }
+        return mockSupabase
+      })
 
       await ContactsService.delete('contact-1')
 
@@ -367,7 +438,15 @@ describe('ContactsService', () => {
 
     it('should throw on delete error', async () => {
       mockSupabase.single.mockResolvedValue({ data: mockContact, error: null })
-      mockSupabase.eq.mockResolvedValue({ error: { message: 'Delete failed' } })
+
+      let eqCallCount = 0
+      mockSupabase.eq.mockImplementation((field, value) => {
+        eqCallCount++
+        if (eqCallCount === 2) {
+          return Promise.resolve({ error: { message: 'Delete failed' } })
+        }
+        return mockSupabase
+      })
 
       await expect(ContactsService.delete('contact-1')).rejects.toThrow('Delete failed')
     })
@@ -383,9 +462,11 @@ describe('ContactsService', () => {
         id: 'contact-1',
         name: 'John Doe',
         is_primary: true,
-        customer: [{ name: 'Acme Corp' }],
+        customer: { name: 'Acme Corp' },
       }
 
+      // setPrimary does:
+      // .from('customer_contacts').update().eq().select().single()
       mockSupabase.single.mockResolvedValue({ data: mockContact, error: null })
 
       const result = await ContactsService.setPrimary('contact-1')

@@ -99,6 +99,19 @@ describe('JobCompletionService', () => {
               })),
             }
           }
+          // Mock for updateCompletionVariance
+          if (table === 'job_completions') {
+            return {
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: 'comp-1' },
+                    error: null,
+                  }),
+                })),
+              })),
+            }
+          }
           return {}
         })
 
@@ -118,19 +131,37 @@ describe('JobCompletionService', () => {
       it('should default billable to true', async () => {
         let insertedData: any
 
-        mockSupabase.from = vi.fn(() => ({
-          insert: vi.fn((data) => {
-            insertedData = data
+        mockSupabase.from = vi.fn((table) => {
+          if (table === 'job_time_entries') {
+            return {
+              insert: vi.fn((data) => {
+                insertedData = data
+                return {
+                  select: vi.fn(() => ({
+                    single: vi.fn().mockResolvedValue({
+                      data: { id: 'entry-1', job_id: 'job-1' },
+                      error: null,
+                    }),
+                  })),
+                }
+              }),
+            }
+          }
+          // Mock for updateCompletionVariance
+          if (table === 'job_completions') {
             return {
               select: vi.fn(() => ({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: 'entry-1' },
-                  error: null,
-                }),
+                eq: vi.fn(() => ({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: 'comp-1' },
+                    error: null,
+                  }),
+                })),
               })),
             }
-          }),
-        }))
+          }
+          return {}
+        })
 
         mockSupabase.rpc = vi.fn().mockResolvedValue({ error: null })
 
@@ -147,22 +178,40 @@ describe('JobCompletionService', () => {
 
     describe('updateTimeEntry', () => {
       it('should update time entry', async () => {
-        mockSupabase.from = vi.fn(() => ({
-          update: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              select: vi.fn(() => ({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: 'entry-1',
-                    job_id: 'job-1',
-                    hours: 10,
-                  },
-                  error: null,
-                }),
+        mockSupabase.from = vi.fn((table) => {
+          if (table === 'job_time_entries') {
+            return {
+              update: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  select: vi.fn(() => ({
+                    single: vi.fn().mockResolvedValue({
+                      data: {
+                        id: 'entry-1',
+                        job_id: 'job-1',
+                        hours: 10,
+                      },
+                      error: null,
+                    }),
+                  })),
+                })),
               })),
-            })),
-          })),
-        }))
+            }
+          }
+          // Mock for updateCompletionVariance
+          if (table === 'job_completions') {
+            return {
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: 'comp-1' },
+                    error: null,
+                  }),
+                })),
+              })),
+            }
+          }
+          return {}
+        })
 
         mockSupabase.rpc = vi.fn().mockResolvedValue({ error: null })
 
@@ -190,6 +239,19 @@ describe('JobCompletionService', () => {
               })),
               delete: vi.fn(() => ({
                 eq: vi.fn().mockResolvedValue({ error: null }),
+              })),
+            }
+          }
+          // Mock for updateCompletionVariance
+          if (table === 'job_completions') {
+            return {
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: 'comp-1' },
+                    error: null,
+                  }),
+                })),
               })),
             }
           }
@@ -238,20 +300,39 @@ describe('JobCompletionService', () => {
 
     describe('createMaterialUsage', () => {
       it('should create material usage record', async () => {
-        mockSupabase.from = vi.fn(() => ({
-          insert: vi.fn(() => ({
-            select: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: {
-                  id: 'usage-1',
-                  material_name: 'Paint',
-                  quantity_used: 10,
-                },
-                error: null,
-              }),
-            })),
-          })),
-        }))
+        mockSupabase.from = vi.fn((table) => {
+          if (table === 'job_material_usage') {
+            return {
+              insert: vi.fn(() => ({
+                select: vi.fn(() => ({
+                  single: vi.fn().mockResolvedValue({
+                    data: {
+                      id: 'usage-1',
+                      job_id: 'job-1',
+                      material_name: 'Paint',
+                      quantity_used: 10,
+                    },
+                    error: null,
+                  }),
+                })),
+              })),
+            }
+          }
+          // Mock for updateCompletionVariance
+          if (table === 'job_completions') {
+            return {
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: 'comp-1' },
+                    error: null,
+                  }),
+                })),
+              })),
+            }
+          }
+          return {}
+        })
 
         mockSupabase.rpc = vi.fn().mockResolvedValue({ error: null })
 
@@ -272,23 +353,41 @@ describe('JobCompletionService', () => {
 
     describe('updateMaterialUsage', () => {
       it('should update material usage', async () => {
-        mockSupabase.from = vi.fn(() => ({
-          update: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              select: vi.fn(() => ({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: 'usage-1',
-                    job_id: 'job-1',
-                    material_name: 'Paint',
-                    quantity_used: 12,
-                  },
-                  error: null,
-                }),
+        mockSupabase.from = vi.fn((table) => {
+          if (table === 'job_material_usage') {
+            return {
+              update: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  select: vi.fn(() => ({
+                    single: vi.fn().mockResolvedValue({
+                      data: {
+                        id: 'usage-1',
+                        job_id: 'job-1',
+                        material_name: 'Paint',
+                        quantity_used: 12,
+                      },
+                      error: null,
+                    }),
+                  })),
+                })),
               })),
-            })),
-          })),
-        }))
+            }
+          }
+          // Mock for updateCompletionVariance
+          if (table === 'job_completions') {
+            return {
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: 'comp-1' },
+                    error: null,
+                  }),
+                })),
+              })),
+            }
+          }
+          return {}
+        })
 
         mockSupabase.rpc = vi.fn().mockResolvedValue({ error: null })
 
@@ -315,6 +414,19 @@ describe('JobCompletionService', () => {
               })),
               delete: vi.fn(() => ({
                 eq: vi.fn().mockResolvedValue({ error: null }),
+              })),
+            }
+          }
+          // Mock for updateCompletionVariance
+          if (table === 'job_completions') {
+            return {
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: 'comp-1' },
+                    error: null,
+                  }),
+                })),
               })),
             }
           }
@@ -393,10 +505,24 @@ describe('JobCompletionService', () => {
     describe('deletePhoto', () => {
       it('should delete photo', async () => {
         mockSupabase.from = vi.fn(() => ({
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
+                data: { storage_path: 'org-1/job-1/photo.jpg' },
+                error: null,
+              }),
+            })),
+          })),
           delete: vi.fn(() => ({
             eq: vi.fn().mockResolvedValue({ error: null }),
           })),
         }))
+
+        mockSupabase.storage = {
+          from: vi.fn(() => ({
+            remove: vi.fn().mockResolvedValue({ error: null }),
+          })),
+        }
 
         await JobCompletionService.deletePhoto('photo-1')
 
@@ -406,8 +532,8 @@ describe('JobCompletionService', () => {
   })
 
   describe('Completion Checklist', () => {
-    describe('getChecklists', () => {
-      it('should return checklists for job', async () => {
+    describe('getChecklist', () => {
+      it('should return checklist for job', async () => {
         const mockChecklists = [
           {
             id: 'check-1',
@@ -415,21 +541,24 @@ describe('JobCompletionService', () => {
             category: 'safety',
             item: 'PPE used',
             is_completed: true,
+            completer: null,
           },
         ]
 
         mockSupabase.from = vi.fn(() => ({
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              order: vi.fn().mockResolvedValue({
-                data: mockChecklists,
-                error: null,
-              }),
+              order: vi.fn(() => ({
+                order: vi.fn().mockResolvedValue({
+                  data: mockChecklists,
+                  error: null,
+                }),
+              })),
             })),
           })),
         }))
 
-        const checklists = await JobCompletionService.getChecklists('job-1')
+        const checklists = await JobCompletionService.getChecklist('job-1')
 
         expect(checklists).toHaveLength(1)
         expect(checklists[0].category).toBe('safety')
@@ -508,20 +637,35 @@ describe('JobCompletionService', () => {
     describe('createCompletion', () => {
       it('should create job completion', async () => {
         mockSupabase.from = vi.fn((table) => {
-          if (table === 'profiles') {
+          if (table === 'jobs') {
             return {
               select: vi.fn(() => ({
                 eq: vi.fn(() => ({
                   single: vi.fn().mockResolvedValue({
-                    data: { organization_id: 'org-123' },
+                    data: {
+                      estimated_duration_hours: 8,
+                      contract_amount: 5000,
+                      job_number: 'JOB-001',
+                    },
                     error: null,
                   }),
                 })),
+              })),
+              update: vi.fn(() => ({
+                eq: vi.fn().mockResolvedValue({ error: null }),
               })),
             }
           }
           if (table === 'job_completions') {
             return {
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  single: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: { code: 'PGRST116' },
+                  }),
+                })),
+              })),
               insert: vi.fn(() => ({
                 select: vi.fn(() => ({
                   single: vi.fn().mockResolvedValue({
@@ -539,6 +683,8 @@ describe('JobCompletionService', () => {
           return {}
         })
 
+        mockSupabase.rpc = vi.fn().mockResolvedValue({ error: null })
+
         const completion = await JobCompletionService.createCompletion({
           job_id: 'job-1',
         })
@@ -549,29 +695,44 @@ describe('JobCompletionService', () => {
 
     describe('submitCompletion', () => {
       it('should submit completion for review', async () => {
-        mockSupabase.from = vi.fn(() => ({
-          update: vi.fn(() => ({
-            eq: vi.fn(() => ({
+        mockSupabase.from = vi.fn((table) => {
+          if (table === 'job_completions') {
+            return {
               select: vi.fn(() => ({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: 'comp-1',
-                    job_id: 'job-1',
-                    status: 'submitted',
-                  },
-                  error: null,
-                }),
+                eq: vi.fn(() => ({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: 'comp-1' },
+                    error: null,
+                  }),
+                })),
               })),
-            })),
-          })),
-        }))
+              update: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  select: vi.fn(() => ({
+                    single: vi.fn().mockResolvedValue({
+                      data: {
+                        id: 'comp-1',
+                        job_id: 'job-1',
+                        status: 'submitted',
+                      },
+                      error: null,
+                    }),
+                  })),
+                })),
+              })),
+            }
+          }
+          return {}
+        })
 
-        const completion = await JobCompletionService.submitCompletion('comp-1', {
-          notes: 'Work completed successfully',
+        mockSupabase.rpc = vi.fn().mockResolvedValue({ error: null })
+
+        const completion = await JobCompletionService.submitCompletion('job-1', {
+          field_notes: 'Work completed successfully',
         })
 
         expect(completion.status).toBe('submitted')
-        expect(Activity.submitted).toHaveBeenCalled()
+        expect(Activity.statusChanged).toHaveBeenCalled()
       })
     })
 
@@ -636,50 +797,115 @@ describe('JobCompletionService', () => {
 
   describe('Variance Analysis', () => {
     describe('getVarianceAnalysis', () => {
-      it('should return variance analysis for job', async () => {
-        mockSupabase.rpc = vi.fn().mockResolvedValue({
-          data: {
-            time_variance_hours: 2,
-            time_variance_cost: 100,
-            material_variance_quantity: -1,
-            material_variance_cost: -50,
+      it('should return variance analysis', async () => {
+        const mockCompletions = [
+          {
+            id: 'comp-1',
+            job_id: 'job-1',
+            reviewed_at: '2026-02-01',
+            estimated_hours: 8,
+            actual_hours: 10,
+            hours_variance: 2,
+            hours_variance_percent: 25,
+            estimated_total: 1000,
+            actual_total: 1100,
+            cost_variance: 100,
+            cost_variance_percent: 10,
+            job: {
+              id: 'job-1',
+              job_number: 'JOB-001',
+              name: 'Test Job',
+              customer: { name: 'Customer 1', company_name: null },
+              hazard_types: ['asbestos'],
+              contract_amount: 1000,
+              estimated_duration_hours: 8,
+            },
           },
-          error: null,
+        ]
+
+        mockSupabase.from = vi.fn((table) => {
+          if (table === 'job_completions') {
+            return {
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  order: vi.fn().mockResolvedValue({
+                    data: mockCompletions,
+                    error: null,
+                  }),
+                })),
+              })),
+            }
+          }
+          if (table === 'job_material_usage') {
+            return {
+              select: vi.fn(() => ({
+                in: vi.fn().mockResolvedValue({
+                  data: [],
+                  error: null,
+                }),
+              })),
+            }
+          }
+          return {}
         })
 
-        const analysis = await JobCompletionService.getVarianceAnalysis('job-1')
+        const analysis = await JobCompletionService.getVarianceAnalysis()
 
-        expect(analysis.time_variance_hours).toBe(2)
-        expect(analysis.material_variance_cost).toBe(-50)
+        expect(analysis).toHaveLength(1)
+        expect(analysis[0].hours_variance).toBe(2)
+        expect(analysis[0].cost_variance).toBe(100)
       })
     })
 
     describe('getVarianceSummary', () => {
       it('should return variance summary', async () => {
-        mockSupabase.from = vi.fn(() => ({
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: { organization_id: 'org-123' },
-                error: null,
-              }),
-            })),
-          })),
-        }))
-
-        mockSupabase.rpc = vi.fn().mockResolvedValue({
-          data: {
-            total_jobs: 10,
-            avg_time_variance: 1.5,
-            avg_cost_variance: 500,
+        const mockCompletions = [
+          {
+            id: 'comp-1',
+            job_id: 'job-1',
+            reviewed_at: '2026-02-01',
+            hours_variance: 2,
+            cost_variance: 100,
+            cost_variance_percent: 10,
+            job: {
+              id: 'job-1',
+              job_number: 'JOB-001',
+              customer: { name: 'Customer 1' },
+            },
           },
-          error: null,
+        ]
+
+        mockSupabase.from = vi.fn((table) => {
+          if (table === 'job_completions') {
+            return {
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  order: vi.fn().mockResolvedValue({
+                    data: mockCompletions,
+                    error: null,
+                  }),
+                })),
+              })),
+            }
+          }
+          if (table === 'job_material_usage') {
+            return {
+              select: vi.fn(() => ({
+                in: vi.fn().mockResolvedValue({
+                  data: [],
+                  error: null,
+                }),
+              })),
+            }
+          }
+          return {}
         })
 
         const summary = await JobCompletionService.getVarianceSummary()
 
-        expect(summary.total_jobs).toBe(10)
-        expect(summary.avg_time_variance).toBe(1.5)
+        expect(summary.total_jobs).toBe(1)
+        expect(summary.total_hours_variance).toBe(2)
+        expect(summary.total_cost_variance).toBe(100)
       })
     })
   })

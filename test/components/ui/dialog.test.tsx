@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import * as React from 'react'
 import {
   Dialog,
   DialogContent,
@@ -181,7 +182,7 @@ describe('Dialog Component', () => {
 
   it('should trap focus within dialog', async () => {
     const user = userEvent.setup()
-    
+
     render(
       <div>
         <Button>Outside Button</Button>
@@ -202,16 +203,16 @@ describe('Dialog Component', () => {
 
     expect(dialog).toBeInTheDocument()
 
-    // Focus should be trapped within dialog
-    await user.tab()
-    expect(insideButton).toHaveFocus()
-
+    // Focus should be trapped within dialog - close button is first
     await user.tab()
     expect(closeButton).toHaveFocus()
 
-    // Tabbing again should cycle back to first focusable element
     await user.tab()
     expect(insideButton).toHaveFocus()
+
+    // Tabbing again should cycle back to first focusable element
+    await user.tab()
+    expect(closeButton).toHaveFocus()
   })
 
   it('should render with custom className', () => {

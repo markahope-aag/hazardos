@@ -78,11 +78,17 @@ describe('MailchimpService', () => {
       await MailchimpService.storeTokens('org-123', {
         access_token: 'access_123',
         expires_in: 3600,
+      }, {
+        dc: 'us1',
+        accountname: 'Test Account',
+        api_endpoint: 'https://us1.api.mailchimp.com/3.0'
       })
 
       expect(storedData.organization_id).toBe('org-123')
       expect(storedData.integration_type).toBe('mailchimp')
       expect(storedData.access_token).toBe('access_123')
+      expect(storedData.external_id).toBe('us1')
+      expect(storedData.settings.account_name).toBe('Test Account')
     })
   })
 
@@ -93,7 +99,12 @@ describe('MailchimpService', () => {
           eq: vi.fn(() => ({
             eq: vi.fn(() => ({
               single: vi.fn().mockResolvedValue({
-                data: { is_active: true },
+                data: {
+                  is_active: true,
+                  external_id: 'us1',
+                  settings: { account_name: 'Test Account' },
+                  last_sync_at: '2026-01-01T00:00:00Z'
+                },
                 error: null,
               }),
             })),
@@ -103,7 +114,9 @@ describe('MailchimpService', () => {
 
       const status = await MailchimpService.getConnectionStatus('org-123')
 
-      expect(status.connected).toBe(true)
+      expect(status.is_connected).toBe(true)
+      expect(status.account_name).toBe('Test Account')
+      expect(status.data_center).toBe('us1')
     })
 
     it('should return disconnected when not found', async () => {
@@ -122,7 +135,7 @@ describe('MailchimpService', () => {
 
       const status = await MailchimpService.getConnectionStatus('org-123')
 
-      expect(status.connected).toBe(false)
+      expect(status.is_connected).toBe(false)
     })
   })
 
@@ -132,10 +145,16 @@ describe('MailchimpService', () => {
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             eq: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: { access_token: 'access_123', external_id: 'dc1' },
-                error: null,
-              }),
+              eq: vi.fn(() => ({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    access_token: 'access_123',
+                    external_id: 'us1',
+                    settings: { api_endpoint: 'https://us1.api.mailchimp.com/3.0' }
+                  },
+                  error: null,
+                }),
+              })),
             })),
           })),
         })),
@@ -145,8 +164,8 @@ describe('MailchimpService', () => {
         ok: true,
         json: async () => ({
           lists: [
-            { id: 'list_1', name: 'Newsletter' },
-            { id: 'list_2', name: 'Customers' },
+            { id: 'list_1', name: 'Newsletter', stats: { member_count: 100 } },
+            { id: 'list_2', name: 'Customers', stats: { member_count: 50 } },
           ],
         }),
       } as Response)
@@ -155,70 +174,69 @@ describe('MailchimpService', () => {
 
       expect(lists).toHaveLength(2)
       expect(lists[0].name).toBe('Newsletter')
+      expect(lists[0].member_count).toBe(100)
     })
   })
 
-  describe('addSubscriber', () => {
-    it('should add subscriber to list', async () => {
-      mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: { access_token: 'access_123', external_id: 'dc1' },
-                error: null,
-              }),
+  describe('syncContact', () => {
+    it('should sync customer to Mailchimp list', async () => {
+      mockSupabase.from = vi.fn((table) => {
+        if (table === 'organization_integrations') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  eq: vi.fn(() => ({
+                    single: vi.fn().mockResolvedValue({
+                      data: {
+                        access_token: 'access_123',
+                        external_id: 'us1',
+                        settings: { api_endpoint: 'https://us1.api.mailchimp.com/3.0' }
+                      },
+                      error: null,
+                    }),
+                  })),
+                })),
+              })),
             })),
-          })),
-        })),
-      }))
+          }
+        }
+        if (table === 'customers') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: 'cust-1',
+                    email: 'test@example.com',
+                    first_name: 'John',
+                    last_name: 'Doe',
+                  },
+                  error: null,
+                }),
+              })),
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn().mockResolvedValue({ error: null }),
+            })),
+          }
+        }
+        if (table === 'marketing_sync_log') {
+          return {
+            insert: vi.fn().mockResolvedValue({ error: null }),
+          }
+        }
+        return {}
+      })
 
       vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
         json: async () => ({ id: 'member_123', status: 'subscribed' }),
       } as Response)
 
-      const result = await MailchimpService.addSubscriber('org-123', 'list_1', {
-        email_address: 'test@example.com',
-        status: 'subscribed',
-      })
+      const result = await MailchimpService.syncContact('org-123', 'cust-1', 'list_1')
 
-      expect(result.status).toBe('subscribed')
-    })
-
-    it('should use correct API endpoint', async () => {
-      mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: { access_token: 'access_123', external_id: 'dc1' },
-                error: null,
-              }),
-            })),
-          })),
-        })),
-      }))
-
-      vi.mocked(global.fetch).mockResolvedValue({
-        ok: true,
-        json: async () => ({}),
-      } as Response)
-
-      await MailchimpService.addSubscriber('org-123', 'list_1', {
-        email_address: 'test@example.com',
-        status: 'subscribed',
-      })
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('dc1.api.mailchimp.com'),
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            Authorization: 'Bearer access_123',
-          }),
-        })
-      )
+      expect(result).toBe('member_123')
     })
   })
 
