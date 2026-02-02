@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import {
   Table,
   TableBody,
@@ -14,6 +14,7 @@ import CustomerListItem from './customer-list-item'
 import CustomerSearch from './customer-search'
 import CustomerFilters from './customer-filters'
 import { useCustomers } from '@/lib/hooks/use-customers'
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import type { Customer, CustomerStatus, CustomerSource } from '@/types/database'
 
 interface CustomerListProps {
@@ -26,30 +27,36 @@ export default function CustomerList({ onEditCustomer, onDeleteCustomer }: Custo
   const [status, setStatus] = useState<CustomerStatus | 'all'>('all')
   const [source, setSource] = useState<CustomerSource | 'all'>('all')
   const [page, setPage] = useState(1)
-  const [pageSize] = useState(25)
+  const pageSize = 25
 
-  const { data: customers = [], isLoading, error } = useCustomers({
-    search,
+  // Debounce search to avoid excessive queries while typing
+  const debouncedSearch = useDebouncedValue(search, 300)
+
+  // Memoize query options to prevent unnecessary re-fetches
+  const queryOptions = useMemo(() => ({
+    search: debouncedSearch,
     status,
     source,
     page,
     pageSize
-  })
+  }), [debouncedSearch, status, source, page, pageSize])
 
-  const handleClearFilters = () => {
+  const { data: customers = [], isLoading, error } = useCustomers(queryOptions)
+
+  const handleClearFilters = useCallback(() => {
     setStatus('all')
     setSource('all')
     setSearch('')
     setPage(1)
-  }
+  }, [])
 
-  const handleNextPage = () => {
+  const handleNextPage = useCallback(() => {
     setPage(prev => prev + 1)
-  }
+  }, [])
 
-  const handlePrevPage = () => {
+  const handlePrevPage = useCallback(() => {
     setPage(prev => Math.max(1, prev - 1))
-  }
+  }, [])
 
   const hasNextPage = customers.length === pageSize
   const hasPrevPage = page > 1

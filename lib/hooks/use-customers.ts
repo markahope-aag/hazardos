@@ -15,15 +15,16 @@ interface UseCustomersOptions {
 // Hook to fetch customers with search/filter/pagination
 export function useCustomers(options: UseCustomersOptions = {}) {
   const { organization } = useMultiTenantAuth()
-  
+  const { search, status, source, page = 1, pageSize = 25 } = options
+
   return useQuery({
-    queryKey: ['customers', organization?.id, options],
+    // Use primitive values in queryKey to ensure proper comparison
+    queryKey: ['customers', organization?.id, search, status, source, page, pageSize],
     queryFn: async () => {
       if (!organization?.id) {
         throw new Error('No organization found')
       }
 
-      const { search, status, page = 1, pageSize = 25 } = options
       const offset = (page - 1) * pageSize
 
       return CustomersService.getCustomers(organization.id, {
