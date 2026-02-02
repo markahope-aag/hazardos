@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -58,11 +58,7 @@ export function ContactsList({ customerId }: ContactsListProps) {
   const [deleteContact, setDeleteContact] = useState<CustomerContact | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchContacts()
-  }, [customerId])
-
-  async function fetchContacts() {
+  const fetchContacts = useCallback(async () => {
     try {
       setLoading(true)
       const res = await fetch(`/api/customers/${customerId}/contacts`)
@@ -75,7 +71,11 @@ export function ContactsList({ customerId }: ContactsListProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [customerId])
+
+  useEffect(() => {
+    fetchContacts()
+  }, [fetchContacts])
 
   async function handleSetPrimary(contactId: string) {
     try {

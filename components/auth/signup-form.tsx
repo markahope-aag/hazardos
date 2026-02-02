@@ -99,7 +99,7 @@ export function SignupForm() {
         router.push('/onboard')
         router.refresh()
       }
-    } catch (_error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'An unexpected error occurred',

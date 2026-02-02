@@ -127,7 +127,8 @@ export function usePageView(
         time_on_page_seconds: Math.round(timeOnPage / 1000),
       });
     };
-  }, [pageName]); // Only re-run if pageName changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- properties intentionally captured at mount only
+  }, [pageName]);
 }
 
 /**
