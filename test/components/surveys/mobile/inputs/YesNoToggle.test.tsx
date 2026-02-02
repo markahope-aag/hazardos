@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { YesNoToggle, YesNoNaToggle } from '@/components/surveys/mobile/inputs/YesNoToggle'
+import { YesNoToggle, YesNoNaToggle } from '@/components/surveys/mobile/inputs/yes-no-toggle'
 
 describe('YesNoToggle Component', () => {
   const mockOnChange = vi.fn()

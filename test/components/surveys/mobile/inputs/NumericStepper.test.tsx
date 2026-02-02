@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { NumericStepper } from '@/components/surveys/mobile/inputs/NumericStepper'
+import { NumericStepper } from '@/components/surveys/mobile/inputs/numeric-stepper'
 
 describe('NumericStepper Component', () => {
   const mockOnChange = vi.fn()

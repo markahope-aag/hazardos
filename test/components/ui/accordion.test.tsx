@@ -67,16 +67,17 @@ describe('Accordion Component', () => {
   })
 
   it('should accept custom className on AccordionItem', () => {
-    render(
+    const { container } = render(
       <Accordion type="single" collapsible>
-        <AccordionItem value="item-1" className="custom-item">
+        <AccordionItem value="item-1" className="custom-item" data-testid="accordion-item">
           <AccordionTrigger>Section 1</AccordionTrigger>
           <AccordionContent>Content 1</AccordionContent>
         </AccordionItem>
       </Accordion>
     )
 
-    const item = screen.getByText('Section 1').closest('[data-state]')?.parentElement
+    // AccordionItem wraps a div with [data-state]
+    const item = container.querySelector('[data-state]')
     expect(item).toHaveClass('custom-item')
   })
 
@@ -95,7 +96,7 @@ describe('Accordion Component', () => {
   })
 
   it('should have border-b class on AccordionItem', () => {
-    render(
+    const { container } = render(
       <Accordion type="single" collapsible>
         <AccordionItem value="item-1">
           <AccordionTrigger>Section 1</AccordionTrigger>
@@ -104,7 +105,7 @@ describe('Accordion Component', () => {
       </Accordion>
     )
 
-    const item = screen.getByText('Section 1').closest('[data-state]')?.parentElement
+    const item = container.querySelector('[data-state]')
     expect(item).toHaveClass('border-b')
   })
 

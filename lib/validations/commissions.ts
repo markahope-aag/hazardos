@@ -8,6 +8,8 @@ export const commissionListQuerySchema = z.object({
   user_id: z.string().uuid().optional(),
   status: commissionStatusSchema.optional(),
   pay_period: z.string().optional(),
+  limit: z.string().transform(Number).optional(),
+  offset: z.string().transform(Number).optional(),
 }).passthrough()
 
 // Create commission earning

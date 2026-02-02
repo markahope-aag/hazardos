@@ -51,6 +51,13 @@ export const updateStageSchema = z.object({
   is_active: z.boolean().optional(),
 })
 
+// Pipeline list query
+export const pipelineListQuerySchema = z.object({
+  stage_id: z.string().uuid().optional(),
+  limit: z.string().transform(Number).optional(),
+  offset: z.string().transform(Number).optional(),
+}).passthrough()
+
 // Export types
 export type CreateOpportunityInput = z.infer<typeof createOpportunitySchema>
 export type UpdateOpportunityInput = z.infer<typeof updateOpportunitySchema>

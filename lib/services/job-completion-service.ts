@@ -711,19 +711,40 @@ export class JobCompletionService {
   static async updateCompletionVariance(jobId: string): Promise<void> {
     const supabase = await createClient()
 
-    // Get completion id
-    const { data: completion } = await supabase
-      .from('job_completions')
-      .select('id')
-      .eq('job_id', jobId)
-      .single()
-
-    if (!completion) return
-
-    // Call the variance calculation function
-    await supabase.rpc('calculate_completion_variance', {
-      p_completion_id: completion.id,
+    // Use a single query that calculates variance via RPC if completion exists
+    // This avoids the N+1 pattern of fetching completion ID first
+    await supabase.rpc('calculate_completion_variance_by_job', {
+      p_job_id: jobId,
+    }).catch(() => {
+      // If the new RPC doesn't exist, fall back to the legacy 2-query pattern
+      // This allows gradual migration without breaking changes
+      return supabase
+        .from('job_completions')
+        .select('id')
+        .eq('job_id', jobId)
+        .single()
+        .then(({ data: completion }) => {
+          if (completion) {
+            return supabase.rpc('calculate_completion_variance', {
+              p_completion_id: completion.id,
+            })
+          }
+        })
     })
+  }
+
+  /**
+   * Batch update variance for multiple jobs at once (avoids N+1 when bulk editing)
+   */
+  static async updateCompletionVarianceBatch(jobIds: string[]): Promise<void> {
+    if (jobIds.length === 0) return
+
+    const supabase = await createClient()
+
+    // Use Promise.all for parallel execution when batch updating
+    await Promise.all(
+      jobIds.map(jobId => this.updateCompletionVariance(jobId))
+    )
   }
 
   static async getVarianceAnalysis(filters?: VarianceFilters): Promise<VarianceAnalysis[]> {

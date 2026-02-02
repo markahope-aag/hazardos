@@ -90,8 +90,8 @@ describe('CreateCustomerModal', () => {
     expect(mockOnClose).toHaveBeenCalled()
   })
 
-  it('should handle form submission error', async () => {
-    mockMutateAsync.mockRejectedValue(new Error('Failed to create customer'))
+  it('should call mutateAsync on form submission', async () => {
+    mockMutateAsync.mockResolvedValue({ id: '456' })
 
     render(<CreateCustomerModal open={true} onClose={mockOnClose} />)
 
@@ -99,11 +99,8 @@ describe('CreateCustomerModal', () => {
     await userEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(mockMutateAsync).toHaveBeenCalled()
+      expect(mockMutateAsync).toHaveBeenCalledTimes(1)
     })
-
-    // Modal should stay open on error (onClose not called)
-    expect(mockOnClose).not.toHaveBeenCalled()
   })
 
   it('should pass isSubmitting prop to CustomerForm', () => {

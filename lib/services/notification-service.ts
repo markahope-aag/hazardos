@@ -101,47 +101,59 @@ export class NotificationService {
     return data || []
   }
 
-  static async getUnread(userId?: string): Promise<Notification[]> {
+  static async getUnread(options?: {
+    userId?: string
+    limit?: number
+    offset?: number
+  }): Promise<{ notifications: Notification[]; total: number; limit: number; offset: number }> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) throw new Error('Unauthorized')
 
-    const targetUserId = userId || user.id
+    const targetUserId = options?.userId || user.id
+    const limit = options?.limit || 50
+    const offset = options?.offset || 0
 
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from('notifications')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('user_id', targetUserId)
       .eq('is_read', false)
       .or('expires_at.is.null,expires_at.gt.now()')
       .order('created_at', { ascending: false })
-      .limit(50)
+      .range(offset, offset + limit - 1)
 
     if (error) throw error
 
-    return data || []
+    return { notifications: data || [], total: count || 0, limit, offset }
   }
 
-  static async getAll(userId?: string, limit: number = 50): Promise<Notification[]> {
+  static async getAll(options?: {
+    userId?: string
+    limit?: number
+    offset?: number
+  }): Promise<{ notifications: Notification[]; total: number; limit: number; offset: number }> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) throw new Error('Unauthorized')
 
-    const targetUserId = userId || user.id
+    const targetUserId = options?.userId || user.id
+    const limit = options?.limit || 50
+    const offset = options?.offset || 0
 
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from('notifications')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('user_id', targetUserId)
       .or('expires_at.is.null,expires_at.gt.now()')
       .order('created_at', { ascending: false })
-      .limit(limit)
+      .range(offset, offset + limit - 1)
 
     if (error) throw error
 
-    return data || []
+    return { notifications: data || [], total: count || 0, limit, offset }
   }
 
   static async getUnreadCount(userId?: string): Promise<number> {

@@ -5,7 +5,7 @@ import { createJobSchema, jobListQuerySchema } from '@/lib/validations/jobs'
 
 /**
  * GET /api/jobs
- * List jobs with optional filters
+ * List jobs with optional filters and pagination
  */
 export const GET = createApiHandler(
   {
@@ -19,10 +19,12 @@ export const GET = createApiHandler(
       from_date: query.from_date || undefined,
       to_date: query.to_date || undefined,
       crew_member_id: query.crew_member_id || undefined,
+      limit: query.limit || undefined,
+      offset: query.offset || undefined,
     }
 
-    const jobs = await JobsService.list(filters)
-    return NextResponse.json(jobs)
+    const result = await JobsService.list(filters)
+    return NextResponse.json(result)
   }
 )
 

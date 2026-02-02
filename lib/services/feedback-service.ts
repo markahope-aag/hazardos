@@ -301,11 +301,16 @@ export class FeedbackService {
     status?: string
     job_id?: string
     customer_id?: string
-  }): Promise<FeedbackSurvey[]> {
+    limit?: number
+    offset?: number
+  }): Promise<{ surveys: FeedbackSurvey[]; total: number; limit: number; offset: number }> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) throw new Error('Unauthorized')
+
+    const limit = filters?.limit || 50
+    const offset = filters?.offset || 0
 
     let query = supabase
       .from('feedback_surveys')
@@ -313,7 +318,7 @@ export class FeedbackService {
         *,
         customer:customers(id, name, company_name),
         job:jobs(id, job_number, name)
-      `)
+      `, { count: 'exact' })
       .order('created_at', { ascending: false })
 
     if (filters?.status) {
@@ -326,15 +331,19 @@ export class FeedbackService {
       query = query.eq('customer_id', filters.customer_id)
     }
 
-    const { data, error } = await query
+    query = query.range(offset, offset + limit - 1)
+
+    const { data, error, count } = await query
 
     if (error) throw error
 
-    return (data || []).map(survey => ({
+    const surveys = (data || []).map(survey => ({
       ...survey,
       customer: Array.isArray(survey.customer) ? survey.customer[0] : survey.customer,
       job: Array.isArray(survey.job) ? survey.job[0] : survey.job,
     }))
+
+    return { surveys, total: count || 0, limit, offset }
   }
 
   // ========== TESTIMONIALS ==========

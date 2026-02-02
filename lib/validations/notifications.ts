@@ -37,6 +37,7 @@ export const createNotificationSchema = z.object({
 // Notification list query
 export const notificationListQuerySchema = z.object({
   limit: z.string().transform(Number).optional(),
+  offset: z.string().transform(Number).optional(),
   unread: z.string().optional(),
 }).passthrough()
 

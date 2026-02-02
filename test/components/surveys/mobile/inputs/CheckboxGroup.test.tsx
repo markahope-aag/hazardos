@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { CheckboxGroup, SingleCheckbox } from '@/components/surveys/mobile/inputs/CheckboxGroup'
+import { CheckboxGroup, SingleCheckbox } from '@/components/surveys/mobile/inputs/checkbox-group'
 
 describe('CheckboxGroup', () => {
   const mockOnChange = vi.fn()

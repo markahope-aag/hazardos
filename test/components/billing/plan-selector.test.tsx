@@ -105,10 +105,11 @@ describe('PlanSelector', () => {
     fireEvent.click(billingToggle)
 
     // Yearly prices are displayed as monthly equivalent (price_yearly / 12)
-    // $290/12 = $24.17, $990/12 = $82.50, $1990/12 = $165.83
-    expect(screen.getByText('$24.17')).toBeInTheDocument()
-    expect(screen.getByText('$82.5')).toBeInTheDocument()
-    expect(screen.getByText('$165.83')).toBeInTheDocument()
+    // formatCurrencyFromCents defaults to no decimals
+    // 29000/12 = 2417 cents = $24, 99000/12 = 8250 cents = $83, 199000/12 = 16583 cents = $166
+    expect(screen.getByText('$24')).toBeInTheDocument()
+    expect(screen.getByText('$83')).toBeInTheDocument()
+    expect(screen.getByText('$166')).toBeInTheDocument()
   })
 
   it('should show popular badge for popular plan', () => {
@@ -285,8 +286,9 @@ describe('PlanSelector', () => {
     }
 
     render(<PlanSelector plans={[expensivePlan]} />)
-    
-    expect(screen.getByText('$1,234.56')).toBeInTheDocument()
+
+    // formatCurrencyFromCents defaults to no decimals
+    expect(screen.getByText('$1,235')).toBeInTheDocument()
   })
 
   it('should handle plans with no features', () => {

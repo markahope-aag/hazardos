@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import MobileSurveyWizard from '@/components/surveys/mobile/MobileSurveyWizard'
+import MobileSurveyWizard from '@/components/surveys/mobile/mobile-survey-wizard'
 import { Loader2 } from 'lucide-react'
 
 function MobileSurveyWizardWithParams() {

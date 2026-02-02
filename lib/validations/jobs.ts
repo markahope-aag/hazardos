@@ -202,6 +202,8 @@ export const jobListQuerySchema = z.object({
   from_date: z.string().optional(),
   to_date: z.string().optional(),
   crew_member_id: z.string().optional(),
+  limit: z.string().transform(Number).optional(),
+  offset: z.string().transform(Number).optional(),
 }).passthrough()
 
 // Calendar query

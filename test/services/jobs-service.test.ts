@@ -14,6 +14,7 @@ const mockSupabase = vi.hoisted(() => ({
   gte: vi.fn(),
   lte: vi.fn(),
   order: vi.fn(),
+  range: vi.fn(),
   single: vi.fn(),
   rpc: vi.fn(),
   auth: {
@@ -34,6 +35,7 @@ const setupChainableMock = () => {
   mockSupabase.gte.mockReturnValue(mockSupabase)
   mockSupabase.lte.mockReturnValue(mockSupabase)
   mockSupabase.order.mockReturnValue(mockSupabase)
+  mockSupabase.range.mockReturnValue(mockSupabase)
 }
 
 // Mock activity service
@@ -276,14 +278,15 @@ describe('JobsService', () => {
     ]
 
     it('should list all jobs with default ordering', async () => {
-      mockSupabase.order.mockResolvedValue({ data: mockJobs, error: null })
+      mockSupabase.range.mockResolvedValue({ data: mockJobs, error: null, count: 2 })
 
       const result = await JobsService.list()
 
       expect(mockSupabase.from).toHaveBeenCalledWith('jobs')
       expect(mockSupabase.order).toHaveBeenCalledWith('scheduled_start_date', { ascending: true })
-      expect(result).toHaveLength(2)
-      expect(result[0].customer).toEqual({ id: 'customer-1', name: 'John Doe' })
+      expect(result.jobs).toHaveLength(2)
+      expect(result.jobs[0].customer).toEqual({ id: 'customer-1', name: 'John Doe' })
+      expect(result.total).toBe(2)
     })
 
     it('should filter by single status', async () => {
@@ -295,12 +298,13 @@ describe('JobsService', () => {
       const mockQueryWithEq = {
         then: (resolve: any) => {
           eqCalled('status', 'scheduled')
-          resolve({ data: [mockJobs[0]], error: null })
+          resolve({ data: [mockJobs[0]], error: null, count: 1 })
         },
       }
 
-      mockSupabase.eq.mockReturnValue(mockQueryWithEq)
+      mockSupabase.eq.mockReturnValue(mockSupabase)
       mockSupabase.order.mockReturnValue(mockSupabase)
+      mockSupabase.range.mockReturnValue(mockQueryWithEq)
 
       await JobsService.list({ status: 'scheduled' })
 
@@ -312,12 +316,13 @@ describe('JobsService', () => {
 
       const mockQueryWithIn = {
         then: (resolve: any) => {
-          resolve({ data: mockJobs, error: null })
+          resolve({ data: mockJobs, error: null, count: 2 })
         },
       }
 
-      mockSupabase.in.mockReturnValue(mockQueryWithIn)
+      mockSupabase.in.mockReturnValue(mockSupabase)
       mockSupabase.order.mockReturnValue(mockSupabase)
+      mockSupabase.range.mockReturnValue(mockQueryWithIn)
 
       await JobsService.list({ status: ['scheduled', 'in_progress'] })
 
@@ -329,12 +334,13 @@ describe('JobsService', () => {
 
       const mockQueryWithEq = {
         then: (resolve: any) => {
-          resolve({ data: [mockJobs[0]], error: null })
+          resolve({ data: [mockJobs[0]], error: null, count: 1 })
         },
       }
 
-      mockSupabase.eq.mockReturnValue(mockQueryWithEq)
+      mockSupabase.eq.mockReturnValue(mockSupabase)
       mockSupabase.order.mockReturnValue(mockSupabase)
+      mockSupabase.range.mockReturnValue(mockQueryWithEq)
 
       await JobsService.list({ customer_id: 'customer-1' })
 
@@ -346,13 +352,14 @@ describe('JobsService', () => {
 
       const mockQueryWithLte = {
         then: (resolve: any) => {
-          resolve({ data: mockJobs, error: null })
+          resolve({ data: mockJobs, error: null, count: 2 })
         },
       }
 
       mockSupabase.gte.mockReturnValue(mockSupabase)
-      mockSupabase.lte.mockReturnValue(mockQueryWithLte)
+      mockSupabase.lte.mockReturnValue(mockSupabase)
       mockSupabase.order.mockReturnValue(mockSupabase)
+      mockSupabase.range.mockReturnValue(mockQueryWithLte)
 
       await JobsService.list({ from_date: '2026-02-01', to_date: '2026-02-28' })
 
@@ -376,12 +383,13 @@ describe('JobsService', () => {
 
       const result = await JobsService.list({ crew_member_id: 'crew-1' })
 
-      expect(result).toHaveLength(1)
-      expect(result[0].id).toBe('job-1')
+      expect(result.jobs).toHaveLength(1)
+      expect(result.jobs[0].id).toBe('job-1')
     })
 
     it('should handle database errors', async () => {
-      mockSupabase.order.mockResolvedValue({ data: null, error: { message: 'Query failed' } })
+      setupChainableMock()
+      mockSupabase.range.mockResolvedValue({ data: null, error: { message: 'Query failed' } })
 
       await expect(JobsService.list()).rejects.toThrow('Query failed')
     })

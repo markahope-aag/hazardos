@@ -180,8 +180,13 @@ export class JobsService {
     from_date?: string
     to_date?: string
     crew_member_id?: string
-  }): Promise<Job[]> {
+    limit?: number
+    offset?: number
+  }): Promise<{ jobs: Job[]; total: number; limit: number; offset: number }> {
     const supabase = await createClient()
+
+    const limit = filters?.limit || 50
+    const offset = filters?.offset || 0
 
     let query = supabase
       .from('jobs')
@@ -193,7 +198,7 @@ export class JobsService {
           is_lead,
           profile:profiles(id, full_name)
         )
-      `)
+      `, { count: 'exact' })
       .order('scheduled_start_date', { ascending: true })
 
     if (filters?.status) {
@@ -216,7 +221,12 @@ export class JobsService {
       query = query.lte('scheduled_start_date', filters.to_date)
     }
 
-    const { data, error } = await query
+    // Apply pagination (only if not filtering by crew member, which requires post-filtering)
+    if (!filters?.crew_member_id) {
+      query = query.range(offset, offset + limit - 1)
+    }
+
+    const { data, error, count } = await query
     if (error) throw error
 
     // Transform and filter
@@ -225,14 +235,19 @@ export class JobsService {
       customer: Array.isArray(job.customer) ? job.customer[0] : job.customer,
     }))
 
+    let total = count || 0
+
     // Filter by crew member if needed (post-query since it's a nested filter)
     if (filters?.crew_member_id && jobs) {
       jobs = jobs.filter(job =>
         job.crew?.some((c: JobCrew) => c.profile_id === filters.crew_member_id)
       )
+      total = jobs.length
+      // Apply pagination after filtering
+      jobs = jobs.slice(offset, offset + limit)
     }
 
-    return jobs
+    return { jobs, total, limit, offset }
   }
 
   static async getCalendarEvents(start: string, end: string): Promise<Job[]> {

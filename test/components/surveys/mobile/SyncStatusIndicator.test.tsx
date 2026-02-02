@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { SyncStatusIndicator, InlineSyncStatus } from '@/components/surveys/mobile/SyncStatusIndicator'
+import { SyncStatusIndicator, InlineSyncStatus } from '@/components/surveys/mobile/sync-status-indicator'
 
 // Mock the offline sync hook
 const mockUseOfflineSync = {
