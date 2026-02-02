@@ -18,12 +18,12 @@ import {
 // pipeline.ts
 import {
   createOpportunitySchema,
-  updateOpportunitySchema,
-  moveOpportunitySchema,
+  updateOpportunitySchema as _updateOpportunitySchema,
+  moveOpportunitySchema as _moveOpportunitySchema,
   stageTypeSchema,
   createStageSchema,
-  updateStageSchema,
-  pipelineListQuerySchema,
+  updateStageSchema as _updateStageSchema,
+  pipelineListQuerySchema as _pipelineListQuerySchema,
 } from '@/lib/validations/pipeline'
 
 // platform.ts
@@ -36,28 +36,28 @@ import {
   reportTypeSchema,
   dateRangeTypeSchema,
   chartTypeSchema,
-  filterOperatorSchema,
-  columnFormatSchema,
-  groupIntervalSchema,
-  dateRangeSchema,
-  reportFilterSchema,
-  reportColumnSchema,
-  reportGroupingSchema,
-  reportConfigSchema,
+  filterOperatorSchema as _filterOperatorSchema,
+  columnFormatSchema as _columnFormatSchema,
+  groupIntervalSchema as _groupIntervalSchema,
+  dateRangeSchema as _dateRangeSchema,
+  reportFilterSchema as _reportFilterSchema,
+  reportColumnSchema as _reportColumnSchema,
+  reportGroupingSchema as _reportGroupingSchema,
+  reportConfigSchema as _reportConfigSchema,
   createReportSchema,
-  updateReportSchema,
-  runReportSchema,
+  updateReportSchema as _updateReportSchema,
+  runReportSchema as _runReportSchema,
   exportFormatSchema,
-  exportReportSchema,
+  exportReportSchema as _exportReportSchema,
 } from '@/lib/validations/reports'
 
 // segments.ts
 import {
   segmentTypeSchema,
   segmentRuleOperatorSchema,
-  segmentRuleSchema,
+  segmentRuleSchema as _segmentRuleSchema,
   createSegmentSchema,
-  updateSegmentSchema,
+  updateSegmentSchema as _updateSegmentSchema,
 } from '@/lib/validations/segments'
 
 // site-survey.ts
@@ -71,8 +71,8 @@ import {
   smsMessageTypeSchema,
   smsStatusSchema,
   createSmsTemplateSchema,
-  updateSmsTemplateSchema,
-  smsMessagesQuerySchema,
+  updateSmsTemplateSchema as _updateSmsTemplateSchema,
+  smsMessagesQuerySchema as _smsMessagesQuerySchema,
   sendSmsSchema,
   updateSmsSettingsSchema,
 } from '@/lib/validations/sms'
@@ -468,13 +468,13 @@ describe('site-survey validations', () => {
     })
 
     it('requires job_name', () => {
-      const { job_name, ...rest } = validSurvey
+      const { job_name: _job_name, ...rest } = validSurvey
       const result = siteSurveySchema.safeParse(rest)
       expect(result.success).toBe(false)
     })
 
     it('requires customer_name', () => {
-      const { customer_name, ...rest } = validSurvey
+      const { customer_name: _customer_name, ...rest } = validSurvey
       const result = siteSurveySchema.safeParse(rest)
       expect(result.success).toBe(false)
     })

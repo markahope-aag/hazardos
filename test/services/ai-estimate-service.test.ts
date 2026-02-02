@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import type { EstimateInput, VarianceAnalysis } from '@/lib/services/ai-estimate-service'
+import type { EstimateInput, VarianceAnalysis as _VarianceAnalysis } from '@/lib/services/ai-estimate-service'
 import { AIEstimateService } from '@/lib/services/ai-estimate-service'
 
 // Mock Anthropic SDK
@@ -208,8 +208,10 @@ describe('AIEstimateService', () => {
     })
 
     it.skip('should throw error when Anthropic API key not configured', async () => {
-      // Skip this test - the static client caching makes it difficult to test
-      // This is covered by the service initialization logic
+      // SKIPPED: Static client caching in Anthropic SDK makes this difficult to unit test
+      // COVERAGE: Service initialization logic handles this scenario
+      // ALTERNATIVE: Integration tests verify API key validation
+      // TODO: Revisit if Anthropic SDK improves testability in future versions
     })
 
     it('should handle multiple hazard types', async () => {

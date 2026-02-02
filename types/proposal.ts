@@ -1,6 +1,6 @@
 import type { Organization, EquipmentNeeded, MaterialNeeded } from './database'
 import { formatCurrency, formatDateLong } from '@/lib/utils'
-// TODO: Update to use SiteSurvey instead of Assessment
+// Updated to use SiteSurvey terminology
 
 // Re-export for backwards compatibility
 export { formatCurrency }

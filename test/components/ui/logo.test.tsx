@@ -5,6 +5,7 @@ import { Logo, LogoHorizontal, LogoVertical, LogoIcon } from '@/components/ui/lo
 // Mock Next.js Image component
 vi.mock('next/image', () => ({
   default: ({ src, alt, className, width, height, ...props }: any) => (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt={alt}
@@ -113,7 +114,7 @@ describe('Logo Component', () => {
     expect(horizontalImage).toHaveClass('w-auto')
     unmount()
 
-    const { rerender: rerender2, unmount: unmount2 } = render(<Logo variant="vertical" />)
+    const { rerender: _rerender2, unmount: unmount2 } = render(<Logo variant="vertical" />)
     const verticalImage = screen.getByTestId('logo-image')
     expect(verticalImage).toHaveClass('w-auto')
     unmount2()

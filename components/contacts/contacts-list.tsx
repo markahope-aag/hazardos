@@ -32,6 +32,7 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react'
+import { logger, formatError } from '@/lib/utils/logger'
 import { ContactDialog } from './contact-dialog'
 import { useToast } from '@/components/ui/use-toast'
 import type { CustomerContact, ContactRole } from '@/types/contacts'
@@ -67,7 +68,7 @@ export function ContactsList({ customerId }: ContactsListProps) {
         setContacts(data)
       }
     } catch (error) {
-      console.error('Failed to fetch contacts:', error)
+      logger.error({ error: formatError(error, 'CONTACTS_FETCH_FAILED') }, 'Failed to fetch contacts')
     } finally {
       setLoading(false)
     }
@@ -93,7 +94,7 @@ export function ContactsList({ customerId }: ContactsListProps) {
         throw new Error('Failed to update')
       }
     } catch (error) {
-      console.error('Failed to set primary contact:', error)
+      logger.error({ error: formatError(error, 'PRIMARY_CONTACT_UPDATE_FAILED') }, 'Failed to set primary contact')
       toast({
         title: 'Error',
         description: 'Failed to set primary contact.',
@@ -122,7 +123,7 @@ export function ContactsList({ customerId }: ContactsListProps) {
         throw new Error('Failed to delete')
       }
     } catch (error) {
-      console.error('Failed to delete contact:', error)
+      logger.error({ error: formatError(error, 'CONTACT_DELETE_FAILED') }, 'Failed to delete contact')
       toast({
         title: 'Error',
         description: 'Failed to delete contact.',

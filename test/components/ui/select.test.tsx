@@ -6,8 +6,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  SelectGroup,
-  SelectLabel,
+  SelectGroup as _SelectGroup,
+  SelectLabel as _SelectLabel,
 } from '@/components/ui/select'
 
 describe('Select Component', () => {

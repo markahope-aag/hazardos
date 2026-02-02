@@ -27,7 +27,7 @@ vi.mock('@/lib/utils/logger', () => ({
 }))
 
 vi.mock('@/lib/utils/secure-error-handler', () => ({
-  createSecureErrorResponse: vi.fn((error, log) =>
+  createSecureErrorResponse: vi.fn((error, _log) =>
     NextResponse.json({ error: 'Mocked error' }, { status: 500 })
   ),
   SecureError: class SecureError extends Error {
@@ -118,7 +118,7 @@ describe('API Handler Module', () => {
 
       const handler = createApiHandler(
         {},
-        async (req, context) => {
+        async (req, _context) => {
           return NextResponse.json({ success: true })
         }
       )
@@ -344,7 +344,7 @@ describe('API Handler Module', () => {
       }
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any)
 
-      const handler = createApiHandler({}, async (req, context, body, query) => {
+      const handler = createApiHandler({}, async (req, _context, body, query) => {
         throw new Error('Test error')
       })
 

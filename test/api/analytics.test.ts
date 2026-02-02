@@ -31,7 +31,7 @@ describe('Analytics API', () => {
     role: 'user'
   }
 
-  const setupAuthenticatedUser = () => {
+  const _setupAuthenticatedUser = () => {
     vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
       data: { user: { id: 'user-1', email: 'test@example.com' } },
       error: null

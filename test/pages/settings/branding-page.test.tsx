@@ -37,7 +37,7 @@ vi.mock('@/lib/services/white-label-service', () => ({
 
 // Mock BrandingForm component
 vi.mock('@/components/settings/branding-form', () => ({
-  BrandingForm: ({ enabled, config, domains }: { enabled: boolean; config: unknown; domains: unknown[] }) => (
+  BrandingForm: ({ enabled, config: _config, domains }: { enabled: boolean; config: unknown; domains: unknown[] }) => (
     <div data-testid="branding-form">
       Enabled: {enabled ? 'Yes' : 'No'}, Domains: {Array.isArray(domains) ? domains.length : 0}
     </div>

@@ -70,7 +70,7 @@ describe('Onboard Complete API', () => {
     vi.clearAllMocks()
   })
 
-  const mockUser = {
+  const _mockUser = {
     id: 'user-123',
     email: 'owner@company.com'
   }

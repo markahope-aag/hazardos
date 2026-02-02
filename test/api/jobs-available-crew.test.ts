@@ -77,7 +77,7 @@ describe('Jobs Available Crew API', () => {
 
       const request = new NextRequest('http://localhost:3000/api/jobs/available-crew?date=2026-03-01')
       const response = await GET(request)
-      const data = await response.json()
+      const _data = await response.json()
 
       expect(response.status).toBe(200)
     })

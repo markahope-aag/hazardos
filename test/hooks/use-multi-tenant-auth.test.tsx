@@ -193,9 +193,9 @@ describe('useMultiTenantAuth', () => {
         error: null
       } as any)
 
-      let updateCalled = false
+      let _updateCalled = false
       const mockUpdate = vi.fn().mockImplementation(() => {
-        updateCalled = true
+        _updateCalled = true
         return {
           eq: vi.fn()
         }

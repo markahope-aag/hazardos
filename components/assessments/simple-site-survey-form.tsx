@@ -95,8 +95,8 @@ export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFo
             lng: position.coords.longitude
           })
         },
-        (error) => {
-          console.log('Location access denied or unavailable:', error)
+        (_error) => {
+          // Location access denied or unavailable - this is expected and not an error
         }
       )
     }
@@ -107,7 +107,7 @@ export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFo
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleAccessIssueChange = (issue: string, checked: boolean) => {
+  const _handleAccessIssueChange = (issue: string, checked: boolean) => {
     setFormData((prev: typeof formData) => ({
       ...prev,
       access_issues: checked

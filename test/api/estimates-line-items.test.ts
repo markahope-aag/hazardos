@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
-import { GET, POST, PUT } from '@/app/api/estimates/[id]/line-items/route'
+import { GET, POST, PUT as _PUT } from '@/app/api/estimates/[id]/line-items/route'
 
 const mockSupabaseClient = {
   auth: {
@@ -23,7 +23,7 @@ describe('Estimate Line Items API', () => {
     role: 'user'
   }
 
-  const setupAuthenticatedUser = () => {
+  const _setupAuthenticatedUser = () => {
     vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
       data: { user: { id: 'user-123', email: 'user@example.com' } },
       error: null,

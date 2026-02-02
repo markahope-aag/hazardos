@@ -26,7 +26,7 @@ describe('Customer Validation Schema', () => {
 
   describe('Required Fields', () => {
     it('should validate name is required', () => {
-      const { name, ...data } = validCustomerData
+      const { name: _name, ...data } = validCustomerData
       const result = customerSchema.safeParse(data)
       expect(result.success).toBe(false)
       if (!result.success) {
@@ -43,13 +43,13 @@ describe('Customer Validation Schema', () => {
     })
 
     it('should validate status is required', () => {
-      const { status, ...data } = validCustomerData
+      const { status: _status, ...data } = validCustomerData
       const result = customerSchema.safeParse(data)
       expect(result.success).toBe(false)
     })
 
     it('should validate marketing_consent is required', () => {
-      const { marketing_consent, ...data } = validCustomerData
+      const { marketing_consent: _marketing_consent, ...data } = validCustomerData
       const result = customerSchema.safeParse(data)
       expect(result.success).toBe(false)
     })
@@ -160,7 +160,7 @@ describe('Customer Validation Schema', () => {
     })
 
     it('should accept undefined email', () => {
-      const { email, ...data } = validCustomerData
+      const { email: _email, ...data } = validCustomerData
       const result = customerSchema.safeParse(data)
       expect(result.success).toBe(true)
     })
@@ -218,7 +218,7 @@ describe('Customer Validation Schema', () => {
     })
 
     it('should accept undefined source', () => {
-      const { source, ...data } = validCustomerData
+      const { source: _source, ...data } = validCustomerData
       const result = customerSchema.safeParse(data)
       expect(result.success).toBe(true)
     })
@@ -234,7 +234,7 @@ describe('Customer Validation Schema', () => {
     })
 
     it('should accept undefined company_name', () => {
-      const { company_name, ...data } = validCustomerData
+      const { company_name: _company_name, ...data } = validCustomerData
       const result = customerSchema.safeParse(data)
       expect(result.success).toBe(true)
     })

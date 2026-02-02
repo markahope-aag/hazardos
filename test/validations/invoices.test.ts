@@ -138,7 +138,7 @@ describe('Invoice Validation Schemas', () => {
     })
 
     it('should require description', () => {
-      const { description, ...withoutDesc } = validLineItem
+      const { description: _description, ...withoutDesc } = validLineItem
       const result = addInvoiceLineItemSchema.safeParse(withoutDesc)
       expect(result.success).toBe(false)
     })
@@ -257,13 +257,13 @@ describe('Invoice Validation Schemas', () => {
     })
 
     it('should require payment_method', () => {
-      const { payment_method, ...withoutMethod } = validPayment
+      const { payment_method: _payment_method, ...withoutMethod } = validPayment
       const result = addPaymentSchema.safeParse(withoutMethod)
       expect(result.success).toBe(false)
     })
 
     it('should require payment_date', () => {
-      const { payment_date, ...withoutDate } = validPayment
+      const { payment_date: _payment_date, ...withoutDate } = validPayment
       const result = addPaymentSchema.safeParse(withoutDate)
       expect(result.success).toBe(false)
     })

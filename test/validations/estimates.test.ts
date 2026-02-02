@@ -249,13 +249,13 @@ describe('Estimate Validation Schemas', () => {
     })
 
     it('should require item_type', () => {
-      const { item_type, ...withoutType } = validLineItem
+      const { item_type: _item_type, ...withoutType } = validLineItem
       const result = addLineItemSchema.safeParse(withoutType)
       expect(result.success).toBe(false)
     })
 
     it('should require description', () => {
-      const { description, ...withoutDesc } = validLineItem
+      const { description: _description, ...withoutDesc } = validLineItem
       const result = addLineItemSchema.safeParse(withoutDesc)
       expect(result.success).toBe(false)
     })
@@ -277,7 +277,7 @@ describe('Estimate Validation Schemas', () => {
     })
 
     it('should require quantity', () => {
-      const { quantity, ...withoutQty } = validLineItem
+      const { quantity: _quantity, ...withoutQty } = validLineItem
       const result = addLineItemSchema.safeParse(withoutQty)
       expect(result.success).toBe(false)
     })
@@ -307,7 +307,7 @@ describe('Estimate Validation Schemas', () => {
     })
 
     it('should require unit_price', () => {
-      const { unit_price, ...withoutPrice } = validLineItem
+      const { unit_price: _unit_price, ...withoutPrice } = validLineItem
       const result = addLineItemSchema.safeParse(withoutPrice)
       expect(result.success).toBe(false)
     })

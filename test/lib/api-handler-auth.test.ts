@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
 import { createApiHandler, createApiHandlerWithParams } from '@/lib/utils/api-handler'
-import { z } from 'zod'
+import { z as _z } from 'zod'
 
 // Mock dependencies
 const mockSupabaseClient = {

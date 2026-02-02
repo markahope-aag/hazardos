@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NotificationService, notify, NotificationHelpers } from '@/lib/services/notification-service'
-import type { Notification } from '@/types/notifications'
+import type { Notification as _Notification } from '@/types/notifications'
 
 // Mock dependencies
 vi.mock('@/lib/supabase/server', () => ({

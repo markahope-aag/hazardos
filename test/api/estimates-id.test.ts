@@ -30,7 +30,7 @@ describe('Estimate By ID API', () => {
     role: 'admin'
   }
 
-  const mockUserProfile = {
+  const _mockUserProfile = {
     organization_id: 'org-123',
     role: 'user'
   }

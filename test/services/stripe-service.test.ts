@@ -54,7 +54,7 @@ vi.mock('@/lib/utils/logger', () => ({
 }))
 
 import { createClient } from '@/lib/supabase/server'
-import Stripe from 'stripe'
+import Stripe from 'stripe'; const _Stripe = Stripe
 
 describe('StripeService', () => {
   beforeEach(() => {

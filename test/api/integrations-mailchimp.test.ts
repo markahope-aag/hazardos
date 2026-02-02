@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NextRequest } from 'next/server'
+import { NextRequest as _NextRequest } from 'next/server'
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },

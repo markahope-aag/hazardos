@@ -164,7 +164,7 @@ Neutral Grays:    #F3F4F6, #6B7280, #111827
 ### Technology Stack
 
 **Frontend:**
-- **Framework**: Next.js 14 (App Router)
+- **Framework**: Next.js 16.1.6 (App Router)
 - **UI Library**: React 18
 - **Styling**: Tailwind CSS (mobile-first)
 - **Components**: shadcn/ui
@@ -1090,7 +1090,7 @@ export async function syncPendingEstimates() {
 - [ ] Create logo (Figma or hire designer)
 
 **Day 2: Foundation**
-- [ ] Initialize Next.js 14 project
+- [ ] Initialize Next.js 16.1.6 project
 - [ ] Install core dependencies
 - [ ] Set up Tailwind config
 - [ ] Create base layout components

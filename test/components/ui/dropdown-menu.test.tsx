@@ -6,9 +6,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
+  DropdownMenuSeparator as _DropdownMenuSeparator,
   DropdownMenuLabel,
-  DropdownMenuCheckboxItem,
+  DropdownMenuCheckboxItem as _DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 

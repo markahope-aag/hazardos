@@ -43,7 +43,7 @@ vi.mock('@dnd-kit/core', () => ({
   PointerSensor: vi.fn(),
   useSensor: vi.fn(() => ({})),
   useSensors: vi.fn(() => []),
-  useDroppable: vi.fn(({ id }: { id: string }) => ({
+  useDroppable: vi.fn(({ id: _id }: { id: string }) => ({
     setNodeRef: vi.fn(),
     isOver: false,
   })),
@@ -487,7 +487,7 @@ describe('PipelineKanban', () => {
         status: 500,
       })
 
-      const { rerender } = render(
+      const { rerender: _rerender } = render(
         <PipelineKanban stages={mockStages} opportunities={mockOpportunities} />
       )
 
@@ -591,7 +591,7 @@ describe('PipelineKanban', () => {
       render(<PipelineKanban stages={mockStages} opportunities={manyOpps} />)
 
       // Should calculate total correctly: sum of 1000 + 2000 + ... + 50000
-      const totalValue = (50 * 51 / 2) * 1000 // = 1,275,000
+      const _totalValue = (50 * 51 / 2) * 1000 // = 1,275,000
       expect(screen.getByText('$1,275,000')).toBeInTheDocument()
     })
   })

@@ -79,10 +79,10 @@ describe('StatsCards', () => {
   it('should render all four stat cards', async () => {
     // Mock each query chain independently
     // The component makes 4 separate queries in parallel
-    let callCount = 0
+    let _callCount = 0
     mockSupabaseClient.from.mockImplementation((table: string) => {
       const chain = createMockChain({ data: [], count: 0 })
-      callCount++
+      _callCount++
 
       if (table === 'payments') {
         // First query: revenue (payments)
@@ -355,8 +355,8 @@ describe('StatsCards', () => {
       const chain = createMockChain({ data: [], count: 0 })
 
       // Store original implementations
-      const originalGte = chain.gte
-      const originalLte = chain.lte
+      const _originalGte = chain.gte
+      const _originalLte = chain.lte
 
       // Wrap gte to capture and chain
       chain.gte = vi.fn().mockImplementation((...args: any[]) => {

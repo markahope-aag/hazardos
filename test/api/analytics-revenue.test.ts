@@ -188,7 +188,7 @@ describe('Analytics Revenue API', () => {
     it('should aggregate payments correctly by month', async () => {
       setupAuthenticatedUser()
 
-      const currentMonth = format(new Date(), 'yyyy-MM')
+      const _currentMonth = format(new Date(), 'yyyy-MM')
       const mockPayments = [
         { amount: 1000, payment_date: format(new Date(), 'yyyy-MM-dd') },
         { amount: 500, payment_date: format(new Date(), 'yyyy-MM-dd') },

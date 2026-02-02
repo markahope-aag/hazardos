@@ -62,7 +62,7 @@ describe('Segments Sync Mailchimp API', () => {
       body: JSON.stringify({ list_id: 'list-123' })
     })
     const response = await POST(request, { params: Promise.resolve({ id: 'segment-1' }) })
-    const data = await response.json()
+    const _data = await response.json()
     expect(response.status).toBe(200)
     expect(SegmentationService.syncToMailchimp).toHaveBeenCalledWith('segment-1', 'list-123')
   })
@@ -85,7 +85,7 @@ describe('Segments Sync Mailchimp API', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({})
     })
-    const response = await POST(request, { params: Promise.resolve({ id: 'segment-1' }) })
+    const _response = await POST(request, { params: Promise.resolve({ id: 'segment-1' }) })
     expect(SegmentationService.syncToMailchimp).toHaveBeenCalledWith('segment-1', 'list-default')
   })
 })

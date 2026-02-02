@@ -104,8 +104,8 @@ describe('RecentActivity', () => {
     expect(screen.getByText('John Doe')).toBeInTheDocument()
     expect(screen.getByText('Jane Smith')).toBeInTheDocument()
     // Entity names are wrapped in quotes in the component
-    expect(screen.getByText((content, element) => content.includes('ABC Corp'))).toBeInTheDocument()
-    expect(screen.getByText((content, element) => content.includes('Asbestos Survey'))).toBeInTheDocument()
+    expect(screen.getByText((content, _element) => content.includes('ABC Corp'))).toBeInTheDocument()
+    expect(screen.getByText((content, _element) => content.includes('Asbestos Survey'))).toBeInTheDocument()
   })
 
   it('should display correct action icons', async () => {
@@ -341,7 +341,7 @@ describe('RecentActivity', () => {
 
     expect(screen.getByText('José María')).toBeInTheDocument()
     // Entity name is wrapped in quotes, so use flexible matcher
-    expect(screen.getByText((content) => content.includes('Smith & Co. "Special" Ltd.'))).toBeInTheDocument()
+    expect(screen.getByText(content => content.includes('Smith & Co. "Special" Ltd.'))).toBeInTheDocument()
   })
 
   it('should handle single character names for initials', async () => {

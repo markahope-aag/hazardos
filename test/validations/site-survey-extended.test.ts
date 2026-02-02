@@ -21,43 +21,43 @@ describe('Site Survey Validation Schema', () => {
 
   describe('Required Fields', () => {
     it('should validate job_name is required', () => {
-      const { job_name, ...data } = validSurveyData
+      const { job_name: _job_name, ...data } = validSurveyData
       const result = siteSurveySchema.safeParse(data)
       expect(result.success).toBe(false)
     })
 
     it('should validate customer_name is required', () => {
-      const { customer_name, ...data } = validSurveyData
+      const { customer_name: _customer_name, ...data } = validSurveyData
       const result = siteSurveySchema.safeParse(data)
       expect(result.success).toBe(false)
     })
 
     it('should validate site_address is required', () => {
-      const { site_address, ...data } = validSurveyData
+      const { site_address: _site_address, ...data } = validSurveyData
       const result = siteSurveySchema.safeParse(data)
       expect(result.success).toBe(false)
     })
 
     it('should validate site_city is required', () => {
-      const { site_city, ...data } = validSurveyData
+      const { site_city: _site_city, ...data } = validSurveyData
       const result = siteSurveySchema.safeParse(data)
       expect(result.success).toBe(false)
     })
 
     it('should validate site_state is required', () => {
-      const { site_state, ...data } = validSurveyData
+      const { site_state: _site_state, ...data } = validSurveyData
       const result = siteSurveySchema.safeParse(data)
       expect(result.success).toBe(false)
     })
 
     it('should validate site_zip is required', () => {
-      const { site_zip, ...data } = validSurveyData
+      const { site_zip: _site_zip, ...data } = validSurveyData
       const result = siteSurveySchema.safeParse(data)
       expect(result.success).toBe(false)
     })
 
     it('should validate hazard_type is required', () => {
-      const { hazard_type, ...data } = validSurveyData
+      const { hazard_type: _hazard_type, ...data } = validSurveyData
       const result = siteSurveySchema.safeParse(data)
       expect(result.success).toBe(false)
     })
@@ -136,7 +136,7 @@ describe('Site Survey Validation Schema', () => {
     })
 
     it('should accept undefined email', () => {
-      const { customer_email, ...data } = validSurveyData
+      const { customer_email: _customer_email, ...data } = validSurveyData
       const result = siteSurveySchema.safeParse(data)
       expect(result.success).toBe(true)
     })
@@ -198,7 +198,7 @@ describe('Site Survey Validation Schema', () => {
     })
 
     it('should accept undefined containment_level', () => {
-      const { containment_level, ...data } = validSurveyData
+      const { containment_level: _containment_level, ...data } = validSurveyData
       const result = siteSurveySchema.safeParse(data)
       expect(result.success).toBe(true)
     })
@@ -264,19 +264,19 @@ describe('Site Survey Validation Schema', () => {
 
   describe('Boolean Fields', () => {
     it('should default occupied to false', () => {
-      const { occupied, ...data } = validSurveyData
+      const { occupied: _occupied, ...data } = validSurveyData
       const result = siteSurveySchema.parse(data)
       expect(result.occupied).toBe(false)
     })
 
     it('should default clearance_required to false', () => {
-      const { clearance_required, ...data } = validSurveyData
+      const { clearance_required: _clearance_required, ...data } = validSurveyData
       const result = siteSurveySchema.parse(data)
       expect(result.clearance_required).toBe(false)
     })
 
     it('should default regulatory_notifications_needed to false', () => {
-      const { regulatory_notifications_needed, ...data } = validSurveyData
+      const { regulatory_notifications_needed: _regulatory_notifications_needed, ...data } = validSurveyData
       const result = siteSurveySchema.parse(data)
       expect(result.regulatory_notifications_needed).toBe(false)
     })
