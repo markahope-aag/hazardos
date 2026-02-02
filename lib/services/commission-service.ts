@@ -107,8 +107,13 @@ export class CommissionService {
     pay_period?: string
     start_date?: string
     end_date?: string
-  }): Promise<CommissionEarning[]> {
+    limit?: number
+    offset?: number
+  }): Promise<{ earnings: CommissionEarning[]; total: number; limit: number; offset: number }> {
     const supabase = await createClient()
+
+    const limit = filters?.limit || 50
+    const offset = filters?.offset || 0
 
     let query = supabase
       .from('commission_earnings')
@@ -116,7 +121,7 @@ export class CommissionService {
         *,
         user:profiles(id, full_name),
         plan:commission_plans(*)
-      `)
+      `, { count: 'exact' })
       .order('earning_date', { ascending: false })
 
     if (filters?.user_id) {
@@ -135,15 +140,19 @@ export class CommissionService {
       query = query.lte('earning_date', filters.end_date)
     }
 
-    const { data, error } = await query
+    query = query.range(offset, offset + limit - 1)
+
+    const { data, error, count } = await query
 
     if (error) throw error
 
-    return (data || []).map(e => ({
+    const earnings = (data || []).map(e => ({
       ...e,
       user: Array.isArray(e.user) ? e.user[0] : e.user,
       plan: Array.isArray(e.plan) ? e.plan[0] : e.plan,
     })) as CommissionEarning[]
+
+    return { earnings, total: count || 0, limit, offset }
   }
 
   static async createEarning(input: {

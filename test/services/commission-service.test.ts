@@ -13,6 +13,7 @@ const mockSupabase = vi.hoisted(() => ({
   lt: vi.fn(),
   match: vi.fn(),
   order: vi.fn(),
+  range: vi.fn(),
   single: vi.fn(),
   auth: {
     getUser: vi.fn(),
@@ -33,6 +34,7 @@ const setupChainableMock = () => {
     lt: mockSupabase.lt,
     match: mockSupabase.match,
     order: mockSupabase.order,
+    range: mockSupabase.range,
     single: mockSupabase.single,
   })
 

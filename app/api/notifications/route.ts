@@ -5,7 +5,7 @@ import { notificationListQuerySchema, createNotificationSchema } from '@/lib/val
 
 /**
  * GET /api/notifications
- * List notifications for the current user
+ * List notifications for the current user with pagination
  */
 export const GET = createApiHandler(
   {
@@ -13,14 +13,19 @@ export const GET = createApiHandler(
     querySchema: notificationListQuerySchema,
   },
   async (_request, _context, _body, query) => {
-    const limit = query.limit || 50
     const unreadOnly = query.unread === 'true'
 
-    const notifications = unreadOnly
-      ? await NotificationService.getUnread()
-      : await NotificationService.getAll(undefined, limit)
+    const result = unreadOnly
+      ? await NotificationService.getUnread({
+          limit: query.limit,
+          offset: query.offset,
+        })
+      : await NotificationService.getAll({
+          limit: query.limit,
+          offset: query.offset,
+        })
 
-    return NextResponse.json(notifications)
+    return NextResponse.json(result)
   }
 )
 

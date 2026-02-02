@@ -8,6 +8,7 @@ const mockSupabase = vi.hoisted(() => ({
   update: vi.fn(),
   eq: vi.fn(),
   order: vi.fn(),
+  range: vi.fn(),
   single: vi.fn(),
   auth: {
     getUser: vi.fn(),
@@ -22,6 +23,7 @@ const setupChainableMock = () => {
   mockSupabase.update.mockReturnValue(mockSupabase)
   mockSupabase.eq.mockReturnValue(mockSupabase)
   mockSupabase.order.mockReturnValue(mockSupabase)
+  mockSupabase.range.mockReturnValue(mockSupabase)
 }
 
 // Mock activity service
@@ -242,21 +244,21 @@ describe('ApprovalService', () => {
     ]
 
     it('should fetch all approval requests', async () => {
-      mockSupabase.order.mockResolvedValue({ data: mockRequests, error: null })
+      mockSupabase.range.mockResolvedValue({ data: mockRequests, error: null, count: 2 })
 
       const result = await ApprovalService.getRequests()
 
       expect(mockSupabase.from).toHaveBeenCalledWith('approval_requests')
       expect(mockSupabase.order).toHaveBeenCalledWith('created_at', { ascending: false })
-      expect(result).toHaveLength(2)
-      expect(result[0].requester).toEqual({ full_name: 'John Doe' })
+      expect(result.requests).toHaveLength(2)
+      expect(result.requests[0].requester).toEqual({ full_name: 'John Doe' })
     })
 
     it('should filter by entity_type', async () => {
-      // getRequests with filter: from().select().order().eq('entity_type')
-      // .order() returns mockSupabase, .eq() returns promise with data
+      // getRequests with filter: from().select().order().eq('entity_type').range()
       mockSupabase.order.mockReturnValue(mockSupabase)
-      mockSupabase.eq.mockResolvedValue({ data: [mockRequests[0]], error: null })
+      mockSupabase.eq.mockReturnValue(mockSupabase)
+      mockSupabase.range.mockResolvedValue({ data: [mockRequests[0]], error: null, count: 1 })
 
       await ApprovalService.getRequests({ entity_type: 'estimate' })
 
@@ -265,7 +267,8 @@ describe('ApprovalService', () => {
 
     it('should filter by status', async () => {
       mockSupabase.order.mockReturnValue(mockSupabase)
-      mockSupabase.eq.mockResolvedValue({ data: [mockRequests[1]], error: null })
+      mockSupabase.eq.mockReturnValue(mockSupabase)
+      mockSupabase.range.mockResolvedValue({ data: [mockRequests[1]], error: null, count: 1 })
 
       await ApprovalService.getRequests({ status: 'approved' })
 
@@ -274,7 +277,8 @@ describe('ApprovalService', () => {
 
     it('should filter by requested_by', async () => {
       mockSupabase.order.mockReturnValue(mockSupabase)
-      mockSupabase.eq.mockResolvedValue({ data: [], error: null })
+      mockSupabase.eq.mockReturnValue(mockSupabase)
+      mockSupabase.range.mockResolvedValue({ data: [], error: null, count: 0 })
 
       await ApprovalService.getRequests({ requested_by: 'user-1' })
 
@@ -283,7 +287,8 @@ describe('ApprovalService', () => {
 
     it('should filter pending_only', async () => {
       mockSupabase.order.mockReturnValue(mockSupabase)
-      mockSupabase.eq.mockResolvedValue({ data: [mockRequests[0]], error: null })
+      mockSupabase.eq.mockReturnValue(mockSupabase)
+      mockSupabase.range.mockResolvedValue({ data: [mockRequests[0]], error: null, count: 1 })
 
       await ApprovalService.getRequests({ pending_only: true })
 
@@ -291,7 +296,7 @@ describe('ApprovalService', () => {
     })
 
     it('should handle database errors', async () => {
-      mockSupabase.order.mockResolvedValue({
+      mockSupabase.range.mockResolvedValue({
         data: null,
         error: { message: 'Query failed' },
       })

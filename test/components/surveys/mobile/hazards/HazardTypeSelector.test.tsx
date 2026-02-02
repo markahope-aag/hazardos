@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { HazardTypeSelector } from '@/components/surveys/mobile/hazards/HazardTypeSelector'
+import { HazardTypeSelector } from '@/components/surveys/mobile/hazards/hazard-type-selector'
 
 // Mock the survey store
 const mockUseSurveyStore = {

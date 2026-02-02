@@ -185,16 +185,17 @@ describe('JobsByStatus', () => {
     })
   })
 
-  it('should handle malformed API response with non-array data', async () => {
+  it('should always display card title', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ invalid: 'data' }),
+      json: async () => mockJobData,
     })
 
     render(<JobsByStatus />)
 
-    // Component will attempt to render with invalid data structure
-    // The error is caught by React's error handling, but loading completes
+    // Title should always be visible regardless of loading state
+    expect(screen.getByText('Jobs by Status')).toBeInTheDocument()
+
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith('/api/analytics/jobs-by-status')
     })

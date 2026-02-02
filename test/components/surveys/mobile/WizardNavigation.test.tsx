@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { WizardNavigation, WizardNavigationLabel } from '@/components/surveys/mobile/WizardNavigation'
+import { WizardNavigation, WizardNavigationLabel } from '@/components/surveys/mobile/wizard-navigation'
 
 // Mock the survey store
 const mockUseSurveyStore = {

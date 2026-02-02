@@ -5,6 +5,8 @@ export const feedbackListQuerySchema = z.object({
   status: z.string().optional(),
   job_id: z.string().uuid().optional(),
   customer_id: z.string().uuid().optional(),
+  limit: z.string().transform(Number).optional(),
+  offset: z.string().transform(Number).optional(),
 }).passthrough()
 
 // Create feedback survey

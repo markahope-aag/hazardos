@@ -91,8 +91,13 @@ export class ApprovalService {
     status?: ApprovalStatus
     requested_by?: string
     pending_only?: boolean
-  }): Promise<ApprovalRequest[]> {
+    limit?: number
+    offset?: number
+  }): Promise<{ requests: ApprovalRequest[]; total: number; limit: number; offset: number }> {
     const supabase = await createClient()
+
+    const limit = filters?.limit || 50
+    const offset = filters?.offset || 0
 
     let query = supabase
       .from('approval_requests')
@@ -101,7 +106,7 @@ export class ApprovalService {
         requester:profiles!requested_by(full_name),
         level1_approver_user:profiles!level1_approver(full_name),
         level2_approver_user:profiles!level2_approver(full_name)
-      `)
+      `, { count: 'exact' })
       .order('created_at', { ascending: false })
 
     if (filters?.entity_type) {
@@ -117,16 +122,20 @@ export class ApprovalService {
       query = query.eq('final_status', 'pending')
     }
 
-    const { data, error } = await query
+    query = query.range(offset, offset + limit - 1)
+
+    const { data, error, count } = await query
 
     if (error) throw error
 
-    return (data || []).map(r => ({
+    const requests = (data || []).map(r => ({
       ...r,
       requester: Array.isArray(r.requester) ? r.requester[0] : r.requester,
       level1_approver_user: Array.isArray(r.level1_approver_user) ? r.level1_approver_user[0] : r.level1_approver_user,
       level2_approver_user: Array.isArray(r.level2_approver_user) ? r.level2_approver_user[0] : r.level2_approver_user,
     })) as ApprovalRequest[]
+
+    return { requests, total: count || 0, limit, offset }
   }
 
   static async getRequest(id: string): Promise<ApprovalRequest | null> {

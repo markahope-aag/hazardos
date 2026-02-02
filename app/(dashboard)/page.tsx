@@ -49,17 +49,22 @@ export default async function DashboardPage() {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
+
+  // Single query with join to avoid N+1 (profile + organization)
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, organization_id, role')
+    .select(`
+      full_name,
+      organization_id,
+      role,
+      organization:organizations(name)
+    `)
     .eq('id', user?.id)
     .single();
 
-  const { data: organization } = await supabase
-    .from('organizations')
-    .select('name')
-    .eq('id', profile?.organization_id)
-    .single();
+  const organization = Array.isArray(profile?.organization)
+    ? profile?.organization[0]
+    : profile?.organization;
 
   const firstName = profile?.full_name?.split(' ')[0] || 'there';
   const isPlatformOwner = profile?.role === 'platform_owner';

@@ -5,7 +5,7 @@ import { approvalListQuerySchema, createApprovalSchema } from '@/lib/validations
 
 /**
  * GET /api/approvals
- * List approval requests
+ * List approval requests with pagination
  */
 export const GET = createApiHandler(
   {
@@ -13,13 +13,15 @@ export const GET = createApiHandler(
     querySchema: approvalListQuerySchema,
   },
   async (_request, _context, _body, query) => {
-    const requests = await ApprovalService.getRequests({
+    const result = await ApprovalService.getRequests({
       entity_type: query.entity_type,
       status: query.status,
       pending_only: query.pending_only === 'true',
+      limit: query.limit,
+      offset: query.offset,
     })
 
-    return NextResponse.json(requests)
+    return NextResponse.json(result)
   }
 )
 

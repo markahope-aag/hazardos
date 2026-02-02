@@ -5,7 +5,7 @@ import { commissionListQuerySchema, createCommissionSchema } from '@/lib/validat
 
 /**
  * GET /api/commissions
- * List commission earnings
+ * List commission earnings with pagination
  */
 export const GET = createApiHandler(
   {
@@ -13,13 +13,15 @@ export const GET = createApiHandler(
     querySchema: commissionListQuerySchema,
   },
   async (_request, _context, _body, query) => {
-    const earnings = await CommissionService.getEarnings({
+    const result = await CommissionService.getEarnings({
       user_id: query.user_id,
       status: query.status,
       pay_period: query.pay_period,
+      limit: query.limit,
+      offset: query.offset,
     })
 
-    return NextResponse.json(earnings)
+    return NextResponse.json(result)
   }
 )
 

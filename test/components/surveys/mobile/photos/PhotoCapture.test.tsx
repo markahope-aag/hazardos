@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { PhotoCapture } from '@/components/surveys/mobile/photos/PhotoCapture'
+import { PhotoCapture } from '@/components/surveys/mobile/photos/photo-capture'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
 // Mock stores

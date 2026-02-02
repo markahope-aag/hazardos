@@ -5,7 +5,7 @@ import { feedbackListQuerySchema, createFeedbackSurveySchema } from '@/lib/valid
 
 /**
  * GET /api/feedback
- * List feedback surveys
+ * List feedback surveys with pagination
  */
 export const GET = createApiHandler(
   {
@@ -13,13 +13,15 @@ export const GET = createApiHandler(
     querySchema: feedbackListQuerySchema,
   },
   async (_request, _context, _body, query) => {
-    const surveys = await FeedbackService.listSurveys({
+    const result = await FeedbackService.listSurveys({
       status: query.status,
       job_id: query.job_id,
       customer_id: query.customer_id,
+      limit: query.limit,
+      offset: query.offset,
     })
 
-    return NextResponse.json(surveys)
+    return NextResponse.json(result)
   }
 )
 

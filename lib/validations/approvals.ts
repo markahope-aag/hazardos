@@ -17,6 +17,8 @@ export const approvalListQuerySchema = z.object({
   entity_type: approvalEntityTypeSchema.optional(),
   status: approvalStatusSchema.optional(),
   pending_only: z.string().optional(),
+  limit: z.string().transform(Number).optional(),
+  offset: z.string().transform(Number).optional(),
 }).passthrough()
 
 // Create approval request

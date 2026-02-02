@@ -72,8 +72,15 @@ export class PipelineService {
 
   // ========== OPPORTUNITIES ==========
 
-  static async getOpportunities(stageId?: string): Promise<Opportunity[]> {
+  static async getOpportunities(options?: {
+    stageId?: string
+    limit?: number
+    offset?: number
+  }): Promise<{ opportunities: Opportunity[]; total: number; limit: number; offset: number }> {
     const supabase = await createClient()
+
+    const limit = options?.limit || 100
+    const offset = options?.offset || 0
 
     let query = supabase
       .from('opportunities')
@@ -82,24 +89,28 @@ export class PipelineService {
         stage:pipeline_stages(*),
         customer:customers(id, company_name, first_name, last_name),
         owner:profiles(id, full_name)
-      `)
+      `, { count: 'exact' })
       .is('outcome', null)
       .order('updated_at', { ascending: false })
 
-    if (stageId) {
-      query = query.eq('stage_id', stageId)
+    if (options?.stageId) {
+      query = query.eq('stage_id', options.stageId)
     }
 
-    const { data, error } = await query
+    query = query.range(offset, offset + limit - 1)
+
+    const { data, error, count } = await query
 
     if (error) throw error
 
-    return (data || []).map(opp => ({
+    const opportunities = (data || []).map(opp => ({
       ...opp,
       stage: Array.isArray(opp.stage) ? opp.stage[0] : opp.stage,
       customer: Array.isArray(opp.customer) ? opp.customer[0] : opp.customer,
       owner: Array.isArray(opp.owner) ? opp.owner[0] : opp.owner,
     })) as Opportunity[]
+
+    return { opportunities, total: count || 0, limit, offset }
   }
 
   static async getOpportunity(id: string): Promise<Opportunity | null> {
@@ -314,7 +325,8 @@ export class PipelineService {
   static async getPipelineMetrics(): Promise<PipelineMetrics> {
     const supabase = await createClient()
 
-    const opportunities = await this.getOpportunities()
+    // For metrics, get all opportunities (use high limit)
+    const { opportunities } = await this.getOpportunities({ limit: 10000 })
     const stages = await this.getStages()
 
     const total_value = opportunities.reduce((sum, o) => sum + (o.estimated_value || 0), 0)
