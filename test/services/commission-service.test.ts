@@ -49,6 +49,7 @@ const setupChainableMock = () => {
   mockSupabase.lt.mockReturnValue(createChain())
   mockSupabase.match.mockReturnValue(createChain())
   mockSupabase.order.mockReturnValue(createChain())
+  mockSupabase.range.mockReturnValue(createChain())
 }
 
 // Mock activity service
@@ -288,63 +289,66 @@ describe('CommissionService', () => {
     })
 
     it('should fetch all earnings', async () => {
-      mockSupabase.order.mockResolvedValue({ data: mockEarnings, error: null })
+      mockSupabase.range.mockResolvedValue({ data: mockEarnings, error: null, count: 2 })
 
       const result = await CommissionService.getEarnings()
 
       expect(mockSupabase.from).toHaveBeenCalledWith('commission_earnings')
       expect(mockSupabase.order).toHaveBeenCalledWith('earning_date', { ascending: false })
-      expect(result).toHaveLength(2)
-      expect(result[0].user).toEqual({ id: 'user-1', full_name: 'John Doe' })
+      expect(result.earnings).toHaveLength(2)
+      expect(result.earnings[0].user).toEqual({ id: 'user-1', full_name: 'John Doe' })
     })
 
     it('should filter by user_id', async () => {
-      // Create a fully chainable query that supports: from().select().order().eq()
+      // Create a fully chainable query that supports: from().select().order().eq().range()
       const queryChain = {
-        eq: vi.fn().mockReturnThis(),
-        then: vi.fn((resolve) => resolve({ data: mockEarnings, error: null })),
+        eq: vi.fn().mockReturnValue(mockSupabase),
+        range: vi.fn().mockResolvedValue({ data: mockEarnings, error: null, count: 2 }),
       }
 
       mockSupabase.from.mockReturnValue(mockSupabase)
       mockSupabase.select.mockReturnValue(mockSupabase)
       mockSupabase.order.mockReturnValue(queryChain)
+      mockSupabase.range.mockReturnValue(queryChain)
 
       const result = await CommissionService.getEarnings({ user_id: 'user-1' })
 
       expect(queryChain.eq).toHaveBeenCalledWith('user_id', 'user-1')
-      expect(result).toHaveLength(2)
+      expect(result.earnings).toHaveLength(2)
     })
 
     it('should filter by status', async () => {
       const queryChain = {
-        eq: vi.fn().mockReturnThis(),
-        then: vi.fn((resolve) => resolve({ data: [mockEarnings[0]], error: null })),
+        eq: vi.fn().mockReturnValue(mockSupabase),
+        range: vi.fn().mockResolvedValue({ data: [mockEarnings[0]], error: null, count: 1 }),
       }
 
       mockSupabase.from.mockReturnValue(mockSupabase)
       mockSupabase.select.mockReturnValue(mockSupabase)
       mockSupabase.order.mockReturnValue(queryChain)
+      mockSupabase.range.mockReturnValue(queryChain)
 
       const result = await CommissionService.getEarnings({ status: 'pending' })
 
       expect(queryChain.eq).toHaveBeenCalledWith('status', 'pending')
-      expect(result).toHaveLength(1)
+      expect(result.earnings).toHaveLength(1)
     })
 
     it('should filter by pay_period', async () => {
       const queryChain = {
-        eq: vi.fn().mockReturnThis(),
-        then: vi.fn((resolve) => resolve({ data: [], error: null })),
+        eq: vi.fn().mockReturnValue(mockSupabase),
+        range: vi.fn().mockResolvedValue({ data: [], error: null, count: 0 }),
       }
 
       mockSupabase.from.mockReturnValue(mockSupabase)
       mockSupabase.select.mockReturnValue(mockSupabase)
       mockSupabase.order.mockReturnValue(queryChain)
+      mockSupabase.range.mockReturnValue(queryChain)
 
       const result = await CommissionService.getEarnings({ pay_period: '2026-02' })
 
       expect(queryChain.eq).toHaveBeenCalledWith('pay_period', '2026-02')
-      expect(result).toEqual([])
+      expect(result.earnings).toEqual([])
     })
 
     it('should filter by date range', async () => {
