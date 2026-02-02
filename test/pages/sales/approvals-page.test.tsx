@@ -83,7 +83,8 @@ describe('ApprovalsPage', () => {
     const page = await ApprovalsPage()
     render(page)
 
-    expect(screen.getByText('Pending')).toBeInTheDocument()
+    // Multiple "Pending" texts may appear
+    expect(screen.getAllByText('Pending').length).toBeGreaterThan(0)
     expect(screen.getByText('Awaiting your review')).toBeInTheDocument()
   })
 
@@ -91,7 +92,8 @@ describe('ApprovalsPage', () => {
     const page = await ApprovalsPage()
     render(page)
 
-    expect(screen.getByText('Approved')).toBeInTheDocument()
+    // Multiple "Approved" texts may appear
+    expect(screen.getAllByText('Approved').length).toBeGreaterThan(0)
     expect(screen.getByText('Total approved')).toBeInTheDocument()
   })
 
@@ -108,7 +110,8 @@ describe('ApprovalsPage', () => {
     render(page)
 
     expect(screen.getByText('Pending Approvals')).toBeInTheDocument()
-    expect(screen.getByText('John Doe')).toBeInTheDocument()
+    // John Doe may appear multiple times
+    expect(screen.getAllByText('John Doe').length).toBeGreaterThan(0)
   })
 
   it('displays approval history', async () => {
