@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/feedback/testimonials/route'
+import { FeedbackService } from '@/lib/services/feedback-service'
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -9,6 +10,12 @@ const mockSupabaseClient = {
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => Promise.resolve(mockSupabaseClient))
+}))
+
+vi.mock('@/lib/services/feedback-service', () => ({
+  FeedbackService: {
+    getApprovedTestimonials: vi.fn()
+  }
 }))
 
 vi.mock('@/lib/middleware/unified-rate-limit', () => ({
@@ -48,114 +55,106 @@ describe('Feedback Testimonials API', () => {
       setupAuthenticatedUser()
 
       const mockTestimonials = [
-        { id: 'test-1', customer_name: 'John Doe', rating: 5, comment: 'Excellent service', approved: true },
-        { id: 'test-2', customer_name: 'Jane Smith', rating: 5, comment: 'Very professional', approved: true },
+        {
+          id: '550e8400-e29b-41d4-a716-446655440001',
+          customer_name: 'John Doe',
+          testimonial: 'Excellent service!',
+          rating: 5,
+          job_type: 'Asbestos Removal',
+          approved_at: '2026-01-15T10:00:00Z',
+          is_approved: true
+        },
+        {
+          id: '550e8400-e29b-41d4-a716-446655440002',
+          customer_name: 'Jane Smith',
+          testimonial: 'Very professional team',
+          rating: 5,
+          job_type: 'Mold Remediation',
+          approved_at: '2026-01-20T10:00:00Z',
+          is_approved: true
+        }
       ]
 
-      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
-        if (table === 'feedback') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                order: vi.fn().mockResolvedValue({
-                  data: mockTestimonials,
-                  error: null
-                })
-              })
-            })
-          } as any
-        }
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: mockProfile,
-                error: null
-              })
-            })
-          })
-        } as any
-      })
+      vi.mocked(FeedbackService.getApprovedTestimonials).mockResolvedValue(mockTestimonials)
 
       const request = new NextRequest('http://localhost:3000/api/feedback/testimonials')
       const response = await GET(request)
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(Array.isArray(data) || data.testimonials).toBeTruthy()
+      expect(Array.isArray(data)).toBe(true)
+      expect(data).toHaveLength(2)
+      expect(data[0].is_approved).toBe(true)
+      expect(FeedbackService.getApprovedTestimonials).toHaveBeenCalled()
     })
 
     it('should return empty array when no testimonials', async () => {
       setupAuthenticatedUser()
 
-      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
-        if (table === 'feedback') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                order: vi.fn().mockResolvedValue({
-                  data: [],
-                  error: null
-                })
-              })
-            })
-          } as any
-        }
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: mockProfile,
-                error: null
-              })
-            })
-          })
-        } as any
+      vi.mocked(FeedbackService.getApprovedTestimonials).mockResolvedValue([])
+
+      const request = new NextRequest('http://localhost:3000/api/feedback/testimonials')
+      const response = await GET(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(Array.isArray(data)).toBe(true)
+      expect(data).toHaveLength(0)
+    })
+
+    it('should return 401 for unauthenticated user', async () => {
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+        data: { user: null },
+        error: null
       })
 
       const request = new NextRequest('http://localhost:3000/api/feedback/testimonials')
       const response = await GET(request)
+      const data = await response.json()
 
-      expect(response.status).toBe(200)
+      expect(response.status).toBe(401)
+      expect(data.error).toBe('Authentication is required')
+      expect(data.type).toBe('UNAUTHORIZED')
     })
 
-    it('should only return high-rated testimonials', async () => {
+    it('should handle service errors securely', async () => {
+      setupAuthenticatedUser()
+
+      vi.mocked(FeedbackService.getApprovedTestimonials).mockRejectedValue(
+        new Error('Database connection failed')
+      )
+
+      const request = new NextRequest('http://localhost:3000/api/feedback/testimonials')
+      const response = await GET(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(500)
+      expect(data.error).toBe('An internal server error occurred')
+      expect(data.type).toBe('INTERNAL_ERROR')
+    })
+
+    it('should only return approved testimonials', async () => {
       setupAuthenticatedUser()
 
       const mockTestimonials = [
-        { id: 'test-1', rating: 5, approved: true },
-        { id: 'test-2', rating: 5, approved: true },
+        {
+          id: '550e8400-e29b-41d4-a716-446655440001',
+          customer_name: 'John Doe',
+          testimonial: 'Great work!',
+          rating: 5,
+          is_approved: true,
+          approved_at: '2026-01-15T10:00:00Z'
+        }
       ]
 
-      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
-        if (table === 'feedback') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                order: vi.fn().mockResolvedValue({
-                  data: mockTestimonials,
-                  error: null
-                })
-              })
-            })
-          } as any
-        }
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: mockProfile,
-                error: null
-              })
-            })
-          })
-        } as any
-      })
+      vi.mocked(FeedbackService.getApprovedTestimonials).mockResolvedValue(mockTestimonials)
 
       const request = new NextRequest('http://localhost:3000/api/feedback/testimonials')
       const response = await GET(request)
+      const data = await response.json()
 
       expect(response.status).toBe(200)
+      expect(data.every((t: any) => t.is_approved === true)).toBe(true)
     })
   })
 })
