@@ -7,7 +7,7 @@
 
 import { createRequestLogger } from '@/lib/utils/logger'
 
-const log = createRequestLogger({ requestId: 'query-monitor' })
+const log = createRequestLogger({ requestId: 'query-monitor', method: 'INTERNAL', path: '/query-monitor' })
 
 // Threshold for slow query warnings (ms)
 const SLOW_QUERY_THRESHOLD = 500

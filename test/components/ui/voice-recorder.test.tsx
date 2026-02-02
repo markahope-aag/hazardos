@@ -11,7 +11,7 @@ const mockMediaRecorder = {
 }
 
 const mockStream = {
-  getTracks: vi.fn(() => [{ stop: vi.fn() }]),
+  getTracks: vi.fn(function() { return [{ stop: vi.fn() }] }),
 }
 
 // Mock navigator.mediaDevices
@@ -23,15 +23,17 @@ Object.defineProperty(navigator, 'mediaDevices', {
 })
 
 // Mock MediaRecorder constructor
-global.MediaRecorder = vi.fn().mockImplementation(() => mockMediaRecorder) as any
-global.MediaRecorder.isTypeSupported = vi.fn().mockReturnValue(true)
+global.MediaRecorder = vi.fn(function(stream, options) {
+  return mockMediaRecorder
+}) as any
+global.MediaRecorder.isTypeSupported = vi.fn(function(type) { return true })
 
 // Mock fetch
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
 // Mock btoa
-global.btoa = vi.fn().mockImplementation((str) => Buffer.from(str, 'binary').toString('base64'))
+global.btoa = vi.fn(function(str) { return Buffer.from(str, 'binary').toString('base64') })
 
 const mockTranscription = {
   id: 'transcription_123',

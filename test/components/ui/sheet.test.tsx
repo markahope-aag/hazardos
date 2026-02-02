@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import React from 'react'
 import {
   Sheet,
   SheetTrigger,
@@ -14,9 +15,7 @@ describe('Sheet Components', () => {
   it('should render sheet trigger', () => {
     render(
       <Sheet>
-        <SheetTrigger asChild>
-          <button>Open Sheet</button>
-        </SheetTrigger>
+        <SheetTrigger>Open Sheet</SheetTrigger>
       </Sheet>
     )
     
@@ -26,9 +25,7 @@ describe('Sheet Components', () => {
   it('should open sheet when trigger is clicked', async () => {
     render(
       <Sheet>
-        <SheetTrigger asChild>
-          <button>Open Sheet</button>
-        </SheetTrigger>
+        <SheetTrigger>Open Sheet</SheetTrigger>
         <SheetContent>
           <SheetHeader>
             <SheetTitle>Sheet Title</SheetTitle>
