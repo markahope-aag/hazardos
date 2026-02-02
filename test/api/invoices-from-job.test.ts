@@ -32,6 +32,9 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 import { InvoicesService } from '@/lib/services/invoices-service'
 
 describe('Invoices From Job API', () => {
+  const JOB_UUID = '550e8400-e29b-41d4-a716-446655440001'
+  const INVOICE_UUID = '550e8400-e29b-41d4-a716-446655440002'
+
   const mockProfile = {
     organization_id: 'org-123',
     role: 'user'
@@ -64,8 +67,8 @@ describe('Invoices From Job API', () => {
       setupAuthenticatedUser()
 
       const newInvoice = {
-        id: 'invoice-123',
-        job_id: 'job-123',
+        id: INVOICE_UUID,
+        job_id: JOB_UUID,
         invoice_number: 'INV-001',
         status: 'draft',
         total: 5000.00,
@@ -76,7 +79,7 @@ describe('Invoices From Job API', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          job_id: 'job-123',
+          job_id: JOB_UUID,
         }),
       })
 
@@ -87,18 +90,18 @@ describe('Invoices From Job API', () => {
       expect(data).toEqual(newInvoice)
       expect(InvoicesService.createFromJob).toHaveBeenCalledWith(
         expect.objectContaining({
-          job_id: 'job-123',
+          job_id: JOB_UUID,
         })
       )
     })
 
-    it('should create invoice with custom due date', async () => {
+    it('should create invoice with custom due days', async () => {
       setupAuthenticatedUser()
 
       const invoice = {
-        id: 'invoice-456',
-        job_id: 'job-456',
-        due_date: '2026-04-01',
+        id: INVOICE_UUID,
+        job_id: JOB_UUID,
+        due_days: 45,
       }
       vi.mocked(InvoicesService.createFromJob).mockResolvedValue(invoice)
 
@@ -106,8 +109,8 @@ describe('Invoices From Job API', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          job_id: 'job-456',
-          due_date: '2026-04-01',
+          job_id: JOB_UUID,
+          due_days: 45,
         }),
       })
 
@@ -115,16 +118,16 @@ describe('Invoices From Job API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(201)
-      expect(data.due_date).toBe('2026-04-01')
+      expect(data.due_days).toBe(45)
     })
 
-    it('should create invoice with payment terms', async () => {
+    it('should create invoice with include_change_orders option', async () => {
       setupAuthenticatedUser()
 
       const invoice = {
-        id: 'invoice-789',
-        job_id: 'job-789',
-        payment_terms: 'NET_30',
+        id: INVOICE_UUID,
+        job_id: JOB_UUID,
+        include_change_orders: false,
       }
       vi.mocked(InvoicesService.createFromJob).mockResolvedValue(invoice)
 
@@ -132,8 +135,8 @@ describe('Invoices From Job API', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          job_id: 'job-789',
-          payment_terms: 'NET_30',
+          job_id: JOB_UUID,
+          include_change_orders: false,
         }),
       })
 
@@ -141,7 +144,7 @@ describe('Invoices From Job API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(201)
-      expect(data.payment_terms).toBe('NET_30')
+      expect(data.include_change_orders).toBe(false)
     })
   })
 })

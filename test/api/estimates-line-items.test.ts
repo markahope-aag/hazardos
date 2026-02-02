@@ -47,21 +47,38 @@ describe('Estimate Line Items API', () => {
 
   describe('GET /api/estimates/[id]/line-items', () => {
     it('should return line items for an estimate', async () => {
-      setupAuthenticatedUser()
-
       const mockLineItems = [
         { id: 'item-1', estimate_id: 'estimate-123', description: 'Labor', quantity: 40, unit_price: 50, total_price: 2000 },
         { id: 'item-2', estimate_id: 'estimate-123', description: 'Materials', quantity: 100, unit_price: 10, total_price: 1000 },
       ]
 
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'user@example.com' } },
+        error: null,
+      })
+
       vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
-        if (table === 'estimates') {
+        if (table === 'profiles') {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { id: 'estimate-123' },
+                  data: mockProfile,
                   error: null
+                })
+              })
+            })
+          } as any
+        }
+        if (table === 'estimates') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: 'estimate-123' },
+                    error: null
+                  })
                 })
               })
             })
@@ -92,7 +109,7 @@ describe('Estimate Line Items API', () => {
       })
 
       const request = new NextRequest('http://localhost:3000/api/estimates/estimate-123/line-items')
-      const response = await GET(request, { params: { id: 'estimate-123' } })
+      const response = await GET(request, { params: Promise.resolve({ id: 'estimate-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -100,16 +117,33 @@ describe('Estimate Line Items API', () => {
     })
 
     it('should return 404 when estimate not found', async () => {
-      setupAuthenticatedUser()
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'user@example.com' } },
+        error: null,
+      })
 
       vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
-        if (table === 'estimates') {
+        if (table === 'profiles') {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: { message: 'Not found' }
+                  data: mockProfile,
+                  error: null
+                })
+              })
+            })
+          } as any
+        }
+        if (table === 'estimates') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: { message: 'Not found' }
+                  })
                 })
               })
             })
@@ -128,7 +162,7 @@ describe('Estimate Line Items API', () => {
       })
 
       const request = new NextRequest('http://localhost:3000/api/estimates/estimate-nonexistent/line-items')
-      const response = await GET(request, { params: { id: 'estimate-nonexistent' } })
+      const response = await GET(request, { params: Promise.resolve({ id: 'estimate-nonexistent' }) })
 
       expect(response.status).toBe(404)
     })
@@ -136,8 +170,6 @@ describe('Estimate Line Items API', () => {
 
   describe('POST /api/estimates/[id]/line-items', () => {
     it('should add a line item to estimate', async () => {
-      setupAuthenticatedUser()
-
       const newLineItem = {
         id: 'item-new',
         estimate_id: 'estimate-123',
@@ -147,20 +179,39 @@ describe('Estimate Line Items API', () => {
         total_price: 250,
       }
 
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'user@example.com' } },
+        error: null,
+      })
+
       vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
-        if (table === 'estimates') {
+        if (table === 'profiles') {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { id: 'estimate-123', status: 'draft' },
+                  data: mockProfile,
                   error: null
                 })
               })
             })
           } as any
         }
-        if (table === 'estimate_line_items' && arguments[0] === 'estimate_line_items') {
+        if (table === 'estimates') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: 'estimate-123', status: 'draft' },
+                    error: null
+                  })
+                })
+              })
+            })
+          } as any
+        }
+        if (table === 'estimate_line_items') {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
@@ -208,7 +259,7 @@ describe('Estimate Line Items API', () => {
         }),
       })
 
-      const response = await POST(request, { params: { id: 'estimate-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'estimate-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(201)

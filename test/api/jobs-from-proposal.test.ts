@@ -27,6 +27,9 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 import { JobsService } from '@/lib/services/jobs-service'
 
 describe('Jobs From Proposal API', () => {
+  const PROPOSAL_UUID = '550e8400-e29b-41d4-a716-446655440001'
+  const JOB_UUID = '550e8400-e29b-41d4-a716-446655440002'
+
   const mockProfile = {
     organization_id: 'org-123',
     role: 'user'
@@ -85,8 +88,8 @@ describe('Jobs From Proposal API', () => {
       })
 
       const newJob = {
-        id: 'job-123',
-        proposal_id: 'proposal-123',
+        id: JOB_UUID,
+        proposal_id: PROPOSAL_UUID,
         status: 'scheduled',
         scheduled_start_date: '2026-03-01',
       }
@@ -96,7 +99,7 @@ describe('Jobs From Proposal API', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          proposal_id: 'proposal-123',
+          proposal_id: PROPOSAL_UUID,
           scheduled_start_date: '2026-03-01',
         }),
       })
@@ -108,7 +111,7 @@ describe('Jobs From Proposal API', () => {
       expect(data).toEqual(newJob)
       expect(JobsService.createFromProposal).toHaveBeenCalledWith(
         expect.objectContaining({
-          proposal_id: 'proposal-123',
+          proposal_id: PROPOSAL_UUID,
           scheduled_start_date: '2026-03-01',
         })
       )
@@ -142,9 +145,10 @@ describe('Jobs From Proposal API', () => {
         } as any
       })
 
+      const PROPOSAL_UUID_2 = '550e8400-e29b-41d4-a716-446655440003'
       const newJob = {
-        id: 'job-456',
-        proposal_id: 'proposal-456',
+        id: JOB_UUID,
+        proposal_id: PROPOSAL_UUID_2,
         status: 'scheduled',
       }
       vi.mocked(JobsService.createFromProposal).mockResolvedValue(newJob)
@@ -153,7 +157,7 @@ describe('Jobs From Proposal API', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          proposal_id: 'proposal-456',
+          proposal_id: PROPOSAL_UUID_2,
           scheduled_start_date: '2026-03-15',
         }),
       })
@@ -195,7 +199,7 @@ describe('Jobs From Proposal API', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          proposal_id: 'proposal-unsigned',
+          proposal_id: PROPOSAL_UUID,
           scheduled_start_date: '2026-03-01',
         }),
       })
@@ -207,6 +211,8 @@ describe('Jobs From Proposal API', () => {
 
     it('should reject job creation for non-existent proposal', async () => {
       setupAuthenticatedUser()
+
+      const NONEXISTENT_UUID = '550e8400-e29b-41d4-a716-446655440099'
 
       vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
         if (table === 'proposals') {
@@ -237,7 +243,7 @@ describe('Jobs From Proposal API', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          proposal_id: 'proposal-nonexistent',
+          proposal_id: NONEXISTENT_UUID,
           scheduled_start_date: '2026-03-01',
         }),
       })
@@ -254,7 +260,7 @@ describe('Jobs From Proposal API', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          proposal_id: 'proposal-123',
+          proposal_id: PROPOSAL_UUID,
           scheduled_start_date: 'invalid-date',
         }),
       })

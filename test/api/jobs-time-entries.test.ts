@@ -32,6 +32,8 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 
 import { JobCompletionService } from '@/lib/services/job-completion-service'
 
+const JOB_UUID = '550e8400-e29b-41d4-a716-446655440001'
+
 describe('Job Time Entries API', () => {
   const mockProfile = {
     organization_id: 'org-123',
@@ -65,18 +67,18 @@ describe('Job Time Entries API', () => {
       setupAuthenticatedUser()
 
       const mockTimeEntries = [
-        { id: 'entry-1', job_id: 'job-123', user_id: 'user-1', hours: 8, date: '2026-03-01' },
-        { id: 'entry-2', job_id: 'job-123', user_id: 'user-2', hours: 6, date: '2026-03-02' },
+        { id: 'entry-1', job_id: JOB_UUID, user_id: 'user-1', hours: 8, work_date: '2026-03-01' },
+        { id: 'entry-2', job_id: JOB_UUID, user_id: 'user-2', hours: 6, work_date: '2026-03-02' },
       ]
       vi.mocked(JobCompletionService.getTimeEntries).mockResolvedValue(mockTimeEntries)
 
-      const request = new NextRequest('http://localhost:3000/api/jobs/job-123/time-entries')
-      const response = await GET(request, { params: { id: 'job-123' } })
+      const request = new NextRequest(`http://localhost:3000/api/jobs/${JOB_UUID}/time-entries`)
+      const response = await GET(request, { params: Promise.resolve({ id: JOB_UUID }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)
       expect(data).toEqual(mockTimeEntries)
-      expect(JobCompletionService.getTimeEntries).toHaveBeenCalledWith('job-123')
+      expect(JobCompletionService.getTimeEntries).toHaveBeenCalledWith(JOB_UUID)
     })
 
     it('should return empty array when no time entries', async () => {
@@ -84,8 +86,8 @@ describe('Job Time Entries API', () => {
 
       vi.mocked(JobCompletionService.getTimeEntries).mockResolvedValue([])
 
-      const request = new NextRequest('http://localhost:3000/api/jobs/job-123/time-entries')
-      const response = await GET(request, { params: { id: 'job-123' } })
+      const request = new NextRequest(`http://localhost:3000/api/jobs/${JOB_UUID}/time-entries`)
+      const response = await GET(request, { params: Promise.resolve({ id: JOB_UUID }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -99,64 +101,65 @@ describe('Job Time Entries API', () => {
 
       const newEntry = {
         id: 'entry-new',
-        job_id: 'job-123',
+        job_id: JOB_UUID,
         user_id: 'user-123',
         hours: 8,
-        date: '2026-03-01',
+        work_date: '2026-03-01',
         description: 'Removal work',
       }
       vi.mocked(JobCompletionService.createTimeEntry).mockResolvedValue(newEntry)
 
-      const request = new NextRequest('http://localhost:3000/api/jobs/job-123/time-entries', {
+      const request = new NextRequest(`http://localhost:3000/api/jobs/${JOB_UUID}/time-entries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           hours: 8,
-          date: '2026-03-01',
+          work_date: '2026-03-01',
           description: 'Removal work',
         }),
       })
 
-      const response = await POST(request, { params: { id: 'job-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: JOB_UUID }) })
       const data = await response.json()
 
       expect(response.status).toBe(201)
       expect(data).toEqual(newEntry)
       expect(JobCompletionService.createTimeEntry).toHaveBeenCalledWith(
         expect.objectContaining({
-          job_id: 'job-123',
+          job_id: JOB_UUID,
           hours: 8,
-          date: '2026-03-01',
+          work_date: '2026-03-01',
         })
       )
     })
 
-    it('should create time entry with overtime', async () => {
+    it('should create time entry with work_type', async () => {
       setupAuthenticatedUser()
 
       const overtimeEntry = {
         id: 'entry-overtime',
-        job_id: 'job-123',
+        job_id: JOB_UUID,
         hours: 10,
-        overtime_hours: 2,
+        work_type: 'overtime',
+        work_date: '2026-03-01',
       }
       vi.mocked(JobCompletionService.createTimeEntry).mockResolvedValue(overtimeEntry)
 
-      const request = new NextRequest('http://localhost:3000/api/jobs/job-123/time-entries', {
+      const request = new NextRequest(`http://localhost:3000/api/jobs/${JOB_UUID}/time-entries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           hours: 10,
-          overtime_hours: 2,
-          date: '2026-03-01',
+          work_type: 'overtime',
+          work_date: '2026-03-01',
         }),
       })
 
-      const response = await POST(request, { params: { id: 'job-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: JOB_UUID }) })
       const data = await response.json()
 
       expect(response.status).toBe(201)
-      expect(data.overtime_hours).toBe(2)
+      expect(data.work_type).toBe('overtime')
     })
   })
 })

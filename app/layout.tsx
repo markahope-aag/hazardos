@@ -3,6 +3,7 @@ import { Inter, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import QueryProvider from '@/components/providers/query-provider'
+import AnalyticsProvider from '@/components/providers/analytics-provider'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -49,8 +50,10 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} ${geistMono.variable} font-sans`}>
         <QueryProvider>
-          {children}
-          <Toaster />
+          <AnalyticsProvider>
+            {children}
+            <Toaster />
+          </AnalyticsProvider>
         </QueryProvider>
       </body>
     </html>
