@@ -1,11 +1,12 @@
 import React from 'react'
 
-// Placeholder Calendar component
-export function Calendar({ onSelect, selected, ...props }: { 
+interface CalendarProps extends React.HTMLAttributes<HTMLDivElement> {
   onSelect?: (date: Date | undefined) => void
   selected?: Date
-  [key: string]: any 
-}) {
+}
+
+// Placeholder Calendar component
+export function Calendar({ onSelect, selected, ...props }: CalendarProps) {
   return (
     <div className="p-4 border rounded-md" {...props}>
       <p className="text-muted-foreground">Calendar component placeholder</p>

@@ -10,17 +10,11 @@ import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
 import type { OrganizationSubscription } from '@/types/billing'
 import { subscriptionStatusConfig } from '@/types/billing'
+import { formatCurrencyFromCents } from '@/lib/utils'
 
 interface SubscriptionCardProps {
   subscription: OrganizationSubscription | null
   isAdmin: boolean
-}
-
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(cents / 100)
 }
 
 export function SubscriptionCard({ subscription, isAdmin }: SubscriptionCardProps) {
@@ -80,7 +74,7 @@ export function SubscriptionCard({ subscription, isAdmin }: SubscriptionCardProp
               </Badge>
             </CardTitle>
             <CardDescription>
-              {plan ? formatCurrency(plan.price_monthly) : '$0'}/month
+              {plan ? formatCurrencyFromCents(plan.price_monthly, true) : '$0'}/month
               {subscription.billing_cycle === 'yearly' && ' (billed annually)'}
             </CardDescription>
           </div>

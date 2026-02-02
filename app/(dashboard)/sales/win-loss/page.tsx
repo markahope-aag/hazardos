@@ -14,14 +14,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Trophy, XCircle, TrendingUp, PieChart } from 'lucide-react'
-
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-  }).format(cents)
-}
+import { formatCurrency } from '@/lib/utils'
 
 export default async function WinLossPage() {
   const supabase = await createClient()
@@ -60,7 +53,7 @@ export default async function WinLossPage() {
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{wonOpps.length}</div>
             <p className="text-xs text-muted-foreground">
-              {formatCurrency(totalWon)} total value
+              {formatCurrency(totalWon, false)} total value
             </p>
           </CardContent>
         </Card>
@@ -73,7 +66,7 @@ export default async function WinLossPage() {
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{lostOpps.length}</div>
             <p className="text-xs text-muted-foreground">
-              {formatCurrency(totalLost)} total value
+              {formatCurrency(totalLost, false)} total value
             </p>
           </CardContent>
         </Card>
@@ -98,7 +91,7 @@ export default async function WinLossPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(wonOpps.length > 0 ? totalWon / wonOpps.length : 0)}
+              {formatCurrency(wonOpps.length > 0 ? totalWon / wonOpps.length : 0, false)}
             </div>
             <p className="text-xs text-muted-foreground">Won deals average</p>
           </CardContent>
@@ -186,7 +179,7 @@ export default async function WinLossPage() {
                         </TableCell>
                         <TableCell>{opp.owner?.full_name || '-'}</TableCell>
                         <TableCell className="text-right font-medium text-green-600">
-                          {formatCurrency(opp.estimated_value || 0)}
+                          {formatCurrency(opp.estimated_value || 0, false)}
                         </TableCell>
                         <TableCell>
                           {opp.actual_close_date
@@ -247,7 +240,7 @@ export default async function WinLossPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-right font-medium text-red-600">
-                          {formatCurrency(opp.estimated_value || 0)}
+                          {formatCurrency(opp.estimated_value || 0, false)}
                         </TableCell>
                         <TableCell>
                           {opp.actual_close_date

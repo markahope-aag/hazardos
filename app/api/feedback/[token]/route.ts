@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { FeedbackService } from '@/lib/services/feedback-service'
 import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
+import { submitFeedbackSchema } from '@/lib/validations/feedback'
 
 type RouteParams = { params: Promise<{ token: string }> }
 
@@ -42,7 +43,25 @@ export async function POST(
     }
 
     const { token } = await params
-    const body = await request.json()
+
+    // Parse and validate request body
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch {
+      throw new SecureError('VALIDATION', 'Invalid JSON body')
+    }
+
+    const validationResult = submitFeedbackSchema.safeParse(body)
+
+    if (!validationResult.success) {
+      const errors = validationResult.error.errors
+        .map(e => `${e.path.join('.')}: ${e.message}`)
+        .join(', ')
+      throw new SecureError('VALIDATION', `Invalid feedback data: ${errors}`)
+    }
+
+    const feedbackData = validationResult.data
 
     // Get client info for tracking
     const ipAddress = request.headers.get('x-forwarded-for') ||
@@ -52,19 +71,7 @@ export async function POST(
 
     const survey = await FeedbackService.submitFeedback(
       token,
-      {
-        rating_overall: body.rating_overall,
-        rating_quality: body.rating_quality,
-        rating_communication: body.rating_communication,
-        rating_timeliness: body.rating_timeliness,
-        rating_value: body.rating_value,
-        would_recommend: body.would_recommend,
-        likelihood_to_recommend: body.likelihood_to_recommend,
-        feedback_text: body.feedback_text,
-        improvement_suggestions: body.improvement_suggestions,
-        testimonial_text: body.testimonial_text,
-        testimonial_permission: body.testimonial_permission,
-      },
+      feedbackData,
       ipAddress,
       userAgent
     )

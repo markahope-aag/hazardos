@@ -1,2 +1,2 @@
-export { CompletionChecklist } from './CompletionChecklist'
-export { SurveySummary } from './SurveySummary'
+export { CompletionChecklist } from './completion-checklist'
+export { SurveySummary } from './survey-summary'

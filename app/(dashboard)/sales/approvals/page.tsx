@@ -14,14 +14,7 @@ import {
 } from '@/components/ui/table'
 import { ClipboardCheck, Clock, CheckCircle, XCircle } from 'lucide-react'
 import { ApprovalActions } from '@/components/sales/approval-actions'
-
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-  }).format(cents)
-}
+import { formatCurrency } from '@/lib/utils'
 
 function getStatusBadge(status: string) {
   switch (status) {
@@ -137,7 +130,7 @@ export default async function ApprovalsPage() {
                     <TableCell>{getEntityTypeBadge(request.entity_type)}</TableCell>
                     <TableCell>{request.requester?.full_name || 'Unknown'}</TableCell>
                     <TableCell className="text-right font-medium">
-                      {request.amount ? formatCurrency(request.amount) : '-'}
+                      {request.amount ? formatCurrency(request.amount, false) : '-'}
                     </TableCell>
                     <TableCell>{getStatusBadge(request.level1_status)}</TableCell>
                     <TableCell>
@@ -188,7 +181,7 @@ export default async function ApprovalsPage() {
                     <TableCell>{getEntityTypeBadge(request.entity_type)}</TableCell>
                     <TableCell>{request.requester?.full_name || 'Unknown'}</TableCell>
                     <TableCell className="text-right font-medium">
-                      {request.amount ? formatCurrency(request.amount) : '-'}
+                      {request.amount ? formatCurrency(request.amount, false) : '-'}
                     </TableCell>
                     <TableCell>{getStatusBadge(request.final_status)}</TableCell>
                     <TableCell>

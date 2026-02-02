@@ -33,13 +33,7 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
   none: { label: 'No Plan', color: 'text-gray-600', bgColor: 'bg-gray-50' },
 }
 
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-  }).format(cents / 100)
-}
+import { formatCurrencyFromCents } from '@/lib/utils'
 
 interface OrganizationsTableProps {
   organizations: OrganizationSummary[]
@@ -156,7 +150,7 @@ export function OrganizationsTable({
                     <TableCell className="text-right">{org.usersCount}</TableCell>
                     <TableCell className="text-right">{org.jobsThisMonth}</TableCell>
                     <TableCell className="text-right">
-                      {org.mrr > 0 ? formatCurrency(org.mrr) : '-'}
+                      {org.mrr > 0 ? formatCurrencyFromCents(org.mrr) : '-'}
                     </TableCell>
                     <TableCell>
                       {format(new Date(org.createdAt), 'MMM d, yyyy')}

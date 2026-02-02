@@ -8,20 +8,12 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Check, Loader2, Sparkles } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrencyFromCents } from '@/lib/utils'
 import type { SubscriptionPlan, BillingCycle } from '@/types/billing'
 
 interface PlanSelectorProps {
   plans: SubscriptionPlan[]
   currentPlanId?: string
-}
-
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-  }).format(cents / 100)
 }
 
 export function PlanSelector({ plans, currentPlanId }: PlanSelectorProps) {
@@ -116,7 +108,7 @@ export function PlanSelector({ plans, currentPlanId }: PlanSelectorProps) {
                 </div>
 
                 <div className="mb-4">
-                  <span className="text-3xl font-bold">{formatCurrency(price)}</span>
+                  <span className="text-3xl font-bold">{formatCurrencyFromCents(price)}</span>
                   <span className="text-muted-foreground">/month</span>
                   {billingCycle === 'yearly' && savings > 0 && (
                     <p className="text-sm text-green-600">Save {savings}% with yearly billing</p>

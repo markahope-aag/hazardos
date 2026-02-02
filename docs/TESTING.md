@@ -345,7 +345,7 @@ Test React components with user interactions:
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import CustomerForm from '@/components/customers/CustomerForm'
+import CustomerForm from '@/components/customers/customer-form'
 
 describe('CustomerForm', () => {
   it('should submit form with valid data', async () => {

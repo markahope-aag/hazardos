@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { withApiKeyAuth, ApiKeyAuthContext } from '@/lib/middleware/api-key-auth';
 import { ApiKeyService } from '@/lib/services/api-key-service';
 import { handlePreflight } from '@/lib/middleware/cors';
+import { v1InvoiceListQuerySchema, v1CreateInvoiceSchema, formatZodError } from '@/lib/validations/v1-api';
 
 async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
   // Check scope
@@ -16,10 +17,22 @@ async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Prom
   const supabase = await createClient();
   const searchParams = request.nextUrl.searchParams;
 
-  const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-  const offset = parseInt(searchParams.get('offset') || '0');
-  const status = searchParams.get('status');
-  const customer_id = searchParams.get('customer_id');
+  // Validate query parameters
+  const queryResult = v1InvoiceListQuerySchema.safeParse({
+    limit: searchParams.get('limit') || undefined,
+    offset: searchParams.get('offset') || undefined,
+    status: searchParams.get('status') || undefined,
+    customer_id: searchParams.get('customer_id') || undefined,
+  });
+
+  if (!queryResult.success) {
+    return NextResponse.json(
+      { error: 'Invalid query parameters', details: formatZodError(queryResult.error) },
+      { status: 400 }
+    );
+  }
+
+  const { limit = 50, offset = 0, status, customer_id } = queryResult.data;
 
   let query = supabase
     .from('invoices')
@@ -66,7 +79,23 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
   }
 
   const supabase = await createClient();
-  const body = await request.json();
+
+  // Parse and validate request body
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const validationResult = v1CreateInvoiceSchema.safeParse(body);
+
+  if (!validationResult.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: formatZodError(validationResult.error) },
+      { status: 400 }
+    );
+  }
 
   const {
     customer_id,
@@ -74,16 +103,7 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     line_items,
     due_date,
     notes,
-  } = body;
-
-  // Validation
-  if (!customer_id) {
-    return NextResponse.json({ error: 'customer_id is required' }, { status: 400 });
-  }
-
-  if (!line_items?.length) {
-    return NextResponse.json({ error: 'At least one line_item is required' }, { status: 400 });
-  }
+  } = validationResult.data;
 
   // Verify customer belongs to this org
   const { data: customer } = await supabase
@@ -97,6 +117,20 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
   }
 
+  // If job_id provided, verify it belongs to this org
+  if (job_id) {
+    const { data: job } = await supabase
+      .from('jobs')
+      .select('id')
+      .eq('id', job_id)
+      .eq('organization_id', context.organizationId)
+      .single();
+
+    if (!job) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+  }
+
   // Generate invoice number
   const { count } = await supabase
     .from('invoices')
@@ -108,7 +142,7 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
   // Calculate totals
   let subtotal = 0;
   for (const item of line_items) {
-    subtotal += (item.quantity || 1) * (item.unit_price || 0);
+    subtotal += item.quantity * item.unit_price;
   }
 
   const { data: invoice, error } = await supabase
@@ -132,17 +166,18 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     .single();
 
   if (error) {
+    console.error('Failed to create invoice:', error);
     return NextResponse.json({ error: 'Failed to create invoice' }, { status: 500 });
   }
 
   // Create line items
-  const lineItemsToInsert = line_items.map((item: { description: string; quantity?: number; unit_price: number }, index: number) => ({
+  const lineItemsToInsert = line_items.map((item, index) => ({
     invoice_id: invoice.id,
     organization_id: context.organizationId,
     description: item.description,
-    quantity: item.quantity || 1,
+    quantity: item.quantity,
     unit_price: item.unit_price,
-    line_total: (item.quantity || 1) * item.unit_price,
+    line_total: item.quantity * item.unit_price,
     sort_order: index,
   }));
 

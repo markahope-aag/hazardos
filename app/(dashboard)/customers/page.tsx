@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
-import CustomerList from '@/components/customers/CustomerList'
-import CreateCustomerModal from '@/components/customers/CreateCustomerModal'
-import EditCustomerModal from '@/components/customers/EditCustomerModal'
-import DeleteCustomerDialog from '@/components/customers/DeleteCustomerDialog'
+import CustomerList from '@/components/customers/customer-list'
+import CreateCustomerModal from '@/components/customers/create-customer-modal'
+import EditCustomerModal from '@/components/customers/edit-customer-modal'
+import DeleteCustomerDialog from '@/components/customers/delete-customer-dialog'
 import type { Customer } from '@/types/database'
 
 export default function CustomersPage() {

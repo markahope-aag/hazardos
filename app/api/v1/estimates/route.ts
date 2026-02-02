@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { withApiKeyAuth, ApiKeyAuthContext } from '@/lib/middleware/api-key-auth';
 import { ApiKeyService } from '@/lib/services/api-key-service';
 import { handlePreflight } from '@/lib/middleware/cors';
+import { v1EstimateListQuerySchema, v1CreateEstimateSchema, formatZodError } from '@/lib/validations/v1-api';
 
 async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
   // Check scope
@@ -16,10 +17,22 @@ async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Prom
   const supabase = await createClient();
   const searchParams = request.nextUrl.searchParams;
 
-  const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-  const offset = parseInt(searchParams.get('offset') || '0');
-  const status = searchParams.get('status');
-  const customer_id = searchParams.get('customer_id');
+  // Validate query parameters
+  const queryResult = v1EstimateListQuerySchema.safeParse({
+    limit: searchParams.get('limit') || undefined,
+    offset: searchParams.get('offset') || undefined,
+    status: searchParams.get('status') || undefined,
+    customer_id: searchParams.get('customer_id') || undefined,
+  });
+
+  if (!queryResult.success) {
+    return NextResponse.json(
+      { error: 'Invalid query parameters', details: formatZodError(queryResult.error) },
+      { status: 400 }
+    );
+  }
+
+  const { limit = 50, offset = 0, status, customer_id } = queryResult.data;
 
   let query = supabase
     .from('estimates')
@@ -66,7 +79,23 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
   }
 
   const supabase = await createClient();
-  const body = await request.json();
+
+  // Parse and validate request body
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const validationResult = v1CreateEstimateSchema.safeParse(body);
+
+  if (!validationResult.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: formatZodError(validationResult.error) },
+      { status: 400 }
+    );
+  }
 
   const {
     customer_id,
@@ -74,16 +103,7 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     line_items,
     valid_until,
     notes,
-  } = body;
-
-  // Validation
-  if (!customer_id) {
-    return NextResponse.json({ error: 'customer_id is required' }, { status: 400 });
-  }
-
-  if (!line_items?.length) {
-    return NextResponse.json({ error: 'At least one line_item is required' }, { status: 400 });
-  }
+  } = validationResult.data;
 
   // Verify customer belongs to this org
   const { data: customer } = await supabase
@@ -97,6 +117,20 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
   }
 
+  // If site_survey_id provided, verify it belongs to this org
+  if (site_survey_id) {
+    const { data: survey } = await supabase
+      .from('site_surveys')
+      .select('id')
+      .eq('id', site_survey_id)
+      .eq('organization_id', context.organizationId)
+      .single();
+
+    if (!survey) {
+      return NextResponse.json({ error: 'Site survey not found' }, { status: 404 });
+    }
+  }
+
   // Generate estimate number
   const { count } = await supabase
     .from('estimates')
@@ -108,7 +142,7 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
   // Calculate totals
   let totalAmount = 0;
   for (const item of line_items) {
-    totalAmount += (item.quantity || 1) * (item.unit_price || 0);
+    totalAmount += item.quantity * item.unit_price;
   }
 
   const { data: estimate, error } = await supabase
@@ -127,17 +161,18 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     .single();
 
   if (error) {
+    console.error('Failed to create estimate:', error);
     return NextResponse.json({ error: 'Failed to create estimate' }, { status: 500 });
   }
 
   // Create line items
-  const lineItemsToInsert = line_items.map((item: { description: string; quantity?: number; unit_price: number; category?: string }, index: number) => ({
+  const lineItemsToInsert = line_items.map((item, index) => ({
     estimate_id: estimate.id,
     organization_id: context.organizationId,
     description: item.description,
-    quantity: item.quantity || 1,
+    quantity: item.quantity,
     unit_price: item.unit_price,
-    line_total: (item.quantity || 1) * item.unit_price,
+    line_total: item.quantity * item.unit_price,
     category: item.category || 'general',
     sort_order: index,
   }));

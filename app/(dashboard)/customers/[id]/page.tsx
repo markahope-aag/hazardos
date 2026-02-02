@@ -4,7 +4,7 @@ import { use } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent } from '@/components/ui/card'
 import { AlertCircle } from 'lucide-react'
-import CustomerDetail from '@/components/customers/CustomerDetail'
+import CustomerDetail from '@/components/customers/customer-detail'
 import { useCustomer } from '@/lib/hooks/use-customers'
 
 interface CustomerDetailPageProps {

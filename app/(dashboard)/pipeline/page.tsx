@@ -6,14 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Plus, DollarSign, Target, TrendingUp } from 'lucide-react'
 import { PipelineKanbanLazy } from '@/components/pipeline/pipeline-kanban-lazy'
-
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-  }).format(cents)
-}
+import { formatCurrency } from '@/lib/utils'
 
 export default async function PipelinePage() {
   const supabase = await createClient()
@@ -64,7 +57,7 @@ export default async function PipelinePage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(metrics.total_value)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(metrics.total_value, false)}</div>
             <p className="text-xs text-muted-foreground">
               Total estimated value
             </p>
@@ -76,7 +69,7 @@ export default async function PipelinePage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(metrics.weighted_value)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(metrics.weighted_value, false)}</div>
             <p className="text-xs text-muted-foreground">
               Probability-adjusted value
             </p>

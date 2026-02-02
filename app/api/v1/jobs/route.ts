@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { withApiKeyAuth, ApiKeyAuthContext } from '@/lib/middleware/api-key-auth';
 import { ApiKeyService } from '@/lib/services/api-key-service';
 import { handlePreflight } from '@/lib/middleware/cors';
+import { v1CreateJobSchema, v1JobListQuerySchema, formatZodError } from '@/lib/validations/v1-api';
 
 async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
   // Check scope
@@ -16,10 +17,22 @@ async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Prom
   const supabase = await createClient();
   const searchParams = request.nextUrl.searchParams;
 
-  const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-  const offset = parseInt(searchParams.get('offset') || '0');
-  const status = searchParams.get('status');
-  const customer_id = searchParams.get('customer_id');
+  // Validate query parameters
+  const queryResult = v1JobListQuerySchema.safeParse({
+    limit: searchParams.get('limit') || undefined,
+    offset: searchParams.get('offset') || undefined,
+    status: searchParams.get('status') || undefined,
+    customer_id: searchParams.get('customer_id') || undefined,
+  });
+
+  if (!queryResult.success) {
+    return NextResponse.json(
+      { error: 'Invalid query parameters', details: formatZodError(queryResult.error) },
+      { status: 400 }
+    );
+  }
+
+  const { limit = 50, offset = 0, status, customer_id } = queryResult.data;
 
   let query = supabase
     .from('jobs')
@@ -66,7 +79,23 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
   }
 
   const supabase = await createClient();
-  const body = await request.json();
+
+  // Parse and validate request body
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const validationResult = v1CreateJobSchema.safeParse(body);
+
+  if (!validationResult.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: formatZodError(validationResult.error) },
+      { status: 400 }
+    );
+  }
 
   const {
     customer_id,
@@ -79,12 +108,7 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     site_city,
     site_state,
     site_zip,
-  } = body;
-
-  // Validation
-  if (!customer_id) {
-    return NextResponse.json({ error: 'customer_id is required' }, { status: 400 });
-  }
+  } = validationResult.data;
 
   // Verify customer belongs to this org
   const { data: customer } = await supabase
@@ -127,6 +151,7 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     .single();
 
   if (error) {
+    console.error('Failed to create job:', error);
     return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
   }
 
