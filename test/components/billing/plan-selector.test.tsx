@@ -235,14 +235,14 @@ describe('PlanSelector', () => {
     mockFetch.mockRejectedValueOnce(new Error('Network error'))
 
     render(<PlanSelector plans={mockPlans} />)
-    
-    const starterButton = screen.getByRole('button', { name: /get started/i })
+
+    const starterButton = screen.getByRole('button', { name: /select plan/i })
     fireEvent.click(starterButton)
-    
+
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith({
         title: 'Error',
-        description: 'Failed to start checkout process',
+        description: 'Failed to start checkout',
         variant: 'destructive',
       })
     })
