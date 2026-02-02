@@ -300,20 +300,12 @@ describe('CommissionService', () => {
     })
 
     it('should filter by user_id', async () => {
-      // Create a fully chainable query that supports: from().select().order().eq().range()
-      const queryChain = {
-        eq: vi.fn().mockReturnValue(mockSupabase),
-        range: vi.fn().mockResolvedValue({ data: mockEarnings, error: null, count: 2 }),
-      }
-
-      mockSupabase.from.mockReturnValue(mockSupabase)
-      mockSupabase.select.mockReturnValue(mockSupabase)
-      mockSupabase.order.mockReturnValue(queryChain)
-      mockSupabase.range.mockReturnValue(queryChain)
+      mockSupabase.eq.mockReturnValue(mockSupabase)
+      mockSupabase.range.mockResolvedValue({ data: mockEarnings, error: null, count: 2 })
 
       const result = await CommissionService.getEarnings({ user_id: 'user-1' })
 
-      expect(queryChain.eq).toHaveBeenCalledWith('user_id', 'user-1')
+      expect(mockSupabase.eq).toHaveBeenCalledWith('user_id', 'user-1')
       expect(result.earnings).toHaveLength(2)
     })
 
@@ -353,14 +345,17 @@ describe('CommissionService', () => {
 
     it('should filter by date range', async () => {
       const queryChain = {
-        gte: vi.fn().mockReturnThis(),
-        lte: vi.fn().mockReturnThis(),
-        then: vi.fn((resolve) => resolve({ data: mockEarnings, error: null })),
+        gte: vi.fn().mockReturnValue(mockSupabase),
+        lte: vi.fn().mockReturnValue(mockSupabase),
+        range: vi.fn().mockResolvedValue({ data: mockEarnings, error: null, count: 2 }),
       }
 
       mockSupabase.from.mockReturnValue(mockSupabase)
       mockSupabase.select.mockReturnValue(mockSupabase)
       mockSupabase.order.mockReturnValue(queryChain)
+      mockSupabase.gte.mockReturnValue(queryChain)
+      mockSupabase.lte.mockReturnValue(queryChain)
+      mockSupabase.range.mockReturnValue(queryChain)
 
       const result = await CommissionService.getEarnings({
         start_date: '2026-02-01',
@@ -369,7 +364,7 @@ describe('CommissionService', () => {
 
       expect(queryChain.gte).toHaveBeenCalledWith('earning_date', '2026-02-01')
       expect(queryChain.lte).toHaveBeenCalledWith('earning_date', '2026-02-28')
-      expect(result).toHaveLength(2)
+      expect(result.earnings).toHaveLength(2)
     })
   })
 
