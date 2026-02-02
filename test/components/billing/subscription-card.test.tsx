@@ -209,14 +209,16 @@ describe('SubscriptionCard', () => {
 
     it('should show loading state when opening billing portal', async () => {
       mockFetch.mockImplementation(() => new Promise(() => {})) // Never resolves
-      
+
       render(<SubscriptionCard subscription={mockSubscription} isAdmin={true} />)
-      
+
       const manageButton = screen.getByRole('button', { name: /manage billing/i })
       fireEvent.click(manageButton)
-      
+
       expect(manageButton).toBeDisabled()
-      expect(screen.getByRole('generic', { name: '' })).toHaveClass('animate-spin')
+      // Loader2 icon doesn't have a specific role, just check button is disabled
+      const spinner = manageButton.querySelector('.animate-spin')
+      expect(spinner).toBeInTheDocument()
     })
 
     it('should handle billing portal error', async () => {
@@ -264,11 +266,11 @@ describe('SubscriptionCard', () => {
     it('should handle subscription without plan', () => {
       const subscriptionNoPlan = {
         ...mockSubscription,
-        plan: null,
+        plan: undefined,
       }
-      
+
       render(<SubscriptionCard subscription={subscriptionNoPlan} isAdmin={true} />)
-      
+
       expect(screen.getByText('Unknown Plan')).toBeInTheDocument()
       expect(screen.getByText('$0/month')).toBeInTheDocument()
     })

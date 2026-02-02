@@ -153,8 +153,8 @@ describe('PlanSelector', () => {
     })
 
     render(<PlanSelector plans={mockPlans} />)
-    
-    const starterButton = screen.getByRole('button', { name: /get started/i })
+
+    const starterButton = screen.getByRole('button', { name: /select plan/i })
     fireEvent.click(starterButton)
     
     await waitFor(() => {
@@ -180,12 +180,12 @@ describe('PlanSelector', () => {
     })
 
     render(<PlanSelector plans={mockPlans} />)
-    
+
     // Switch to yearly billing
     const billingToggle = screen.getByRole('switch')
     fireEvent.click(billingToggle)
-    
-    const starterButton = screen.getByRole('button', { name: /get started/i })
+
+    const starterButton = screen.getByRole('button', { name: /select plan/i })
     fireEvent.click(starterButton)
     
     await waitFor(() => {
@@ -201,10 +201,10 @@ describe('PlanSelector', () => {
     mockFetch.mockImplementation(() => new Promise(() => {})) // Never resolves
 
     render(<PlanSelector plans={mockPlans} />)
-    
-    const starterButton = screen.getByRole('button', { name: /get started/i })
+
+    const starterButton = screen.getByRole('button', { name: /select plan/i })
     fireEvent.click(starterButton)
-    
+
     await waitFor(() => {
       expect(starterButton).toBeDisabled()
       expect(starterButton.querySelector('.animate-spin')).toBeInTheDocument()
@@ -218,14 +218,14 @@ describe('PlanSelector', () => {
     })
 
     render(<PlanSelector plans={mockPlans} />)
-    
-    const starterButton = screen.getByRole('button', { name: /get started/i })
+
+    const starterButton = screen.getByRole('button', { name: /select plan/i })
     fireEvent.click(starterButton)
-    
+
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith({
         title: 'Error',
-        description: 'Failed to start checkout process',
+        description: 'Failed to start checkout',
         variant: 'destructive',
       })
     })

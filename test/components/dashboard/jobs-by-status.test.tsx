@@ -124,10 +124,13 @@ describe('JobsByStatus', () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 500,
+      json: async () => {
+        throw new Error('Failed to parse JSON')
+      },
     })
 
     render(<JobsByStatus />)
-    
+
     await waitFor(() => {
       expect(screen.getByText('No job data available')).toBeInTheDocument()
     })
@@ -200,20 +203,21 @@ describe('JobsByStatus', () => {
     const promise = new Promise((resolve) => {
       resolvePromise = resolve
     })
-    
+
     mockFetch.mockReturnValueOnce(promise)
 
     render(<JobsByStatus />)
-    
+
     // Should show loading initially
-    expect(screen.getByRole('generic', { name: '' })).toHaveClass('animate-spin')
-    
+    const spinner = document.querySelector('.animate-spin')
+    expect(spinner).toBeInTheDocument()
+
     // Resolve the promise
     resolvePromise!({
       ok: true,
       json: async () => mockJobData,
     })
-    
+
     // Should show data after loading
     await waitFor(() => {
       expect(screen.getByTestId('pie-chart')).toBeInTheDocument()

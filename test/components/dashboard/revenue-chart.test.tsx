@@ -5,10 +5,14 @@ import { RevenueChart } from '@/components/dashboard/revenue-chart'
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
-// Mock formatCurrency utility
-vi.mock('@/lib/utils', () => ({
-  formatCurrency: (value: number) => `$${value.toLocaleString()}`,
-}))
+// Mock formatCurrency utility while keeping other utils
+vi.mock('@/lib/utils', async (importOriginal) => {
+  const actual = await importOriginal() as any
+  return {
+    ...actual,
+    formatCurrency: (value: number) => `$${value.toLocaleString()}`,
+  }
+})
 
 // Mock Recharts components
 vi.mock('recharts', () => ({
@@ -224,20 +228,21 @@ describe('RevenueChart', () => {
     const promise = new Promise((resolve) => {
       resolvePromise = resolve
     })
-    
+
     mockFetch.mockReturnValueOnce(promise)
 
     render(<RevenueChart />)
-    
+
     // Should show loading initially
-    expect(screen.getByRole('generic', { name: '' })).toHaveClass('animate-spin')
-    
+    const spinner = screen.getByText('', { selector: '.animate-spin' })
+    expect(spinner).toBeInTheDocument()
+
     // Resolve the promise
     resolvePromise!({
       ok: true,
       json: async () => mockRevenueData,
     })
-    
+
     // Should show chart after loading
     await waitFor(() => {
       expect(screen.getByTestId('line-chart')).toBeInTheDocument()

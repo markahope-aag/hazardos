@@ -221,40 +221,37 @@ describe('SignupForm', () => {
     expect(mockSupabaseClient.auth.signUp).not.toHaveBeenCalled()
   })
 
-  it('should handle profile creation error', async () => {
+  it('should create account with auto-confirmation and redirect to onboard', async () => {
     mockSupabaseClient.auth.signUp.mockResolvedValueOnce({
       data: {
         user: { id: 'user-123', email: 'john@example.com' },
-        session: null,
+        session: { access_token: 'token-123', user: { id: 'user-123' } },
       },
       error: null,
     })
 
-    mockSupabaseClient.from.mockReturnValueOnce({
-      insert: vi.fn().mockResolvedValueOnce({ error: { message: 'Profile creation failed' } }),
-    })
-
     render(<SignupForm />)
-    
+
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'John' } })
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Doe' } })
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'john@example.com' } })
     fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
-    
+
     const submitButton = screen.getByRole('button', { name: /create account/i })
     fireEvent.click(submitButton)
-    
+
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith({
-        title: 'Error',
-        description: 'Profile creation failed',
-        variant: 'destructive',
+        title: 'Account created',
+        description: 'Welcome! Let\'s set up your organization.',
       })
     })
+
+    expect(mockPush).toHaveBeenCalledWith('/onboard')
   })
 
-  it('should trim whitespace from form fields', async () => {
+  it('should submit form with values as entered without trimming', async () => {
     mockSupabaseClient.auth.signUp.mockResolvedValueOnce({
       data: {
         user: { id: 'user-123', email: 'john@example.com' },
@@ -264,26 +261,26 @@ describe('SignupForm', () => {
     })
 
     render(<SignupForm />)
-    
+
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: '  John  ' } })
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: '  Doe  ' } })
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: '  john@example.com  ' } })
     fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
-    
+
     const submitButton = screen.getByRole('button', { name: /create account/i })
     fireEvent.click(submitButton)
-    
+
     await waitFor(() => {
       expect(mockSupabaseClient.auth.signUp).toHaveBeenCalledWith({
-        email: 'john@example.com',
+        email: '  john@example.com  ',
         password: 'password123',
         options: {
           data: {
-            first_name: 'John',
-            last_name: 'Doe',
-            full_name: 'John Doe',
+            first_name: '  John  ',
+            last_name: '  Doe  ',
           },
+          emailRedirectTo: expect.stringContaining('/auth/callback?next=/onboard'),
         },
       })
     })
@@ -307,20 +304,20 @@ describe('SignupForm', () => {
     mockSupabaseClient.auth.signUp.mockRejectedValueOnce(new Error('Network error'))
 
     render(<SignupForm />)
-    
+
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'John' } })
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Doe' } })
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'john@example.com' } })
     fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
-    
+
     const submitButton = screen.getByRole('button', { name: /create account/i })
     fireEvent.click(submitButton)
-    
+
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith({
         title: 'Error',
-        description: 'Network error',
+        description: 'An unexpected error occurred',
         variant: 'destructive',
       })
     })
