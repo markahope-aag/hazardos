@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { createHmac } from 'crypto';
+import { createHmac, randomBytes } from 'crypto';
 import type { Webhook, WebhookDelivery, WebhookEventType } from '@/types/integrations';
 
 const MAX_RETRY_ATTEMPTS = 5;
@@ -339,7 +339,6 @@ export class WebhookService {
   }
 
   static generateSecret(): string {
-    const { randomBytes } = require('crypto');
     return `whsec_${randomBytes(24).toString('base64url')}`;
   }
 }

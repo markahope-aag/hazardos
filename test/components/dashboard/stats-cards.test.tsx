@@ -348,8 +348,8 @@ describe('StatsCards', () => {
     const mockDate = new Date('2024-06-15T10:00:00Z')
     vi.setSystemTime(mockDate)
 
-    let capturedGteCalls: any[] = []
-    let capturedLteCalls: any[] = []
+    const capturedGteCalls: any[] = []
+    const capturedLteCalls: any[] = []
 
     mockSupabaseClient.from.mockImplementation((table: string) => {
       const chain = createMockChain({ data: [], count: 0 })
@@ -393,8 +393,8 @@ describe('StatsCards', () => {
   })
 
   it('should filter invoices correctly for outstanding AR', async () => {
-    let capturedGtCalls: any[] = []
-    let capturedNotCalls: any[] = []
+    const capturedGtCalls: any[] = []
+    const capturedNotCalls: any[] = []
 
     mockSupabaseClient.from.mockImplementation((table: string) => {
       const chain = createMockChain({ data: [], count: 0 })
@@ -430,7 +430,7 @@ describe('StatsCards', () => {
   })
 
   it('should filter jobs correctly excluding cancelled', async () => {
-    let capturedNeqCalls: any[] = []
+    const capturedNeqCalls: any[] = []
 
     mockSupabaseClient.from.mockImplementation((table: string) => {
       const chain = createMockChain({ data: [], count: 0 })
