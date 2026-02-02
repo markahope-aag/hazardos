@@ -20,20 +20,56 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => Promise.resolve(mockSupabaseClient)),
 }))
 
-describe('Estimate By ID API', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
+vi.mock('@/lib/middleware/unified-rate-limit', () => ({
+  applyUnifiedRateLimit: vi.fn(() => Promise.resolve(null))
+}))
 
-    // Default auth mock - authenticated user
+describe('Estimate By ID API', () => {
+  const mockProfile = {
+    organization_id: 'org-123',
+    role: 'admin'
+  }
+
+  const mockUserProfile = {
+    organization_id: 'org-123',
+    role: 'user'
+  }
+
+  // Helper to setup authenticated user with profile
+  const setupAuthenticatedUser = (profile = mockProfile) => {
     vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-      data: { user: { id: 'user-123' } },
+      data: { user: { id: 'user-123', email: 'user@example.com' } },
       error: null,
     })
+
+    vi.mocked(mockSupabaseClient.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: profile,
+            error: null
+          })
+        })
+      })
+    } as any)
+  }
+
+  // Helper to setup unauthenticated user
+  const setupUnauthenticatedUser = () => {
+    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+      data: { user: null },
+      error: { message: 'Not authenticated' } as any,
+    })
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
   })
 
   describe('GET /api/estimates/[id]', () => {
     it('should return estimate with all relations', async () => {
-      // Arrange
+      setupAuthenticatedUser()
+
       const mockEstimate = {
         id: 'est-123',
         estimate_number: 'EST-001',
@@ -50,76 +86,114 @@ describe('Estimate By ID API', () => {
         ],
       }
 
-      mockSupabaseClient.from.mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: mockEstimate,
-                error: null,
+      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
+        if (table === 'profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: mockProfile,
+                  error: null
+                })
+              })
+            })
+          } as any
+        }
+        if (table === 'estimates') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: mockEstimate,
+                    error: null,
+                  }),
+                }),
               }),
             }),
-          }),
-        }),
+          } as any
+        }
+        return mockSupabaseClient as any
       })
 
       const request = new NextRequest('http://localhost:3000/api/estimates/est-123')
 
-      // Act
       const response = await GET(request, { params: Promise.resolve({ id: 'est-123' }) })
       const data = await response.json()
 
-      // Assert
       expect(response.status).toBe(200)
       expect(data.estimate).toBeDefined()
       expect(data.estimate.line_items).toHaveLength(2)
     })
 
     it('should return 404 for non-existent estimate', async () => {
-      // Arrange
-      mockSupabaseClient.from.mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: null,
-                error: { code: 'PGRST116' },
+      setupAuthenticatedUser()
+
+      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
+        if (table === 'profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: mockProfile,
+                  error: null
+                })
+              })
+            })
+          } as any
+        }
+        if (table === 'estimates') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: { code: 'PGRST116' },
+                  }),
+                }),
               }),
             }),
-          }),
-        }),
+          } as any
+        }
+        return mockSupabaseClient as any
       })
 
       const request = new NextRequest('http://localhost:3000/api/estimates/non-existent')
 
-      // Act
       const response = await GET(request, { params: Promise.resolve({ id: 'non-existent' }) })
 
-      // Assert
       expect(response.status).toBe(404)
     })
 
     it('should reject unauthenticated requests', async () => {
-      // Arrange
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
-        data: { user: null },
-        error: { message: 'Not authenticated' },
-      })
+      setupUnauthenticatedUser()
 
       const request = new NextRequest('http://localhost:3000/api/estimates/est-123')
 
-      // Act
       const response = await GET(request, { params: Promise.resolve({ id: 'est-123' }) })
 
-      // Assert
       expect(response.status).toBe(401)
     })
   })
 
   describe('PATCH /api/estimates/[id]', () => {
     it('should update estimate details', async () => {
-      // Arrange
-      mockSupabaseClient.from.mockImplementation((table: string) => {
+      setupAuthenticatedUser()
+
+      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
+        if (table === 'profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: mockProfile,
+                  error: null
+                })
+              })
+            })
+          } as any
+        }
         if (table === 'estimates') {
           return {
             select: vi.fn().mockReturnValue({
@@ -146,9 +220,9 @@ describe('Estimate By ID API', () => {
                 }),
               }),
             }),
-          }
+          } as any
         }
-        return mockSupabaseClient
+        return mockSupabaseClient as any
       })
 
       const request = new NextRequest('http://localhost:3000/api/estimates/est-123', {
@@ -160,18 +234,29 @@ describe('Estimate By ID API', () => {
         }),
       })
 
-      // Act
       const response = await PATCH(request, { params: Promise.resolve({ id: 'est-123' }) })
       const data = await response.json()
 
-      // Assert
       expect(response.status).toBe(200)
       expect(data.estimate).toBeDefined()
     })
 
     it('should update estimate status', async () => {
-      // Arrange
-      mockSupabaseClient.from.mockImplementation((table: string) => {
+      setupAuthenticatedUser()
+
+      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
+        if (table === 'profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: mockProfile,
+                  error: null
+                })
+              })
+            })
+          } as any
+        }
         if (table === 'estimates') {
           return {
             select: vi.fn().mockReturnValue({
@@ -194,9 +279,9 @@ describe('Estimate By ID API', () => {
                 }),
               }),
             }),
-          }
+          } as any
         }
-        return mockSupabaseClient
+        return mockSupabaseClient as any
       })
 
       const request = new NextRequest('http://localhost:3000/api/estimates/est-123', {
@@ -207,28 +292,44 @@ describe('Estimate By ID API', () => {
         }),
       })
 
-      // Act
       const response = await PATCH(request, { params: Promise.resolve({ id: 'est-123' }) })
       const data = await response.json()
 
-      // Assert
       expect(response.status).toBe(200)
       expect(data.estimate.status).toBe('sent')
     })
 
     it('should return 404 for non-existent estimate', async () => {
-      // Arrange
-      mockSupabaseClient.from.mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: null,
-                error: { message: 'Not found' },
+      setupAuthenticatedUser()
+
+      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
+        if (table === 'profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: mockProfile,
+                  error: null
+                })
+              })
+            })
+          } as any
+        }
+        if (table === 'estimates') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: { message: 'Not found' },
+                  }),
+                }),
               }),
             }),
-          }),
-        }),
+          } as any
+        }
+        return mockSupabaseClient as any
       })
 
       const request = new NextRequest('http://localhost:3000/api/estimates/non-existent', {
@@ -237,19 +338,13 @@ describe('Estimate By ID API', () => {
         body: JSON.stringify({ project_name: 'Updated' }),
       })
 
-      // Act
       const response = await PATCH(request, { params: Promise.resolve({ id: 'non-existent' }) })
 
-      // Assert
       expect(response.status).toBe(404)
     })
 
     it('should reject unauthenticated requests', async () => {
-      // Arrange
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
-        data: { user: null },
-        error: { message: 'Not authenticated' },
-      })
+      setupUnauthenticatedUser()
 
       const request = new NextRequest('http://localhost:3000/api/estimates/est-123', {
         method: 'PATCH',
@@ -257,86 +352,99 @@ describe('Estimate By ID API', () => {
         body: JSON.stringify({ project_name: 'Updated' }),
       })
 
-      // Act
       const response = await PATCH(request, { params: Promise.resolve({ id: 'est-123' }) })
 
-      // Assert
       expect(response.status).toBe(401)
     })
   })
 
   describe('DELETE /api/estimates/[id]', () => {
     it('should delete estimate with admin role', async () => {
-      // Arrange
-      mockSupabaseClient.from.mockReturnValue({
-        delete: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({
-              data: null,
-              error: null,
+      setupAuthenticatedUser(mockProfile) // admin role
+
+      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
+        if (table === 'profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: mockProfile,
+                  error: null
+                })
+              })
+            })
+          } as any
+        }
+        if (table === 'estimates') {
+          return {
+            delete: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: null,
+                  error: null,
+                }),
+              }),
             }),
-          }),
-        }),
+          } as any
+        }
+        return mockSupabaseClient as any
       })
 
       const request = new NextRequest('http://localhost:3000/api/estimates/est-123', {
         method: 'DELETE',
       })
 
-      // Act
       const response = await DELETE(request, { params: Promise.resolve({ id: 'est-123' }) })
       const data = await response.json()
 
-      // Assert
       expect(response.status).toBe(200)
       expect(data.success).toBe(true)
     })
 
     it('should reject deletion from non-admin role', async () => {
-      // Arrange
-      mockSupabaseClient.from.mockImplementation((table: string) => {
+      // Setup user with 'crew' role - not in allowedRoles
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'user@example.com' } },
+        error: null,
+      })
+
+      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
         if (table === 'profiles') {
           return {
-            ...mockSupabaseClient,
-            single: vi.fn().mockResolvedValue({
-              data: {
-                id: 'profile-123',
-                organization_id: 'org-123',
-                role: 'crew'
-              },
-              error: null,
-            }),
-          }
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    organization_id: 'org-123',
+                    role: 'crew' // Not in allowedRoles: ['platform_owner', 'platform_admin', 'tenant_owner', 'admin']
+                  },
+                  error: null
+                })
+              })
+            })
+          } as any
         }
-        return mockSupabaseClient
+        return mockSupabaseClient as any
       })
 
       const request = new NextRequest('http://localhost:3000/api/estimates/est-123', {
         method: 'DELETE',
       })
 
-      // Act
       const response = await DELETE(request, { params: Promise.resolve({ id: 'est-123' }) })
 
-      // Assert
       expect(response.status).toBe(403)
     })
 
     it('should reject unauthenticated requests', async () => {
-      // Arrange
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
-        data: { user: null },
-        error: { message: 'Not authenticated' },
-      })
+      setupUnauthenticatedUser()
 
       const request = new NextRequest('http://localhost:3000/api/estimates/est-123', {
         method: 'DELETE',
       })
 
-      // Act
       const response = await DELETE(request, { params: Promise.resolve({ id: 'est-123' }) })
 
-      // Assert
       expect(response.status).toBe(401)
     })
   })

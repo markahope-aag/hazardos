@@ -39,28 +39,33 @@ describe('Job Equipment Management', () => {
     role: 'admin'
   }
 
+  const setupAuthenticatedUser = () => {
+    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+      data: { user: { id: 'user-1', email: 'test@example.com' } },
+      error: null
+    })
+
+    vi.mocked(mockSupabaseClient.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: mockProfile,
+            error: null
+          })
+        })
+      })
+    } as any)
+  }
+
   describe('POST /api/jobs/[id]/equipment', () => {
     it('should add equipment to job', async () => {
       // Arrange
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const mockEquipment = {
-        id: 'equipment-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         job_id: 'job-123',
+        equipment_name: 'HEPA Vacuum',
         equipment_type: 'hepa_vacuum',
         quantity: 2,
         status: 'assigned'
@@ -72,6 +77,7 @@ describe('Job Equipment Management', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          equipment_name: 'HEPA Vacuum',
           equipment_type: 'hepa_vacuum',
           quantity: 2
         })
@@ -83,31 +89,18 @@ describe('Job Equipment Management', () => {
 
       // Assert
       expect(response.status).toBe(201)
-      expect(data.equipment_type).toBe('hepa_vacuum')
+      expect(data.equipment_name).toBe('HEPA Vacuum')
       expect(data.quantity).toBe(2)
       expect(JobsService.addEquipment).toHaveBeenCalled()
     })
 
     it('should add negative air machine to job', async () => {
       // Arrange
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const mockEquipment = {
-        id: 'equipment-2',
+        id: '550e8400-e29b-41d4-a716-446655440002',
+        equipment_name: 'Negative Air Machine',
         equipment_type: 'negative_air_machine',
         quantity: 3
       }
@@ -118,6 +111,7 @@ describe('Job Equipment Management', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          equipment_name: 'Negative Air Machine',
           equipment_type: 'negative_air_machine',
           quantity: 3
         })
@@ -129,7 +123,7 @@ describe('Job Equipment Management', () => {
 
       // Assert
       expect(response.status).toBe(201)
-      expect(data.equipment_type).toBe('negative_air_machine')
+      expect(data.equipment_name).toBe('Negative Air Machine')
     })
 
     it('should reject unauthenticated requests', async () => {
@@ -142,7 +136,7 @@ describe('Job Equipment Management', () => {
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/equipment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ equipment_type: 'hepa_vacuum' })
+        body: JSON.stringify({ equipment_name: 'HEPA Vacuum' })
       })
 
       // Act
@@ -156,24 +150,10 @@ describe('Job Equipment Management', () => {
   describe('PATCH /api/jobs/[id]/equipment', () => {
     it('should update equipment status to deployed', async () => {
       // Arrange
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const updatedEquipment = {
-        id: 'equipment-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         status: 'deployed'
       }
 
@@ -183,7 +163,7 @@ describe('Job Equipment Management', () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          equipment_id: 'equipment-1',
+          equipment_id: '550e8400-e29b-41d4-a716-446655440001',
           status: 'deployed'
         })
       })
@@ -195,29 +175,15 @@ describe('Job Equipment Management', () => {
       // Assert
       expect(response.status).toBe(200)
       expect(data.status).toBe('deployed')
-      expect(JobsService.updateEquipmentStatus).toHaveBeenCalledWith('equipment-1', 'deployed')
+      expect(JobsService.updateEquipmentStatus).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440001', 'deployed')
     })
 
     it('should update equipment status to returned', async () => {
       // Arrange
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const updatedEquipment = {
-        id: 'equipment-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         status: 'returned'
       }
 
@@ -227,7 +193,7 @@ describe('Job Equipment Management', () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          equipment_id: 'equipment-1',
+          equipment_id: '550e8400-e29b-41d4-a716-446655440001',
           status: 'returned'
         })
       })
@@ -251,7 +217,7 @@ describe('Job Equipment Management', () => {
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/equipment', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ equipment_id: 'equipment-1', status: 'deployed' })
+        body: JSON.stringify({ equipment_id: '550e8400-e29b-41d4-a716-446655440001', status: 'deployed' })
       })
 
       // Act
@@ -265,28 +231,14 @@ describe('Job Equipment Management', () => {
   describe('DELETE /api/jobs/[id]/equipment', () => {
     it('should delete equipment from job', async () => {
       // Arrange
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       vi.mocked(JobsService.deleteEquipment).mockResolvedValue(undefined)
 
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/equipment', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ equipment_id: 'equipment-1' })
+        body: JSON.stringify({ equipment_id: '550e8400-e29b-41d4-a716-446655440001' })
       })
 
       // Act
@@ -296,7 +248,7 @@ describe('Job Equipment Management', () => {
       // Assert
       expect(response.status).toBe(200)
       expect(data.success).toBe(true)
-      expect(JobsService.deleteEquipment).toHaveBeenCalledWith('equipment-1')
+      expect(JobsService.deleteEquipment).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440001')
     })
 
     it('should reject unauthenticated requests', async () => {
@@ -309,7 +261,7 @@ describe('Job Equipment Management', () => {
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/equipment', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ equipment_id: 'equipment-1' })
+        body: JSON.stringify({ equipment_id: '550e8400-e29b-41d4-a716-446655440001' })
       })
 
       // Act

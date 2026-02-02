@@ -65,6 +65,7 @@ describe('Job Checklist API', () => {
   describe('GET /api/jobs/[id]/checklist', () => {
     it('should return checklist for a job', async () => {
       // Arrange
+      setupAuthenticatedUser()
       const mockChecklist = [
         { id: 'item-1', task: 'Complete safety inspection', completed: false },
         { id: 'item-2', task: 'Submit photos', completed: true },
@@ -85,6 +86,7 @@ describe('Job Checklist API', () => {
 
     it('should return grouped checklist when grouped=true', async () => {
       // Arrange
+      setupAuthenticatedUser()
       const mockGroupedChecklist = {
         'Pre-Work': [
           { id: 'item-1', task: 'Safety inspection', completed: false },
@@ -127,6 +129,7 @@ describe('Job Checklist API', () => {
   describe('POST /api/jobs/[id]/checklist', () => {
     it('should initialize default checklist for a job', async () => {
       // Arrange
+      setupAuthenticatedUser()
       const mockChecklist = [
         { id: 'item-1', task: 'Complete safety inspection', completed: false },
         { id: 'item-2', task: 'Set up containment', completed: false },

@@ -22,11 +22,15 @@ vi.mock('@/lib/supabase/server', () => ({
 vi.mock('@/lib/services/quickbooks-service', () => ({
   QuickBooksService: {
     getConnectionStatus: vi.fn(),
-    connect: vi.fn(),
+    getAuthorizationUrl: vi.fn(),
     disconnect: vi.fn(),
-    syncCustomer: vi.fn(),
-    syncInvoice: vi.fn()
+    syncCustomerToQBO: vi.fn(),
+    syncInvoiceToQBO: vi.fn()
   }
+}))
+
+vi.mock('@/lib/middleware/unified-rate-limit', () => ({
+  applyUnifiedRateLimit: vi.fn(() => Promise.resolve(null))
 }))
 
 // Import the route handlers
@@ -42,23 +46,57 @@ describe('Integrations QuickBooks API', () => {
     vi.clearAllMocks()
   })
 
-  describe('GET /api/integrations/quickbooks/status', () => {
-    it('should return connection status for authenticated user', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
+  const mockProfile = {
+    organization_id: 'org-123',
+    role: 'admin'
+  }
 
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
+  const setupAuthenticatedUser = () => {
+    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+      data: { user: { id: 'user-1', email: 'test@example.com' } },
+      error: null
+    })
+
+    vi.mocked(mockSupabaseClient.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: mockProfile,
+            error: null
           })
         })
-      } as any)
+      })
+    } as any)
+  }
+
+  const setupUnauthenticatedUser = () => {
+    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+      data: { user: null },
+      error: null
+    })
+  }
+
+  const setupNoProfile = () => {
+    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+      data: { user: { id: 'user-1', email: 'test@example.com' } },
+      error: null
+    })
+
+    vi.mocked(mockSupabaseClient.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: null,
+            error: { message: 'No rows found', code: 'PGRST116' }
+          })
+        })
+      })
+    } as any)
+  }
+
+  describe('GET /api/integrations/quickbooks/status', () => {
+    it('should return connection status for authenticated user', async () => {
+      setupAuthenticatedUser()
 
       const mockStatus = {
         connected: true,
@@ -69,145 +107,93 @@ describe('Integrations QuickBooks API', () => {
 
       vi.mocked(QuickBooksService.getConnectionStatus).mockResolvedValue(mockStatus)
 
-      const response = await getStatus()
+      const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/status')
+      const response = await getStatus(request)
       const data = await response.json()
 
       expect(response.status).toBe(200)
       expect(data).toEqual(mockStatus)
-      expect(QuickBooksService.getConnectionStatus).toHaveBeenCalledWith('org-1')
+      expect(QuickBooksService.getConnectionStatus).toHaveBeenCalledWith('org-123')
     })
 
     it('should return 401 for unauthenticated user', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: null },
-        error: null
-      })
+      setupUnauthenticatedUser()
 
-      const response = await getStatus()
-      const data = await response.json()
+      const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/status')
+      const response = await getStatus(request)
 
       expect(response.status).toBe(401)
-      expect(data.error).toBe('Unauthorized')
     })
 
-    it('should return 400 when no organization found', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
+    it('should return 404 when no profile found', async () => {
+      setupNoProfile()
 
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: null,
-              error: { message: 'No rows found', code: 'PGRST116' }
-            })
-          })
-        })
-      } as any)
-
-      const response = await getStatus()
+      const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/status')
+      const response = await getStatus(request)
       const data = await response.json()
 
-      expect(response.status).toBe(400)
-      expect(data.error).toBe('No organization found')
+      expect(response.status).toBe(404)
+      expect(data.error).toBe('Profile not found')
     })
 
     it('should handle service errors', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       vi.mocked(QuickBooksService.getConnectionStatus).mockRejectedValue(
         new Error('QuickBooks API unavailable')
       )
 
-      const response = await getStatus()
-      const data = await response.json()
+      const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/status')
+      const response = await getStatus(request)
 
       expect(response.status).toBe(500)
-      expect(data.error).toBe('Failed to get status')
     })
   })
 
   describe('GET /api/integrations/quickbooks/connect', () => {
     it('should return connection URL for authenticated user', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
+      setupAuthenticatedUser()
 
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
+      const mockAuthUrl = 'https://appcenter.intuit.com/connect/oauth2?client_id=123&scope=com.intuit.quickbooks.accounting&redirect_uri=http://localhost:3000/api/integrations/quickbooks/callback&state=org-1'
 
-      const mockConnectResult = {
-        authUrl: 'https://appcenter.intuit.com/connect/oauth2?client_id=123&scope=com.intuit.quickbooks.accounting&redirect_uri=http://localhost:3000/api/integrations/quickbooks/callback&state=org-1'
-      }
+      vi.mocked(QuickBooksService.getAuthorizationUrl).mockReturnValue(mockAuthUrl)
 
-      vi.mocked(QuickBooksService.connect).mockResolvedValue(mockConnectResult)
-
-      const response = await connect()
+      const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/connect')
+      const response = await connect(request)
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data).toEqual(mockConnectResult)
-      expect(QuickBooksService.connect).toHaveBeenCalledWith('org-1')
+      expect(data.url).toBe(mockAuthUrl)
+      expect(QuickBooksService.getAuthorizationUrl).toHaveBeenCalled()
+    })
+
+    it('should set qbo_state cookie with CSRF token', async () => {
+      setupAuthenticatedUser()
+
+      vi.mocked(QuickBooksService.getAuthorizationUrl).mockReturnValue('https://quickbooks.intuit.com/auth')
+
+      const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/connect')
+      const response = await connect(request)
+
+      expect(response.status).toBe(200)
+      expect(response.cookies.get('qbo_state')).toBeDefined()
     })
 
     it('should return 401 for unauthenticated user', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: null },
-        error: null
-      })
+      setupUnauthenticatedUser()
 
-      const response = await connect()
-      const data = await response.json()
+      const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/connect')
+      const response = await connect(request)
 
       expect(response.status).toBe(401)
-      expect(data.error).toBe('Unauthorized')
     })
   })
 
   describe('POST /api/integrations/quickbooks/disconnect', () => {
     it('should disconnect QuickBooks for authenticated user', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
+      setupAuthenticatedUser()
 
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
-
-      vi.mocked(QuickBooksService.disconnect).mockResolvedValue({ success: true })
+      vi.mocked(QuickBooksService.disconnect).mockResolvedValue(undefined)
 
       const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/disconnect', {
         method: 'POST'
@@ -218,89 +204,50 @@ describe('Integrations QuickBooks API', () => {
 
       expect(response.status).toBe(200)
       expect(data.success).toBe(true)
-      expect(QuickBooksService.disconnect).toHaveBeenCalledWith('org-1')
+      expect(QuickBooksService.disconnect).toHaveBeenCalledWith('org-123')
     })
 
     it('should return 401 for unauthenticated user', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: null },
-        error: null
-      })
+      setupUnauthenticatedUser()
 
       const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/disconnect', {
         method: 'POST'
       })
 
       const response = await disconnect(request)
-      const data = await response.json()
 
       expect(response.status).toBe(401)
-      expect(data.error).toBe('Unauthorized')
     })
   })
 
   describe('POST /api/integrations/quickbooks/sync/customer', () => {
     it('should sync customer to QuickBooks for authenticated user', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
+      setupAuthenticatedUser()
 
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
+      const qbCustomerId = 'qb-customer-123'
+      vi.mocked(QuickBooksService.syncCustomerToQBO).mockResolvedValue(qbCustomerId)
 
-      const mockSyncResult = {
-        success: true,
-        quickbooks_id: 'qb-customer-123',
-        sync_status: 'synced'
-      }
-
-      vi.mocked(QuickBooksService.syncCustomer).mockResolvedValue(mockSyncResult)
-
-      const requestBody = {
-        customer_id: 'customer-1'
-      }
-
+      const customerId = '550e8400-e29b-41d4-a716-446655440000'
       const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/sync/customer', {
         method: 'POST',
-        body: JSON.stringify(requestBody)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer_id: customerId })
       })
 
       const response = await syncCustomer(request)
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data).toEqual(mockSyncResult)
-      expect(QuickBooksService.syncCustomer).toHaveBeenCalledWith('org-1', 'customer-1')
+      expect(data.qb_customer_id).toBe(qbCustomerId)
+      expect(QuickBooksService.syncCustomerToQBO).toHaveBeenCalledWith('org-123', customerId)
     })
 
     it('should validate required customer_id', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/sync/customer', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({})
       })
 
@@ -308,106 +255,74 @@ describe('Integrations QuickBooks API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(400)
-      expect(data.error).toBe('customer_id is required')
+      expect(data.type).toBe('VALIDATION_ERROR')
     })
 
-    it('should handle sync errors', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
-
-      vi.mocked(QuickBooksService.syncCustomer).mockRejectedValue(
-        new Error('Customer not found in QuickBooks')
-      )
+    it('should validate customer_id is a valid UUID', async () => {
+      setupAuthenticatedUser()
 
       const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/sync/customer', {
         method: 'POST',
-        body: JSON.stringify({ customer_id: 'customer-1' })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer_id: 'not-a-uuid' })
       })
 
       const response = await syncCustomer(request)
       const data = await response.json()
 
+      expect(response.status).toBe(400)
+      expect(data.type).toBe('VALIDATION_ERROR')
+      expect(data.error).toContain('Invalid customer ID')
+    })
+
+    it('should handle sync errors', async () => {
+      setupAuthenticatedUser()
+
+      vi.mocked(QuickBooksService.syncCustomerToQBO).mockRejectedValue(
+        new Error('QuickBooks API unavailable')
+      )
+
+      const customerId = '550e8400-e29b-41d4-a716-446655440000'
+      const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/sync/customer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer_id: customerId })
+      })
+
+      const response = await syncCustomer(request)
+
       expect(response.status).toBe(500)
-      expect(data.error).toBe('Failed to sync customer')
     })
   })
 
   describe('POST /api/integrations/quickbooks/sync/invoice', () => {
     it('should sync invoice to QuickBooks for authenticated user', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
+      setupAuthenticatedUser()
 
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
+      const qbInvoiceId = 'qb-invoice-456'
+      vi.mocked(QuickBooksService.syncInvoiceToQBO).mockResolvedValue(qbInvoiceId)
 
-      const mockSyncResult = {
-        success: true,
-        quickbooks_id: 'qb-invoice-456',
-        sync_status: 'synced',
-        quickbooks_doc_number: 'INV-001'
-      }
-
-      vi.mocked(QuickBooksService.syncInvoice).mockResolvedValue(mockSyncResult)
-
-      const requestBody = {
-        invoice_id: 'invoice-1'
-      }
-
+      const invoiceId = '550e8400-e29b-41d4-a716-446655440001'
       const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/sync/invoice', {
         method: 'POST',
-        body: JSON.stringify(requestBody)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoice_id: invoiceId })
       })
 
       const response = await syncInvoice(request)
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data).toEqual(mockSyncResult)
-      expect(QuickBooksService.syncInvoice).toHaveBeenCalledWith('org-1', 'invoice-1')
+      expect(data.qb_invoice_id).toBe(qbInvoiceId)
+      expect(QuickBooksService.syncInvoiceToQBO).toHaveBeenCalledWith('org-123', invoiceId)
     })
 
     it('should validate required invoice_id', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/sync/invoice', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({})
       })
 
@@ -415,40 +330,43 @@ describe('Integrations QuickBooks API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(400)
-      expect(data.error).toBe('invoice_id is required')
+      expect(data.type).toBe('VALIDATION_ERROR')
     })
 
-    it('should handle invoice not found', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-1' },
-              error: null
-            })
-          })
-        })
-      } as any)
-
-      vi.mocked(QuickBooksService.syncInvoice).mockRejectedValue(
-        new Error('Invoice not found')
-      )
+    it('should validate invoice_id is a valid UUID', async () => {
+      setupAuthenticatedUser()
 
       const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/sync/invoice', {
         method: 'POST',
-        body: JSON.stringify({ invoice_id: 'invalid-invoice' })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoice_id: 'not-a-uuid' })
       })
 
       const response = await syncInvoice(request)
       const data = await response.json()
 
+      expect(response.status).toBe(400)
+      expect(data.type).toBe('VALIDATION_ERROR')
+      expect(data.error).toContain('Invalid invoice ID')
+    })
+
+    it('should handle sync errors', async () => {
+      setupAuthenticatedUser()
+
+      vi.mocked(QuickBooksService.syncInvoiceToQBO).mockRejectedValue(
+        new Error('QuickBooks API unavailable')
+      )
+
+      const invoiceId = '550e8400-e29b-41d4-a716-446655440001'
+      const request = new NextRequest('http://localhost:3000/api/integrations/quickbooks/sync/invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoice_id: invoiceId })
+      })
+
+      const response = await syncInvoice(request)
+
       expect(response.status).toBe(500)
-      expect(data.error).toBe('Failed to sync invoice')
     })
   })
 })

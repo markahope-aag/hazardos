@@ -28,22 +28,68 @@ vi.mock('@/lib/supabase/customers', () => ({
   },
 }))
 
+vi.mock('@/lib/middleware/unified-rate-limit', () => ({
+  applyUnifiedRateLimit: vi.fn(() => Promise.resolve(null))
+}))
+
 import { CustomersService } from '@/lib/supabase/customers'
 
 describe('Customer By ID API', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
+  const mockProfile = {
+    organization_id: 'org-123',
+    role: 'user'
+  }
 
-    // Default auth mock - authenticated user
+  const mockAdminProfile = {
+    organization_id: 'org-123',
+    role: 'admin'
+  }
+
+  const mockTenantOwnerProfile = {
+    organization_id: 'org-123',
+    role: 'tenant_owner'
+  }
+
+  const mockCrewProfile = {
+    organization_id: 'org-123',
+    role: 'crew'
+  }
+
+  // Helper to setup authenticated user with profile
+  const setupAuthenticatedUser = (profile = mockProfile) => {
     vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-      data: { user: { id: 'user-123' } },
+      data: { user: { id: 'user-123', email: 'user@example.com' } },
       error: null,
     })
+
+    vi.mocked(mockSupabaseClient.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: profile,
+            error: null
+          })
+        })
+      })
+    } as any)
+  }
+
+  // Helper to setup unauthenticated user
+  const setupUnauthenticatedUser = () => {
+    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+      data: { user: null },
+      error: { message: 'Not authenticated' } as any,
+    })
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
   })
 
   describe('GET /api/customers/[id]', () => {
     it('should return customer by ID', async () => {
-      // Arrange
+      setupAuthenticatedUser()
+
       const mockCustomer = {
         id: 'customer-123',
         name: 'John Doe',
@@ -55,51 +101,43 @@ describe('Customer By ID API', () => {
 
       const request = new NextRequest('http://localhost:3000/api/customers/customer-123')
 
-      // Act
       const response = await GET(request, { params: Promise.resolve({ id: 'customer-123' }) })
       const data = await response.json()
 
-      // Assert
       expect(response.status).toBe(200)
       expect(data.customer).toEqual(mockCustomer)
       expect(CustomersService.getCustomer).toHaveBeenCalledWith('customer-123')
     })
 
     it('should return 404 for non-existent customer', async () => {
-      // Arrange
+      setupAuthenticatedUser()
+
       vi.mocked(CustomersService.getCustomer).mockRejectedValue(
         new Error('Failed to fetch customer')
       )
 
       const request = new NextRequest('http://localhost:3000/api/customers/non-existent')
 
-      // Act
       const response = await GET(request, { params: Promise.resolve({ id: 'non-existent' }) })
 
-      // Assert
       expect(response.status).toBe(404)
     })
 
     it('should reject unauthenticated requests', async () => {
-      // Arrange
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
-        data: { user: null },
-        error: { message: 'Not authenticated' },
-      })
+      setupUnauthenticatedUser()
 
       const request = new NextRequest('http://localhost:3000/api/customers/customer-123')
 
-      // Act
       const response = await GET(request, { params: Promise.resolve({ id: 'customer-123' }) })
 
-      // Assert
       expect(response.status).toBe(401)
     })
   })
 
   describe('PATCH /api/customers/[id]', () => {
     it('should update customer details', async () => {
-      // Arrange
+      setupAuthenticatedUser()
+
       const updatedCustomer = {
         id: 'customer-123',
         name: 'John Doe Updated',
@@ -117,11 +155,9 @@ describe('Customer By ID API', () => {
         }),
       })
 
-      // Act
       const response = await PATCH(request, { params: Promise.resolve({ id: 'customer-123' }) })
       const data = await response.json()
 
-      // Assert
       expect(response.status).toBe(200)
       expect(data.customer).toEqual(updatedCustomer)
       expect(CustomersService.updateCustomer).toHaveBeenCalledWith('customer-123', {
@@ -131,7 +167,8 @@ describe('Customer By ID API', () => {
     })
 
     it('should update customer address', async () => {
-      // Arrange
+      setupAuthenticatedUser()
+
       const updatedCustomer = {
         id: 'customer-123',
         address_line1: '456 New St',
@@ -152,17 +189,16 @@ describe('Customer By ID API', () => {
         }),
       })
 
-      // Act
       const response = await PATCH(request, { params: Promise.resolve({ id: 'customer-123' }) })
       const data = await response.json()
 
-      // Assert
       expect(response.status).toBe(200)
       expect(data.customer).toEqual(updatedCustomer)
     })
 
     it('should update customer status', async () => {
-      // Arrange
+      setupAuthenticatedUser()
+
       const updatedCustomer = {
         id: 'customer-123',
         status: 'customer',
@@ -177,17 +213,16 @@ describe('Customer By ID API', () => {
         }),
       })
 
-      // Act
       const response = await PATCH(request, { params: Promise.resolve({ id: 'customer-123' }) })
       const data = await response.json()
 
-      // Assert
       expect(response.status).toBe(200)
       expect(data.customer.status).toBe('customer')
     })
 
     it('should update communication preferences', async () => {
-      // Arrange
+      setupAuthenticatedUser()
+
       const updatedCustomer = {
         id: 'customer-123',
         communication_preferences: { email: false, sms: true, mail: false },
@@ -202,17 +237,16 @@ describe('Customer By ID API', () => {
         }),
       })
 
-      // Act
       const response = await PATCH(request, { params: Promise.resolve({ id: 'customer-123' }) })
       const data = await response.json()
 
-      // Assert
       expect(response.status).toBe(200)
       expect(data.customer.communication_preferences).toEqual({ email: false, sms: true, mail: false })
     })
 
     it('should return 404 for non-existent customer', async () => {
-      // Arrange
+      setupAuthenticatedUser()
+
       vi.mocked(CustomersService.updateCustomer).mockRejectedValue(
         new Error('Failed to update customer')
       )
@@ -223,15 +257,14 @@ describe('Customer By ID API', () => {
         body: JSON.stringify({ name: 'Updated' }),
       })
 
-      // Act
       const response = await PATCH(request, { params: Promise.resolve({ id: 'non-existent' }) })
 
-      // Assert
       expect(response.status).toBe(404)
     })
 
     it('should reject invalid email format', async () => {
-      // Arrange
+      setupAuthenticatedUser()
+
       const request = new NextRequest('http://localhost:3000/api/customers/customer-123', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -240,19 +273,13 @@ describe('Customer By ID API', () => {
         }),
       })
 
-      // Act
       const response = await PATCH(request, { params: Promise.resolve({ id: 'customer-123' }) })
 
-      // Assert
       expect(response.status).toBe(400)
     })
 
     it('should reject unauthenticated requests', async () => {
-      // Arrange
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
-        data: { user: null },
-        error: { message: 'Not authenticated' },
-      })
+      setupUnauthenticatedUser()
 
       const request = new NextRequest('http://localhost:3000/api/customers/customer-123', {
         method: 'PATCH',
@@ -260,80 +287,59 @@ describe('Customer By ID API', () => {
         body: JSON.stringify({ name: 'Updated' }),
       })
 
-      // Act
       const response = await PATCH(request, { params: Promise.resolve({ id: 'customer-123' }) })
 
-      // Assert
       expect(response.status).toBe(401)
     })
   })
 
   describe('DELETE /api/customers/[id]', () => {
     it('should delete customer with admin role', async () => {
-      // Arrange
+      setupAuthenticatedUser(mockAdminProfile)
+
       vi.mocked(CustomersService.deleteCustomer).mockResolvedValue(undefined)
 
       const request = new NextRequest('http://localhost:3000/api/customers/customer-123', {
         method: 'DELETE',
       })
 
-      // Act
       const response = await DELETE(request, { params: Promise.resolve({ id: 'customer-123' }) })
       const data = await response.json()
 
-      // Assert
       expect(response.status).toBe(200)
       expect(data.message).toBe('Customer deleted successfully')
       expect(CustomersService.deleteCustomer).toHaveBeenCalledWith('customer-123')
     })
 
     it('should delete customer with tenant_owner role', async () => {
-      // Arrange
-      mockSupabaseClient.single.mockResolvedValue({
-        data: {
-          id: 'profile-123',
-          organization_id: 'org-123',
-          role: 'tenant_owner'
-        },
-        error: null,
-      })
+      setupAuthenticatedUser(mockTenantOwnerProfile)
+
       vi.mocked(CustomersService.deleteCustomer).mockResolvedValue(undefined)
 
       const request = new NextRequest('http://localhost:3000/api/customers/customer-123', {
         method: 'DELETE',
       })
 
-      // Act
       const response = await DELETE(request, { params: Promise.resolve({ id: 'customer-123' }) })
 
-      // Assert
       expect(response.status).toBe(200)
     })
 
     it('should reject deletion from non-admin role', async () => {
-      // Arrange
-      mockSupabaseClient.single.mockResolvedValue({
-        data: {
-          id: 'profile-123',
-          organization_id: 'org-123',
-          role: 'crew'
-        },
-        error: null,
-      })
+      setupAuthenticatedUser(mockCrewProfile)
 
       const request = new NextRequest('http://localhost:3000/api/customers/customer-123', {
         method: 'DELETE',
       })
 
-      // Act
       const response = await DELETE(request, { params: Promise.resolve({ id: 'customer-123' }) })
 
-      // Assert
       expect(response.status).toBe(403)
     })
 
     it('should return 404 for non-existent customer', async () => {
-      // Arrange
+      setupAuthenticatedUser(mockAdminProfile)
+
       vi.mocked(CustomersService.deleteCustomer).mockRejectedValue(
         new Error('Failed to delete customer')
       )
@@ -342,28 +348,20 @@ describe('Customer By ID API', () => {
         method: 'DELETE',
       })
 
-      // Act
       const response = await DELETE(request, { params: Promise.resolve({ id: 'non-existent' }) })
 
-      // Assert
       expect(response.status).toBe(404)
     })
 
     it('should reject unauthenticated requests', async () => {
-      // Arrange
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
-        data: { user: null },
-        error: { message: 'Not authenticated' },
-      })
+      setupUnauthenticatedUser()
 
       const request = new NextRequest('http://localhost:3000/api/customers/customer-123', {
         method: 'DELETE',
       })
 
-      // Act
       const response = await DELETE(request, { params: Promise.resolve({ id: 'customer-123' }) })
 
-      // Assert
       expect(response.status).toBe(401)
     })
   })

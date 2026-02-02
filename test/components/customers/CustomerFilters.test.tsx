@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import { act } from 'react'
 import userEvent from '@testing-library/user-event'
 import CustomerFilters from '@/components/customers/CustomerFilters'
 
@@ -17,7 +18,12 @@ describe('CustomerFilters', () => {
   }
 
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
     vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('should render status and source filter buttons', () => {
@@ -71,22 +77,30 @@ describe('CustomerFilters', () => {
     render(<CustomerFilters {...defaultProps} />)
 
     const statusButton = screen.getByText('All Statuses')
-    await userEvent.click(statusButton)
+    await act(async () => {
+      await userEvent.click(statusButton, { delay: null })
+    })
 
-    const activeOption = await screen.findByText('Active')
-    await userEvent.click(activeOption)
+    const leadOption = await screen.findByText('Lead')
+    await act(async () => {
+      await userEvent.click(leadOption, { delay: null })
+    })
 
-    expect(mockOnStatusChange).toHaveBeenCalledWith('active')
+    expect(mockOnStatusChange).toHaveBeenCalledWith('lead')
   })
 
   it('should call onSourceChange when source filter clicked', async () => {
     render(<CustomerFilters {...defaultProps} />)
 
     const sourceButton = screen.getByText('All Sources')
-    await userEvent.click(sourceButton)
+    await act(async () => {
+      await userEvent.click(sourceButton, { delay: null })
+    })
 
     const referralOption = await screen.findByText('Referral')
-    await userEvent.click(referralOption)
+    await act(async () => {
+      await userEvent.click(referralOption, { delay: null })
+    })
 
     expect(mockOnSourceChange).toHaveBeenCalledWith('referral')
   })

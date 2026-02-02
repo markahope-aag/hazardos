@@ -30,7 +30,7 @@ describe('Invoice Validation Schemas', () => {
 
   describe('paymentMethodSchema', () => {
     it('should accept all valid payment methods', () => {
-      const validMethods = ['cash', 'check', 'credit_card', 'bank_transfer', 'other']
+      const validMethods = ['cash', 'check', 'credit_card', 'ach', 'other']
       validMethods.forEach(method => {
         expect(paymentMethodSchema.safeParse(method).success).toBe(true)
       })
@@ -38,6 +38,7 @@ describe('Invoice Validation Schemas', () => {
 
     it('should reject invalid payment method', () => {
       expect(paymentMethodSchema.safeParse('paypal').success).toBe(false)
+      expect(paymentMethodSchema.safeParse('bank_transfer').success).toBe(false)
       expect(paymentMethodSchema.safeParse('').success).toBe(false)
     })
   })

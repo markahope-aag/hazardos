@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
+// Mock the rate limiter
+vi.mock('@/lib/middleware/unified-rate-limit', () => ({
+  applyUnifiedRateLimit: vi.fn(() => Promise.resolve(null))
+}))
+
 // Mock the dependencies
 const mockSupabaseClient = {
   auth: {
@@ -16,9 +21,31 @@ vi.mock('@/lib/supabase/server', () => ({
 
 // Import the route handlers
 import { GET, POST } from '@/app/api/proposals/route'
-import { createClient } from '@/lib/supabase/server'
 
 describe('Proposals API', () => {
+  const mockProfile = {
+    organization_id: 'org-123',
+    role: 'user'
+  }
+
+  const setupAuthenticatedUser = () => {
+    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+      data: { user: { id: 'user-1', email: 'test@example.com' } },
+      error: null
+    })
+
+    vi.mocked(mockSupabaseClient.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: mockProfile,
+            error: null
+          })
+        })
+      })
+    } as any)
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -33,21 +60,21 @@ describe('Proposals API', () => {
 
       const mockProposals = [
         {
-          id: 'proposal-1',
+          id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
           proposal_number: 'PROP-001',
-          estimate_id: 'estimate-1',
-          customer_id: 'customer-1',
+          estimate_id: 'a47ac10b-58cc-4372-a567-0e02b2c3d479',
+          customer_id: 'b47ac10b-58cc-4372-a567-0e02b2c3d479',
           status: 'draft',
           created_at: '2026-01-31T10:00:00Z',
           estimate: {
-            id: 'estimate-1',
+            id: 'a47ac10b-58cc-4372-a567-0e02b2c3d479',
             estimate_number: 'EST-001',
             project_name: 'Test Project',
             total: 5400.00,
             status: 'approved'
           },
           customer: {
-            id: 'customer-1',
+            id: 'b47ac10b-58cc-4372-a567-0e02b2c3d479',
             company_name: 'Test Company',
             first_name: 'John',
             last_name: 'Doe',
@@ -56,18 +83,6 @@ describe('Proposals API', () => {
         }
       ]
 
-      // Mock the complex query chain
-      const mockProposalsQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        range: vi.fn().mockResolvedValue({
-          data: mockProposals,
-          error: null,
-          count: 1
-        })
-      }
-
       // Mock different table queries
       vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
         if (table === 'profiles') {
@@ -75,14 +90,29 @@ describe('Proposals API', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { organization_id: 'org-1' },
+                  data: mockProfile,
                   error: null
                 })
               })
             })
           } as any
         }
-        return mockProposalsQuery as any
+        if (table === 'proposals') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  range: vi.fn().mockResolvedValue({
+                    data: mockProposals,
+                    error: null,
+                    count: 1
+                  })
+                })
+              })
+            })
+          } as any
+        }
+        return {} as any
       })
 
       const request = new NextRequest('http://localhost:3000/api/proposals')
@@ -107,7 +137,7 @@ describe('Proposals API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(401)
-      expect(data.error).toBe('Unauthorized')
+      expect(data.error).toBe('Authentication is required')
     })
 
     it('should handle query parameters for filtering', async () => {
@@ -116,15 +146,28 @@ describe('Proposals API', () => {
         error: null
       })
 
-      const mockProposalsQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        range: vi.fn().mockResolvedValue({
-          data: [],
-          error: null,
-          count: 0
+      // Track all eq calls
+      const eqCalls: Array<[string, string]> = []
+
+      // Create a mock that tracks eq calls and always returns itself for chaining
+      const createChainableMock = () => {
+        const chainable: any = {
+          eq: vi.fn().mockImplementation((field: string, value: string) => {
+            eqCalls.push([field, value])
+            return chainable
+          }),
+          order: vi.fn().mockReturnThis(),
+          range: vi.fn().mockImplementation(() => chainable),
+          then: vi.fn().mockImplementation((callback) => {
+            // Simulate async resolution
+            return Promise.resolve({ data: [], error: null, count: 0 }).then(callback)
+          })
+        }
+        // Make it thenable so await works
+        Object.defineProperty(chainable, 'then', {
+          value: (resolve: any) => Promise.resolve({ data: [], error: null, count: 0 }).then(resolve)
         })
+        return chainable
       }
 
       vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
@@ -133,22 +176,31 @@ describe('Proposals API', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { organization_id: 'org-1' },
+                  data: mockProfile,
                   error: null
                 })
               })
             })
           } as any
         }
-        return mockProposalsQuery as any
+        if (table === 'proposals') {
+          const chainable = createChainableMock()
+          return {
+            select: vi.fn().mockReturnValue(chainable)
+          } as any
+        }
+        return {} as any
       })
 
-      const request = new NextRequest('http://localhost:3000/api/proposals?status=sent&estimate_id=estimate-1')
+      // Use valid UUIDs
+      const estimateId = 'a47ac10b-58cc-4372-a567-0e02b2c3d479'
+      const request = new NextRequest(`http://localhost:3000/api/proposals?status=sent&estimate_id=${estimateId}`)
       await GET(request)
 
       // Verify filtering was applied
-      expect(mockProposalsQuery.eq).toHaveBeenCalledWith('status', 'sent')
-      expect(mockProposalsQuery.eq).toHaveBeenCalledWith('estimate_id', 'estimate-1')
+      expect(eqCalls).toContainEqual(['organization_id', 'org-123'])
+      expect(eqCalls).toContainEqual(['status', 'sent'])
+      expect(eqCalls).toContainEqual(['estimate_id', estimateId])
     })
 
     it('should handle database errors', async () => {
@@ -157,31 +209,35 @@ describe('Proposals API', () => {
         error: null
       })
 
-      const mockProposalsQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        range: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Connection refused', code: '08001' },
-          count: null
-        })
-      }
-
       vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
         if (table === 'profiles') {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { organization_id: 'org-1' },
+                  data: mockProfile,
                   error: null
                 })
               })
             })
           } as any
         }
-        return mockProposalsQuery as any
+        if (table === 'proposals') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  range: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: { message: 'Connection refused', code: '08001' },
+                    count: null
+                  })
+                })
+              })
+            })
+          } as any
+        }
+        return {} as any
       })
 
       const request = new NextRequest('http://localhost:3000/api/proposals')
@@ -189,13 +245,15 @@ describe('Proposals API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(500)
-      expect(data.error).toBe('Failed to fetch proposals')
+      expect(data.error).toBe('An internal server error occurred')
     })
   })
 
   describe('POST /api/proposals', () => {
+    // Use valid UUIDs for test data
+    const validEstimateId = 'a47ac10b-58cc-4372-a567-0e02b2c3d479'
     const validProposalData = {
-      estimate_id: 'estimate-1',
+      estimate_id: validEstimateId,
       cover_letter: 'Thank you for considering our proposal',
       terms_and_conditions: 'Standard terms apply',
       payment_terms: 'Net 30',
@@ -209,19 +267,19 @@ describe('Proposals API', () => {
       })
 
       const mockEstimate = {
-        id: 'estimate-1',
-        customer_id: 'customer-1',
+        id: validEstimateId,
+        customer_id: 'b47ac10b-58cc-4372-a567-0e02b2c3d479',
         status: 'approved',
         total: 5400.00
       }
 
       const mockCreatedProposal = {
-        id: 'proposal-1',
+        id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
         proposal_number: 'PROP-001',
-        estimate_id: 'estimate-1',
-        customer_id: 'customer-1',
+        estimate_id: validEstimateId,
+        customer_id: 'b47ac10b-58cc-4372-a567-0e02b2c3d479',
         status: 'draft',
-        organization_id: 'org-1',
+        organization_id: 'org-123',
         created_at: '2026-01-31T10:00:00Z'
       }
 
@@ -243,7 +301,7 @@ describe('Proposals API', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { organization_id: 'org-1' },
+                  data: mockProfile,
                   error: null
                 })
               })
@@ -253,12 +311,14 @@ describe('Proposals API', () => {
         if (table === 'estimates') {
           return {
             select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: mockEstimate,
-                  error: null
+              eq: vi.fn().mockImplementation(() => ({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: mockEstimate,
+                    error: null
+                  })
                 })
-              })
+              }))
             }),
             update: vi.fn().mockReturnValue({
               eq: vi.fn().mockResolvedValue({
@@ -310,18 +370,15 @@ describe('Proposals API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(401)
-      expect(data.error).toBe('Unauthorized')
+      expect(data.error).toBe('Authentication is required')
     })
 
     it('should validate required estimate_id field', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
+      setupAuthenticatedUser()
 
       // Test missing estimate_id
       const invalidData = { ...validProposalData }
-      delete invalidData.estimate_id
+      delete (invalidData as any).estimate_id
 
       const request = new NextRequest('http://localhost:3000/api/proposals', {
         method: 'POST',
@@ -332,7 +389,8 @@ describe('Proposals API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(400)
-      expect(data.error).toBe('estimate_id is required')
+      // The validation error message comes from Zod schema
+      expect(data.error).toContain('estimate_id')
     })
 
     it('should handle missing estimate', async () => {
@@ -347,7 +405,7 @@ describe('Proposals API', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { organization_id: 'org-1' },
+                  data: mockProfile,
                   error: null
                 })
               })
@@ -357,12 +415,14 @@ describe('Proposals API', () => {
         if (table === 'estimates') {
           return {
             select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: { message: 'No rows found', code: 'PGRST116' }
+              eq: vi.fn().mockImplementation(() => ({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: { message: 'No rows found', code: 'PGRST116' }
+                  })
                 })
-              })
+              }))
             })
           } as any
         }
@@ -382,10 +442,7 @@ describe('Proposals API', () => {
     })
 
     it('should handle malformed JSON', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com' } },
-        error: null
-      })
+      setupAuthenticatedUser()
 
       const request = new NextRequest('http://localhost:3000/api/proposals', {
         method: 'POST',
@@ -395,8 +452,8 @@ describe('Proposals API', () => {
       const response = await POST(request)
       const data = await response.json()
 
-      expect(response.status).toBe(500)
-      expect(data.error).toBe('Internal server error')
+      expect(response.status).toBe(400)
+      expect(data.error).toBe('Invalid JSON body')
     })
   })
 })

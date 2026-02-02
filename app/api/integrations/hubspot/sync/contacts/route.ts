@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { HubSpotService } from '@/lib/services/hubspot-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
-import { syncCustomerSchema } from '@/lib/validations/integrations'
+import { syncHubSpotContactsSchema } from '@/lib/validations/integrations'
 
 /**
  * POST /api/integrations/hubspot/sync/contacts
@@ -10,7 +10,7 @@ import { syncCustomerSchema } from '@/lib/validations/integrations'
 export const POST = createApiHandler(
   {
     rateLimit: 'heavy',
-    bodySchema: syncCustomerSchema.optional(),
+    bodySchema: syncHubSpotContactsSchema,
   },
   async (_request, context, body) => {
     if (body?.customer_id) {

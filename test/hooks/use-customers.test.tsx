@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useCustomers, useCustomer, useCreateCustomer, useUpdateCustomer, useDeleteCustomer } from '@/lib/hooks/use-customers'
 import { createMockCustomer, createMockCustomerArray } from '@/test/helpers/mock-data'
@@ -39,7 +39,7 @@ const createWrapper = () => {
       mutations: { retry: false }
     }
   })
-  
+
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
       {children}
@@ -67,7 +67,13 @@ describe('Customer Hooks', () => {
       })
 
       expect(result.current.data).toEqual(mockCustomers)
-      expect(CustomersService.getCustomers).toHaveBeenCalledWith('test-org-id', {})
+      // The hook passes default pagination options (page 1, pageSize 25 = offset 0, limit 25)
+      expect(CustomersService.getCustomers).toHaveBeenCalledWith('test-org-id', {
+        search: undefined,
+        status: undefined,
+        limit: 25,
+        offset: 0
+      })
     })
 
     it('should apply search filter', async () => {
@@ -78,7 +84,12 @@ describe('Customer Hooks', () => {
       renderHook(() => useCustomers({ search: 'john' }), { wrapper })
 
       await waitFor(() => {
-        expect(CustomersService.getCustomers).toHaveBeenCalledWith('test-org-id', { search: 'john' })
+        expect(CustomersService.getCustomers).toHaveBeenCalledWith('test-org-id', {
+          search: 'john',
+          status: undefined,
+          limit: 25,
+          offset: 0
+        })
       })
     })
 
@@ -90,7 +101,12 @@ describe('Customer Hooks', () => {
       renderHook(() => useCustomers({ status: 'prospect' }), { wrapper })
 
       await waitFor(() => {
-        expect(CustomersService.getCustomers).toHaveBeenCalledWith('test-org-id', { status: 'prospect' })
+        expect(CustomersService.getCustomers).toHaveBeenCalledWith('test-org-id', {
+          search: undefined,
+          status: 'prospect',
+          limit: 25,
+          offset: 0
+        })
       })
     })
 
@@ -273,20 +289,28 @@ describe('Customer Hooks', () => {
   describe('Optimistic Updates', () => {
     it('should handle optimistic updates for status changes', async () => {
       const { CustomersService } = await import('@/lib/supabase/customers')
-      vi.mocked(CustomersService.updateCustomer).mockResolvedValue(
-        createMockCustomer({ id: 'customer-1', status: 'customer' })
+      // Use a delayed mock to ensure we can check isPending state
+      vi.mocked(CustomersService.updateCustomer).mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve(
+          createMockCustomer({ id: 'customer-1', status: 'customer' })
+        ), 100))
       )
 
       const wrapper = createWrapper()
       const { result } = renderHook(() => useUpdateCustomer(), { wrapper })
 
-      // Should update optimistically before API call completes
-      result.current.mutate({
-        id: 'customer-1',
-        updates: { status: 'customer' }
+      // Trigger the mutation inside act
+      act(() => {
+        result.current.mutate({
+          id: 'customer-1',
+          updates: { status: 'customer' }
+        })
       })
 
-      expect(result.current.isPending).toBe(true)
+      // After mutate is called, isPending should be true
+      await waitFor(() => {
+        expect(result.current.isPending).toBe(true)
+      })
     })
   })
 })

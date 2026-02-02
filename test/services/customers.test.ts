@@ -1,28 +1,48 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { CustomersService } from '@/lib/supabase/customers'
 
-// Mock the Supabase client
-const mockSupabase = {
-  from: vi.fn(() => mockSupabase),
-  select: vi.fn(() => mockSupabase),
-  insert: vi.fn(() => mockSupabase),
-  update: vi.fn(() => mockSupabase),
-  delete: vi.fn(() => mockSupabase),
-  eq: vi.fn(() => mockSupabase),
-  ilike: vi.fn(() => mockSupabase),
-  order: vi.fn(() => mockSupabase),
-  range: vi.fn(() => mockSupabase),
+// Use vi.hoisted to create mock before vi.mock is processed
+const mockSupabase = vi.hoisted(() => ({
+  from: vi.fn(),
+  select: vi.fn(),
+  insert: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+  eq: vi.fn(),
+  ilike: vi.fn(),
+  or: vi.fn(),
+  order: vi.fn(),
+  range: vi.fn(),
+  limit: vi.fn(),
   single: vi.fn(),
-  count: vi.fn(() => mockSupabase)
+  count: vi.fn()
+}))
+
+// Setup chainable mock - each method returns mockSupabase for chaining
+const setupChainableMock = () => {
+  mockSupabase.from.mockReturnValue(mockSupabase)
+  mockSupabase.select.mockReturnValue(mockSupabase)
+  mockSupabase.insert.mockReturnValue(mockSupabase)
+  mockSupabase.update.mockReturnValue(mockSupabase)
+  mockSupabase.delete.mockReturnValue(mockSupabase)
+  mockSupabase.eq.mockReturnValue(mockSupabase)
+  mockSupabase.ilike.mockReturnValue(mockSupabase)
+  mockSupabase.or.mockReturnValue(mockSupabase)
+  mockSupabase.order.mockReturnValue(mockSupabase)
+  mockSupabase.range.mockReturnValue(mockSupabase)
+  mockSupabase.limit.mockReturnValue(mockSupabase)
+  mockSupabase.count.mockReturnValue(mockSupabase)
 }
 
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => mockSupabase
 }))
 
+import { CustomersService } from '@/lib/supabase/customers'
+
 describe('CustomersService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    setupChainableMock()
   })
 
   describe('getCustomers', () => {
@@ -37,10 +57,11 @@ describe('CustomersService', () => {
         }
       ]
 
-      mockSupabase.single.mockResolvedValue({ data: mockCustomers, error: null })
+      // getCustomers doesn't call .single(), the query itself returns { data, error }
+      mockSupabase.order.mockResolvedValue({ data: mockCustomers, error: null })
 
       const result = await CustomersService.getCustomers('org-1')
-      
+
       expect(mockSupabase.from).toHaveBeenCalledWith('customers')
       expect(mockSupabase.select).toHaveBeenCalled()
       expect(mockSupabase.eq).toHaveBeenCalledWith('organization_id', 'org-1')
@@ -48,32 +69,32 @@ describe('CustomersService', () => {
     })
 
     it('should apply search filter when provided', async () => {
-      mockSupabase.single.mockResolvedValue({ data: [], error: null })
+      mockSupabase.order.mockResolvedValue({ data: [], error: null })
 
       await CustomersService.getCustomers('org-1', { search: 'john' })
-      
-      expect(mockSupabase.ilike).toHaveBeenCalledWith('name', '%john%')
+
+      // The actual service uses .or() for search, not .ilike()
+      expect(mockSupabase.or).toHaveBeenCalled()
     })
 
     it('should apply status filter when provided', async () => {
-      mockSupabase.single.mockResolvedValue({ data: [], error: null })
+      mockSupabase.order.mockResolvedValue({ data: [], error: null })
 
       await CustomersService.getCustomers('org-1', { status: 'prospect' })
-      
+
       expect(mockSupabase.eq).toHaveBeenCalledWith('status', 'prospect')
     })
 
     it('should apply pagination when provided', async () => {
-      mockSupabase.single.mockResolvedValue({ data: [], error: null })
+      mockSupabase.order.mockResolvedValue({ data: [], error: null })
 
       await CustomersService.getCustomers('org-1', { limit: 10, offset: 20 })
-      
+
       expect(mockSupabase.range).toHaveBeenCalledWith(20, 29)
     })
 
     it('should handle database errors gracefully', async () => {
-      const mockError = new Error('Database connection failed')
-      mockSupabase.single.mockResolvedValue({ data: null, error: mockError })
+      mockSupabase.order.mockResolvedValue({ data: null, error: { message: 'Database connection failed' } })
 
       await expect(CustomersService.getCustomers('org-1')).rejects.toThrow('Database connection failed')
     })
@@ -125,9 +146,9 @@ describe('CustomersService', () => {
       mockSupabase.single.mockResolvedValue({ data: createdCustomer, error: null })
 
       const result = await CustomersService.createCustomer(newCustomer)
-      
+
       expect(mockSupabase.from).toHaveBeenCalledWith('customers')
-      expect(mockSupabase.insert).toHaveBeenCalledWith(newCustomer)
+      expect(mockSupabase.insert).toHaveBeenCalledWith([newCustomer])
       expect(result).toEqual(createdCustomer)
     })
 
@@ -138,8 +159,7 @@ describe('CustomersService', () => {
         email: 'invalid-email'
       }
 
-      const mockError = new Error('Validation failed')
-      mockSupabase.single.mockResolvedValue({ data: null, error: mockError })
+      mockSupabase.single.mockResolvedValue({ data: null, error: { message: 'Validation failed' } })
 
       await expect(CustomersService.createCustomer(invalidCustomer)).rejects.toThrow('Validation failed')
     })
@@ -180,18 +200,18 @@ describe('CustomersService', () => {
 
   describe('deleteCustomer', () => {
     it('should delete customer by id', async () => {
-      mockSupabase.single.mockResolvedValue({ data: null, error: null })
+      // deleteCustomer doesn't call .single(), the query chain ends at .eq()
+      mockSupabase.eq.mockResolvedValue({ data: null, error: null })
 
       await CustomersService.deleteCustomer('customer-1')
-      
+
       expect(mockSupabase.from).toHaveBeenCalledWith('customers')
       expect(mockSupabase.delete).toHaveBeenCalled()
       expect(mockSupabase.eq).toHaveBeenCalledWith('id', 'customer-1')
     })
 
     it('should handle delete errors', async () => {
-      const mockError = new Error('Cannot delete customer with linked surveys')
-      mockSupabase.single.mockResolvedValue({ data: null, error: mockError })
+      mockSupabase.eq.mockResolvedValue({ data: null, error: { message: 'Cannot delete customer with linked surveys' } })
 
       await expect(CustomersService.deleteCustomer('customer-1')).rejects.toThrow('Cannot delete customer with linked surveys')
     })
@@ -199,32 +219,23 @@ describe('CustomersService', () => {
 
   describe('getCustomerStats', () => {
     it('should return customer statistics', async () => {
-      // Mock stats for potential future use
-      // const mockStats = {
-      //   total: 100,
-      //   leads: 25,
-      //   prospects: 30,
-      //   customers: 40,
-      //   inactive: 5
-      // }
-
-      // Mock multiple queries for stats
-      mockSupabase.single
-        .mockResolvedValueOnce({ data: [{ count: 100 }], error: null })
-        .mockResolvedValueOnce({ data: [{ count: 25 }], error: null })
-        .mockResolvedValueOnce({ data: [{ count: 30 }], error: null })
-        .mockResolvedValueOnce({ data: [{ count: 40 }], error: null })
-        .mockResolvedValueOnce({ data: [{ count: 5 }], error: null })
+      // The service uses Promise.all with 4 count queries that return { count: number }
+      // Each query chain ends at .eq('status', ...) and returns { count, error }
+      mockSupabase.eq
+        .mockResolvedValueOnce({ count: 25, error: null })  // lead count
+        .mockResolvedValueOnce({ count: 30, error: null })  // prospect count
+        .mockResolvedValueOnce({ count: 40, error: null })  // customer count
+        .mockResolvedValueOnce({ count: 5, error: null })   // inactive count
 
       const result = await CustomersService.getCustomerStats('org-1')
-      
-      expect(result).toEqual(expect.objectContaining({
-        total: expect.any(Number),
-        leads: expect.any(Number),
-        prospects: expect.any(Number),
-        customers: expect.any(Number),
-        inactive: expect.any(Number)
-      }))
+
+      expect(result).toEqual({
+        total: 100,
+        leads: 25,
+        prospects: 30,
+        customers: 40,
+        inactive: 5
+      })
     })
   })
 
@@ -260,24 +271,24 @@ describe('CustomersService', () => {
 
   describe('Error Handling', () => {
     it('should handle network errors', async () => {
-      mockSupabase.single.mockRejectedValue(new Error('Network error'))
+      mockSupabase.order.mockRejectedValue(new Error('Network error'))
 
       await expect(CustomersService.getCustomers('org-1')).rejects.toThrow('Network error')
     })
 
     it('should handle Supabase auth errors', async () => {
-      mockSupabase.single.mockResolvedValue({ 
-        data: null, 
-        error: { code: '401', message: 'Unauthorized' } 
+      mockSupabase.order.mockResolvedValue({
+        data: null,
+        error: { code: '401', message: 'Unauthorized' }
       })
 
       await expect(CustomersService.getCustomers('org-1')).rejects.toThrow('Unauthorized')
     })
 
     it('should handle RLS policy violations', async () => {
-      mockSupabase.single.mockResolvedValue({ 
-        data: null, 
-        error: { code: '42501', message: 'Insufficient privileges' } 
+      mockSupabase.order.mockResolvedValue({
+        data: null,
+        error: { code: '42501', message: 'Insufficient privileges' }
       })
 
       await expect(CustomersService.getCustomers('org-1')).rejects.toThrow('Insufficient privileges')

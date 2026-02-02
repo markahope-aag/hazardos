@@ -91,19 +91,19 @@ describe('CreateCustomerModal', () => {
   })
 
   it('should handle form submission error', async () => {
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     mockMutateAsync.mockRejectedValue(new Error('Failed to create customer'))
 
     render(<CreateCustomerModal open={true} onClose={mockOnClose} />)
 
     const submitButton = screen.getByText('Create Customer')
+    await userEvent.click(submitButton)
 
-    await expect(async () => {
-      await userEvent.click(submitButton)
-    }).rejects.toThrow('Failed to create customer')
+    await waitFor(() => {
+      expect(mockMutateAsync).toHaveBeenCalled()
+    })
 
+    // Modal should stay open on error (onClose not called)
     expect(mockOnClose).not.toHaveBeenCalled()
-    consoleError.mockRestore()
   })
 
   it('should pass isSubmitting prop to CustomerForm', () => {

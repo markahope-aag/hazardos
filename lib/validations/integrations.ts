@@ -1,8 +1,13 @@
 import { z } from 'zod'
 
-// QuickBooks sync customer
+// QuickBooks sync customer (required for QuickBooks which needs a specific customer)
 export const syncCustomerSchema = z.object({
   customer_id: z.string().uuid('Invalid customer ID'),
+})
+
+// HubSpot sync contacts - customer_id is optional (if not provided, syncs all)
+export const syncHubSpotContactsSchema = z.object({
+  customer_id: z.string().uuid('Invalid customer ID').optional(),
 })
 
 // QuickBooks sync invoice

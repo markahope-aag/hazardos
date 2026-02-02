@@ -4,11 +4,7 @@ import { GET } from '@/app/api/analytics/jobs-by-status/route'
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
-  from: vi.fn(() => ({
-    select: vi.fn(() => ({
-      eq: vi.fn(() => ({ single: vi.fn() }))
-    }))
-  }))
+  from: vi.fn()
 }
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -25,7 +21,7 @@ describe('GET /api/analytics/jobs-by-status', () => {
   })
 
   const mockProfile = {
-    organization_id: 'org-123',
+    organization_id: '550e8400-e29b-41d4-a716-446655440000',
     role: 'user'
   }
 
@@ -35,19 +31,33 @@ describe('GET /api/analytics/jobs-by-status', () => {
       error: null
     })
 
+    const mockJobs = [
+      { status: 'scheduled' },
+      { status: 'scheduled' },
+      { status: 'in_progress' },
+      { status: 'completed' },
+      { status: 'completed' },
+      { status: 'completed' }
+    ]
+
     let callCount = 0
-    vi.mocked(mockSupabaseClient.from).mockImplementation(() => ({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockImplementation((field, value) => {
-          if (callCount === 0) {
-            callCount++
-            return { single: vi.fn().mockResolvedValue({ data: mockProfile, error: null }) }
-          }
-          const counts = { scheduled: 5, in_progress: 3, completed: 10, invoiced: 2, paid: 8 }
-          return Promise.resolve({ count: counts[value as keyof typeof counts] || 0 })
+    vi.mocked(mockSupabaseClient.from).mockImplementation(() => {
+      callCount++
+      if (callCount === 1) {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockProfile, error: null })
+            })
+          })
+        } as any
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: mockJobs, error: null })
         })
-      })
-    } as any))
+      } as any
+    })
 
     const request = new NextRequest('http://localhost:3000/api/analytics/jobs-by-status')
     const response = await GET(request)
@@ -77,17 +87,23 @@ describe('GET /api/analytics/jobs-by-status', () => {
     })
 
     let callCount = 0
-    vi.mocked(mockSupabaseClient.from).mockImplementation(() => ({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockImplementation(() => {
-          if (callCount === 0) {
-            callCount++
-            return { single: vi.fn().mockResolvedValue({ data: mockProfile, error: null }) }
-          }
-          return Promise.resolve({ count: 0 })
+    vi.mocked(mockSupabaseClient.from).mockImplementation(() => {
+      callCount++
+      if (callCount === 1) {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockProfile, error: null })
+            })
+          })
+        } as any
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: [], error: null })
         })
-      })
-    } as any))
+      } as any
+    })
 
     const request = new NextRequest('http://localhost:3000/api/analytics/jobs-by-status')
     const response = await GET(request)

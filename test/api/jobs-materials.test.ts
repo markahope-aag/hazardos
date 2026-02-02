@@ -39,29 +39,34 @@ describe('Job Materials Management', () => {
     role: 'admin'
   }
 
-  describe('POST /api/jobs/[id]/materials', () => {
-    it('should add material to job', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1' } },
-        error: null
-      })
+  const setupAuthenticatedUser = () => {
+    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+      data: { user: { id: 'user-1', email: 'test@example.com' } },
+      error: null
+    })
 
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
+    vi.mocked(mockSupabaseClient.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: mockProfile,
+            error: null
           })
         })
-      } as any)
+      })
+    } as any)
+  }
+
+  describe('POST /api/jobs/[id]/materials', () => {
+    it('should add material to job', async () => {
+      setupAuthenticatedUser()
 
       const mockMaterial = {
-        id: 'material-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         job_id: 'job-123',
+        material_name: 'Asbestos Disposal Bags',
         material_type: 'asbestos_bag',
-        quantity_planned: 100,
+        quantity_estimated: 100,
         quantity_used: 0
       }
 
@@ -71,8 +76,9 @@ describe('Job Materials Management', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          material_name: 'Asbestos Disposal Bags',
           material_type: 'asbestos_bag',
-          quantity_planned: 100
+          quantity_estimated: 100
         })
       })
 
@@ -80,7 +86,7 @@ describe('Job Materials Management', () => {
       const data = await response.json()
 
       expect(response.status).toBe(201)
-      expect(data.material_type).toBe('asbestos_bag')
+      expect(data.material_name).toBe('Asbestos Disposal Bags')
     })
 
     it('should reject unauthenticated requests', async () => {
@@ -92,7 +98,7 @@ describe('Job Materials Management', () => {
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/materials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ material_type: 'asbestos_bag' })
+        body: JSON.stringify({ material_name: 'Asbestos Disposal Bags' })
       })
 
       const response = await POST(request, { params: Promise.resolve({ id: 'job-123' }) })
@@ -102,24 +108,10 @@ describe('Job Materials Management', () => {
 
   describe('PATCH /api/jobs/[id]/materials', () => {
     it('should update material quantity used', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const updatedMaterial = {
-        id: 'material-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         quantity_used: 75
       }
 
@@ -129,7 +121,7 @@ describe('Job Materials Management', () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          material_id: 'material-1',
+          material_id: '550e8400-e29b-41d4-a716-446655440001',
           quantity_used: 75
         })
       })
@@ -144,28 +136,14 @@ describe('Job Materials Management', () => {
 
   describe('DELETE /api/jobs/[id]/materials', () => {
     it('should delete material from job', async () => {
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       vi.mocked(JobsService.deleteMaterial).mockResolvedValue(undefined)
 
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/materials', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ material_id: 'material-1' })
+        body: JSON.stringify({ material_id: '550e8400-e29b-41d4-a716-446655440001' })
       })
 
       const response = await DELETE(request, { params: Promise.resolve({ id: 'job-123' }) })

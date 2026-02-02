@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import { act } from 'react'
 import userEvent from '@testing-library/user-event'
 import CustomerForm from '@/components/customers/CustomerForm'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -19,7 +20,7 @@ const createWrapper = () => {
       mutations: { retry: false }
     }
   })
-  
+
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
       {children}
@@ -28,6 +29,14 @@ const createWrapper = () => {
 }
 
 describe('CustomerForm Component', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('should render all form fields', () => {
     const Wrapper = createWrapper()
     render(
@@ -35,49 +44,57 @@ describe('CustomerForm Component', () => {
         <CustomerForm onSubmit={vi.fn()} onCancel={vi.fn()} />
       </Wrapper>
     )
-    
-    expect(screen.getByLabelText(/name/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/phone/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/address/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/city/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/state/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/zip/i)).toBeInTheDocument()
+
+    expect(screen.getByLabelText(/^name/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^phone$/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/address line 1/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^city$/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^state$/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/zip code/i)).toBeInTheDocument()
   })
 
   it('should show validation error for empty name', async () => {
-    const user = userEvent.setup()
     const Wrapper = createWrapper()
-    
+
     render(
       <Wrapper>
         <CustomerForm onSubmit={vi.fn()} onCancel={vi.fn()} />
       </Wrapper>
     )
-    
-    const submitButton = screen.getByRole('button', { name: /save/i })
-    await user.click(submitButton)
-    
-    expect(screen.getByText(/name is required/i)).toBeInTheDocument()
+
+    const submitButton = screen.getByRole('button', { name: /save customer/i })
+    await act(async () => {
+      await userEvent.click(submitButton, { delay: null })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText(/name is required/i)).toBeInTheDocument()
+    })
   })
 
   it('should validate email format', async () => {
-    const user = userEvent.setup()
     const Wrapper = createWrapper()
-    
+
     render(
       <Wrapper>
         <CustomerForm onSubmit={vi.fn()} onCancel={vi.fn()} />
       </Wrapper>
     )
-    
-    const emailInput = screen.getByLabelText(/email/i)
-    await user.type(emailInput, 'invalid-email')
-    
-    const submitButton = screen.getByRole('button', { name: /save/i })
-    await user.click(submitButton)
-    
-    expect(screen.getByText(/invalid email/i)).toBeInTheDocument()
+
+    const emailInput = screen.getByLabelText(/^email$/i)
+    await act(async () => {
+      await userEvent.type(emailInput, 'invalid-email', { delay: null })
+    })
+
+    const submitButton = screen.getByRole('button', { name: /save customer/i })
+    await act(async () => {
+      await userEvent.click(submitButton, { delay: null })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText(/invalid email/i)).toBeInTheDocument()
+    })
   })
 
   it('should populate form with customer data', () => {
@@ -105,44 +122,52 @@ describe('CustomerForm Component', () => {
   })
 
   it('should call onSubmit with form data', async () => {
-    const user = userEvent.setup()
-    const handleSubmit = vi.fn()
+    const handleSubmit = vi.fn().mockResolvedValue(undefined)
     const Wrapper = createWrapper()
-    
+
     render(
       <Wrapper>
         <CustomerForm onSubmit={handleSubmit} onCancel={vi.fn()} />
       </Wrapper>
     )
-    
-    await user.type(screen.getByLabelText(/name/i), 'Test Customer')
-    await user.type(screen.getByLabelText(/email/i), 'test@example.com')
-    
-    const submitButton = screen.getByRole('button', { name: /save/i })
-    await user.click(submitButton)
-    
-    expect(handleSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'Test Customer',
-        email: 'test@example.com'
-      })
-    )
+
+    await act(async () => {
+      await userEvent.type(screen.getByLabelText(/^name/i), 'Test Customer', { delay: null })
+    })
+    await act(async () => {
+      await userEvent.type(screen.getByLabelText(/^email$/i), 'test@example.com', { delay: null })
+    })
+
+    const submitButton = screen.getByRole('button', { name: /save customer/i })
+    await act(async () => {
+      await userEvent.click(submitButton, { delay: null })
+    })
+
+    await waitFor(() => {
+      expect(handleSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Test Customer',
+          email: 'test@example.com'
+        })
+      )
+    })
   })
 
   it('should call onCancel when cancel button is clicked', async () => {
-    const user = userEvent.setup()
     const handleCancel = vi.fn()
     const Wrapper = createWrapper()
-    
+
     render(
       <Wrapper>
         <CustomerForm onSubmit={vi.fn()} onCancel={handleCancel} />
       </Wrapper>
     )
-    
+
     const cancelButton = screen.getByRole('button', { name: /cancel/i })
-    await user.click(cancelButton)
-    
+    await act(async () => {
+      await userEvent.click(cancelButton, { delay: null })
+    })
+
     expect(handleCancel).toHaveBeenCalledOnce()
   })
 
@@ -150,74 +175,90 @@ describe('CustomerForm Component', () => {
     const Wrapper = createWrapper()
     render(
       <Wrapper>
-        <CustomerForm 
-          onSubmit={vi.fn()} 
-          onCancel={vi.fn()} 
-          isSubmitting={true} 
+        <CustomerForm
+          onSubmit={vi.fn()}
+          onCancel={vi.fn()}
+          isSubmitting={true}
         />
       </Wrapper>
     )
-    
-    const submitButton = screen.getByRole('button', { name: /saving/i })
+
+    const submitButton = screen.getByRole('button', { name: /saving\.\.\./i })
     expect(submitButton).toBeDisabled()
   })
 
-  it('should reset form when reset prop changes', () => {
+  it('should reset form when reset prop changes', async () => {
     const Wrapper = createWrapper()
     const { rerender } = render(
       <Wrapper>
         <CustomerForm onSubmit={vi.fn()} onCancel={vi.fn()} />
       </Wrapper>
     )
-    
+
     // Fill form
-    const nameInput = screen.getByLabelText(/name/i) as HTMLInputElement
-    userEvent.type(nameInput, 'Test Name')
-    
-    // Rerender with reset
+    const nameInput = screen.getByLabelText(/^name/i) as HTMLInputElement
+    await act(async () => {
+      await userEvent.type(nameInput, 'Test Name', { delay: null })
+    })
+
+    // Rerender with reset (using key to force remount)
     rerender(
       <Wrapper>
         <CustomerForm onSubmit={vi.fn()} onCancel={vi.fn()} key="reset" />
       </Wrapper>
     )
-    
-    expect(screen.getByLabelText(/name/i)).toHaveValue('')
+
+    expect(screen.getByLabelText(/^name/i)).toHaveValue('')
   })
 
   it('should handle state selection', async () => {
-    const user = userEvent.setup()
     const Wrapper = createWrapper()
-    
+
     render(
       <Wrapper>
         <CustomerForm onSubmit={vi.fn()} onCancel={vi.fn()} />
       </Wrapper>
     )
-    
-    const stateSelect = screen.getByRole('combobox', { name: /state/i })
-    await user.click(stateSelect)
-    
+
+    // Find the state select trigger by its placeholder text
+    const stateSelect = screen.getByText('Select state')
+    await act(async () => {
+      await userEvent.click(stateSelect, { delay: null })
+    })
+
     // Should show state options
-    expect(screen.getByText('California')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('California')).toBeInTheDocument()
+    })
     expect(screen.getByText('New York')).toBeInTheDocument()
   })
 
   it('should handle status selection', async () => {
-    const user = userEvent.setup()
     const Wrapper = createWrapper()
-    
+
     render(
       <Wrapper>
         <CustomerForm onSubmit={vi.fn()} onCancel={vi.fn()} />
       </Wrapper>
     )
-    
-    const statusSelect = screen.getByRole('combobox', { name: /status/i })
-    await user.click(statusSelect)
-    
-    // Should show status options
-    expect(screen.getByText('Lead')).toBeInTheDocument()
-    expect(screen.getByText('Prospect')).toBeInTheDocument()
+
+    // The status select has a default value of 'lead', so look for the Lead text in a trigger
+    const allComboboxes = screen.getAllByRole('combobox')
+    // Status is the first combobox in the Customer Details section
+    const statusSelect = allComboboxes.find(cb =>
+      cb.textContent?.includes('Lead') || cb.textContent?.includes('Select status')
+    )
+    expect(statusSelect).toBeDefined()
+
+    await act(async () => {
+      await userEvent.click(statusSelect!, { delay: null })
+    })
+
+    // Should show status options in dropdown
+    await waitFor(() => {
+      // Look for the Prospect option (not Lead since it may be selected)
+      expect(screen.getByText('Prospect')).toBeInTheDocument()
+    })
     expect(screen.getByText('Customer')).toBeInTheDocument()
   })
 })

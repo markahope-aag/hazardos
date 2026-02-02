@@ -129,66 +129,53 @@ describe('Proposal Validation Schemas', () => {
   })
 
   describe('sendProposalSchema', () => {
-    it('should require email', () => {
+    it('should require recipient_email', () => {
       const result = sendProposalSchema.safeParse({})
       expect(result.success).toBe(false)
     })
 
-    it('should accept valid email', () => {
+    it('should accept valid recipient_email', () => {
       const result = sendProposalSchema.safeParse({
-        email: 'customer@example.com'
+        recipient_email: 'customer@example.com'
       })
       expect(result.success).toBe(true)
     })
 
-    it('should reject invalid email', () => {
+    it('should reject invalid recipient_email', () => {
       const result = sendProposalSchema.safeParse({
-        email: 'not-an-email'
+        recipient_email: 'not-an-email'
       })
       expect(result.success).toBe(false)
     })
 
-    it('should accept email with message', () => {
+    it('should accept recipient_email with custom_message', () => {
       const result = sendProposalSchema.safeParse({
-        email: 'customer@example.com',
-        message: 'Please review the attached proposal.'
+        recipient_email: 'customer@example.com',
+        custom_message: 'Please review the attached proposal.'
       })
       expect(result.success).toBe(true)
     })
 
-    it('should reject message exceeding 2000 characters', () => {
+    it('should reject custom_message exceeding 2000 characters', () => {
       const result = sendProposalSchema.safeParse({
-        email: 'customer@example.com',
-        message: 'x'.repeat(2001)
+        recipient_email: 'customer@example.com',
+        custom_message: 'x'.repeat(2001)
       })
       expect(result.success).toBe(false)
     })
 
-    it('should default expires_days to 30', () => {
+    it('should accept recipient_name', () => {
       const result = sendProposalSchema.safeParse({
-        email: 'customer@example.com'
+        recipient_email: 'customer@example.com',
+        recipient_name: 'John Doe'
       })
       expect(result.success).toBe(true)
-      if (result.success) {
-        expect(result.data.expires_days).toBe(30)
-      }
     })
 
-    it('should accept custom expires_days', () => {
+    it('should reject recipient_name exceeding 255 characters', () => {
       const result = sendProposalSchema.safeParse({
-        email: 'customer@example.com',
-        expires_days: 60
-      })
-      expect(result.success).toBe(true)
-      if (result.success) {
-        expect(result.data.expires_days).toBe(60)
-      }
-    })
-
-    it('should reject non-positive expires_days', () => {
-      const result = sendProposalSchema.safeParse({
-        email: 'customer@example.com',
-        expires_days: 0
+        recipient_email: 'customer@example.com',
+        recipient_name: 'x'.repeat(256)
       })
       expect(result.success).toBe(false)
     })

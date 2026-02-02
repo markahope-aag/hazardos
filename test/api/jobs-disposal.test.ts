@@ -39,33 +39,38 @@ describe('Job Disposal Management', () => {
     role: 'admin'
   }
 
+  const setupAuthenticatedUser = () => {
+    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+      data: { user: { id: 'user-1', email: 'test@example.com' } },
+      error: null
+    })
+
+    vi.mocked(mockSupabaseClient.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: mockProfile,
+            error: null
+          })
+        })
+      })
+    } as any)
+  }
+
   describe('POST /api/jobs/[id]/disposal', () => {
     it('should add disposal record to job', async () => {
       // Arrange
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const mockDisposal = {
-        id: 'disposal-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         job_id: 'job-123',
+        hazard_type: 'asbestos',
         disposal_type: 'landfill',
-        facility_name: 'County Waste Facility',
-        weight_tons: 5.5,
-        disposal_date: '2026-02-01',
-        cost: 550.00
+        quantity: 5.5,
+        unit: 'tons',
+        disposal_facility_name: 'County Waste Facility',
+        disposal_cost: 550.00
       }
 
       vi.mocked(JobsService.addDisposal).mockResolvedValue(mockDisposal)
@@ -74,11 +79,12 @@ describe('Job Disposal Management', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          hazard_type: 'asbestos',
           disposal_type: 'landfill',
-          facility_name: 'County Waste Facility',
-          weight_tons: 5.5,
-          disposal_date: '2026-02-01',
-          cost: 550.00
+          quantity: 5.5,
+          unit: 'tons',
+          disposal_facility_name: 'County Waste Facility',
+          disposal_cost: 550.00
         })
       })
 
@@ -88,35 +94,23 @@ describe('Job Disposal Management', () => {
 
       // Assert
       expect(response.status).toBe(201)
-      expect(data.disposal_type).toBe('landfill')
-      expect(data.weight_tons).toBe(5.5)
-      expect(data.cost).toBe(550.00)
+      expect(data.hazard_type).toBe('asbestos')
+      expect(data.quantity).toBe(5.5)
+      expect(data.disposal_cost).toBe(550.00)
       expect(JobsService.addDisposal).toHaveBeenCalled()
     })
 
     it('should add hazardous waste disposal record', async () => {
       // Arrange
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const mockDisposal = {
-        id: 'disposal-2',
+        id: '550e8400-e29b-41d4-a716-446655440002',
+        hazard_type: 'lead_paint',
         disposal_type: 'hazardous_waste',
-        facility_name: 'Hazmat Disposal Inc',
-        weight_tons: 2.3,
+        quantity: 2.3,
+        unit: 'tons',
+        disposal_facility_name: 'Hazmat Disposal Inc',
         manifest_number: 'MAN-12345'
       }
 
@@ -126,9 +120,11 @@ describe('Job Disposal Management', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          hazard_type: 'lead_paint',
           disposal_type: 'hazardous_waste',
-          facility_name: 'Hazmat Disposal Inc',
-          weight_tons: 2.3,
+          quantity: 2.3,
+          unit: 'tons',
+          disposal_facility_name: 'Hazmat Disposal Inc',
           manifest_number: 'MAN-12345'
         })
       })
@@ -139,7 +135,7 @@ describe('Job Disposal Management', () => {
 
       // Assert
       expect(response.status).toBe(201)
-      expect(data.disposal_type).toBe('hazardous_waste')
+      expect(data.hazard_type).toBe('lead_paint')
       expect(data.manifest_number).toBe('MAN-12345')
     })
 
@@ -153,7 +149,7 @@ describe('Job Disposal Management', () => {
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/disposal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ disposal_type: 'landfill' })
+        body: JSON.stringify({ hazard_type: 'asbestos', quantity: 1, unit: 'tons' })
       })
 
       // Act
@@ -167,26 +163,12 @@ describe('Job Disposal Management', () => {
   describe('PATCH /api/jobs/[id]/disposal', () => {
     it('should update disposal record', async () => {
       // Arrange
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const updatedDisposal = {
-        id: 'disposal-1',
-        weight_tons: 6.0,
-        cost: 600.00
+        id: '550e8400-e29b-41d4-a716-446655440001',
+        quantity: 6.0,
+        disposal_cost: 600.00
       }
 
       vi.mocked(JobsService.updateDisposal).mockResolvedValue(updatedDisposal)
@@ -195,9 +177,9 @@ describe('Job Disposal Management', () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          disposal_id: 'disposal-1',
-          weight_tons: 6.0,
-          cost: 600.00
+          disposal_id: '550e8400-e29b-41d4-a716-446655440001',
+          quantity: 6.0,
+          disposal_cost: 600.00
         })
       })
 
@@ -207,34 +189,20 @@ describe('Job Disposal Management', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data.weight_tons).toBe(6.0)
-      expect(data.cost).toBe(600.00)
-      expect(JobsService.updateDisposal).toHaveBeenCalledWith('disposal-1', {
-        weight_tons: 6.0,
-        cost: 600.00
+      expect(data.quantity).toBe(6.0)
+      expect(data.disposal_cost).toBe(600.00)
+      expect(JobsService.updateDisposal).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440001', {
+        quantity: 6.0,
+        disposal_cost: 600.00
       })
     })
 
     it('should update manifest number', async () => {
       // Arrange
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       const updatedDisposal = {
-        id: 'disposal-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         manifest_number: 'MAN-67890'
       }
 
@@ -244,7 +212,7 @@ describe('Job Disposal Management', () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          disposal_id: 'disposal-1',
+          disposal_id: '550e8400-e29b-41d4-a716-446655440001',
           manifest_number: 'MAN-67890'
         })
       })
@@ -268,7 +236,7 @@ describe('Job Disposal Management', () => {
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/disposal', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ disposal_id: 'disposal-1', weight_tons: 6.0 })
+        body: JSON.stringify({ disposal_id: '550e8400-e29b-41d4-a716-446655440001', quantity: 6.0 })
       })
 
       // Act
@@ -282,28 +250,14 @@ describe('Job Disposal Management', () => {
   describe('DELETE /api/jobs/[id]/disposal', () => {
     it('should delete disposal record', async () => {
       // Arrange
-      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-        data: { user: { id: 'user-1' } },
-        error: null
-      })
-
-      vi.mocked(mockSupabaseClient.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: mockProfile,
-              error: null
-            })
-          })
-        })
-      } as any)
+      setupAuthenticatedUser()
 
       vi.mocked(JobsService.deleteDisposal).mockResolvedValue(undefined)
 
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/disposal', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ disposal_id: 'disposal-1' })
+        body: JSON.stringify({ disposal_id: '550e8400-e29b-41d4-a716-446655440001' })
       })
 
       // Act
@@ -313,7 +267,7 @@ describe('Job Disposal Management', () => {
       // Assert
       expect(response.status).toBe(200)
       expect(data.success).toBe(true)
-      expect(JobsService.deleteDisposal).toHaveBeenCalledWith('disposal-1')
+      expect(JobsService.deleteDisposal).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440001')
     })
 
     it('should reject unauthenticated requests', async () => {
@@ -326,7 +280,7 @@ describe('Job Disposal Management', () => {
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/disposal', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ disposal_id: 'disposal-1' })
+        body: JSON.stringify({ disposal_id: '550e8400-e29b-41d4-a716-446655440001' })
       })
 
       // Act
