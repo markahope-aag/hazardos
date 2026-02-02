@@ -109,17 +109,17 @@ describe('Logo Component', () => {
 
   it('should add w-auto class for non-icon variants', () => {
     const { rerender, unmount } = render(<Logo variant="horizontal" />)
-    let horizontalImage = screen.getByTestId('logo-image')
+    const horizontalImage = screen.getByTestId('logo-image')
     expect(horizontalImage).toHaveClass('w-auto')
     unmount()
 
     const { rerender: rerender2, unmount: unmount2 } = render(<Logo variant="vertical" />)
-    let verticalImage = screen.getByTestId('logo-image')
+    const verticalImage = screen.getByTestId('logo-image')
     expect(verticalImage).toHaveClass('w-auto')
     unmount2()
 
     const { unmount: unmount3 } = render(<Logo variant="icon" />)
-    let iconImage = screen.getByTestId('logo-image')
+    const iconImage = screen.getByTestId('logo-image')
     expect(iconImage).not.toHaveClass('w-auto')
     unmount3()
   })

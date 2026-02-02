@@ -18,7 +18,7 @@ function removeControlCharacters(input: string): string {
   // Remove null bytes
   let result = input.replace(/\0/g, '')
   // Remove control chars except newline (0x0A), carriage return (0x0D), tab (0x09)
-  // eslint-disable-next-line no-control-regex
+   
   result = result.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
   return result
 }

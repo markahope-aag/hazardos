@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { createHmac } from 'crypto';
+import { createHmac, randomBytes } from 'crypto';
 import type { LeadWebhookEndpoint, LeadProvider } from '@/types/integrations';
 
 export interface CreateEndpointInput {
@@ -476,7 +476,6 @@ export class LeadWebhookService {
   // ========== UTILITIES ==========
 
   static generateSlug(): string {
-    const { randomBytes } = require('crypto');
     return randomBytes(12).toString('base64url');
   }
 

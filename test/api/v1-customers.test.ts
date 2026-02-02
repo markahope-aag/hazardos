@@ -42,7 +42,7 @@ vi.mock('@/lib/services/api-key-service', () => ({
 }))
 
 vi.mock('@/lib/middleware/api-key-auth', () => ({
-  withApiKeyAuth: (handler: Function) => handler
+  withApiKeyAuth: (handler: (...args: unknown[]) => unknown) => handler
 }))
 
 import { ApiKeyService } from '@/lib/services/api-key-service'

@@ -327,7 +327,7 @@ export class ApprovalService {
     const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
 
     // Get pending requests
-    let query = supabase
+    const query = supabase
       .from('approval_requests')
       .select(`
         *,

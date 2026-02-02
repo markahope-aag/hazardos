@@ -13,8 +13,8 @@ vi.mock('@/lib/services/api-key-service', () => ({
 
 // Mock withApiKeyAuth to pass through the context properly
 vi.mock('@/lib/middleware/api-key-auth', () => ({
-  withApiKeyAuth: (handler: Function) => {
-    return async (request: any) => {
+  withApiKeyAuth: (handler: (request: unknown, context: unknown) => Promise<unknown>) => {
+    return async (request: unknown) => {
       const mockContext = {
         apiKey: { id: 'key-1', scopes: ['customers:read'], rate_limit: 1000 },
         organizationId: 'org-123'

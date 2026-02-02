@@ -46,7 +46,7 @@ let mockFormData: any = {
     ],
   },
 }
-let mockStartedAt = Date.now()
+const mockStartedAt = Date.now()
 
 vi.mock('@/lib/stores/survey-store', () => ({
   useSurveyStore: () => ({
