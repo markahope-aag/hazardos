@@ -39,7 +39,7 @@ export default function SmsSettingsPage() {
     quiet_hours_start: '21:00',
     quiet_hours_end: '08:00',
     timezone: 'America/Chicago',
-    use_platform_twilio: true,
+    use_platform_twilio: false,
     twilio_account_sid: '',
     twilio_auth_token: '',
     twilio_phone_number: '',
@@ -338,64 +338,64 @@ export default function SmsSettingsPage() {
             <div>
               <CardTitle>Twilio Configuration</CardTitle>
               <CardDescription>
-                Use the platform shared number or configure your own Twilio account
+                Configure your Twilio account to enable SMS notifications
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between pb-4 border-b">
-            <div>
-              <p className="font-medium">Use Platform Phone Number</p>
-              <p className="text-sm text-muted-foreground">
-                Use HazardOS shared SMS sending number (recommended)
-              </p>
-            </div>
-            <Switch
-              checked={settings.use_platform_twilio}
-              onCheckedChange={(checked) => updateSetting('use_platform_twilio', checked)}
-            />
+          <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-md text-sm">
+            <Shield className="h-4 w-4 inline mr-2" />
+            You&apos;ll need a Twilio account to send SMS messages. Sign up at{' '}
+            <a
+              href="https://www.twilio.com/try-twilio"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline font-medium"
+            >
+              twilio.com
+            </a>{' '}
+            and get your credentials from the Twilio Console.
           </div>
 
-          {!settings.use_platform_twilio && (
-            <div className="space-y-4 pt-2">
-              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-md text-sm">
-                <Shield className="h-4 w-4 inline mr-2" />
-                Your Twilio credentials are stored securely. Only use this if you need a dedicated
-                phone number for your business.
-              </div>
-
-              <div className="grid gap-4">
-                <div>
-                  <Label>Twilio Account SID</Label>
-                  <Input
-                    type="text"
-                    placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                    value={settings.twilio_account_sid || ''}
-                    onChange={(e) => updateSetting('twilio_account_sid', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Twilio Auth Token</Label>
-                  <Input
-                    type="password"
-                    placeholder="Your auth token"
-                    value={settings.twilio_auth_token || ''}
-                    onChange={(e) => updateSetting('twilio_auth_token', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Twilio Phone Number</Label>
-                  <Input
-                    type="tel"
-                    placeholder="+15551234567"
-                    value={settings.twilio_phone_number || ''}
-                    onChange={(e) => updateSetting('twilio_phone_number', e.target.value)}
-                  />
-                </div>
-              </div>
+          <div className="grid gap-4">
+            <div>
+              <Label>Twilio Account SID <span className="text-red-500">*</span></Label>
+              <Input
+                type="text"
+                placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                value={settings.twilio_account_sid || ''}
+                onChange={(e) => updateSetting('twilio_account_sid', e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Found on your Twilio Console dashboard
+              </p>
             </div>
-          )}
+            <div>
+              <Label>Twilio Auth Token <span className="text-red-500">*</span></Label>
+              <Input
+                type="password"
+                placeholder="Your auth token"
+                value={settings.twilio_auth_token || ''}
+                onChange={(e) => updateSetting('twilio_auth_token', e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Found on your Twilio Console dashboard (click to reveal)
+              </p>
+            </div>
+            <div>
+              <Label>Twilio Phone Number <span className="text-red-500">*</span></Label>
+              <Input
+                type="tel"
+                placeholder="+15551234567"
+                value={settings.twilio_phone_number || ''}
+                onChange={(e) => updateSetting('twilio_phone_number', e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Your Twilio phone number in E.164 format (e.g., +15551234567)
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

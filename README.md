@@ -2,10 +2,12 @@
 
 **The Operating System for Environmental Remediation Companies**
 
-[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green)](https://supabase.com/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8)](https://tailwindcss.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1.18-38bdf8)](https://tailwindcss.com/)
+[![Vitest](https://img.shields.io/badge/Vitest-4.0.18-729B1B)](https://vitest.dev/)
+[![Test Coverage](https://img.shields.io/badge/Coverage-60%25-yellow)](https://vitest.dev/)
 
 Mobile-first business management platform for asbestos, mold, lead paint, and hazardous material abatement services.
 
@@ -141,25 +143,31 @@ The platform owner (Mark Hope, mark.hope@asymmetric.pro) has super-admin access 
 
 ## 📋 Key Features
 
-### ✅ Implemented
-- **Multi-tenant authentication** with organization isolation
-- **Site Survey forms** (formerly assessments) with mobile-optimized UI
-- **Customer Management** with full CRUD operations and relationship tracking
-- **Photo/Video upload** with client-side compression
-- **PDF proposal generation** with professional templates
-- **Database verification tools** for migration status
-- **Responsive design** optimized for mobile field use
-- **PWA support** for offline functionality
-- **Scheduling fields** for site surveys with appointment status tracking
-- **Pricing tables** for labor rates, equipment, materials, disposal, and travel
+### ✅ Production Ready Features
+- **Multi-tenant SaaS Platform** with Stripe billing and feature gating
+- **Complete CRM** with customer management and multiple contacts
+- **Mobile Site Survey System** with offline support and photo upload
+- **Estimate & Proposal System** with PDF generation and e-signature
+- **Job Management & Scheduling** with calendar interface
+- **Job Completion Tracking** with time entries, materials, and variance analysis
+- **Invoice Management** with QuickBooks integration
+- **Customer Feedback System** with NPS scoring and testimonials
+- **SMS Communications** with Twilio integration and TCPA compliance
+- **Advanced Reporting** with Excel/CSV export capabilities
+- **Sales Pipeline Management** with Kanban board and drag-and-drop
+- **Commission Tracking** with automated calculations and approval workflows
+- **Two-Level Approval System** for estimates and proposals
+- **Win/Loss Analysis** with competitor intelligence
+- **Activity Logging** with comprehensive audit trail
+- **PWA Support** with offline functionality
+- **Comprehensive Testing** with 1,800+ test cases and 60% coverage
 
 ### 🚧 In Development
-- Mobile survey wizard with photo categorization
-- Advanced scheduling calendar interface
-- Equipment & materials catalog UI
-- Job tracking & completion workflows
-- Pattern learning (Ralph Wiggum Loop)
-- API integrations
+- Component testing suite expansion (target: 70% coverage)
+- E2E test workflows for critical user journeys
+- Mobile native apps (iOS/Android)
+- Advanced AI features for estimate accuracy
+- Equipment tracking and maintenance scheduling
 
 ## 🗄️ Database
 
@@ -181,19 +189,24 @@ We use proper Supabase CLI migrations for version control:
 **Migration Location**: All migrations are stored in `/supabase/migrations/` with timestamp-based naming.
 
 ### Key Tables
-- `organizations` - Multi-tenant company data
-- `profiles` - User profiles with roles
-- `site_surveys` - Field assessment data (renamed from assessments)
-- `site_survey_photos` - Media files with metadata
+- `organizations` - Multi-tenant company data with subscription management
+- `profiles` - User profiles with roles and permissions
 - `customers` - Customer management with contact info and relationship tracking
-- `labor_rates` - Hourly labor pricing by role and organization
-- `equipment_rates` - Equipment rental and usage pricing
-- `material_costs` - Material pricing and supplier information
-- `disposal_fees` - Hazardous material disposal costs by type
-- `travel_rates` - Mileage and travel time pricing
+- `customer_contacts` - Multiple contacts per customer with role-based organization
+- `site_surveys` - Field assessment data (renamed from assessments)
+- `site_survey_photos` - Media files with metadata and GPS coordinates
+- `estimates` - Cost calculations with line items and approval workflow
+- `proposals` - PDF proposals with e-signature capability
+- `jobs` - Complete job management with scheduling and crew assignment
+- `job_completions` - Time entries, material usage, photos, and checklists
+- `invoices` - Invoice management with payment tracking
+- `opportunities` - Sales pipeline with stage management
+- `commissions` - Commission tracking with automated calculations
+- `feedback_surveys` - Customer feedback with NPS scoring
+- `sms_messages` - SMS communication audit trail
+- `activity_log` - Comprehensive audit trail of all actions
 - `pricing_settings` - Organization-specific markup and pricing rules
-- `estimates` - Cost calculations (schema ready)
-- `jobs` - Project tracking (schema ready)
+- `labor_rates`, `equipment_rates`, `material_costs`, `disposal_fees`, `travel_rates` - Pricing tables
 
 See [Migration Guide](./docs/MIGRATION-GUIDE.md) for complete database setup.
 
@@ -288,12 +301,26 @@ Required in Vercel:
 
 ## 📚 Documentation
 
+### 🚀 Getting Started
+- **[Development Guide](./docs/DEVELOPMENT.md)** - Complete setup and development workflow
+- **[Migration Guide](./docs/MIGRATION-GUIDE.md)** - Database setup and migrations
+- **[Testing Guide](./docs/TESTING.md)** - Comprehensive testing documentation
+
+### 📋 Product & Business
 - **[Project Overview](./docs/HazardOS-Project-Overview.md)** - Vision, goals, and business model
 - **[Product Requirements](./docs/HazardOS-PRD.md)** - Detailed feature specifications
-- **[Migration Guide](./docs/MIGRATION-GUIDE.md)** - Database setup and migrations
+- **[Features Documentation](./docs/FEATURES.md)** - Complete feature reference
+- **[Business Logic](./docs/BUSINESS-LOGIC.md)** - Complex workflows and calculations
+
+### 🏗️ Technical
+- **[API Reference](./docs/API-REFERENCE.md)** - Complete REST API documentation
+- **[Architecture Guide](./docs/architecture.md)** - System architecture and design decisions
+- **[Security Documentation](./docs/SECURITY.md)** - Security architecture and best practices
 - **[Multi-Tenant Setup](./docs/MULTI_TENANT_SETUP.md)** - Architecture and configuration
-- **[Site Survey UI Spec](./docs/hazardos-site-survey-ui-spec.md)** - Mobile form design
-- **[Database Setup Checklist](./docs/DATABASE-SETUP-CHECKLIST.md)** - Verification steps
+
+### 📊 Project Management
+- **[Project Status](./docs/PROJECT-STATUS.md)** - Current development status and roadmap
+- **[Changelog](./docs/CHANGELOG.md)** - Version history and release notes
 
 ## 🎯 Target Market
 

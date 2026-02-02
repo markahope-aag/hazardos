@@ -14,14 +14,7 @@ import {
   ArrowRight,
   Target,
 } from 'lucide-react'
-
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-  }).format(cents)
-}
+import { formatCurrency } from '@/lib/utils'
 
 export default async function SalesPage() {
   const supabase = await createClient()
@@ -42,7 +35,7 @@ export default async function SalesPage() {
       href: '/pipeline',
       icon: Kanban,
       stats: `${pipelineMetrics.count} opportunities`,
-      value: formatCurrency(pipelineMetrics.weighted_value),
+      value: formatCurrency(pipelineMetrics.weighted_value, false),
       valueLabel: 'Weighted value',
     },
     {
@@ -50,8 +43,8 @@ export default async function SalesPage() {
       description: 'Track and manage sales commissions',
       href: '/sales/commissions',
       icon: DollarSign,
-      stats: formatCurrency(commissionSummary.this_month),
-      value: formatCurrency(commissionSummary.total_pending),
+      stats: formatCurrency(commissionSummary.this_month, false),
+      value: formatCurrency(commissionSummary.total_pending, false),
       valueLabel: 'Pending approval',
     },
     {
@@ -91,9 +84,9 @@ export default async function SalesPage() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(pipelineMetrics.total_value)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(pipelineMetrics.total_value, false)}</div>
             <p className="text-xs text-muted-foreground">
-              {formatCurrency(pipelineMetrics.weighted_value)} weighted
+              {formatCurrency(pipelineMetrics.weighted_value, false)} weighted
             </p>
           </CardContent>
         </Card>
@@ -104,9 +97,9 @@ export default async function SalesPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(commissionSummary.this_month)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(commissionSummary.this_month, false)}</div>
             <p className="text-xs text-muted-foreground">
-              {formatCurrency(commissionSummary.this_quarter)} this quarter
+              {formatCurrency(commissionSummary.this_quarter, false)} this quarter
             </p>
           </CardContent>
         </Card>

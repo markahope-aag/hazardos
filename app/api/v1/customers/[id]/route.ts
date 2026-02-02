@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { withApiKeyAuth, ApiKeyAuthContext } from '@/lib/middleware/api-key-auth';
 import { ApiKeyService } from '@/lib/services/api-key-service';
 import { handlePreflight } from '@/lib/middleware/cors';
+import { v1UpdateCustomerSchema, uuidParamSchema, formatZodError } from '@/lib/validations/v1-api';
 
 async function handleGet(
   _request: NextRequest,
@@ -14,6 +15,15 @@ async function handleGet(
     return NextResponse.json(
       { error: 'Missing required scope: customers:read' },
       { status: 403 }
+    );
+  }
+
+  // Validate ID parameter
+  const paramResult = uuidParamSchema.safeParse(params);
+  if (!paramResult.success) {
+    return NextResponse.json(
+      { error: 'Invalid customer ID format' },
+      { status: 400 }
     );
   }
 
@@ -46,22 +56,35 @@ async function handlePatch(
     );
   }
 
-  const supabase = await createClient();
-  const body = await request.json();
-
-  // Only allow updating certain fields
-  const allowedFields = [
-    'first_name', 'last_name', 'email', 'phone', 'company_name',
-    'address_line1', 'address_line2', 'city', 'state', 'zip',
-    'notes', 'status', 'customer_type',
-  ];
-
-  const updateData: Record<string, unknown> = {};
-  for (const field of allowedFields) {
-    if (body[field] !== undefined) {
-      updateData[field] = body[field];
-    }
+  // Validate ID parameter
+  const paramResult = uuidParamSchema.safeParse(params);
+  if (!paramResult.success) {
+    return NextResponse.json(
+      { error: 'Invalid customer ID format' },
+      { status: 400 }
+    );
   }
+
+  const supabase = await createClient();
+
+  // Parse and validate request body
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const validationResult = v1UpdateCustomerSchema.safeParse(body);
+
+  if (!validationResult.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: formatZodError(validationResult.error) },
+      { status: 400 }
+    );
+  }
+
+  const updateData = validationResult.data;
 
   if (Object.keys(updateData).length === 0) {
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
@@ -95,6 +118,15 @@ async function handleDelete(
     );
   }
 
+  // Validate ID parameter
+  const paramResult = uuidParamSchema.safeParse(params);
+  if (!paramResult.success) {
+    return NextResponse.json(
+      { error: 'Invalid customer ID format' },
+      { status: 400 }
+    );
+  }
+
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -104,6 +136,7 @@ async function handleDelete(
     .eq('organization_id', context.organizationId);
 
   if (error) {
+    console.error('Failed to delete customer:', error);
     return NextResponse.json({ error: 'Failed to delete customer' }, { status: 500 });
   }
 

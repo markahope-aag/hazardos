@@ -394,7 +394,7 @@ describe('GET /api/customers', () => {
 ```typescript
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
-import CustomerForm from '@/components/customers/CustomerForm'
+import CustomerForm from '@/components/customers/customer-form'
 
 describe('CustomerForm', () => {
   it('renders form fields', () => {

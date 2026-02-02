@@ -15,16 +15,10 @@ import { Download, ExternalLink, FileText } from 'lucide-react'
 import { format } from 'date-fns'
 import type { BillingInvoice } from '@/types/billing'
 import { invoiceStatusConfig } from '@/types/billing'
+import { formatCurrencyFromCents } from '@/lib/utils'
 
 interface InvoiceHistoryProps {
   invoices: BillingInvoice[]
-}
-
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(cents / 100)
 }
 
 export function InvoiceHistory({ invoices }: InvoiceHistoryProps) {
@@ -76,7 +70,7 @@ export function InvoiceHistory({ invoices }: InvoiceHistoryProps) {
                       ? format(new Date(invoice.invoice_date), 'MMM d, yyyy')
                       : '-'}
                   </TableCell>
-                  <TableCell>{formatCurrency(invoice.total)}</TableCell>
+                  <TableCell>{formatCurrencyFromCents(invoice.total, true)}</TableCell>
                   <TableCell>
                     <Badge className={`${statusConfig?.bgColor} ${statusConfig?.color}`}>
                       {statusConfig?.label || invoice.status}

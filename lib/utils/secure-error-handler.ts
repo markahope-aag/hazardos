@@ -173,7 +173,7 @@ export function createSecureErrorResponse(
 }
 
 // Validation helper
-export function validateRequired(value: any, field: string): void {
+export function validateRequired(value: unknown, field: string): void {
   if (value === undefined || value === null || value === '') {
     throw new SecureError('VALIDATION_ERROR', `${field} is required`, field)
   }

@@ -18,7 +18,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import { DataErrorBoundary } from '@/components/error-boundaries'
 import type { PipelineStage, Opportunity } from '@/types/sales'
 
@@ -40,14 +40,6 @@ export function PipelineKanbanErrorBoundary({ children }: { children: ReactNode 
 interface PipelineKanbanProps {
   stages: PipelineStage[]
   opportunities: Opportunity[]
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-  }).format(value)
 }
 
 export function PipelineKanban({ stages, opportunities: initial }: PipelineKanbanProps) {
@@ -172,7 +164,7 @@ function KanbanColumn({ stage, opportunities, totalValue }: KanbanColumnProps) {
       </div>
 
       <p className="text-sm text-muted-foreground mb-3">
-        {formatCurrency(totalValue)}
+        {formatCurrency(totalValue, false)}
       </p>
 
       <div className="space-y-2 min-h-[200px]">
@@ -226,7 +218,7 @@ function OpportunityCard({ opportunity, isDragging }: OpportunityCardProps) {
         </p>
         {opportunity.estimated_value && (
           <p className="text-sm font-medium mt-2">
-            {formatCurrency(opportunity.estimated_value)}
+            {formatCurrency(opportunity.estimated_value, false)}
           </p>
         )}
         {opportunity.expected_close_date && (

@@ -15,15 +15,7 @@ import {
 } from 'lucide-react'
 import { OrganizationsTable } from '@/components/platform/organizations-table'
 import type { PlatformStats, GrowthMetrics, PlanDistribution } from '@/types/platform-admin'
-
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(cents / 100)
-}
+import { formatCurrencyFromCents } from '@/lib/utils'
 
 function formatNumber(num: number): string {
   return new Intl.NumberFormat('en-US').format(num)
@@ -149,9 +141,9 @@ export default async function PlatformDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Monthly Recurring Revenue"
-          value={formatCurrency(stats.monthlyRecurringRevenue)}
+          value={formatCurrencyFromCents(stats.monthlyRecurringRevenue)}
           icon={DollarSign}
-          description={`${formatCurrency(stats.annualRecurringRevenue)} ARR`}
+          description={`${formatCurrencyFromCents(stats.annualRecurringRevenue)} ARR`}
         />
         <StatsCard
           title="Total Organizations"

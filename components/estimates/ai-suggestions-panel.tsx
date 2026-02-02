@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Sparkles, AlertTriangle, Check, X } from 'lucide-react';
 import { IntegrationErrorBoundary } from '@/components/error-boundaries';
+import { formatCurrency } from '@/lib/utils';
 import type { EstimateSuggestion, SuggestedLineItem } from '@/types/integrations';
 
 /**
@@ -120,13 +121,6 @@ export function AISuggestionsPanel({
       permits: 'bg-pink-100 text-pink-800',
     };
     return colors[category] || 'bg-gray-100 text-gray-800';
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
   };
 
   const selectedTotal = suggestion

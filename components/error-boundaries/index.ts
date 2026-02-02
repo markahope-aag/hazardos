@@ -25,25 +25,25 @@
  * ```
  */
 
-export { ErrorBoundary } from './ErrorBoundary';
-export type { ErrorBoundaryProps, FallbackProps, ErrorLogger } from './ErrorBoundary';
+export { ErrorBoundary } from './error-boundary';
+export type { ErrorBoundaryProps, FallbackProps, ErrorLogger } from './error-boundary';
 
-export { WidgetErrorBoundary } from './WidgetErrorBoundary';
-export type { WidgetErrorBoundaryProps } from './WidgetErrorBoundary';
+export { WidgetErrorBoundary } from './widget-error-boundary';
+export type { WidgetErrorBoundaryProps } from './widget-error-boundary';
 
-export { FormErrorBoundary } from './FormErrorBoundary';
-export type { FormErrorBoundaryProps } from './FormErrorBoundary';
+export { FormErrorBoundary } from './form-error-boundary';
+export type { FormErrorBoundaryProps } from './form-error-boundary';
 
-export { DataErrorBoundary } from './DataErrorBoundary';
-export type { DataErrorBoundaryProps } from './DataErrorBoundary';
+export { DataErrorBoundary } from './data-error-boundary';
+export type { DataErrorBoundaryProps } from './data-error-boundary';
 
-export { ChartErrorBoundary } from './ChartErrorBoundary';
-export type { ChartErrorBoundaryProps } from './ChartErrorBoundary';
+export { ChartErrorBoundary } from './chart-error-boundary';
+export type { ChartErrorBoundaryProps } from './chart-error-boundary';
 
-export { IntegrationErrorBoundary } from './IntegrationErrorBoundary';
-export type { IntegrationErrorBoundaryProps } from './IntegrationErrorBoundary';
+export { IntegrationErrorBoundary } from './integration-error-boundary';
+export type { IntegrationErrorBoundaryProps } from './integration-error-boundary';
 
-export { withErrorBoundary } from './withErrorBoundary';
+export { withErrorBoundary } from './with-error-boundary';
 
 export { useErrorReporting } from './useErrorReporting';
 export type { ErrorReport } from './useErrorReporting';

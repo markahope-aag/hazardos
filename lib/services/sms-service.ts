@@ -10,15 +10,7 @@ import type {
   SmsMessageType,
 } from '@/types/sms';
 
-// Platform-level Twilio client (fallback)
-const getPlatformTwilioClient = () => {
-  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-    return twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-  }
-  return null;
-};
-
-const PLATFORM_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
+// Each organization must configure their own Twilio account
 
 export class SmsService {
   // ========== SETTINGS ==========
@@ -94,7 +86,7 @@ export class SmsService {
     const { client, fromNumber } = this.getTwilioClient(settings);
 
     if (!client || !fromNumber) {
-      throw new Error('SMS service not configured');
+      throw new Error('Twilio credentials not configured. Please add your Twilio Account SID, Auth Token, and Phone Number in Settings → SMS.');
     }
 
     // Create message record
@@ -383,12 +375,13 @@ export class SmsService {
     client: ReturnType<typeof twilio> | null;
     fromNumber: string | null;
   } {
-    if (settings.use_platform_twilio || !settings.twilio_account_sid) {
-      return { client: getPlatformTwilioClient(), fromNumber: PLATFORM_PHONE_NUMBER || null };
+    // Organization must have their own Twilio credentials configured
+    if (!settings.twilio_account_sid || !settings.twilio_auth_token || !settings.twilio_phone_number) {
+      return { client: null, fromNumber: null };
     }
 
     return {
-      client: twilio(settings.twilio_account_sid, settings.twilio_auth_token!),
+      client: twilio(settings.twilio_account_sid, settings.twilio_auth_token),
       fromNumber: settings.twilio_phone_number,
     };
   }

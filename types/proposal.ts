@@ -1,5 +1,10 @@
 import type { Organization, EquipmentNeeded, MaterialNeeded } from './database'
+import { formatCurrency, formatDateLong } from '@/lib/utils'
 // TODO: Update to use SiteSurvey instead of Assessment
+
+// Re-export for backwards compatibility
+export { formatCurrency }
+export { formatDateLong as formatDate }
 
 export interface ProposalData {
   // Organization (company generating the proposal)
@@ -71,22 +76,6 @@ export function generateProposalNumber(): string {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const random = Math.random().toString(36).substring(2, 6).toUpperCase()
   return `PROP-${year}${month}-${random}`
-}
-
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount)
-}
-
-export function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date
-  return new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(d)
 }
 
 export function getHazardTypeLabel(type: string): string {

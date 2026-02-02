@@ -12,14 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { DollarSign, Clock, CheckCircle, Wallet } from 'lucide-react'
-
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-  }).format(cents)
-}
+import { formatCurrency } from '@/lib/utils'
 
 function getStatusBadge(status: string) {
   switch (status) {
@@ -62,7 +55,7 @@ export default async function CommissionsPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summary.total_pending)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(summary.total_pending, false)}</div>
             <p className="text-xs text-muted-foreground">Awaiting approval</p>
           </CardContent>
         </Card>
@@ -73,7 +66,7 @@ export default async function CommissionsPage() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summary.total_approved)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(summary.total_approved, false)}</div>
             <p className="text-xs text-muted-foreground">Ready for payment</p>
           </CardContent>
         </Card>
@@ -84,7 +77,7 @@ export default async function CommissionsPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summary.this_month)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(summary.this_month, false)}</div>
             <p className="text-xs text-muted-foreground">Earned this month</p>
           </CardContent>
         </Card>
@@ -95,7 +88,7 @@ export default async function CommissionsPage() {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summary.total_paid)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(summary.total_paid, false)}</div>
             <p className="text-xs text-muted-foreground">Total paid out</p>
           </CardContent>
         </Card>
@@ -133,13 +126,13 @@ export default async function CommissionsPage() {
                     <TableCell>{earning.user?.full_name || 'Unknown'}</TableCell>
                     <TableCell>{earning.plan?.name || '-'}</TableCell>
                     <TableCell className="text-right">
-                      {formatCurrency(earning.base_amount)}
+                      {formatCurrency(earning.base_amount, false)}
                     </TableCell>
                     <TableCell className="text-right">
                       {earning.commission_rate}%
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {formatCurrency(earning.commission_amount)}
+                      {formatCurrency(earning.commission_amount, false)}
                     </TableCell>
                     <TableCell>{getStatusBadge(earning.status)}</TableCell>
                   </TableRow>

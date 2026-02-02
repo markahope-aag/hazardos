@@ -17,17 +17,10 @@ import {
   History,
 } from 'lucide-react'
 import { OpportunityActions } from '@/components/pipeline/opportunity-actions'
+import { formatCurrency } from '@/lib/utils'
 
 interface Props {
   params: Promise<{ id: string }>
-}
-
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-  }).format(cents)
 }
 
 function getOutcomeBadge(outcome: string | null) {
@@ -230,13 +223,13 @@ export default async function OpportunityDetailPage({ params }: Props) {
               <div>
                 <p className="text-sm text-muted-foreground">Estimated Value</p>
                 <p className="text-2xl font-bold">
-                  {formatCurrency(opportunity.estimated_value || 0)}
+                  {formatCurrency(opportunity.estimated_value || 0, false)}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Weighted Value</p>
                 <p className="text-xl font-semibold text-primary">
-                  {formatCurrency(opportunity.weighted_value || 0)}
+                  {formatCurrency(opportunity.weighted_value || 0, false)}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Based on {opportunity.stage?.probability || 0}% probability
