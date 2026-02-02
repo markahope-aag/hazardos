@@ -135,6 +135,7 @@ export function CustomerCombobox({
             placeholder="Search customers..."
             value={search}
             onValueChange={setSearch}
+            aria-label="Search customers by name or company"
           />
           <CommandList>
             <CommandEmpty>

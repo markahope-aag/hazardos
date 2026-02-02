@@ -50,7 +50,7 @@ export default function EditCustomerModal({ customer, open, onClose }: EditCusto
               variant="ghost"
               size="sm"
               onClick={handleDeleteClick}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete

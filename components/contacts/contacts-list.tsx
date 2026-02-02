@@ -258,6 +258,7 @@ export function ContactsList({ customerId }: ContactsListProps) {
                         size="icon"
                         className="h-8 w-8"
                         disabled={actionLoading === contact.id}
+                        aria-label="Contact actions"
                       >
                         {actionLoading === contact.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />

@@ -13,6 +13,7 @@ export function SignupForm() {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [errors, setErrors] = useState<{firstName?: string; lastName?: string; email?: string; password?: string; confirmPassword?: string}>({})
 
   // Check if Supabase is configured
   const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -35,6 +36,7 @@ export function SignupForm() {
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setIsLoading(true)
+    setErrors({}) // Clear previous errors
 
     const formData = new FormData(e.currentTarget)
     const email = formData.get('email') as string
@@ -43,24 +45,18 @@ export function SignupForm() {
     const firstName = formData.get('firstName') as string
     const lastName = formData.get('lastName') as string
 
-    // Validate passwords match
-    if (password !== confirmPassword) {
-      toast({
-        title: 'Error',
-        description: 'Passwords do not match',
-        variant: 'destructive',
-      })
-      setIsLoading(false)
-      return
-    }
-
-    // Validate password strength
-    if (password.length < 8) {
-      toast({
-        title: 'Error',
-        description: 'Password must be at least 8 characters',
-        variant: 'destructive',
-      })
+    // Validate form fields
+    const newErrors: {firstName?: string; lastName?: string; email?: string; password?: string; confirmPassword?: string} = {}
+    if (!firstName) newErrors.firstName = 'First name is required'
+    if (!lastName) newErrors.lastName = 'Last name is required'
+    if (!email) newErrors.email = 'Email is required'
+    if (!password) newErrors.password = 'Password is required'
+    else if (password.length < 8) newErrors.password = 'Password must be at least 8 characters'
+    if (!confirmPassword) newErrors.confirmPassword = 'Please confirm your password'
+    else if (password !== confirmPassword) newErrors.confirmPassword = 'Passwords do not match'
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
       setIsLoading(false)
       return
     }
@@ -126,7 +122,14 @@ export function SignupForm() {
             placeholder="John"
             required
             disabled={isLoading}
+            aria-invalid={!!errors.firstName}
+            aria-describedby={errors.firstName ? 'firstName-error' : undefined}
           />
+          {errors.firstName && (
+            <p id="firstName-error" className="text-sm text-destructive mt-1" role="alert">
+              {errors.firstName}
+            </p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="lastName">Last Name</Label>
@@ -137,7 +140,14 @@ export function SignupForm() {
             placeholder="Doe"
             required
             disabled={isLoading}
+            aria-invalid={!!errors.lastName}
+            aria-describedby={errors.lastName ? 'lastName-error' : undefined}
           />
+          {errors.lastName && (
+            <p id="lastName-error" className="text-sm text-destructive mt-1" role="alert">
+              {errors.lastName}
+            </p>
+          )}
         </div>
       </div>
       <div className="space-y-2">
@@ -149,7 +159,14 @@ export function SignupForm() {
           placeholder="name@example.com"
           required
           disabled={isLoading}
+          aria-invalid={!!errors.email}
+          aria-describedby={errors.email ? 'email-error' : undefined}
         />
+        {errors.email && (
+          <p id="email-error" className="text-sm text-destructive mt-1" role="alert">
+            {errors.email}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
@@ -161,10 +178,18 @@ export function SignupForm() {
           required
           minLength={8}
           disabled={isLoading}
+          aria-invalid={!!errors.password}
+          aria-describedby={errors.password ? 'password-error' : 'password-help'}
         />
-        <p className="text-xs text-muted-foreground">
-          Must be at least 8 characters
-        </p>
+        {errors.password ? (
+          <p id="password-error" className="text-sm text-destructive mt-1" role="alert">
+            {errors.password}
+          </p>
+        ) : (
+          <p id="password-help" className="text-xs text-muted-foreground">
+            Must be at least 8 characters
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -176,7 +201,14 @@ export function SignupForm() {
           required
           minLength={8}
           disabled={isLoading}
+          aria-invalid={!!errors.confirmPassword}
+          aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
         />
+        {errors.confirmPassword && (
+          <p id="confirmPassword-error" className="text-sm text-destructive mt-1" role="alert">
+            {errors.confirmPassword}
+          </p>
+        )}
       </div>
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? (

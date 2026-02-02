@@ -494,10 +494,10 @@ export default function JobCompletionPage() {
 
       {/* Error Banner */}
       {error && (
-        <div className="mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+        <div className="mx-4 mt-4 p-3 bg-destructive/5 border border-destructive/20 rounded-lg flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm text-red-700">{error}</p>
+            <p className="text-sm text-destructive">{error}</p>
           </div>
           <Button
             variant="ghost"
@@ -624,7 +624,7 @@ export default function JobCompletionPage() {
                     size="sm"
                     onClick={() => handleDeleteTimeEntry(entry.id)}
                   >
-                    <Trash2 className="w-4 h-4 text-red-500" />
+                    <Trash2 className="w-4 h-4 text-destructive" />
                   </Button>
                 </CardContent>
               </Card>
@@ -729,7 +729,7 @@ export default function JobCompletionPage() {
                     size="sm"
                     onClick={() => handleDeleteMaterial(material.id)}
                   >
-                    <Trash2 className="w-4 h-4 text-red-500" />
+                    <Trash2 className="w-4 h-4 text-destructive" />
                   </Button>
                 </CardContent>
               </Card>
@@ -844,7 +844,7 @@ export default function JobCompletionPage() {
                         >
                           {item.item_name}
                           {item.is_required && (
-                            <span className="text-red-500 ml-1">*</span>
+                            <span className="text-destructive ml-1">*</span>
                           )}
                         </label>
                         {item.item_description && (

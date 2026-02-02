@@ -12,6 +12,7 @@ export default function LoginForm() {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [errors, setErrors] = useState<{email?: string; password?: string}>({})
   
   // Check if Supabase is configured
   const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -34,10 +35,22 @@ export default function LoginForm() {
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setIsLoading(true)
+    setErrors({}) // Clear previous errors
 
     const formData = new FormData(e.currentTarget)
     const email = formData.get('email') as string
     const password = formData.get('password') as string
+
+    // Basic validation
+    const newErrors: {email?: string; password?: string} = {}
+    if (!email) newErrors.email = 'Email is required'
+    if (!password) newErrors.password = 'Password is required'
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      setIsLoading(false)
+      return
+    }
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -77,7 +90,14 @@ export default function LoginForm() {
           placeholder="name@example.com"
           required
           disabled={isLoading}
+          aria-invalid={!!errors.email}
+          aria-describedby={errors.email ? 'email-error' : undefined}
         />
+        {errors.email && (
+          <p id="email-error" className="text-sm text-destructive mt-1" role="alert">
+            {errors.email}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
@@ -87,7 +107,14 @@ export default function LoginForm() {
           type="password"
           required
           disabled={isLoading}
+          aria-invalid={!!errors.password}
+          aria-describedby={errors.password ? 'password-error' : undefined}
         />
+        {errors.password && (
+          <p id="password-error" className="text-sm text-destructive mt-1" role="alert">
+            {errors.password}
+          </p>
+        )}
       </div>
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? 'Signing in...' : 'Sign In'}

@@ -378,7 +378,7 @@ export default function PricingSettingsPage() {
   return (
     <div className="container py-6 max-w-5xl">
       <div className="flex items-center gap-2 mb-6">
-        <Button variant="ghost" size="icon" asChild>
+        <Button variant="ghost" size="icon" asChild aria-label="Back to settings">
           <Link href="/settings">
             <ArrowLeft className="h-4 w-4" />
           </Link>
@@ -547,6 +547,7 @@ export default function PricingSettingsPage() {
                               variant="ghost"
                               size="icon"
                               onClick={() => { setEditingLabor(rate); setLaborDialog(true); }}
+                              aria-label="Edit labor rate"
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -554,6 +555,7 @@ export default function PricingSettingsPage() {
                               variant="ghost"
                               size="icon"
                               onClick={() => deleteLaborRate(rate.id)}
+                              aria-label="Delete labor rate"
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -610,6 +612,7 @@ export default function PricingSettingsPage() {
                               variant="ghost"
                               size="icon"
                               onClick={() => { setEditingEquipment(rate); setEquipmentDialog(true); }}
+                              aria-label="Edit equipment rate"
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -617,6 +620,7 @@ export default function PricingSettingsPage() {
                               variant="ghost"
                               size="icon"
                               onClick={() => deleteEquipmentRate(rate.id)}
+                              aria-label="Delete equipment rate"
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -675,6 +679,7 @@ export default function PricingSettingsPage() {
                               variant="ghost"
                               size="icon"
                               onClick={() => { setEditingMaterial(material); setMaterialDialog(true); }}
+                              aria-label="Edit material cost"
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -682,6 +687,7 @@ export default function PricingSettingsPage() {
                               variant="ghost"
                               size="icon"
                               onClick={() => deleteMaterialCost(material.id)}
+                              aria-label="Delete material cost"
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -740,6 +746,7 @@ export default function PricingSettingsPage() {
                               variant="ghost"
                               size="icon"
                               onClick={() => { setEditingDisposal(fee); setDisposalDialog(true); }}
+                              aria-label="Edit disposal fee"
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -747,6 +754,7 @@ export default function PricingSettingsPage() {
                               variant="ghost"
                               size="icon"
                               onClick={() => deleteDisposalFee(fee.id)}
+                              aria-label="Delete disposal fee"
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -805,6 +813,7 @@ export default function PricingSettingsPage() {
                               variant="ghost"
                               size="icon"
                               onClick={() => { setEditingTravel(rate); setTravelDialog(true); }}
+                              aria-label="Edit travel rate"
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -812,6 +821,7 @@ export default function PricingSettingsPage() {
                               variant="ghost"
                               size="icon"
                               onClick={() => deleteTravelRate(rate.id)}
+                              aria-label="Delete travel rate"
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>

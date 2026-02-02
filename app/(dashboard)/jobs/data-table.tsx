@@ -99,7 +99,7 @@ const JobRow = memo(function JobRow({ job, onRowClick }: JobRowProps) {
       <TableCell>
         <DropdownMenu>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" aria-label="Job actions">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -165,6 +165,7 @@ export function JobsDataTable({ data }: JobsDataTableProps) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
+            aria-label="Search jobs by name, customer, or address"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>

@@ -176,6 +176,7 @@ export function InvoicePayments({ invoice, payments }: InvoicePaymentsProps) {
                         variant="ghost"
                         size="icon"
                         onClick={() => deletePayment(payment.id)}
+                        aria-label="Delete payment"
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>

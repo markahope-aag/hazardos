@@ -110,7 +110,7 @@ const InvoiceRow = memo(function InvoiceRow({ invoice, onRowClick, onSend, onVoi
       <TableCell>
         <DropdownMenu>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" aria-label="Invoice actions">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -224,6 +224,7 @@ export function InvoicesDataTable({ data }: InvoicesDataTableProps) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
+            aria-label="Search invoices by number, customer, or amount"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>

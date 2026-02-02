@@ -181,6 +181,7 @@ export function InvoiceLineItems({ invoice, lineItems }: InvoiceLineItemsProps) 
                             variant="ghost"
                             size="icon"
                             onClick={() => openEditDialog(item)}
+                            aria-label="Edit line item"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -188,6 +189,7 @@ export function InvoiceLineItems({ invoice, lineItems }: InvoiceLineItemsProps) 
                             variant="ghost"
                             size="icon"
                             onClick={() => deleteLineItem(item.id)}
+                            aria-label="Delete line item"
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>

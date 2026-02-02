@@ -280,6 +280,7 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
                         setSelectedMember(member)
                         setShowRemoveDialog(true)
                       }}
+                      aria-label="Remove crew member"
                     >
                       <UserMinus className="h-4 w-4 text-destructive" />
                     </Button>

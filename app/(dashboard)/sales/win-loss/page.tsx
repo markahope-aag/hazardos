@@ -61,10 +61,10 @@ export default async function WinLossPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Lost Deals</CardTitle>
-            <XCircle className="h-4 w-4 text-red-500" />
+            <XCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{lostOpps.length}</div>
+            <div className="text-2xl font-bold text-destructive">{lostOpps.length}</div>
             <p className="text-xs text-muted-foreground">
               {formatCurrency(totalLost, false)} total value
             </p>
@@ -117,7 +117,7 @@ export default async function WinLossPage() {
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-red-500 rounded-full"
+                        className="h-full bg-destructive rounded-full"
                         style={{ width: `${(item.count / lostOpps.length) * 100}%` }}
                       />
                     </div>
@@ -239,7 +239,7 @@ export default async function WinLossPage() {
                             <span className="text-muted-foreground">Not specified</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right font-medium text-red-600">
+                        <TableCell className="text-right font-medium text-destructive">
                           {formatCurrency(opp.estimated_value || 0, false)}
                         </TableCell>
                         <TableCell>

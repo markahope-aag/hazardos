@@ -250,6 +250,7 @@ export function JobNotes({ job, notes = [] }: JobNotesProps) {
                           setSelectedNote(note)
                           setShowDeleteDialog(true)
                         }}
+                        aria-label="Delete note"
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>

@@ -108,7 +108,7 @@ export function AISuggestionsPanel({
   const getConfidenceColor = (score: number) => {
     if (score >= 0.8) return 'text-green-600';
     if (score >= 0.6) return 'text-yellow-600';
-    return 'text-red-600';
+    return 'text-destructive';
   };
 
   const getCategoryColor = (category: string) => {
@@ -150,7 +150,7 @@ export function AISuggestionsPanel({
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-md text-sm">
+              <div className="flex items-center gap-2 p-3 bg-destructive/5 text-destructive rounded-md text-sm">
                 <AlertTriangle className="h-4 w-4" />
                 {error}
               </div>

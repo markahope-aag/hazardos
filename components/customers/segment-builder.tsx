@@ -276,6 +276,7 @@ export function SegmentBuilder({ segment, availableFields }: SegmentBuilderProps
                     size="icon"
                     onClick={() => removeRule(index)}
                     className="text-destructive hover:text-destructive"
+                    aria-label="Remove rule"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

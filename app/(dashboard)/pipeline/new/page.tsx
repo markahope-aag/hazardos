@@ -162,7 +162,7 @@ export default function NewOpportunityPage() {
   return (
     <div className="container py-6 max-w-2xl">
       <div className="flex items-center gap-2 mb-6">
-        <Button variant="ghost" size="icon" asChild>
+        <Button variant="ghost" size="icon" asChild aria-label="Back to pipeline">
           <Link href="/pipeline">
             <ArrowLeft className="h-4 w-4" />
           </Link>

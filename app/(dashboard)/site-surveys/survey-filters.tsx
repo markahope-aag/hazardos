@@ -115,6 +115,7 @@ export function SurveyFilters({ className }: SurveyFiltersProps) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
+            aria-label="Search surveys by property address, customer, or technician"
           />
         </form>
 

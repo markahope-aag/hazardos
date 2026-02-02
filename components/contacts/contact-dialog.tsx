@@ -45,6 +45,7 @@ export function ContactDialog({
   const isEdit = !!contact
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [validationErrors, setValidationErrors] = useState<{name?: string; email?: string}>({})
 
   // Form state
   const [name, setName] = useState('')
@@ -87,9 +88,16 @@ export function ContactDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setError(null)
+    setValidationErrors({})
 
-    if (!name.trim()) {
-      setError('Name is required')
+    // Validate required fields
+    const errors: {name?: string; email?: string} = {}
+    if (!name.trim()) errors.name = 'Name is required'
+    if (email && !/\S+@\S+\.\S+/.test(email)) errors.email = 'Please enter a valid email address'
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors)
       return
     }
 
@@ -170,7 +178,14 @@ export function ContactDialog({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Smith"
+                  aria-invalid={!!validationErrors.name}
+                  aria-describedby={validationErrors.name ? 'name-error' : undefined}
                 />
+                {validationErrors.name && (
+                  <p id="name-error" className="text-sm text-destructive mt-1" role="alert">
+                    {validationErrors.name}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
@@ -191,7 +206,14 @@ export function ContactDialog({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="john@example.com"
+                aria-invalid={!!validationErrors.email}
+                aria-describedby={validationErrors.email ? 'email-error' : undefined}
               />
+              {validationErrors.email && (
+                <p id="email-error" className="text-sm text-destructive mt-1" role="alert">
+                  {validationErrors.email}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

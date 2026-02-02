@@ -60,7 +60,7 @@ const mockCanvas = {
   })),
   toBlob: vi.fn((callback) => {
     setTimeout(() => {
-      callback(new Blob(['mock'], { type: 'image/jpeg', size: 1024 }))
+      callback(new Blob(['mock'], { type: 'image/jpeg' }))
     }, 0)
   }),
   width: 0,
@@ -113,14 +113,14 @@ describe('PhotoCapture', () => {
   })
 
   it('should render default photo capture button', () => {
-    render(<PhotoCapture category="general" />)
+    render(<PhotoCapture category="exterior" />)
 
     expect(screen.getByRole('button', { name: /take photo/i })).toBeInTheDocument()
     expect(screen.getByText('Take Photo')).toBeInTheDocument()
   })
 
   it('should render compact variant with camera icon only', () => {
-    render(<PhotoCapture category="general" variant="compact" />)
+    render(<PhotoCapture category="exterior" variant="compact" />)
 
     const button = screen.getByRole('button')
     expect(button).toBeInTheDocument()
@@ -129,7 +129,7 @@ describe('PhotoCapture', () => {
   })
 
   it('should render inline variant with add photo text', () => {
-    render(<PhotoCapture category="general" variant="inline" />)
+    render(<PhotoCapture category="exterior" variant="inline" />)
 
     const button = screen.getByRole('button')
     expect(button).toBeInTheDocument()
@@ -137,7 +137,7 @@ describe('PhotoCapture', () => {
   })
 
   it('should have hidden file input', () => {
-    render(<PhotoCapture category="general" />)
+    render(<PhotoCapture category="exterior" />)
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     expect(fileInput).toBeInTheDocument()
@@ -147,7 +147,7 @@ describe('PhotoCapture', () => {
   })
 
   it('should trigger file input when button is clicked', () => {
-    render(<PhotoCapture category="general" />)
+    render(<PhotoCapture category="exterior" />)
 
     const button = screen.getByRole('button', { name: /take photo/i })
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -159,7 +159,7 @@ describe('PhotoCapture', () => {
   })
 
   it('should handle file selection and process photo', async () => {
-    render(<PhotoCapture category="general" />)
+    render(<PhotoCapture category="exterior" />)
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     const mockFile = createMockFile('test.jpg', 'image/jpeg', 1024 * 1024)
@@ -174,7 +174,7 @@ describe('PhotoCapture', () => {
   })
 
   it('should show processing state during photo handling', async () => {
-    render(<PhotoCapture category="general" />)
+    render(<PhotoCapture category="exterior" />)
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     const mockFile = createMockFile('test.jpg', 'image/jpeg', 1024 * 1024)
@@ -191,7 +191,7 @@ describe('PhotoCapture', () => {
 
   it('should call onCapture callback when photo is captured', async () => {
     const onCapture = vi.fn()
-    render(<PhotoCapture category="general" onCapture={onCapture} />)
+    render(<PhotoCapture category="exterior" onCapture={onCapture} />)
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     const mockFile = createMockFile('test.jpg', 'image/jpeg', 1024 * 1024)
@@ -219,7 +219,7 @@ describe('PhotoCapture', () => {
       }
     } as any
 
-    render(<PhotoCapture category="general" variant="default" />)
+    render(<PhotoCapture category="exterior" variant="default" />)
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     const mockFile = createMockFile('test.jpg', 'image/jpeg', 1024 * 1024)
@@ -237,14 +237,14 @@ describe('PhotoCapture', () => {
   })
 
   it('should apply custom className', () => {
-    render(<PhotoCapture category="general" className="custom-class" />)
+    render(<PhotoCapture category="exterior" className="custom-class" />)
 
     const container = screen.getByRole('button', { name: /take photo/i }).closest('div')
     expect(container).toHaveClass('custom-class')
   })
 
   it('should handle different photo categories', () => {
-    const categories = ['general', 'hazard', 'damage', 'before', 'after'] as const
+    const categories = ['exterior', 'interior', 'asbestos_materials', 'lead_components', 'utility_access'] as const
 
     categories.forEach(category => {
       const { unmount } = render(<PhotoCapture category={category} />)
@@ -256,7 +256,7 @@ describe('PhotoCapture', () => {
   })
 
   it('should disable button during processing', async () => {
-    render(<PhotoCapture category="general" />)
+    render(<PhotoCapture category="exterior" />)
 
     const button = screen.getByRole('button', { name: /take photo/i })
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -286,7 +286,7 @@ describe('PhotoCapture', () => {
       }
     } as any
 
-    render(<PhotoCapture category="general" />)
+    render(<PhotoCapture category="exterior" />)
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     const mockFile = createMockFile('test.jpg', 'image/jpeg', 1024 * 1024)
@@ -322,7 +322,7 @@ describe('PhotoCapture', () => {
       }
     } as any
 
-    render(<PhotoCapture category="general" />)
+    render(<PhotoCapture category="exterior" />)
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     const mockFile = createMockFile('test.jpg', 'image/jpeg', 1024 * 1024)
@@ -352,7 +352,7 @@ describe('PhotoCapture', () => {
   })
 
   it('should have proper accessibility attributes', () => {
-    render(<PhotoCapture category="general" />)
+    render(<PhotoCapture category="exterior" />)
 
     const fileInput = document.querySelector('input[type="file"]')
     expect(fileInput).toHaveAttribute('accept', 'image/*')
@@ -364,7 +364,7 @@ describe('PhotoCapture', () => {
     const originalGetContext = global.HTMLCanvasElement.prototype.getContext
     global.HTMLCanvasElement.prototype.getContext = vi.fn(() => null)
 
-    render(<PhotoCapture category="general" />)
+    render(<PhotoCapture category="exterior" />)
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     const mockFile = createMockFile('test.jpg', 'image/jpeg', 1024 * 1024)
@@ -382,7 +382,7 @@ describe('PhotoCapture', () => {
   })
 
   it('should reset file input value after processing', async () => {
-    render(<PhotoCapture category="general" />)
+    render(<PhotoCapture category="exterior" />)
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     const mockFile = createMockFile('test.jpg', 'image/jpeg', 1024 * 1024)

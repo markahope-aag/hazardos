@@ -17,9 +17,9 @@ function PDFLoadingState({ action = 'Generating' }: { action?: string }) {
 // Error state for PDF operations
 function PDFErrorState({ error, onRetry }: { error: string; onRetry?: () => void }) {
   return (
-    <div className="text-center p-4 border border-red-200 rounded-lg bg-red-50">
-      <FileText className="mx-auto h-8 w-8 text-red-500 mb-2" />
-      <p className="text-sm text-red-600 mb-2">{error}</p>
+    <div className="text-center p-4 border border-destructive/20 rounded-lg bg-destructive/5">
+      <FileText className="mx-auto h-8 w-8 text-destructive mb-2" />
+      <p className="text-sm text-destructive mb-2">{error}</p>
       {onRetry && (
         <Button variant="outline" size="sm" onClick={onRetry}>
           Try Again

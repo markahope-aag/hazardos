@@ -70,13 +70,13 @@ function CustomerListItem({ customer, onEdit, onDelete }: CustomerListItemProps)
   }, [onDelete, customer])
 
   return (
-    <TableRow className="hover:bg-gray-50">
+    <TableRow className="hover:bg-muted/50">
       {/* Name & Company */}
       <TableCell>
         <div>
-          <div className="font-medium text-gray-900">{customer.name}</div>
+          <div className="font-medium text-foreground">{customer.name}</div>
           {customer.company_name && (
-            <div className="text-sm text-gray-500">{customer.company_name}</div>
+            <div className="text-sm text-muted-foreground">{customer.company_name}</div>
           )}
         </div>
       </TableCell>
@@ -85,13 +85,13 @@ function CustomerListItem({ customer, onEdit, onDelete }: CustomerListItemProps)
       <TableCell>
         <div className="space-y-1">
           {customer.email && (
-            <div className="text-sm text-gray-900">{customer.email}</div>
+            <div className="text-sm text-foreground">{customer.email}</div>
           )}
           {customer.phone && (
-            <div className="text-sm text-gray-500">{customer.phone}</div>
+            <div className="text-sm text-muted-foreground">{customer.phone}</div>
           )}
           {!customer.email && !customer.phone && (
-            <div className="text-sm text-gray-400">No contact info</div>
+            <div className="text-sm text-muted-foreground">No contact info</div>
           )}
         </div>
       </TableCell>
@@ -170,7 +170,7 @@ function CustomerListItem({ customer, onEdit, onDelete }: CustomerListItemProps)
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={handleDelete}
-              className="text-red-600 focus:text-red-600"
+              className="text-destructive focus:text-destructive"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete Customer
