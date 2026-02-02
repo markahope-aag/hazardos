@@ -19,19 +19,34 @@ const mockSupabase = vi.hoisted(() => ({
   },
 }))
 
-// Setup chainable mock
+// Setup chainable mock - creates a fresh chain for each call
 const setupChainableMock = () => {
-  mockSupabase.from.mockReturnValue(mockSupabase)
-  mockSupabase.select.mockReturnValue(mockSupabase)
-  mockSupabase.insert.mockReturnValue(mockSupabase)
-  mockSupabase.update.mockReturnValue(mockSupabase)
-  mockSupabase.eq.mockReturnValue(mockSupabase)
-  mockSupabase.in.mockReturnValue(mockSupabase)
-  mockSupabase.gte.mockReturnValue(mockSupabase)
-  mockSupabase.lte.mockReturnValue(mockSupabase)
-  mockSupabase.lt.mockReturnValue(mockSupabase)
-  mockSupabase.match.mockReturnValue(mockSupabase)
-  mockSupabase.order.mockReturnValue(mockSupabase)
+  const createChain = () => ({
+    from: mockSupabase.from,
+    select: mockSupabase.select,
+    insert: mockSupabase.insert,
+    update: mockSupabase.update,
+    eq: mockSupabase.eq,
+    in: mockSupabase.in,
+    gte: mockSupabase.gte,
+    lte: mockSupabase.lte,
+    lt: mockSupabase.lt,
+    match: mockSupabase.match,
+    order: mockSupabase.order,
+    single: mockSupabase.single,
+  })
+
+  mockSupabase.from.mockReturnValue(createChain())
+  mockSupabase.select.mockReturnValue(createChain())
+  mockSupabase.insert.mockReturnValue(createChain())
+  mockSupabase.update.mockReturnValue(createChain())
+  mockSupabase.eq.mockReturnValue(createChain())
+  mockSupabase.in.mockReturnValue(createChain())
+  mockSupabase.gte.mockReturnValue(createChain())
+  mockSupabase.lte.mockReturnValue(createChain())
+  mockSupabase.lt.mockReturnValue(createChain())
+  mockSupabase.match.mockReturnValue(createChain())
+  mockSupabase.order.mockReturnValue(createChain())
 }
 
 // Mock activity service
@@ -265,6 +280,11 @@ describe('CommissionService', () => {
       },
     ]
 
+    beforeEach(() => {
+      // Reset the chainable to return fresh chains each time
+      setupChainableMock()
+    })
+
     it('should fetch all earnings', async () => {
       mockSupabase.order.mockResolvedValue({ data: mockEarnings, error: null })
 
@@ -277,39 +297,73 @@ describe('CommissionService', () => {
     })
 
     it('should filter by user_id', async () => {
-      mockSupabase.order.mockResolvedValue({ data: mockEarnings, error: null })
+      // Create a fully chainable query that supports: from().select().order().eq()
+      const queryChain = {
+        eq: vi.fn().mockReturnThis(),
+        then: vi.fn((resolve) => resolve({ data: mockEarnings, error: null })),
+      }
 
-      await CommissionService.getEarnings({ user_id: 'user-1' })
+      mockSupabase.from.mockReturnValue(mockSupabase)
+      mockSupabase.select.mockReturnValue(mockSupabase)
+      mockSupabase.order.mockReturnValue(queryChain)
 
-      expect(mockSupabase.eq).toHaveBeenCalledWith('user_id', 'user-1')
+      const result = await CommissionService.getEarnings({ user_id: 'user-1' })
+
+      expect(queryChain.eq).toHaveBeenCalledWith('user_id', 'user-1')
+      expect(result).toHaveLength(2)
     })
 
     it('should filter by status', async () => {
-      mockSupabase.order.mockResolvedValue({ data: [mockEarnings[0]], error: null })
+      const queryChain = {
+        eq: vi.fn().mockReturnThis(),
+        then: vi.fn((resolve) => resolve({ data: [mockEarnings[0]], error: null })),
+      }
 
-      await CommissionService.getEarnings({ status: 'pending' })
+      mockSupabase.from.mockReturnValue(mockSupabase)
+      mockSupabase.select.mockReturnValue(mockSupabase)
+      mockSupabase.order.mockReturnValue(queryChain)
 
-      expect(mockSupabase.eq).toHaveBeenCalledWith('status', 'pending')
+      const result = await CommissionService.getEarnings({ status: 'pending' })
+
+      expect(queryChain.eq).toHaveBeenCalledWith('status', 'pending')
+      expect(result).toHaveLength(1)
     })
 
     it('should filter by pay_period', async () => {
-      mockSupabase.order.mockResolvedValue({ data: [], error: null })
+      const queryChain = {
+        eq: vi.fn().mockReturnThis(),
+        then: vi.fn((resolve) => resolve({ data: [], error: null })),
+      }
 
-      await CommissionService.getEarnings({ pay_period: '2026-02' })
+      mockSupabase.from.mockReturnValue(mockSupabase)
+      mockSupabase.select.mockReturnValue(mockSupabase)
+      mockSupabase.order.mockReturnValue(queryChain)
 
-      expect(mockSupabase.eq).toHaveBeenCalledWith('pay_period', '2026-02')
+      const result = await CommissionService.getEarnings({ pay_period: '2026-02' })
+
+      expect(queryChain.eq).toHaveBeenCalledWith('pay_period', '2026-02')
+      expect(result).toEqual([])
     })
 
     it('should filter by date range', async () => {
-      mockSupabase.order.mockResolvedValue({ data: mockEarnings, error: null })
+      const queryChain = {
+        gte: vi.fn().mockReturnThis(),
+        lte: vi.fn().mockReturnThis(),
+        then: vi.fn((resolve) => resolve({ data: mockEarnings, error: null })),
+      }
 
-      await CommissionService.getEarnings({
+      mockSupabase.from.mockReturnValue(mockSupabase)
+      mockSupabase.select.mockReturnValue(mockSupabase)
+      mockSupabase.order.mockReturnValue(queryChain)
+
+      const result = await CommissionService.getEarnings({
         start_date: '2026-02-01',
         end_date: '2026-02-28',
       })
 
-      expect(mockSupabase.gte).toHaveBeenCalledWith('earning_date', '2026-02-01')
-      expect(mockSupabase.lte).toHaveBeenCalledWith('earning_date', '2026-02-28')
+      expect(queryChain.gte).toHaveBeenCalledWith('earning_date', '2026-02-01')
+      expect(queryChain.lte).toHaveBeenCalledWith('earning_date', '2026-02-28')
+      expect(result).toHaveLength(2)
     })
   })
 
@@ -499,14 +553,22 @@ describe('CommissionService', () => {
       const mockThisMonth = [{ commission_amount: 800 }]
       const mockThisQuarter = [{ commission_amount: 1200 }]
 
+      // Set up match to return data for pending, approved, paid queries
       mockSupabase.match
         .mockResolvedValueOnce({ data: mockPending, error: null })
         .mockResolvedValueOnce({ data: mockApproved, error: null })
         .mockResolvedValueOnce({ data: mockPaid, error: null })
 
-      mockSupabase.gte
-        .mockResolvedValueOnce({ data: mockThisMonth, error: null })
-        .mockResolvedValueOnce({ data: mockThisQuarter, error: null })
+      // Set up match + gte chains for this_month query (returns another chainable)
+      const monthChain = {
+        lt: vi.fn().mockResolvedValue({ data: mockThisMonth, error: null }),
+      }
+      mockSupabase.match.mockReturnValueOnce(mockSupabase)
+      mockSupabase.gte.mockReturnValueOnce(monthChain)
+
+      // Set up match + gte for this_quarter query
+      mockSupabase.match.mockReturnValueOnce(mockSupabase)
+      mockSupabase.gte.mockResolvedValueOnce({ data: mockThisQuarter, error: null })
 
       const result = await CommissionService.getSummary('user-1')
 
@@ -520,14 +582,22 @@ describe('CommissionService', () => {
     })
 
     it('should calculate commission summary for all users when userId not provided', async () => {
+      // Set up match to return data for pending, approved, paid queries
       mockSupabase.match
         .mockResolvedValueOnce({ data: [], error: null })
         .mockResolvedValueOnce({ data: [], error: null })
         .mockResolvedValueOnce({ data: [], error: null })
 
-      mockSupabase.gte
-        .mockResolvedValueOnce({ data: [], error: null })
-        .mockResolvedValueOnce({ data: [], error: null })
+      // Set up match + gte chains for this_month query
+      const monthChain = {
+        lt: vi.fn().mockResolvedValue({ data: [], error: null }),
+      }
+      mockSupabase.match.mockReturnValueOnce(mockSupabase)
+      mockSupabase.gte.mockReturnValueOnce(monthChain)
+
+      // Set up match + gte for this_quarter query
+      mockSupabase.match.mockReturnValueOnce(mockSupabase)
+      mockSupabase.gte.mockResolvedValueOnce({ data: [], error: null })
 
       const result = await CommissionService.getSummary()
 
@@ -542,17 +612,29 @@ describe('CommissionService', () => {
   })
 
   describe('assignPlanToUser', () => {
-    beforeEach(() => {
-      mockSupabase.single.mockResolvedValue({ data: mockProfile, error: null })
-    })
-
     it('should assign commission plan to user', async () => {
-      mockSupabase.eq.mockResolvedValue({ error: null })
+      // Create chain for profile lookup: from().select().eq().single()
+      const profileChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockProfile, error: null }),
+      }
+
+      // Create chain for update: from().update().eq()
+      const updateChain = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }
+
+      // First call is for profile lookup, second is for update
+      mockSupabase.from
+        .mockReturnValueOnce(profileChain)
+        .mockReturnValueOnce(updateChain)
 
       await CommissionService.assignPlanToUser('user-1', 'plan-1')
 
-      expect(mockSupabase.update).toHaveBeenCalledWith({ commission_plan_id: 'plan-1' })
-      expect(mockSupabase.eq).toHaveBeenCalledWith('id', 'user-1')
+      expect(updateChain.update).toHaveBeenCalledWith({ commission_plan_id: 'plan-1' })
+      expect(updateChain.eq).toHaveBeenCalledWith('id', 'user-1')
     })
 
     it('should throw when user not authenticated', async () => {

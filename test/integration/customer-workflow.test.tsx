@@ -407,7 +407,7 @@ describe('Customer Workflow Integration', () => {
       )
 
       await waitFor(() => {
-        expect(screen.getByText(/error/i)).toBeInTheDocument()
+        expect(screen.getByText(/error loading customers/i)).toBeInTheDocument()
       })
     })
 
@@ -424,7 +424,7 @@ describe('Customer Workflow Integration', () => {
       )
 
       await waitFor(() => {
-        expect(screen.getByText(/error/i)).toBeInTheDocument()
+        expect(screen.getByText(/error loading customers/i)).toBeInTheDocument()
       })
     })
   })

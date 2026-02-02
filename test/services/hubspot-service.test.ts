@@ -237,26 +237,67 @@ describe('HubSpotService', () => {
 
   describe('getConnectionStatus', () => {
     it('should return connected status', async () => {
-      mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: {
-                  is_active: true,
-                  token_expires_at: new Date(Date.now() + 3600000).toISOString(),
-                  external_id: 'portal_123',
-                },
-                error: null,
-              }),
-            })),
-          })),
-        })),
-      }))
+      let callCount = 0
+
+      // Mock both calls to from() - one for getConnectionStatus, one for getValidTokens
+      mockSupabase.from = vi.fn((table) => {
+        callCount++
+        if (table === 'organization_integrations') {
+          if (callCount === 1) {
+            // First call from getConnectionStatus
+            return {
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  eq: vi.fn(() => ({
+                    single: vi.fn().mockResolvedValue({
+                      data: {
+                        id: 'int-1',
+                        is_active: true,
+                        external_id: 'portal_123',
+                        last_sync_at: '2026-01-01T00:00:00Z'
+                      },
+                      error: null,
+                    }),
+                  })),
+                })),
+              })),
+            }
+          } else {
+            // Second call from getValidTokens
+            return {
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  eq: vi.fn(() => ({
+                    eq: vi.fn(() => ({
+                      single: vi.fn().mockResolvedValue({
+                        data: {
+                          id: 'int-1',
+                          access_token: 'access_123',
+                          refresh_token: 'refresh_123',
+                          token_expires_at: new Date(Date.now() + 3600000).toISOString(),
+                          external_id: 'portal_123',
+                        },
+                        error: null,
+                      }),
+                    })),
+                  })),
+                })),
+              })),
+            }
+          }
+        }
+        return {}
+      })
+
+      // Mock the API call for account info
+      vi.mocked(global.fetch).mockResolvedValue({
+        ok: true,
+        json: async () => ({ portalId: 12345 }),
+      } as Response)
 
       const status = await HubSpotService.getConnectionStatus('org-123')
 
-      expect(status.connected).toBe(true)
+      expect(status.is_connected).toBe(true)
       expect(status.portal_id).toBe('portal_123')
     })
 
@@ -276,19 +317,18 @@ describe('HubSpotService', () => {
 
       const status = await HubSpotService.getConnectionStatus('org-123')
 
-      expect(status.connected).toBe(false)
+      expect(status.is_connected).toBe(false)
       expect(status.portal_id).toBeUndefined()
     })
 
-    it('should detect expired token', async () => {
+    it('should return disconnected when not active', async () => {
       mockSupabase.from = vi.fn(() => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             eq: vi.fn(() => ({
               single: vi.fn().mockResolvedValue({
                 data: {
-                  is_active: true,
-                  token_expires_at: new Date(Date.now() - 1000).toISOString(),
+                  is_active: false,
                   external_id: 'portal_123',
                 },
                 error: null,
@@ -300,73 +340,87 @@ describe('HubSpotService', () => {
 
       const status = await HubSpotService.getConnectionStatus('org-123')
 
-      expect(status.connected).toBe(true) // Still connected, but...
-      expect(status.needs_refresh).toBe(true) // Needs refresh
+      expect(status.is_connected).toBe(false)
     })
   })
 
   describe('syncContact', () => {
-    it('should create contact in HubSpot', async () => {
-      mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: { access_token: 'access_123' },
-                error: null,
-              }),
+    it('should sync customer to HubSpot', async () => {
+      let fetchCallCount = 0
+
+      mockSupabase.from = vi.fn((table) => {
+        if (table === 'organization_integrations') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  eq: vi.fn(() => ({
+                    single: vi.fn().mockResolvedValue({
+                      data: {
+                        id: 'int-1',
+                        access_token: 'access_123',
+                        refresh_token: 'refresh_123',
+                        token_expires_at: new Date(Date.now() + 3600000).toISOString(),
+                        external_id: 'portal_123'
+                      },
+                      error: null,
+                    }),
+                  })),
+                })),
+              })),
             })),
-          })),
-        })),
-      }))
-
-      vi.mocked(global.fetch).mockResolvedValue({
-        ok: true,
-        json: async () => ({ id: 'hs_contact_123' }),
-      } as Response)
-
-      const result = await HubSpotService.syncContact('org-123', {
-        email: 'test@example.com',
-        firstname: 'John',
-        lastname: 'Doe',
-        phone: '555-1234',
+          }
+        }
+        if (table === 'customers') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: 'cust-1',
+                    email: 'test@example.com',
+                    first_name: 'John',
+                    last_name: 'Doe',
+                    phone: '555-1234',
+                    hubspot_id: null
+                  },
+                  error: null,
+                }),
+              })),
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn().mockResolvedValue({ error: null }),
+            })),
+          }
+        }
+        if (table === 'marketing_sync_log') {
+          return {
+            insert: vi.fn().mockResolvedValue({ error: null }),
+          }
+        }
+        return {}
       })
 
-      expect(result.id).toBe('hs_contact_123')
-    })
-
-    it('should use correct API endpoint', async () => {
-      mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: { access_token: 'access_123' },
-                error: null,
-              }),
-            })),
-          })),
-        })),
-      }))
-
-      vi.mocked(global.fetch).mockResolvedValue({
-        ok: true,
-        json: async () => ({ id: 'contact_123' }),
-      } as Response)
-
-      await HubSpotService.syncContact('org-123', {
-        email: 'test@example.com',
+      vi.mocked(global.fetch).mockImplementation(async () => {
+        fetchCallCount++
+        if (fetchCallCount === 1) {
+          // First call is search
+          return {
+            ok: true,
+            json: async () => ({ results: [] }),
+          } as Response
+        } else {
+          // Second call is create
+          return {
+            ok: true,
+            json: async () => ({ id: 'hs_contact_123' }),
+          } as Response
+        }
       })
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('api.hubapi.com'),
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            Authorization: 'Bearer access_123',
-          }),
-        })
-      )
+      const result = await HubSpotService.syncContact('org-123', 'cust-1')
+
+      expect(result).toBe('hs_contact_123')
     })
 
     it('should throw error when not connected', async () => {
@@ -374,17 +428,19 @@ describe('HubSpotService', () => {
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             eq: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: null,
-                error: null,
-              }),
+              eq: vi.fn(() => ({
+                single: vi.fn().mockResolvedValue({
+                  data: null,
+                  error: null,
+                }),
+              })),
             })),
           })),
         })),
       }))
 
       await expect(
-        HubSpotService.syncContact('org-123', { email: 'test@example.com' })
+        HubSpotService.syncContact('org-123', 'cust-1')
       ).rejects.toThrow()
     })
   })

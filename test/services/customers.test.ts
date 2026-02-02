@@ -219,13 +219,22 @@ describe('CustomersService', () => {
 
   describe('getCustomerStats', () => {
     it('should return customer statistics', async () => {
-      // The service uses Promise.all with 4 count queries that return { count: number }
-      // Each query chain ends at .eq('status', ...) and returns { count, error }
-      mockSupabase.eq
-        .mockResolvedValueOnce({ count: 25, error: null })  // lead count
-        .mockResolvedValueOnce({ count: 30, error: null })  // prospect count
-        .mockResolvedValueOnce({ count: 40, error: null })  // customer count
-        .mockResolvedValueOnce({ count: 5, error: null })   // inactive count
+      // The service uses Promise.all with 4 count queries
+      // Each query: from().select().eq('organization_id').eq('status')
+      // Need to mock second .eq() call to return { count, error }
+      let eqCallCount = 0
+      mockSupabase.eq.mockImplementation(() => {
+        eqCallCount++
+        // Every second call is the final .eq('status', ...) that returns the promise
+        if (eqCallCount % 2 === 0) {
+          // Return different counts for each status query
+          const counts = [25, 30, 40, 5] // lead, prospect, customer, inactive
+          const index = Math.floor((eqCallCount - 2) / 2)
+          return Promise.resolve({ count: counts[index], error: null })
+        }
+        // First .eq() in each chain returns mockSupabase for chaining
+        return mockSupabase
+      })
 
       const result = await CustomersService.getCustomerStats('org-1')
 
@@ -246,10 +255,12 @@ describe('CustomersService', () => {
         status: 'customer'
       }
 
+      // Need to ensure select() returns mockSupabase for .single() to work
+      mockSupabase.select.mockReturnValue(mockSupabase)
       mockSupabase.single.mockResolvedValue({ data: updatedCustomer, error: null })
 
       const result = await CustomersService.updateCustomerStatus('customer-1', 'customer')
-      
+
       expect(mockSupabase.update).toHaveBeenCalledWith({ status: 'customer' })
       expect(result).toEqual(updatedCustomer)
     })
@@ -257,10 +268,13 @@ describe('CustomersService', () => {
     it('should validate status values', async () => {
       const validStatuses = ['lead', 'prospect', 'customer', 'inactive'] as const
 
+      // Ensure select() returns mockSupabase for .single() to work
+      mockSupabase.select.mockReturnValue(mockSupabase)
+
       for (const status of validStatuses) {
-        mockSupabase.single.mockResolvedValue({ 
-          data: { id: 'customer-1', status }, 
-          error: null 
+        mockSupabase.single.mockResolvedValue({
+          data: { id: 'customer-1', status },
+          error: null
         })
 
         const result = await CustomersService.updateCustomerStatus('customer-1', status)
@@ -271,7 +285,11 @@ describe('CustomersService', () => {
 
   describe('Error Handling', () => {
     it('should handle network errors', async () => {
-      mockSupabase.order.mockRejectedValue(new Error('Network error'))
+      // The service calls .order() at the end which returns the final promise
+      mockSupabase.order.mockResolvedValue({
+        data: null,
+        error: { message: 'Network error' }
+      })
 
       await expect(CustomersService.getCustomers('org-1')).rejects.toThrow('Network error')
     })

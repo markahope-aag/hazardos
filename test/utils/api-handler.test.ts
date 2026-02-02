@@ -46,9 +46,46 @@ import { createClient } from '@/lib/supabase/server'
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
 import { createRequestLogger } from '@/lib/utils/logger'
 
+// Helper to create a mock Supabase client
+function createMockSupabaseClient() {
+  return {
+    auth: {
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'test@example.com' } },
+        error: null,
+      }),
+    },
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn().mockResolvedValue({
+            data: { organization_id: 'org-123', role: 'admin' },
+            error: null,
+          }),
+        })),
+      })),
+    })),
+  }
+}
+
+// Helper to create a mock logger
+function createMockLogger() {
+  return {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }
+}
+
 describe('API Handler Module', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Reset the createClient mock to return a properly configured client
+    vi.mocked(createClient).mockResolvedValue(createMockSupabaseClient() as any)
+    // Reset the logger mock
+    vi.mocked(createRequestLogger).mockReturnValue(createMockLogger() as any)
+    // Reset rate limit mock
+    vi.mocked(applyUnifiedRateLimit).mockResolvedValue(null)
   })
 
   describe('createApiHandler', () => {
@@ -137,7 +174,7 @@ describe('API Handler Module', () => {
       }
       vi.mocked(createRequestLogger).mockReturnValue(mockLogger as any)
 
-      vi.mocked(createClient).mockResolvedValue({
+      const mockSupabase = {
         auth: {
           getUser: vi.fn().mockResolvedValue({
             data: { user: { id: 'user-123' } },
@@ -154,7 +191,8 @@ describe('API Handler Module', () => {
             })),
           })),
         })),
-      } as any)
+      }
+      vi.mocked(createClient).mockResolvedValue(mockSupabase as any)
 
       const querySchema = z.object({
         status: z.enum(['active', 'inactive']),
@@ -189,7 +227,7 @@ describe('API Handler Module', () => {
       }
       vi.mocked(createRequestLogger).mockReturnValue(mockLogger as any)
 
-      vi.mocked(createClient).mockResolvedValue({
+      const mockSupabase = {
         auth: {
           getUser: vi.fn().mockResolvedValue({
             data: { user: { id: 'user-123' } },
@@ -206,7 +244,8 @@ describe('API Handler Module', () => {
             })),
           })),
         })),
-      } as any)
+      }
+      vi.mocked(createClient).mockResolvedValue(mockSupabase as any)
 
       const bodySchema = z.object({
         name: z.string().min(1),
@@ -216,7 +255,7 @@ describe('API Handler Module', () => {
       let capturedBody: any
       const handler = createApiHandler(
         { bodySchema },
-        async (req, context, body) => {
+        async (req, context, body, query) => {
           capturedBody = body
           return NextResponse.json({ body })
         }
@@ -243,7 +282,7 @@ describe('API Handler Module', () => {
       }
       vi.mocked(createRequestLogger).mockReturnValue(mockLogger as any)
 
-      vi.mocked(createClient).mockResolvedValue({
+      const mockSupabase = {
         auth: {
           getUser: vi.fn().mockResolvedValue({
             data: { user: { id: 'user-123' } },
@@ -260,10 +299,11 @@ describe('API Handler Module', () => {
             })),
           })),
         })),
-      } as any)
+      }
+      vi.mocked(createClient).mockResolvedValue(mockSupabase as any)
 
       let capturedContext: any
-      const handler = createApiHandler({}, async (req, context) => {
+      const handler = createApiHandler({}, async (req, context, body, query) => {
         capturedContext = context
         return NextResponse.json({ success: true })
       })
@@ -284,7 +324,7 @@ describe('API Handler Module', () => {
       }
       vi.mocked(createRequestLogger).mockReturnValue(mockLogger as any)
 
-      vi.mocked(createClient).mockResolvedValue({
+      const mockSupabase = {
         auth: {
           getUser: vi.fn().mockResolvedValue({
             data: { user: { id: 'user-123' } },
@@ -301,9 +341,10 @@ describe('API Handler Module', () => {
             })),
           })),
         })),
-      } as any)
+      }
+      vi.mocked(createClient).mockResolvedValue(mockSupabase as any)
 
-      const handler = createApiHandler({}, async () => {
+      const handler = createApiHandler({}, async (req, context, body, query) => {
         throw new Error('Test error')
       })
 
@@ -329,7 +370,7 @@ describe('API Handler Module', () => {
       vi.mocked(createRequestLogger).mockReturnValue(mockLogger as any)
 
       let handlerCalled = false
-      const handler = createPublicApiHandler({}, async () => {
+      const handler = createPublicApiHandler({}, async (req, body, query) => {
         handlerCalled = true
         return NextResponse.json({ public: true })
       })
@@ -351,7 +392,7 @@ describe('API Handler Module', () => {
       }
       vi.mocked(createRequestLogger).mockReturnValue(mockLogger as any)
 
-      const handler = createPublicApiHandler({}, async () => {
+      const handler = createPublicApiHandler({}, async (req, body, query) => {
         return NextResponse.json({ success: true })
       })
 
@@ -378,7 +419,7 @@ describe('API Handler Module', () => {
       }
       vi.mocked(createRequestLogger).mockReturnValue(mockLogger as any)
 
-      vi.mocked(createClient).mockResolvedValue({
+      const mockSupabase = {
         auth: {
           getUser: vi.fn().mockResolvedValue({
             data: { user: { id: 'user-123' } },
@@ -395,12 +436,13 @@ describe('API Handler Module', () => {
             })),
           })),
         })),
-      } as any)
+      }
+      vi.mocked(createClient).mockResolvedValue(mockSupabase as any)
 
       let capturedParams: any
       const handler = createApiHandlerWithParams(
         {},
-        async (req, context, params) => {
+        async (req, context, params, body, query) => {
           capturedParams = params
           return NextResponse.json({ params })
         }

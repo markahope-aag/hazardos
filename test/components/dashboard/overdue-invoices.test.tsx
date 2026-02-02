@@ -39,7 +39,13 @@ vi.mock('next/link', () => ({
 
 // Mock utils
 vi.mock('@/lib/utils', () => ({
-  formatCurrency: vi.fn((amount: number) => `$${amount.toLocaleString()}`),
+  formatCurrency: vi.fn((amount: number | null) => {
+    if (amount === null || amount === undefined) return '$0.00'
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount)
+  }),
 }))
 
 // Mock UI components
@@ -150,11 +156,11 @@ describe('OverdueInvoices', () => {
     render(await OverdueInvoices())
 
     // Should display total overdue amount
-    expect(screen.getByText('$4,000')).toBeInTheDocument()
-    
+    expect(screen.getByText('$4,000.00')).toBeInTheDocument()
+
     // Should display individual invoice amounts
-    expect(screen.getByText('$1,500')).toBeInTheDocument()
-    expect(screen.getByText('$2,500')).toBeInTheDocument()
+    expect(screen.getByText('$1,500.00')).toBeInTheDocument()
+    expect(screen.getByText('$2,500.00')).toBeInTheDocument()
   })
 
   it('should render customer company names', async () => {
@@ -413,8 +419,12 @@ describe('OverdueInvoices', () => {
 
     render(await OverdueInvoices())
 
-    // Should handle null balance_due by treating as 0
-    expect(screen.getByText('$1,500')).toBeInTheDocument() // Total
+    // Should handle null balance_due by treating as 0 in total calculation
+    // Total should be $1,500.00, and this appears only once (as the total)
+    // The individual invoice amount will show as $1,500.00 too, and null will show as $0.00
+    const totalAmounts = screen.getAllByText('$1,500.00')
+    expect(totalAmounts.length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('$0.00')).toBeInTheDocument() // For the null balance
   })
 
   it('should apply correct CSS classes for styling', async () => {
@@ -438,8 +448,8 @@ describe('OverdueInvoices', () => {
 
     render(await OverdueInvoices())
 
-    // Check total amount styling
-    const totalAmount = screen.getByText('$1,500').parentElement
+    // Check total amount styling - find the div with specific classes
+    const totalAmount = screen.getByText('$1,500.00', { selector: 'div' })
     expect(totalAmount).toHaveClass('text-2xl', 'font-bold', 'text-destructive', 'mb-4')
 
     // Check invoice link styling
@@ -468,7 +478,8 @@ describe('OverdueInvoices', () => {
 
     render(await OverdueInvoices())
 
-    expect(screen.getByText('$0')).toBeInTheDocument()
+    // $0.00 appears twice: once for total, once for the individual invoice
+    expect(screen.getAllByText('$0.00')[0]).toBeInTheDocument()
   })
 
   it('should handle large overdue amounts correctly', async () => {
@@ -492,7 +503,8 @@ describe('OverdueInvoices', () => {
 
     render(await OverdueInvoices())
 
-    expect(screen.getByText('$1,000,000')).toBeInTheDocument()
+    // Use getAllByText since amount appears twice (total and individual)
+    expect(screen.getAllByText('$999,999.99')[0]).toBeInTheDocument()
   })
 
   it('should handle edge case of empty string customer names', async () => {

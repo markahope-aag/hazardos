@@ -16,6 +16,16 @@ vi.mock('@/lib/services/activity-service', () => ({
   },
 }))
 
+vi.mock('resend', () => ({
+  Resend: vi.fn(function() {
+    return {
+      emails: {
+        send: vi.fn().mockResolvedValue({ id: 'email-123' }),
+      },
+    }
+  }),
+}))
+
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
 
@@ -210,6 +220,7 @@ describe('InvoicesService', () => {
                   data: {
                     id: 'inv-1',
                     invoice_number: 'INV-001',
+                    job_id: 'job-1',
                     line_items: [],
                     payments: [],
                   },
@@ -464,19 +475,20 @@ describe('InvoicesService', () => {
       let capturedQuery: any = null
 
       mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => {
-          capturedQuery = {
-            eq: vi.fn((field, value) => {
-              expect(field).toBe('status')
-              expect(value).toBe('draft')
-              return {
-                order: vi.fn().mockResolvedValue({ data: [], error: null }),
-              }
-            }),
-            order: vi.fn().mockResolvedValue({ data: [], error: null }),
-          }
-          return capturedQuery
-        }),
+        select: vi.fn(() => ({
+          order: vi.fn(() => {
+            capturedQuery = {
+              eq: vi.fn((field, value) => {
+                expect(field).toBe('status')
+                expect(value).toBe('draft')
+                return capturedQuery // Return self for chaining
+              }),
+              gte: vi.fn(() => capturedQuery), // For date filtering
+              order: vi.fn().mockResolvedValue({ data: [], error: null }),
+            }
+            return capturedQuery
+          }),
+        })),
       }))
 
       await InvoicesService.list({ status: 'draft' })
@@ -546,23 +558,67 @@ describe('InvoicesService', () => {
 
   describe('send', () => {
     it('should mark invoice as sent and log activity', async () => {
-      mockSupabase.from = vi.fn(() => ({
-        update: vi.fn(() => ({
-          eq: vi.fn(() => ({
+      // Mock the RESEND_API_KEY environment variable
+      process.env.RESEND_API_KEY = 'test-api-key'
+      mockSupabase.from = vi.fn((table) => {
+        if (table === 'invoices') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: 'inv-1',
+                    invoice_number: 'INV-001',
+                    status: 'draft',
+                    customer: { email: 'test@example.com' },
+                    line_items: [],
+                    payments: [],
+                  },
+                  error: null,
+                }),
+              })),
+            })),
+            update: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                select: vi.fn(() => ({
+                  single: vi.fn().mockResolvedValue({
+                    data: {
+                      id: 'inv-1',
+                      invoice_number: 'INV-001',
+                      status: 'sent',
+                      sent_via: 'email',
+                    },
+                    error: null,
+                  }),
+                })),
+              })),
+            })),
+          }
+        }
+        if (table === 'profiles') {
+          return {
             select: vi.fn(() => ({
               single: vi.fn().mockResolvedValue({
-                data: {
-                  id: 'inv-1',
-                  invoice_number: 'INV-001',
-                  status: 'sent',
-                  sent_via: 'email',
-                },
+                data: { organization_id: 'org-1' },
                 error: null,
               }),
             })),
-          })),
-        })),
-      }))
+          }
+        }
+        if (table === 'organizations') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn().mockResolvedValue({
+                  data: { name: 'Test Org', logo_url: 'logo.png' },
+                  error: null,
+                }),
+              })),
+            })),
+          }
+        }
+        return {}
+      })
 
       const invoice = await InvoicesService.send('inv-1', 'email')
 

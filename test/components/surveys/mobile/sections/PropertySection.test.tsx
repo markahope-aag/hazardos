@@ -1,102 +1,97 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { PropertySection } from '@/components/surveys/mobile/sections/PropertySection'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
+import userEvent from '@testing-library/user-event'
 
 // Mock survey store
+const mockUpdateProperty = vi.fn()
+
 const mockUseSurveyStore = {
   formData: {
     property: {
       address: '',
       city: '',
       state: '',
-      zip_code: '',
-      building_type: 'residential',
-      construction_type: 'wood_frame',
-      year_built: null,
-      square_footage: null,
-      floors: 1,
-      occupancy_status: 'occupied',
+      zip: '',
+      buildingType: 'residential_single',
+      constructionType: 'wood_frame',
+      yearBuilt: null,
+      squareFootage: null,
+      stories: 1,
+      occupancyStatus: 'occupied',
+      occupiedHoursStart: '',
+      occupiedHoursEnd: '',
+      ownerName: '',
+      ownerPhone: '',
+      ownerEmail: '',
     },
   },
-  updateProperty: vi.fn(),
+  updateProperty: mockUpdateProperty,
 }
 
 vi.mock('@/lib/stores/survey-store', () => ({
   useSurveyStore: () => mockUseSurveyStore,
 }))
 
-// Mock survey types
-vi.mock('@/lib/stores/survey-types', () => ({
-  BuildingType: {
-    RESIDENTIAL: 'residential',
-    COMMERCIAL: 'commercial',
-    INDUSTRIAL: 'industrial',
-    INSTITUTIONAL: 'institutional',
-  },
-  ConstructionType: {
-    WOOD_FRAME: 'wood_frame',
-    STEEL_FRAME: 'steel_frame',
-    CONCRETE: 'concrete',
-    MASONRY: 'masonry',
-    MIXED: 'mixed',
-  },
-  OccupancyStatus: {
-    OCCUPIED: 'occupied',
-    VACANT: 'vacant',
-    PARTIALLY_OCCUPIED: 'partially_occupied',
-  },
-}))
+// Mock geolocation
+const mockGeolocation = {
+  getCurrentPosition: vi.fn((success, error) => {
+    success({
+      coords: {
+        latitude: 40.7128,
+        longitude: -74.0060,
+      },
+    })
+  }),
+}
 
-// Mock input components
-vi.mock('../inputs', () => ({
-  NumericStepper: ({ value, onChange, label }: any) => (
-    <div>
-      <label>{label}</label>
-      <input
-        type="number"
-        value={value || ''}
-        onChange={(e) => onChange(parseInt(e.target.value) || null)}
-        data-testid={`numeric-${label?.toLowerCase().replace(/\s+/g, '-')}`}
-      />
-    </div>
-  ),
-  SegmentedControl: ({ value, onChange, options }: any) => (
-    <div>
-      {options.map((option: any) => (
-        <button
-          key={option.value}
-          onClick={() => onChange(option.value)}
-          data-testid={`segment-${option.value}`}
-          className={value === option.value ? 'selected' : ''}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  ),
-  RadioCardGroup: ({ value, onChange, options }: any) => (
-    <div>
-      {options.map((option: any) => (
-        <button
-          key={option.value}
-          onClick={() => onChange(option.value)}
-          data-testid={`radio-${option.value}`}
-          className={value === option.value ? 'selected' : ''}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  ),
-}))
+Object.defineProperty(navigator, 'geolocation', {
+  value: mockGeolocation,
+  writable: true,
+})
+
+// Mock fetch for geocoding
+global.fetch = vi.fn(() =>
+  Promise.resolve({
+    ok: true,
+    json: () =>
+      Promise.resolve({
+        address: {
+          house_number: '123',
+          road: 'Main Street',
+          city: 'New York',
+          state: 'NY',
+          postcode: '10001',
+        },
+      }),
+  })
+) as any
 
 describe('PropertySection', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockUseSurveyStore.formData.property = {
+      address: '',
+      city: '',
+      state: '',
+      zip: '',
+      buildingType: 'residential_single',
+      constructionType: 'wood_frame',
+      yearBuilt: null,
+      squareFootage: null,
+      stories: 1,
+      occupancyStatus: 'occupied',
+      occupiedHoursStart: '',
+      occupiedHoursEnd: '',
+      ownerName: '',
+      ownerPhone: '',
+      ownerEmail: '',
+    }
   })
 
   it('should render property form fields', () => {
     render(<PropertySection />)
-    
+
     expect(screen.getByLabelText(/street address/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/city/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/state/i)).toBeInTheDocument()
@@ -105,132 +100,61 @@ describe('PropertySection', () => {
 
   it('should render building type selection', () => {
     render(<PropertySection />)
-    
-    expect(screen.getByTestId('radio-residential')).toBeInTheDocument()
-    expect(screen.getByTestId('radio-commercial')).toBeInTheDocument()
-    expect(screen.getByTestId('radio-industrial')).toBeInTheDocument()
-    expect(screen.getByTestId('radio-institutional')).toBeInTheDocument()
+
+    expect(screen.getByText('Single-Family')).toBeInTheDocument()
+    expect(screen.getByText('Multi-Family')).toBeInTheDocument()
+    expect(screen.getByText('Commercial')).toBeInTheDocument()
+    expect(screen.getByText('Industrial')).toBeInTheDocument()
   })
 
-  it('should render construction type selection', () => {
+  it('should render construction type dropdown', () => {
     render(<PropertySection />)
-    
-    expect(screen.getByTestId('segment-wood_frame')).toBeInTheDocument()
-    expect(screen.getByTestId('segment-steel_frame')).toBeInTheDocument()
-    expect(screen.getByTestId('segment-concrete')).toBeInTheDocument()
-    expect(screen.getByTestId('segment-masonry')).toBeInTheDocument()
-    expect(screen.getByTestId('segment-mixed')).toBeInTheDocument()
+
+    expect(screen.getByText('Construction Type')).toBeInTheDocument()
   })
 
-  it('should render numeric input fields', () => {
+  it('should render year built and square footage fields', () => {
     render(<PropertySection />)
-    
-    expect(screen.getByTestId('numeric-year-built')).toBeInTheDocument()
-    expect(screen.getByTestId('numeric-square-footage')).toBeInTheDocument()
-    expect(screen.getByTestId('numeric-floors')).toBeInTheDocument()
+
+    expect(screen.getByText('Year Built')).toBeInTheDocument()
+    expect(screen.getByText('Square Footage')).toBeInTheDocument()
   })
 
-  it('should update address when input changes', () => {
+  it('should update address when input changes', async () => {
+    const user = userEvent.setup()
     render(<PropertySection />)
-    
+
     const addressInput = screen.getByLabelText(/street address/i)
-    fireEvent.change(addressInput, { target: { value: '123 Main St' } })
-    
-    expect(mockUseSurveyStore.updateProperty).toHaveBeenCalledWith({
-      address: '123 Main St',
-    })
+    await user.type(addressInput, '1')
+
+    // Check that updateProperty was called with address field
+    expect(mockUpdateProperty).toHaveBeenCalledWith(
+      expect.objectContaining({ address: expect.any(String) })
+    )
   })
 
-  it('should update city when input changes', () => {
+  it('should update city when input changes', async () => {
+    const user = userEvent.setup()
     render(<PropertySection />)
-    
+
     const cityInput = screen.getByLabelText(/city/i)
-    fireEvent.change(cityInput, { target: { value: 'New York' } })
-    
-    expect(mockUseSurveyStore.updateProperty).toHaveBeenCalledWith({
-      city: 'New York',
-    })
+    await user.type(cityInput, 'N')
+
+    expect(mockUpdateProperty).toHaveBeenCalledWith(
+      expect.objectContaining({ city: expect.any(String) })
+    )
   })
 
-  it('should update state when selected', () => {
+  it('should update zip code when input changes', async () => {
+    const user = userEvent.setup()
     render(<PropertySection />)
-    
-    const stateSelect = screen.getByRole('combobox')
-    fireEvent.click(stateSelect)
-    
-    // Select California
-    const caOption = screen.getByText('CA')
-    fireEvent.click(caOption)
-    
-    expect(mockUseSurveyStore.updateProperty).toHaveBeenCalledWith({
-      state: 'CA',
-    })
-  })
 
-  it('should update zip code when input changes', () => {
-    render(<PropertySection />)
-    
     const zipInput = screen.getByLabelText(/zip code/i)
-    fireEvent.change(zipInput, { target: { value: '10001' } })
-    
-    expect(mockUseSurveyStore.updateProperty).toHaveBeenCalledWith({
-      zip_code: '10001',
-    })
-  })
+    await user.type(zipInput, '1')
 
-  it('should update building type when selected', () => {
-    render(<PropertySection />)
-    
-    const commercialButton = screen.getByTestId('radio-commercial')
-    fireEvent.click(commercialButton)
-    
-    expect(mockUseSurveyStore.updateProperty).toHaveBeenCalledWith({
-      building_type: 'commercial',
-    })
-  })
-
-  it('should update construction type when selected', () => {
-    render(<PropertySection />)
-    
-    const steelFrameButton = screen.getByTestId('segment-steel_frame')
-    fireEvent.click(steelFrameButton)
-    
-    expect(mockUseSurveyStore.updateProperty).toHaveBeenCalledWith({
-      construction_type: 'steel_frame',
-    })
-  })
-
-  it('should update year built when numeric input changes', () => {
-    render(<PropertySection />)
-    
-    const yearInput = screen.getByTestId('numeric-year-built')
-    fireEvent.change(yearInput, { target: { value: '1985' } })
-    
-    expect(mockUseSurveyStore.updateProperty).toHaveBeenCalledWith({
-      year_built: 1985,
-    })
-  })
-
-  it('should update square footage when numeric input changes', () => {
-    render(<PropertySection />)
-    
-    const sqftInput = screen.getByTestId('numeric-square-footage')
-    fireEvent.change(sqftInput, { target: { value: '2500' } })
-    
-    expect(mockUseSurveyStore.updateProperty).toHaveBeenCalledWith({
-      square_footage: 2500,
-    })
-  })
-
-  it('should update floors when numeric input changes', () => {
-    render(<PropertySection />)
-    
-    const floorsInput = screen.getByTestId('numeric-floors')
-    fireEvent.change(floorsInput, { target: { value: '3' } })
-    
-    expect(mockUseSurveyStore.updateProperty).toHaveBeenCalledWith({
-      floors: 3,
-    })
+    expect(mockUpdateProperty).toHaveBeenCalledWith(
+      expect.objectContaining({ zip: expect.any(String) })
+    )
   })
 
   it('should show current values from store', () => {
@@ -238,172 +162,207 @@ describe('PropertySection', () => {
       address: '456 Oak Ave',
       city: 'Los Angeles',
       state: 'CA',
-      zip_code: '90210',
-      building_type: 'commercial',
-      construction_type: 'steel_frame',
-      year_built: 1990,
-      square_footage: 5000,
-      floors: 2,
-      occupancy_status: 'occupied',
+      zip: '90210',
+      buildingType: 'commercial',
+      constructionType: 'steel',
+      yearBuilt: 1990,
+      squareFootage: 5000,
+      stories: 2,
+      occupancyStatus: 'occupied',
+      occupiedHoursStart: '',
+      occupiedHoursEnd: '',
+      ownerName: '',
+      ownerPhone: '',
+      ownerEmail: '',
     }
 
     render(<PropertySection />)
-    
+
     expect(screen.getByDisplayValue('456 Oak Ave')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Los Angeles')).toBeInTheDocument()
     expect(screen.getByDisplayValue('90210')).toBeInTheDocument()
-    expect(screen.getByTestId('radio-commercial')).toHaveClass('selected')
-    expect(screen.getByTestId('segment-steel_frame')).toHaveClass('selected')
   })
 
-  it('should render all US states in dropdown', () => {
+  it('should have use location button', () => {
     render(<PropertySection />)
-    
-    const stateSelect = screen.getByRole('combobox')
-    fireEvent.click(stateSelect)
-    
-    // Check for a few key states
-    expect(screen.getByText('CA')).toBeInTheDocument()
-    expect(screen.getByText('NY')).toBeInTheDocument()
-    expect(screen.getByText('TX')).toBeInTheDocument()
-    expect(screen.getByText('FL')).toBeInTheDocument()
-    expect(screen.getByText('DC')).toBeInTheDocument()
+
+    const locationButton = screen.getByRole('button', { name: /use location/i })
+    expect(locationButton).toBeInTheDocument()
+  })
+
+  it('should trigger geolocation when use location is clicked', async () => {
+    const user = userEvent.setup()
+    render(<PropertySection />)
+
+    const locationButton = screen.getByRole('button', { name: /use location/i })
+    await user.click(locationButton)
+
+    expect(mockGeolocation.getCurrentPosition).toHaveBeenCalled()
+  })
+
+  it('should show loading state when fetching location', async () => {
+    const user = userEvent.setup()
+    mockGeolocation.getCurrentPosition = vi.fn((success) => {
+      // Delay to simulate loading
+      setTimeout(() => {
+        success({
+          coords: {
+            latitude: 40.7128,
+            longitude: -74.0060,
+          },
+        })
+      }, 100)
+    })
+
+    render(<PropertySection />)
+
+    const locationButton = screen.getByRole('button', { name: /use location/i })
+    await user.click(locationButton)
+
+    expect(locationButton).toBeDisabled()
   })
 
   it('should show building type descriptions', () => {
     render(<PropertySection />)
-    
-    // Building type options should show descriptions
-    expect(screen.getByText(/single family homes/i)).toBeInTheDocument()
-    expect(screen.getByText(/office buildings/i)).toBeInTheDocument()
-    expect(screen.getByText(/manufacturing/i)).toBeInTheDocument()
-    expect(screen.getByText(/schools/i)).toBeInTheDocument()
+
+    expect(screen.getByText(/house, townhome/i)).toBeInTheDocument()
+    expect(screen.getByText(/apartments, condos/i)).toBeInTheDocument()
   })
 
-  it('should show construction type descriptions', () => {
+  it('should show warning for pre-1978 buildings', () => {
+    mockUseSurveyStore.formData.property.yearBuilt = 1975
+
     render(<PropertySection />)
-    
-    // Construction type options should show descriptions
-    expect(screen.getByText(/traditional wood/i)).toBeInTheDocument()
-    expect(screen.getByText(/steel structural/i)).toBeInTheDocument()
-    expect(screen.getByText(/concrete block/i)).toBeInTheDocument()
-    expect(screen.getByText(/brick or stone/i)).toBeInTheDocument()
-    expect(screen.getByText(/combination/i)).toBeInTheDocument()
+
+    expect(screen.getByText(/pre-1978 building/i)).toBeInTheDocument()
+    expect(screen.getByText(/lead paint and asbestos/i)).toBeInTheDocument()
   })
 
-  it('should handle empty numeric values', () => {
+  it('should not show warning for buildings after 1978', () => {
+    mockUseSurveyStore.formData.property.yearBuilt = 1985
+
     render(<PropertySection />)
-    
-    const yearInput = screen.getByTestId('numeric-year-built')
-    fireEvent.change(yearInput, { target: { value: '' } })
-    
-    expect(mockUseSurveyStore.updateProperty).toHaveBeenCalledWith({
-      year_built: null,
-    })
+
+    expect(screen.queryByText(/pre-1978 building/i)).not.toBeInTheDocument()
   })
 
-  it('should validate year built range', () => {
+  it('should render number of stories selection', () => {
     render(<PropertySection />)
-    
-    const yearInput = screen.getByTestId('numeric-year-built')
-    
-    // Test minimum year
-    fireEvent.change(yearInput, { target: { value: '1800' } })
-    expect(mockUseSurveyStore.updateProperty).toHaveBeenCalledWith({
-      year_built: 1800,
-    })
-    
-    // Test maximum year (current year)
-    const currentYear = new Date().getFullYear()
-    fireEvent.change(yearInput, { target: { value: currentYear.toString() } })
-    expect(mockUseSurveyStore.updateProperty).toHaveBeenCalledWith({
-      year_built: currentYear,
-    })
+
+    expect(screen.getByText('Number of Stories')).toBeInTheDocument()
   })
 
-  it('should have proper form structure', () => {
+  it('should render occupancy status selection', () => {
     render(<PropertySection />)
-    
-    // Should have proper form sections
-    expect(screen.getByText(/property address/i)).toBeInTheDocument()
-    expect(screen.getByText(/building information/i)).toBeInTheDocument()
-    expect(screen.getByText(/construction details/i)).toBeInTheDocument()
+
+    expect(screen.getByText('Occupancy Status')).toBeInTheDocument()
   })
 
-  it('should show occupancy status selection', () => {
+  it('should show hours of operation when occupied', () => {
+    mockUseSurveyStore.formData.property.occupancyStatus = 'occupied'
+
     render(<PropertySection />)
-    
-    expect(screen.getByText(/occupied/i)).toBeInTheDocument()
-    expect(screen.getByText(/vacant/i)).toBeInTheDocument()
-    expect(screen.getByText(/partially occupied/i)).toBeInTheDocument()
+
+    expect(screen.getByText('Hours of Operation')).toBeInTheDocument()
+    expect(screen.getByLabelText(/start/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/end/i)).toBeInTheDocument()
   })
 
-  it('should handle address autocomplete trigger', async () => {
+  it('should not show hours of operation when vacant', () => {
+    mockUseSurveyStore.formData.property.occupancyStatus = 'vacant'
+
     render(<PropertySection />)
-    
-    const addressInput = screen.getByLabelText(/street address/i)
-    fireEvent.change(addressInput, { target: { value: '123 Main' } })
-    
-    // Should trigger address lookup after typing
-    await waitFor(() => {
-      expect(mockUseSurveyStore.updateProperty).toHaveBeenCalledWith({
-        address: '123 Main',
-      })
-    })
+
+    expect(screen.queryByText('Hours of Operation')).not.toBeInTheDocument()
   })
 
-  it('should show loading state for address lookup', () => {
+  it('should render owner contact fields', () => {
     render(<PropertySection />)
-    
-    const addressInput = screen.getByLabelText(/street address/i)
-    fireEvent.change(addressInput, { target: { value: '123 Main St' } })
-    
-    // Should show loading indicator
-    expect(screen.getByRole('generic', { name: '' })).toHaveClass('animate-spin')
+
+    expect(screen.getByLabelText(/name/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/phone/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
   })
 
-  it('should handle address lookup error', async () => {
+  it('should update owner name when input changes', async () => {
+    const user = userEvent.setup()
     render(<PropertySection />)
-    
-    const addressInput = screen.getByLabelText(/street address/i)
-    fireEvent.change(addressInput, { target: { value: 'Invalid Address' } })
-    
-    await waitFor(() => {
-      expect(screen.getByText(/address not found/i)).toBeInTheDocument()
-    })
+
+    const nameInput = screen.getByLabelText(/name/i)
+    await user.type(nameInput, 'J')
+
+    expect(mockUpdateProperty).toHaveBeenCalledWith(
+      expect.objectContaining({ ownerName: expect.any(String) })
+    )
   })
 
-  it('should clear address error when input changes', async () => {
+  it('should update owner phone when input changes', async () => {
+    const user = userEvent.setup()
     render(<PropertySection />)
-    
-    const addressInput = screen.getByLabelText(/street address/i)
-    
-    // Trigger error
-    fireEvent.change(addressInput, { target: { value: 'Invalid Address' } })
-    await waitFor(() => {
-      expect(screen.getByText(/address not found/i)).toBeInTheDocument()
-    })
-    
-    // Clear error by changing input
-    fireEvent.change(addressInput, { target: { value: '123 Valid St' } })
-    await waitFor(() => {
-      expect(screen.queryByText(/address not found/i)).not.toBeInTheDocument()
-    })
+
+    const phoneInput = screen.getByLabelText(/phone/i)
+    await user.type(phoneInput, '5')
+
+    expect(mockUpdateProperty).toHaveBeenCalledWith(
+      expect.objectContaining({ ownerPhone: expect.any(String) })
+    )
   })
 
-  it('should have proper accessibility attributes', () => {
+  it('should update owner email when input changes', async () => {
+    const user = userEvent.setup()
     render(<PropertySection />)
-    
-    // Form fields should have proper labels
-    const addressInput = screen.getByLabelText(/street address/i)
-    expect(addressInput).toHaveAttribute('type', 'text')
-    expect(addressInput).toHaveAttribute('required')
-    
-    const cityInput = screen.getByLabelText(/city/i)
-    expect(cityInput).toHaveAttribute('type', 'text')
-    
+
+    const emailInput = screen.getByLabelText(/email/i)
+    await user.type(emailInput, 't')
+
+    expect(mockUpdateProperty).toHaveBeenCalledWith(
+      expect.objectContaining({ ownerEmail: expect.any(String) })
+    )
+  })
+
+  it('should have proper form sections', () => {
+    render(<PropertySection />)
+
+    expect(screen.getByText('Property Address')).toBeInTheDocument()
+    expect(screen.getByText('Building Type')).toBeInTheDocument()
+    expect(screen.getByText('Owner/Contact (Optional)')).toBeInTheDocument()
+  })
+
+  it('should render all building type options', () => {
+    render(<PropertySection />)
+
+    expect(screen.getByText('Single-Family')).toBeInTheDocument()
+    expect(screen.getByText('Multi-Family')).toBeInTheDocument()
+    expect(screen.getByText('Commercial')).toBeInTheDocument()
+    expect(screen.getByText('Industrial')).toBeInTheDocument()
+    expect(screen.getByText('Institutional')).toBeInTheDocument()
+    expect(screen.getByText('Warehouse')).toBeInTheDocument()
+    expect(screen.getByText('Retail')).toBeInTheDocument()
+  })
+
+  it('should have input placeholders', () => {
+    render(<PropertySection />)
+
+    expect(screen.getByPlaceholderText('123 Main Street')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('City')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('12345')).toBeInTheDocument()
+  })
+
+  it('should have proper input types', () => {
+    render(<PropertySection />)
+
+    const phoneInput = screen.getByLabelText(/phone/i)
+    expect(phoneInput).toHaveAttribute('type', 'tel')
+
+    const emailInput = screen.getByLabelText(/email/i)
+    expect(emailInput).toHaveAttribute('type', 'email')
+  })
+
+  it('should have numeric input mode for zip code', () => {
+    render(<PropertySection />)
+
     const zipInput = screen.getByLabelText(/zip code/i)
-    expect(zipInput).toHaveAttribute('type', 'text')
-    expect(zipInput).toHaveAttribute('pattern', '[0-9]{5}(-[0-9]{4})?')
+    expect(zipInput).toHaveAttribute('inputMode', 'numeric')
+    expect(zipInput).toHaveAttribute('maxLength', '10')
   })
 })

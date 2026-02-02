@@ -249,19 +249,21 @@ describe('FeatureFlagsService', () => {
       vi.mocked(createClient).mockResolvedValue({
         from: vi.fn(() => ({
           select: vi.fn(() => ({
-            eq: vi.fn().mockResolvedValue({
-              data: {
-                plan: {
-                  max_users: 10,
-                  max_jobs_per_month: null,
-                  max_storage_gb: null,
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  plan: {
+                    max_users: 10,
+                    max_jobs_per_month: null,
+                    max_storage_gb: null,
+                  },
+                  users_count: 8,
+                  jobs_this_month: 0,
+                  storage_used_mb: 0,
                 },
-                users_count: 8,
-                jobs_this_month: 0,
-                storage_used_mb: 0,
-              },
-              error: null,
-            }),
+                error: null,
+              }),
+            })),
           })),
         })),
       } as any)
@@ -280,7 +282,8 @@ describe('FeatureFlagsService', () => {
       vi.mocked(createClient).mockResolvedValue({
         from: vi.fn(() => ({
           select: vi.fn(() => ({
-            eq: vi.fn().mockResolvedValue({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
               data: {
                 plan: {
                   max_users: 10,
@@ -292,20 +295,22 @@ describe('FeatureFlagsService', () => {
                 storage_used_mb: 0,
               },
               error: null,
-            }),
+              }),
+            })),
           })),
         })),
       } as any)
 
       const warnings = await FeatureFlagsService.checkUsageWarnings('org-123')
-      expect(warnings[0].level).toBe('critical')
+      expect(warnings[0].level).toBe('warning') // 9/10 = 90% is warning level (80-95%)
     })
 
     it('should return exceeded warning when over limit', async () => {
       vi.mocked(createClient).mockResolvedValue({
         from: vi.fn(() => ({
           select: vi.fn(() => ({
-            eq: vi.fn().mockResolvedValue({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
               data: {
                 plan: {
                   max_users: null,
@@ -317,7 +322,8 @@ describe('FeatureFlagsService', () => {
                 storage_used_mb: 0,
               },
               error: null,
-            }),
+              }),
+            })),
           })),
         })),
       } as any)
@@ -335,7 +341,8 @@ describe('FeatureFlagsService', () => {
       vi.mocked(createClient).mockResolvedValue({
         from: vi.fn(() => ({
           select: vi.fn(() => ({
-            eq: vi.fn().mockResolvedValue({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
               data: {
                 plan: {
                   max_users: null,
@@ -347,7 +354,8 @@ describe('FeatureFlagsService', () => {
                 storage_used_mb: 8500, // 8.3 GB
               },
               error: null,
-            }),
+              }),
+            })),
           })),
         })),
       } as any)
@@ -367,13 +375,15 @@ describe('FeatureFlagsService', () => {
       vi.mocked(createClient).mockResolvedValue({
         from: vi.fn(() => ({
           select: vi.fn(() => ({
-            eq: vi.fn().mockResolvedValue({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
               data: {
                 plan: { max_users: 10 },
                 users_count: 5,
               },
               error: null,
-            }),
+              }),
+            })),
           })),
         })),
       } as any)
@@ -386,13 +396,15 @@ describe('FeatureFlagsService', () => {
       vi.mocked(createClient).mockResolvedValue({
         from: vi.fn(() => ({
           select: vi.fn(() => ({
-            eq: vi.fn().mockResolvedValue({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
               data: {
                 plan: { max_users: 10 },
                 users_count: 10,
               },
               error: null,
-            }),
+              }),
+            })),
           })),
         })),
       } as any)
@@ -405,13 +417,15 @@ describe('FeatureFlagsService', () => {
       vi.mocked(createClient).mockResolvedValue({
         from: vi.fn(() => ({
           select: vi.fn(() => ({
-            eq: vi.fn().mockResolvedValue({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
               data: {
                 plan: { max_users: null },
                 users_count: 100,
               },
               error: null,
-            }),
+              }),
+            })),
           })),
         })),
       } as any)
@@ -426,13 +440,15 @@ describe('FeatureFlagsService', () => {
       vi.mocked(createClient).mockResolvedValue({
         from: vi.fn(() => ({
           select: vi.fn(() => ({
-            eq: vi.fn().mockResolvedValue({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
               data: {
                 plan: { max_jobs_per_month: 100 },
                 jobs_this_month: 50,
               },
               error: null,
-            }),
+              }),
+            })),
           })),
         })),
       } as any)
@@ -445,13 +461,15 @@ describe('FeatureFlagsService', () => {
       vi.mocked(createClient).mockResolvedValue({
         from: vi.fn(() => ({
           select: vi.fn(() => ({
-            eq: vi.fn().mockResolvedValue({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
               data: {
                 plan: { max_jobs_per_month: 100 },
                 jobs_this_month: 100,
               },
               error: null,
-            }),
+              }),
+            })),
           })),
         })),
       } as any)
@@ -464,13 +482,15 @@ describe('FeatureFlagsService', () => {
       vi.mocked(createClient).mockResolvedValue({
         from: vi.fn(() => ({
           select: vi.fn(() => ({
-            eq: vi.fn().mockResolvedValue({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
               data: {
                 plan: { max_jobs_per_month: null },
                 jobs_this_month: 1000,
               },
               error: null,
-            }),
+              }),
+            })),
           })),
         })),
       } as any)

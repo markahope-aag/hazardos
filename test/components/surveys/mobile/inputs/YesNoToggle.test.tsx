@@ -27,8 +27,8 @@ describe('YesNoToggle Component', () => {
       />
     )
 
-    expect(screen.getByRole('button', { name: /agree/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /disagree/i })).toBeInTheDocument()
+    expect(screen.getByText('Agree')).toBeInTheDocument()
+    expect(screen.getByText('Disagree')).toBeInTheDocument()
   })
 
   it('should call onChange with true when yes button is clicked', async () => {

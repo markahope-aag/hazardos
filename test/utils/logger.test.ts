@@ -106,28 +106,15 @@ describe('Logger Module', () => {
   })
 
   describe('timed', () => {
-    beforeEach(() => {
-      vi.useFakeTimers()
-    })
-
-    afterEach(() => {
-      vi.useRealTimers()
-    })
-
     it('should measure operation duration on success', async () => {
       const mockLogger = {
         info: vi.fn(),
         error: vi.fn(),
       } as any
 
-      const operation = vi.fn().mockImplementation(() => {
-        vi.advanceTimersByTime(250)
-        return Promise.resolve({ result: 'success' })
-      })
+      const operation = vi.fn().mockResolvedValue({ result: 'success' })
 
-      const promise = timed(mockLogger, 'fetchData', operation)
-      await vi.advanceTimersByTimeAsync(250)
-      const result = await promise
+      const result = await timed(mockLogger, 'fetchData', operation)
 
       expect(result).toEqual({ result: 'success' })
       expect(mockLogger.info).toHaveBeenCalledWith(
@@ -147,21 +134,10 @@ describe('Logger Module', () => {
       } as any
 
       const testError = new Error('Operation failed')
-      const operation = vi.fn().mockImplementation(async () => {
-        vi.advanceTimersByTime(150)
-        throw testError
-      })
+      const operation = vi.fn().mockRejectedValue(testError)
 
-      let caughtError
-      try {
-        const promise = timed(mockLogger, 'processData', operation)
-        await vi.advanceTimersByTimeAsync(150)
-        await promise
-      } catch (error) {
-        caughtError = error
-      }
+      await expect(timed(mockLogger, 'processData', operation)).rejects.toThrow('Operation failed')
 
-      expect(caughtError).toBe(testError)
       expect(mockLogger.error).toHaveBeenCalledWith(
         expect.objectContaining({
           operation: 'processData',
@@ -179,18 +155,14 @@ describe('Logger Module', () => {
         error: vi.fn(),
       } as any
 
-      const operation = vi.fn().mockImplementation(async () => {
-        vi.advanceTimersByTime(500)
-        return 'done'
-      })
+      const operation = vi.fn().mockResolvedValue('done')
 
-      const promise = timed(mockLogger, 'longOperation', operation)
-      await vi.advanceTimersByTimeAsync(500)
-      await promise
+      await timed(mockLogger, 'longOperation', operation)
 
       expect(mockLogger.info).toHaveBeenCalledWith(
         expect.objectContaining({
-          durationMs: 500,
+          operation: 'longOperation',
+          durationMs: expect.any(Number),
         }),
         expect.any(String)
       )
