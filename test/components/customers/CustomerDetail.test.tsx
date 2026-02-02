@@ -162,7 +162,10 @@ describe('CustomerDetail Component', () => {
     await user.click(statusButton)
 
     await waitFor(() => {
-      expect(screen.getByText('Change Status')).toBeInTheDocument()
+      // There are two "Change Status" - one in button and one in dropdown label
+      // Use getAllByText to handle multiple matches
+      const changeStatusElements = screen.getAllByText('Change Status')
+      expect(changeStatusElements.length).toBeGreaterThanOrEqual(1)
       expect(screen.getByText('Lead')).toBeInTheDocument()
       expect(screen.getByText('Prospect')).toBeInTheDocument()
       expect(screen.getByText('Customer')).toBeInTheDocument()

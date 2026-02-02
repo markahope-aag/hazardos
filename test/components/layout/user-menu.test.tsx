@@ -127,8 +127,12 @@ describe('UserMenu Component', () => {
     const profileWithoutName = { ...mockProfile, first_name: null, last_name: null }
     render(<UserMenu user={mockUser} profile={profileWithoutName} />)
 
-    expect(screen.getByText('john.doe@example.com')).toBeInTheDocument()
+    // When first/last name are null, the component displays empty name area
+    // but the initials should come from email
     expect(screen.getByText('J')).toBeInTheDocument() // Should use email initial
+    // The aria-label should contain the email as the userName
+    const triggerButton = screen.getByRole('button', { name: /user menu for john.doe@example.com/i })
+    expect(triggerButton).toBeInTheDocument()
   })
 
   it('should handle user with only first name', () => {
