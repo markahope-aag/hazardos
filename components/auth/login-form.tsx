@@ -65,8 +65,8 @@ export default function LoginForm() {
           variant: 'destructive',
         })
       } else {
-        router.push('/')
-        router.refresh()
+        // Use full page navigation to ensure cookies are properly handled
+        window.location.href = '/'
       }
     } catch {
       toast({
