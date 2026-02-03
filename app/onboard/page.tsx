@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,13 +9,12 @@ import { Label } from '@/components/ui/label'
 import { LogoVertical } from '@/components/ui/logo'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
+import type { User } from '@supabase/supabase-js'
 
 export default function OnboardPage() {
   const [loading, setLoading] = useState(false)
-  // Step state for future multi-step onboarding
-  useState(1)
+  const [user, setUser] = useState<User | null>(null)
   const [formData, setFormData] = useState({
-    // Organization details
     organizationName: '',
     address: '',
     city: '',
@@ -24,20 +23,35 @@ export default function OnboardPage() {
     phone: '',
     email: '',
     licenseNumber: '',
-    
-    // User details
-    firstName: '',
-    lastName: '',
-    userEmail: '',
-    password: '',
-    confirmPassword: ''
   })
-  
+
   const router = useRouter()
   const { toast } = useToast()
   const supabase = createClient()
 
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
+      setUser(user)
+    }
+    getUser()
+  }, [supabase, router])
+
+  const formatPhoneNumber = (value: string): string => {
+    const numbers = value.replace(/\D/g, '')
+    if (numbers.length <= 3) return numbers
+    if (numbers.length <= 6) return `(${numbers.slice(0, 3)}) ${numbers.slice(3)}`
+    return `(${numbers.slice(0, 3)}) ${numbers.slice(3, 6)}-${numbers.slice(6, 10)}`
+  }
+
   const handleInputChange = (field: string, value: string) => {
+    if (field === 'phone') {
+      value = formatPhoneNumber(value)
+    }
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
@@ -46,38 +60,48 @@ export default function OnboardPage() {
     setLoading(true)
 
     try {
-      // Validate passwords match
-      if (formData.password !== formData.confirmPassword) {
-        throw new Error('Passwords do not match')
+      if (!user) {
+        throw new Error('You must be logged in to create an organization')
       }
 
-      // Create the user account
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.userEmail,
-        password: formData.password,
-        options: {
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            organization_name: formData.organizationName,
-            onboarding: true
-          }
-        }
+      // Create the organization
+      const { data: org, error: orgError } = await supabase
+        .from('organizations')
+        .insert({
+          name: formData.organizationName,
+          email: formData.email || user.email,
+          phone: formData.phone,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zip: formData.zip,
+          license_number: formData.licenseNumber,
+          status: 'active',
+          subscription_tier: 'trial',
+        })
+        .select()
+        .single()
+
+      if (orgError) throw orgError
+
+      // Update the user's profile with the organization
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          organization_id: org.id,
+          role: 'tenant_owner',
+        })
+        .eq('id', user.id)
+
+      if (profileError) throw profileError
+
+      toast({
+        title: 'Organization Created!',
+        description: 'Welcome to HazardOS. Redirecting to your dashboard...',
       })
 
-      if (authError) throw authError
-
-      if (authData.user) {
-        // The organization and profile will be created by a server-side function
-        // For now, show success message
-        toast({
-          title: 'Account Created Successfully!',
-          description: 'Please check your email to verify your account, then you can start using HazardOS.',
-        })
-
-        // Redirect to login
-        router.push('/login?message=Please check your email to verify your account')
-      }
+      router.push('/')
+      router.refresh()
 
     } catch (error) {
       console.error('Onboarding error:', error)
@@ -89,6 +113,14 @@ export default function OnboardPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    )
   }
 
   return (
@@ -200,83 +232,9 @@ export default function OnboardPage() {
                 </div>
               </div>
 
-              {/* Admin User Information */}
-              <div className="space-y-4 border-t pt-6">
-                <h3 className="text-lg font-medium text-gray-900">Admin User Account</h3>
-                
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <Label htmlFor="firstName">First Name *</Label>
-                    <Input
-                      id="firstName"
-                      value={formData.firstName}
-                      onChange={(e) => handleInputChange('firstName', e.target.value)}
-                      placeholder="John"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="lastName">Last Name *</Label>
-                    <Input
-                      id="lastName"
-                      value={formData.lastName}
-                      onChange={(e) => handleInputChange('lastName', e.target.value)}
-                      placeholder="Doe"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="userEmail">Your Email Address *</Label>
-                  <Input
-                    id="userEmail"
-                    type="email"
-                    value={formData.userEmail}
-                    onChange={(e) => handleInputChange('userEmail', e.target.value)}
-                    placeholder="john@company.com"
-                    required
-                  />
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <Label htmlFor="password">Password *</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => handleInputChange('password', e.target.value)}
-                      placeholder="••••••••"
-                      required
-                      minLength={8}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={formData.confirmPassword}
-                      onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                      placeholder="••••••••"
-                      required
-                      minLength={8}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-6">
-                <p className="text-sm text-gray-600">
-                  Already have an account?{' '}
-                  <a href="/login" className="text-primary hover:underline">
-                    Sign in here
-                  </a>
-                </p>
-                
+              <div className="flex justify-end pt-6">
                 <Button type="submit" disabled={loading} size="lg">
-                  {loading ? 'Creating Account...' : 'Create Organization'}
+                  {loading ? 'Creating Organization...' : 'Create Organization'}
                 </Button>
               </div>
             </form>

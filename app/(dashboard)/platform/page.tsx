@@ -113,7 +113,7 @@ export default async function PlatformDashboardPage() {
   if (!user) redirect('/login')
 
   const isAdmin = await PlatformAdminService.isPlatformAdmin()
-  if (!isAdmin) redirect('/dashboard')
+  if (!isAdmin) redirect('/')
 
   // Fetch all data in parallel
   const [stats, growth, planDistribution, orgsResult] = await Promise.all([

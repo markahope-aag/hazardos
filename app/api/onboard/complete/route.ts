@@ -99,7 +99,7 @@ export const POST = createApiHandler(
           newOrg.id,
           plan.slug,
           billing_cycle,
-          `${request.nextUrl.origin}/dashboard?subscription=success`,
+          `${request.nextUrl.origin}/?subscription=success`,
           `${request.nextUrl.origin}/onboard?subscription=canceled`
         )
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { Profile, Organization } from '@/types/database'
@@ -20,7 +20,8 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  // Memoize the client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     let mounted = true

@@ -65,7 +65,7 @@ export default function LoginForm() {
           variant: 'destructive',
         })
       } else {
-        router.push('/dashboard')
+        router.push('/')
         router.refresh()
       }
     } catch {

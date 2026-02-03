@@ -23,7 +23,7 @@ export default async function PlatformLayout({
     .single()
 
   if (!profile?.is_platform_user || !['platform_owner', 'platform_admin'].includes(profile.role)) {
-    redirect('/dashboard')
+    redirect('/')
   }
 
   return (
