@@ -27,7 +27,7 @@ export function PlatformUserMenu({ userEmail, userRole }: PlatformUserMenuProps)
   return (
     <div className="flex items-center space-x-4">
       <button
-        onClick={() => router.push('/dashboard')}
+        onClick={() => router.push('/')}
         className="flex items-center space-x-1 text-sm text-gray-600 hover:text-primary transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -54,7 +54,7 @@ export function PlatformUserMenu({ userEmail, userRole }: PlatformUserMenuProps)
           
           <DropdownMenuSeparator />
           
-          <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+          <DropdownMenuItem onClick={() => router.push('/')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </DropdownMenuItem>

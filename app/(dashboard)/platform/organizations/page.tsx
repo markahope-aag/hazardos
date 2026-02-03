@@ -12,7 +12,7 @@ export default async function PlatformOrganizationsPage() {
   if (!user) redirect('/login')
 
   const isAdmin = await PlatformAdminService.isPlatformAdmin()
-  if (!isAdmin) redirect('/dashboard')
+  if (!isAdmin) redirect('/')
 
   // Initial data load
   const initialData = await PlatformAdminService.getOrganizations({
