@@ -29,7 +29,7 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
       // Get user profile
       const { data: userProfile, error: profileError } = await supabase
         .from('profiles')
-        .select('id, email, first_name, last_name, phone, role, organization_id, is_active, is_platform_user, avatar_url, last_login_at, login_count, created_at, updated_at')
+        .select('id, email, first_name, last_name, phone, role, organization_id, is_active, is_platform_user, last_login_at, login_count, created_at, updated_at')
         .eq('id', currentUser.id)
         .single()
 
@@ -68,15 +68,20 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
       }
 
       // Update last login (don't await, fire and forget)
-      supabase
-        .from('profiles')
-        .update({
-          last_login_at: new Date().toISOString(),
-          login_count: (userProfile.login_count || 0) + 1
-        })
-        .eq('id', currentUser.id)
-        .then(() => {})
-        .catch(() => {})
+      const updateLoginInfo = async () => {
+        try {
+          await supabase
+            .from('profiles')
+            .update({
+              last_login_at: new Date().toISOString(),
+              login_count: (userProfile.login_count || 0) + 1
+            })
+            .eq('id', currentUser.id)
+        } catch (error) {
+          console.error('[Auth] Failed to update login count:', error)
+        }
+      }
+      updateLoginInfo()
 
     } catch (error) {
       console.error('[Auth] Error in fetchProfileAndOrg:', error)
