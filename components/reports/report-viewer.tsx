@@ -100,7 +100,7 @@ export function ReportViewer({
   async function runReport() {
     setLoading(true)
     try {
-      const response = await fetch(`/api/reports/${reportType}/run`, {
+      const response = await fetch(`/api/reports/run/${reportType}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),

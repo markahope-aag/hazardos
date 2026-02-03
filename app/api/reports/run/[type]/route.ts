@@ -9,7 +9,7 @@ type RunReportBody = z.infer<typeof runReportSchema>
 type Params = { type: string }
 
 /**
- * POST /api/reports/[type]/run
+ * POST /api/reports/run/[type]
  * Run a report
  */
 export const POST = createApiHandlerWithParams<RunReportBody, unknown, Params>(

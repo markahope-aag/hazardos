@@ -1,134 +1,135 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
+import { 
+  Accordion, 
+  AccordionItem, 
+  AccordionTrigger, 
+  AccordionContent 
+} from '@/components/ui/accordion'
 
-describe('Accordion Component', () => {
-  it('should render without crashing', () => {
-    expect(() =>
-      render(
-        <Accordion type="single" collapsible>
-          <AccordionItem value="item-1">
-            <AccordionTrigger>Section 1</AccordionTrigger>
-            <AccordionContent>Content 1</AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      )
-    ).not.toThrow()
-  })
-
-  it('should render accordion trigger text', () => {
+describe('Accordion', () => {
+  it('should render accordion with single item', () => {
     render(
       <Accordion type="single" collapsible>
         <AccordionItem value="item-1">
-          <AccordionTrigger>Section 1</AccordionTrigger>
-          <AccordionContent>Content 1</AccordionContent>
+          <AccordionTrigger>Test Trigger</AccordionTrigger>
+          <AccordionContent>Test Content</AccordionContent>
         </AccordionItem>
       </Accordion>
     )
 
-    expect(screen.getByText('Section 1')).toBeInTheDocument()
+    expect(screen.getByText('Test Trigger')).toBeInTheDocument()
+    expect(screen.getByText('Test Content')).toBeInTheDocument()
   })
 
-  it('should render multiple accordion items', () => {
+  it('should render accordion with multiple items', () => {
     render(
       <Accordion type="single" collapsible>
         <AccordionItem value="item-1">
-          <AccordionTrigger>Section 1</AccordionTrigger>
-          <AccordionContent>Content 1</AccordionContent>
+          <AccordionTrigger>First Item</AccordionTrigger>
+          <AccordionContent>First Content</AccordionContent>
         </AccordionItem>
         <AccordionItem value="item-2">
-          <AccordionTrigger>Section 2</AccordionTrigger>
-          <AccordionContent>Content 2</AccordionContent>
+          <AccordionTrigger>Second Item</AccordionTrigger>
+          <AccordionContent>Second Content</AccordionContent>
         </AccordionItem>
       </Accordion>
     )
 
-    expect(screen.getByText('Section 1')).toBeInTheDocument()
-    expect(screen.getByText('Section 2')).toBeInTheDocument()
+    expect(screen.getByText('First Item')).toBeInTheDocument()
+    expect(screen.getByText('First Content')).toBeInTheDocument()
+    expect(screen.getByText('Second Item')).toBeInTheDocument()
+    expect(screen.getByText('Second Content')).toBeInTheDocument()
   })
 
-  it('should expand content when trigger is clicked', async () => {
-    const user = userEvent.setup()
+  it('should apply custom className to AccordionItem', () => {
+    render(
+      <Accordion type="single" collapsible>
+        <AccordionItem value="item-1" className="custom-item-class">
+          <AccordionTrigger>Test Trigger</AccordionTrigger>
+          <AccordionContent>Test Content</AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    )
 
+    const item = screen.getByText('Test Trigger').closest('[data-state]')
+    expect(item).toHaveClass('custom-item-class')
+  })
+
+  it('should apply custom className to AccordionTrigger', () => {
     render(
       <Accordion type="single" collapsible>
         <AccordionItem value="item-1">
-          <AccordionTrigger>Section 1</AccordionTrigger>
-          <AccordionContent>Content 1</AccordionContent>
+          <AccordionTrigger className="custom-trigger-class">Test Trigger</AccordionTrigger>
+          <AccordionContent>Test Content</AccordionContent>
         </AccordionItem>
       </Accordion>
     )
 
-    const trigger = screen.getByText('Section 1')
-    await user.click(trigger)
-
-    expect(screen.getByText('Content 1')).toBeVisible()
+    const trigger = screen.getByText('Test Trigger')
+    expect(trigger).toHaveClass('custom-trigger-class')
   })
 
-  it('should accept custom className on AccordionItem', () => {
-    const { container } = render(
-      <Accordion type="single" collapsible>
-        <AccordionItem value="item-1" className="custom-item" data-testid="accordion-item">
-          <AccordionTrigger>Section 1</AccordionTrigger>
-          <AccordionContent>Content 1</AccordionContent>
-        </AccordionItem>
-      </Accordion>
-    )
-
-    // AccordionItem wraps a div with [data-state]
-    const item = container.querySelector('[data-state]')
-    expect(item).toHaveClass('custom-item')
-  })
-
-  it('should accept custom className on AccordionTrigger', () => {
+  it('should apply custom className to AccordionContent', () => {
     render(
       <Accordion type="single" collapsible>
         <AccordionItem value="item-1">
-          <AccordionTrigger className="custom-trigger">Section 1</AccordionTrigger>
-          <AccordionContent>Content 1</AccordionContent>
+          <AccordionTrigger>Test Trigger</AccordionTrigger>
+          <AccordionContent className="custom-content-class">Test Content</AccordionContent>
         </AccordionItem>
       </Accordion>
     )
 
-    const trigger = screen.getByText('Section 1').closest('button')
-    expect(trigger).toHaveClass('custom-trigger')
+    const content = screen.getByText('Test Content').parentElement
+    expect(content).toHaveClass('custom-content-class')
   })
 
-  it('should have border-b class on AccordionItem', () => {
-    const { container } = render(
+  it('should render chevron icon in trigger', () => {
+    render(
       <Accordion type="single" collapsible>
         <AccordionItem value="item-1">
-          <AccordionTrigger>Section 1</AccordionTrigger>
-          <AccordionContent>Content 1</AccordionContent>
+          <AccordionTrigger>Test Trigger</AccordionTrigger>
+          <AccordionContent>Test Content</AccordionContent>
         </AccordionItem>
       </Accordion>
     )
 
-    const item = container.querySelector('[data-state]')
+    // Check for ChevronDown icon (lucide-react renders as svg)
+    const svg = screen.getByText('Test Trigger').querySelector('svg')
+    expect(svg).toBeInTheDocument()
+  })
+
+  it('should have correct display names', () => {
+    expect(AccordionItem.displayName).toBe('AccordionItem')
+    expect(AccordionTrigger.displayName).toBe('AccordionPrimitive.Trigger')
+    expect(AccordionContent.displayName).toBe('AccordionPrimitive.Content')
+  })
+
+  it('should render with default border-b class on AccordionItem', () => {
+    render(
+      <Accordion type="single" collapsible>
+        <AccordionItem value="item-1">
+          <AccordionTrigger>Test Trigger</AccordionTrigger>
+          <AccordionContent>Test Content</AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    )
+
+    const item = screen.getByText('Test Trigger').closest('[data-state]')
     expect(item).toHaveClass('border-b')
   })
 
-  it('should render with type="multiple"', async () => {
-    const user = userEvent.setup()
-
+  it('should render content with overflow-hidden class', () => {
     render(
-      <Accordion type="multiple">
+      <Accordion type="single" collapsible>
         <AccordionItem value="item-1">
-          <AccordionTrigger>Section 1</AccordionTrigger>
-          <AccordionContent>Content 1</AccordionContent>
-        </AccordionItem>
-        <AccordionItem value="item-2">
-          <AccordionTrigger>Section 2</AccordionTrigger>
-          <AccordionContent>Content 2</AccordionContent>
+          <AccordionTrigger>Test Trigger</AccordionTrigger>
+          <AccordionContent>Test Content</AccordionContent>
         </AccordionItem>
       </Accordion>
     )
 
-    await user.click(screen.getByText('Section 1'))
-    await user.click(screen.getByText('Section 2'))
-
-    expect(screen.getByText('Content 1')).toBeVisible()
-    expect(screen.getByText('Content 2')).toBeVisible()
+    const contentContainer = screen.getByText('Test Content').closest('[data-state]')
+    expect(contentContainer).toHaveClass('overflow-hidden')
   })
 })

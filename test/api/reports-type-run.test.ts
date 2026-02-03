@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
-import { POST } from '@/app/api/reports/[type]/run/route'
+import { POST } from '@/app/api/reports/run/[type]/route'
 import { ReportingService } from '@/lib/services/reporting-service'
 
 vi.mock('@/lib/services/reporting-service', () => ({
@@ -52,7 +52,7 @@ describe('Reports Type Run API', () => {
       { month: '2024-02', total: 75000, count: 15 }
     ]
     vi.mocked(ReportingService.runSalesReport).mockResolvedValue(mockData)
-    const request = new NextRequest('http://localhost:3000/api/reports/sales/run', {
+    const request = new NextRequest('http://localhost:3000/api/reports/run/sales', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ config: { date_from: '2024-01-01', date_to: '2024-12-31' } })
@@ -67,7 +67,7 @@ describe('Reports Type Run API', () => {
   it('should run job cost report', async () => {
     const mockData = [{ job_id: 'job-1', actual_cost: 10000, estimated_cost: 12000 }]
     vi.mocked(ReportingService.runJobCostReport).mockResolvedValue(mockData)
-    const request = new NextRequest('http://localhost:3000/api/reports/jobs/run', {
+    const request = new NextRequest('http://localhost:3000/api/reports/run/jobs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ config: {} })
@@ -81,7 +81,7 @@ describe('Reports Type Run API', () => {
   it('should run lead source report', async () => {
     const mockData = [{ source: 'referral', count: 25, conversion_rate: 0.35 }]
     vi.mocked(ReportingService.runLeadSourceReport).mockResolvedValue(mockData)
-    const request = new NextRequest('http://localhost:3000/api/reports/leads/run', {
+    const request = new NextRequest('http://localhost:3000/api/reports/run/leads', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ config: {} })
@@ -93,7 +93,7 @@ describe('Reports Type Run API', () => {
   })
 
   it('should return error for invalid report type', async () => {
-    const request = new NextRequest('http://localhost:3000/api/reports/invalid/run', {
+    const request = new NextRequest('http://localhost:3000/api/reports/run/invalid', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ config: {} })
