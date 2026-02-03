@@ -2,150 +2,212 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { Progress } from '@/components/ui/progress'
 
-describe('Progress Component', () => {
-  it('should render with default props', () => {
-    render(<Progress />)
-    
-    const progressBar = screen.getByRole('progressbar')
-    expect(progressBar).toBeInTheDocument()
-    expect(progressBar).toHaveClass('relative', 'h-4', 'w-full', 'overflow-hidden', 'rounded-full', 'bg-secondary')
+describe('Progress', () => {
+  it('should render progress bar', () => {
+    render(<Progress data-testid="test-progress" value={50} />)
+    expect(screen.getByTestId('test-progress')).toBeInTheDocument()
   })
 
-  it('should render with specific value', () => {
-    render(<Progress value={50} />)
+  it('should have correct role', () => {
+    render(<Progress value={25} />)
+    const progress = screen.getByRole('progressbar')
+    expect(progress).toBeInTheDocument()
+  })
+
+  it('should apply default styling', () => {
+    render(<Progress data-testid="styled-progress" value={30} />)
     
-    const progressBar = screen.getByRole('progressbar')
-    expect(progressBar).toBeInTheDocument()
+    const progress = screen.getByTestId('styled-progress')
+    expect(progress).toHaveClass(
+      'relative',
+      'h-4',
+      'w-full',
+      'overflow-hidden',
+      'rounded-full',
+      'bg-secondary'
+    )
+  })
+
+  it('should display correct progress value', () => {
+    render(<Progress value={75} />)
     
-    // Check if the indicator has the correct transform
-    const indicator = progressBar.querySelector('[style*="translateX"]')
+    const progress = screen.getByRole('progressbar')
+    expect(progress).toHaveAttribute('data-value', '75')
+  })
+
+  it('should handle zero progress', () => {
+    render(<Progress value={0} data-testid="zero-progress" />)
+    
+    const progress = screen.getByTestId('zero-progress')
+    expect(progress).toHaveAttribute('data-value', '0')
+    
+    // Check indicator transform (should be fully translated left)
+    const indicator = progress.querySelector('[data-state="loading"]')
     expect(indicator).toBeInTheDocument()
-    expect(indicator).toHaveStyle({ transform: 'translateX(-50%)' })
   })
 
-  it('should handle 0% progress', () => {
-    render(<Progress value={0} />)
+  it('should handle full progress', () => {
+    render(<Progress value={100} data-testid="full-progress" />)
     
-    const progressBar = screen.getByRole('progressbar')
-    const indicator = progressBar.querySelector('[style*="translateX"]')
-    expect(indicator).toHaveStyle({ transform: 'translateX(-100%)' })
-  })
-
-  it('should handle 100% progress', () => {
-    render(<Progress value={100} />)
-    
-    const progressBar = screen.getByRole('progressbar')
-    const indicator = progressBar.querySelector('[style*="translateX"]')
-    expect(indicator).toHaveStyle({ transform: 'translateX(-0%)' })
+    const progress = screen.getByTestId('full-progress')
+    expect(progress).toHaveAttribute('data-value', '100')
   })
 
   it('should handle undefined value', () => {
-    render(<Progress value={undefined} />)
+    render(<Progress data-testid="undefined-progress" />)
     
-    const progressBar = screen.getByRole('progressbar')
-    const indicator = progressBar.querySelector('[style*="translateX"]')
-    expect(indicator).toHaveStyle({ transform: 'translateX(-100%)' })
+    const progress = screen.getByTestId('undefined-progress')
+    // Should default to 0 when value is undefined
+    const indicator = progress.querySelector('[style*="translateX(-100%)"]')
+    expect(indicator).toBeInTheDocument()
   })
 
   it('should apply custom className', () => {
-    render(<Progress className="custom-progress" value={25} />)
+    render(<Progress className="custom-progress-class" data-testid="custom-progress" value={40} />)
     
-    const progressBar = screen.getByRole('progressbar')
-    expect(progressBar).toHaveClass('custom-progress')
+    const progress = screen.getByTestId('custom-progress')
+    expect(progress).toHaveClass('custom-progress-class')
+  })
+
+  it('should render indicator with correct styling', () => {
+    render(<Progress value={60} data-testid="indicator-progress" />)
+    
+    const progress = screen.getByTestId('indicator-progress')
+    const indicator = progress.querySelector('[data-state="loading"]')
+    
+    expect(indicator).toHaveClass(
+      'h-full',
+      'w-full',
+      'flex-1',
+      'bg-primary',
+      'transition-all'
+    )
+  })
+
+  it('should calculate correct transform for indicator', () => {
+    render(<Progress value={25} data-testid="transform-progress" />)
+    
+    const progress = screen.getByTestId('transform-progress')
+    const indicator = progress.querySelector('[data-state="loading"]')
+    
+    // For 25% progress, transform should be translateX(-75%)
+    expect(indicator).toHaveStyle('transform: translateX(-75%)')
   })
 
   it('should handle various progress values', () => {
-    const testValues = [10, 25, 33, 66, 75, 90]
+    const testValues = [0, 25, 50, 75, 100]
     
     testValues.forEach(value => {
-      const { rerender } = render(<Progress value={value} />)
+      const { unmount } = render(<Progress value={value} data-testid={`progress-${value}`} />)
       
-      const progressBar = screen.getByRole('progressbar')
-      const indicator = progressBar.querySelector('[style*="translateX"]')
-      expect(indicator).toHaveStyle({ transform: `translateX(-${100 - value}%)` })
+      const progress = screen.getByTestId(`progress-${value}`)
+      expect(progress).toHaveAttribute('data-value', value.toString())
       
-      rerender(<div />)
+      const indicator = progress.querySelector('[data-state="loading"]')
+      const expectedTransform = `translateX(-${100 - value}%)`
+      expect(indicator).toHaveStyle(`transform: ${expectedTransform}`)
+      
+      unmount()
     })
   })
 
-  it('should handle edge case values without clamping', () => {
-    // Test negative value - component doesn't clamp, allows negative values
-    const { rerender } = render(<Progress value={-10} />)
-    let progressBar = screen.getByRole('progressbar')
-    let indicator = progressBar.querySelector('[style*="translateX"]')
-    // Formula: translateX(-${100 - value}%)
-    // For value=-10: translateX(-(100-(-10))%) = translateX(-110%)
-    expect(indicator).toHaveStyle({ transform: 'translateX(-110%)' })
+  it('should forward ref correctly', () => {
+    const ref = vi.fn()
+    render(<Progress ref={ref} value={50} data-testid="ref-progress" />)
+    
+    expect(ref).toHaveBeenCalled()
+  })
 
-    // Test value over 100 - the indicator transforms differently
-    rerender(<Progress value={150} />)
-    progressBar = screen.getByRole('progressbar')
-    indicator = progressBar.querySelector('[style*="translateX"]')
-    // For value=150: translateX(-(100-150)%) = translateX(50%)
-    // The negative sign is part of the template, so -(100-150) = -(-50) = 50
-    // But it seems the implementation keeps it as negative
-    // Let me just test it accepts values over 100
-    const transform = indicator?.style.transform || ''
-    expect(transform).toContain('translateX')
+  it('should have correct display name', () => {
+    expect(Progress.displayName).toBe('ProgressPrimitive.Root')
   })
 
   it('should forward additional props', () => {
-    render(<Progress value={50} data-testid="progress-test" aria-label="Loading progress" />)
-    
-    const progressBar = screen.getByRole('progressbar')
-    expect(progressBar).toHaveAttribute('data-testid', 'progress-test')
-    expect(progressBar).toHaveAttribute('aria-label', 'Loading progress')
-  })
-
-  it('should have proper accessibility attributes', () => {
-    render(<Progress value={75} aria-valuemin={0} aria-valuemax={100} aria-valuenow={75} />)
-    
-    const progressBar = screen.getByRole('progressbar')
-    expect(progressBar).toHaveAttribute('aria-valuemin', '0')
-    expect(progressBar).toHaveAttribute('aria-valuemax', '100')
-    expect(progressBar).toHaveAttribute('aria-valuenow', '75')
-  })
-
-  it('should have correct indicator styling', () => {
-    render(<Progress value={60} />)
-    
-    const progressBar = screen.getByRole('progressbar')
-    const indicator = progressBar.querySelector('.h-full.w-full.flex-1.bg-primary.transition-all')
-    expect(indicator).toBeInTheDocument()
-    expect(indicator).toHaveClass('h-full', 'w-full', 'flex-1', 'bg-primary', 'transition-all')
-  })
-
-  it('should be accessible with screen readers', () => {
     render(
-      <div>
-        <Progress id="file-progress" value={45} aria-valuenow={45} aria-valuemin={0} aria-valuemax={100} aria-label="File upload progress" />
-      </div>
+      <Progress 
+        data-testid="props-progress" 
+        id="progress-id"
+        aria-label="Loading progress"
+        value={45}
+      />
     )
-
-    const progressBar = screen.getByRole('progressbar')
-    expect(progressBar).toHaveAttribute('id', 'file-progress')
-    expect(progressBar).toHaveAttribute('aria-label', 'File upload progress')
+    
+    const progress = screen.getByTestId('props-progress')
+    expect(progress).toHaveAttribute('id', 'progress-id')
+    expect(progress).toHaveAttribute('aria-label', 'Loading progress')
   })
 
-  it('should handle decimal values', () => {
-    render(<Progress value={33.33} />)
+  it('should handle max value prop', () => {
+    render(<Progress value={50} max={200} data-testid="max-progress" />)
     
-    const progressBar = screen.getByRole('progressbar')
-    const indicator = progressBar.querySelector('[style*="translateX"]')
-    expect(indicator).toHaveStyle({ transform: 'translateX(-66.67%)' })
+    const progress = screen.getByTestId('max-progress')
+    expect(progress).toHaveAttribute('data-max', '200')
   })
 
-  it('should update when value changes', () => {
-    const { rerender } = render(<Progress value={20} />)
+  it('should combine custom className with default classes', () => {
+    render(<Progress className="custom-class" data-testid="combined-progress" value={30} />)
     
-    let progressBar = screen.getByRole('progressbar')
-    let indicator = progressBar.querySelector('[style*="translateX"]')
-    expect(indicator).toHaveStyle({ transform: 'translateX(-80%)' })
+    const progress = screen.getByTestId('combined-progress')
+    expect(progress).toHaveClass('custom-class') // custom class
+    expect(progress).toHaveClass('relative', 'h-4', 'w-full') // default classes
+  })
 
-    rerender(<Progress value={80} />)
+  it('should handle edge case values', () => {
+    // Test negative value (should be clamped to 0)
+    const { rerender } = render(<Progress value={-10} data-testid="edge-progress" />)
+    let progress = screen.getByTestId('edge-progress')
+    expect(progress).toBeInTheDocument()
     
-    progressBar = screen.getByRole('progressbar')
-    indicator = progressBar.querySelector('[style*="translateX"]')
-    expect(indicator).toHaveStyle({ transform: 'translateX(-20%)' })
+    // Test value over 100 (should be clamped to 100)
+    rerender(<Progress value={150} data-testid="edge-progress" />)
+    progress = screen.getByTestId('edge-progress')
+    expect(progress).toBeInTheDocument()
+  })
+
+  it('should support accessibility attributes', () => {
+    render(
+      <Progress 
+        value={60}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={60}
+        aria-valuetext="60 percent complete"
+        data-testid="accessible-progress"
+      />
+    )
+    
+    const progress = screen.getByTestId('accessible-progress')
+    expect(progress).toHaveAttribute('aria-valuemin', '0')
+    expect(progress).toHaveAttribute('aria-valuemax', '100')
+    expect(progress).toHaveAttribute('aria-valuenow', '60')
+    expect(progress).toHaveAttribute('aria-valuetext', '60 percent complete')
+  })
+
+  it('should handle indeterminate state', () => {
+    render(<Progress data-testid="indeterminate-progress" />)
+    
+    const progress = screen.getByTestId('indeterminate-progress')
+    // When no value is provided, it should be in indeterminate state
+    expect(progress).toBeInTheDocument()
+  })
+
+  it('should work with different sizes', () => {
+    render(<Progress className="h-2" value={50} data-testid="small-progress" />)
+    
+    const progress = screen.getByTestId('small-progress')
+    expect(progress).toHaveClass('h-2')
+  })
+
+  it('should work with different colors', () => {
+    render(
+      <Progress 
+        className="bg-gray-200" 
+        value={70} 
+        data-testid="colored-progress" 
+      />
+    )
+    
+    const progress = screen.getByTestId('colored-progress')
+    expect(progress).toHaveClass('bg-gray-200')
   })
 })

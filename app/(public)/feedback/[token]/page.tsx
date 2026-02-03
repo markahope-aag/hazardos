@@ -50,7 +50,7 @@ export default function FeedbackSurveyPage() {
   useEffect(() => {
     async function fetchSurvey() {
       try {
-        const res = await fetch(`/api/feedback/${token}`)
+        const res = await fetch(`/api/feedback/submit/${token}`)
         if (!res.ok) {
           if (res.status === 404) {
             setError('Survey not found or has expired')
@@ -112,7 +112,7 @@ export default function FeedbackSurveyPage() {
         testimonial_permission: testimonialPermission,
       }
 
-      const res = await fetch(`/api/feedback/${token}`, {
+      const res = await fetch(`/api/feedback/submit/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
-import { GET, POST } from '@/app/api/feedback/[token]/route'
+import { GET, POST } from '@/app/api/feedback/submit/[token]/route'
 import { FeedbackService } from '@/lib/services/feedback-service'
 
 // Mock FeedbackService
@@ -20,7 +20,7 @@ describe('Feedback Token API', () => {
     vi.clearAllMocks()
   })
 
-  describe('GET /api/feedback/[token]', () => {
+  describe('GET /api/feedback/submit/[token]', () => {
     it('should get survey by token', async () => {
       // Arrange
       const mockSurvey = {
@@ -34,7 +34,7 @@ describe('Feedback Token API', () => {
 
       vi.mocked(FeedbackService.getSurveyByToken).mockResolvedValue(mockSurvey)
 
-      const request = new NextRequest('http://localhost:3000/api/feedback/valid-token-123')
+      const request = new NextRequest('http://localhost:3000/api/feedback/submit/valid-token-123')
 
       // Act
       const response = await GET(request, {
@@ -52,7 +52,7 @@ describe('Feedback Token API', () => {
       // Arrange
       vi.mocked(FeedbackService.getSurveyByToken).mockResolvedValue(null)
 
-      const request = new NextRequest('http://localhost:3000/api/feedback/invalid-token')
+      const request = new NextRequest('http://localhost:3000/api/feedback/submit/invalid-token')
 
       // Act
       const response = await GET(request, {
@@ -66,7 +66,7 @@ describe('Feedback Token API', () => {
     })
   })
 
-  describe('POST /api/feedback/[token]', () => {
+  describe('POST /api/feedback/submit/[token]', () => {
     it('should submit feedback responses', async () => {
       // Arrange
       const mockSubmittedSurvey = {
@@ -87,7 +87,7 @@ describe('Feedback Token API', () => {
 
       vi.mocked(FeedbackService.submitFeedback).mockResolvedValue(mockSubmittedSurvey)
 
-      const request = new NextRequest('http://localhost:3000/api/feedback/valid-token-123', {
+      const request = new NextRequest('http://localhost:3000/api/feedback/submit/valid-token-123', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -140,7 +140,7 @@ describe('Feedback Token API', () => {
 
       vi.mocked(FeedbackService.submitFeedback).mockResolvedValue(mockSubmittedSurvey)
 
-      const request = new NextRequest('http://localhost:3000/api/feedback/token-456', {
+      const request = new NextRequest('http://localhost:3000/api/feedback/submit/token-456', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,10 +1,9 @@
 import { cn } from '@/lib/utils'
-import Image from 'next/image'
 
 interface LogoProps {
   variant?: 'horizontal' | 'vertical' | 'icon'
   color?: 'color' | 'bw' | 'white'
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'
   className?: string
 }
 
@@ -28,14 +27,19 @@ const sizeClasses = {
     horizontal: 'h-12',
     vertical: 'h-20',
     icon: 'h-12 w-12'
+  },
+  '2xl': {
+    horizontal: 'h-16',
+    vertical: 'h-32',
+    icon: 'h-16 w-16'
   }
 }
 
-export function Logo({ 
-  variant = 'horizontal', 
-  color = 'color', 
+export function Logo({
+  variant = 'horizontal',
+  color = 'color',
   size = 'md',
-  className 
+  className
 }: LogoProps) {
   const getImageSrc = () => {
     if (variant === 'icon') {
@@ -46,17 +50,21 @@ export function Logo({
 
   const sizeClass = sizeClasses[size][variant]
 
+  const heights: Record<string, number> = {
+    sm: variant === 'vertical' ? 32 : 24,
+    md: variant === 'vertical' ? 48 : 32,
+    lg: variant === 'vertical' ? 64 : 40,
+    xl: variant === 'vertical' ? 80 : 48,
+    '2xl': variant === 'vertical' ? 128 : 64,
+  }
+
+  /* eslint-disable @next/next/no-img-element */
   return (
-    <Image
+    <img
       src={getImageSrc()}
       alt="HazardOS"
-      className={cn(
-        sizeClass,
-        variant !== 'icon' && 'w-auto',
-        className
-      )}
-      width={variant === 'icon' ? 32 : 120}
-      height={variant === 'icon' ? 32 : 40}
+      style={{ height: heights[size], width: 'auto', maxWidth: 'none' }}
+      className={className}
     />
   )
 }

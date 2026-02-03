@@ -78,12 +78,10 @@ describe('SignupForm', () => {
     fireEvent.click(submitButton)
     
     await waitFor(() => {
-      expect(mockToast).toHaveBeenCalledWith({
-        title: 'Error',
-        description: 'Passwords do not match',
-        variant: 'destructive',
-      })
+      expect(screen.getByText('Passwords do not match')).toBeInTheDocument()
     })
+    // Form should not submit to Supabase when passwords mismatch
+    expect(mockSupabaseClient.auth.signUp).not.toHaveBeenCalled()
   })
 
   it('should validate password strength', async () => {
@@ -99,12 +97,10 @@ describe('SignupForm', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(mockToast).toHaveBeenCalledWith({
-        title: 'Error',
-        description: 'Password must be at least 8 characters',
-        variant: 'destructive',
-      })
+      expect(screen.getByText('Password must be at least 8 characters')).toBeInTheDocument()
     })
+    // Form should not submit to Supabase when password is too short
+    expect(mockSupabaseClient.auth.signUp).not.toHaveBeenCalled()
   })
 
   it('should create account successfully with email confirmation required', async () => {

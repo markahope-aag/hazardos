@@ -3,129 +3,170 @@ import { render, screen } from '@testing-library/react'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 
 describe('Alert', () => {
-  it('should render with children', () => {
-    render(<Alert>Test Alert</Alert>)
+  it('should render basic alert', () => {
+    render(
+      <Alert>
+        <AlertTitle>Test Title</AlertTitle>
+        <AlertDescription>Test Description</AlertDescription>
+      </Alert>
+    )
 
-    expect(screen.getByText('Test Alert')).toBeInTheDocument()
+    expect(screen.getByText('Test Title')).toBeInTheDocument()
+    expect(screen.getByText('Test Description')).toBeInTheDocument()
   })
 
-  it('should have role alert', () => {
-    render(<Alert>Alert Message</Alert>)
+  it('should have role="alert"', () => {
+    render(
+      <Alert>
+        <AlertTitle>Test Title</AlertTitle>
+        <AlertDescription>Test Description</AlertDescription>
+      </Alert>
+    )
 
     const alert = screen.getByRole('alert')
     expect(alert).toBeInTheDocument()
   })
 
   it('should render with default variant', () => {
-    const { container } = render(<Alert>Default</Alert>)
-
-    const alert = container.querySelector('[role="alert"]')
-    expect(alert?.className).toContain('bg-background')
-  })
-
-  it('should render with destructive variant', () => {
-    const { container } = render(<Alert variant="destructive">Destructive</Alert>)
-
-    const alert = container.querySelector('[role="alert"]')
-    expect(alert?.className).toContain('border-destructive')
-  })
-
-  it('should apply custom className', () => {
-    const { container } = render(<Alert className="custom-class">Custom</Alert>)
-
-    const alert = container.querySelector('[role="alert"]')
-    expect(alert?.className).toContain('custom-class')
-  })
-
-  it('should have proper base styles', () => {
-    const { container } = render(<Alert>Styled</Alert>)
-
-    const alert = container.querySelector('[role="alert"]')
-    expect(alert?.className).toContain('rounded-lg')
-    expect(alert?.className).toContain('border')
-    expect(alert?.className).toContain('w-full')
-  })
-
-  it('should render complex alert with title and description', () => {
     render(
       <Alert>
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>Something went wrong</AlertDescription>
+        <AlertTitle>Test Title</AlertTitle>
+        <AlertDescription>Test Description</AlertDescription>
       </Alert>
     )
 
-    expect(screen.getByText('Error')).toBeInTheDocument()
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument()
-  })
-})
-
-describe('AlertTitle', () => {
-  it('should render title text', () => {
-    render(<AlertTitle>Title Text</AlertTitle>)
-
-    expect(screen.getByText('Title Text')).toBeInTheDocument()
+    const alert = screen.getByRole('alert')
+    expect(alert).toHaveClass('bg-background', 'text-foreground')
   })
 
-  it('should render as h5 element', () => {
-    const { container } = render(<AlertTitle>Heading</AlertTitle>)
-
-    const title = screen.getByText('Heading')
-    expect(title.nodeName).toBe('H5')
-  })
-
-  it('should have proper styling', () => {
-    const { container } = render(<AlertTitle>Styled Title</AlertTitle>)
-
-    const title = screen.getByText('Styled Title')
-    expect(title.className).toContain('font-medium')
-    expect(title.className).toContain('leading-none')
-  })
-
-  it('should apply custom className', () => {
-    render(<AlertTitle className="custom-title">Custom</AlertTitle>)
-
-    const title = screen.getByText('Custom')
-    expect(title.className).toContain('custom-title')
-  })
-})
-
-describe('AlertDescription', () => {
-  it('should render description text', () => {
-    render(<AlertDescription>Description Text</AlertDescription>)
-
-    expect(screen.getByText('Description Text')).toBeInTheDocument()
-  })
-
-  it('should render as div element', () => {
-    const { container } = render(<AlertDescription>Description</AlertDescription>)
-
-    const description = screen.getByText('Description')
-    expect(description.nodeName).toBe('DIV')
-  })
-
-  it('should have proper styling', () => {
-    const { container } = render(<AlertDescription>Styled Description</AlertDescription>)
-
-    const description = screen.getByText('Styled Description')
-    expect(description.className).toContain('text-sm')
-  })
-
-  it('should apply custom className', () => {
-    render(<AlertDescription className="custom-desc">Custom</AlertDescription>)
-
-    const description = screen.getByText('Custom')
-    expect(description.className).toContain('custom-desc')
-  })
-
-  it('should render nested paragraphs', () => {
+  it('should render with destructive variant', () => {
     render(
-      <AlertDescription>
-        <p>First paragraph</p>
-        <p>Second paragraph</p>
-      </AlertDescription>
+      <Alert variant="destructive">
+        <AlertTitle>Error Title</AlertTitle>
+        <AlertDescription>Error Description</AlertDescription>
+      </Alert>
     )
 
-    expect(screen.getByText('First paragraph')).toBeInTheDocument()
-    expect(screen.getByText('Second paragraph')).toBeInTheDocument()
+    const alert = screen.getByRole('alert')
+    expect(alert).toHaveClass('border-destructive/50', 'text-destructive')
+  })
+
+  it('should apply custom className', () => {
+    render(
+      <Alert className="custom-alert-class">
+        <AlertTitle>Test Title</AlertTitle>
+        <AlertDescription>Test Description</AlertDescription>
+      </Alert>
+    )
+
+    const alert = screen.getByRole('alert')
+    expect(alert).toHaveClass('custom-alert-class')
+  })
+
+  it('should render AlertTitle as h5 element', () => {
+    render(
+      <Alert>
+        <AlertTitle>Test Title</AlertTitle>
+        <AlertDescription>Test Description</AlertDescription>
+      </Alert>
+    )
+
+    const title = screen.getByText('Test Title')
+    expect(title.tagName).toBe('H5')
+  })
+
+  it('should apply custom className to AlertTitle', () => {
+    render(
+      <Alert>
+        <AlertTitle className="custom-title-class">Test Title</AlertTitle>
+        <AlertDescription>Test Description</AlertDescription>
+      </Alert>
+    )
+
+    const title = screen.getByText('Test Title')
+    expect(title).toHaveClass('custom-title-class')
+  })
+
+  it('should render AlertDescription as div element', () => {
+    render(
+      <Alert>
+        <AlertTitle>Test Title</AlertTitle>
+        <AlertDescription>Test Description</AlertDescription>
+      </Alert>
+    )
+
+    const description = screen.getByText('Test Description')
+    expect(description.tagName).toBe('DIV')
+  })
+
+  it('should apply custom className to AlertDescription', () => {
+    render(
+      <Alert>
+        <AlertTitle>Test Title</AlertTitle>
+        <AlertDescription className="custom-description-class">Test Description</AlertDescription>
+      </Alert>
+    )
+
+    const description = screen.getByText('Test Description')
+    expect(description).toHaveClass('custom-description-class')
+  })
+
+  it('should have correct display names', () => {
+    expect(Alert.displayName).toBe('Alert')
+    expect(AlertTitle.displayName).toBe('AlertTitle')
+    expect(AlertDescription.displayName).toBe('AlertDescription')
+  })
+
+  it('should render with icon spacing classes', () => {
+    render(
+      <Alert>
+        <svg data-testid="alert-icon" />
+        <AlertTitle>Test Title</AlertTitle>
+        <AlertDescription>Test Description</AlertDescription>
+      </Alert>
+    )
+
+    const alert = screen.getByRole('alert')
+    expect(alert).toHaveClass('[&>svg~*]:pl-7')
+    expect(alert).toHaveClass('[&>svg]:absolute')
+    expect(alert).toHaveClass('[&>svg]:left-4')
+    expect(alert).toHaveClass('[&>svg]:top-4')
+  })
+
+  it('should render AlertTitle with default styling', () => {
+    render(
+      <Alert>
+        <AlertTitle>Test Title</AlertTitle>
+        <AlertDescription>Test Description</AlertDescription>
+      </Alert>
+    )
+
+    const title = screen.getByText('Test Title')
+    expect(title).toHaveClass('mb-1', 'font-medium', 'leading-none', 'tracking-tight')
+  })
+
+  it('should render AlertDescription with default styling', () => {
+    render(
+      <Alert>
+        <AlertTitle>Test Title</AlertTitle>
+        <AlertDescription>Test Description</AlertDescription>
+      </Alert>
+    )
+
+    const description = screen.getByText('Test Description')
+    expect(description).toHaveClass('text-sm', '[&_p]:leading-relaxed')
+  })
+
+  it('should forward additional props', () => {
+    render(
+      <Alert data-testid="custom-alert">
+        <AlertTitle data-testid="custom-title">Test Title</AlertTitle>
+        <AlertDescription data-testid="custom-description">Test Description</AlertDescription>
+      </Alert>
+    )
+
+    expect(screen.getByTestId('custom-alert')).toBeInTheDocument()
+    expect(screen.getByTestId('custom-title')).toBeInTheDocument()
+    expect(screen.getByTestId('custom-description')).toBeInTheDocument()
   })
 })
