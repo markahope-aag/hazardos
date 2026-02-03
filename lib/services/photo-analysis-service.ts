@@ -1,8 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
 import { createHash } from 'crypto';
+import { createServiceLogger } from '@/lib/utils/logger';
 import type { PhotoAnalysis, DetectedHazard } from '@/types/integrations';
 
+const log = createServiceLogger('PhotoAnalysisService');
 const MODEL_VERSION = 'claude-3-5-sonnet-20241022';
 
 export interface PhotoAnalysisContext {
@@ -41,6 +43,57 @@ export class PhotoAnalysisService {
     return this.client;
   }
 
+  /**
+   * Check if AI photo analysis is enabled for the organization
+   */
+  private static async checkAIEnabled(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    organizationId: string
+  ): Promise<boolean> {
+    const { data } = await supabase
+      .from('organization_ai_settings')
+      .select('ai_enabled, photo_analysis_enabled')
+      .eq('organization_id', organizationId)
+      .single();
+
+    return data?.ai_enabled && data?.photo_analysis_enabled;
+  }
+
+  /**
+   * Log AI usage for audit trail
+   */
+  private static async logUsage(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    organizationId: string,
+    operation: string,
+    options: {
+      processingTimeMs?: number;
+      success?: boolean;
+      errorMessage?: string;
+      relatedEntityType?: string;
+      relatedEntityId?: string;
+    } = {}
+  ): Promise<void> {
+    try {
+      await supabase.rpc('log_ai_usage', {
+        p_organization_id: organizationId,
+        p_service_name: 'photo_analysis',
+        p_operation: operation,
+        p_provider: 'anthropic',
+        p_model_version: MODEL_VERSION,
+        p_related_entity_type: options.relatedEntityType ?? null,
+        p_related_entity_id: options.relatedEntityId ?? null,
+        p_data_categories: ['image'],
+        p_pii_redacted: false, // Images may contain visible PII but we can't redact them
+        p_processing_time_ms: options.processingTimeMs ?? null,
+        p_success: options.success ?? true,
+        p_error_message: options.errorMessage ?? null,
+      });
+    } catch (error) {
+      log.warn({ error }, 'Failed to log AI usage');
+    }
+  }
+
   static async analyzePhoto(
     organizationId: string,
     imageBase64: string,
@@ -48,6 +101,15 @@ export class PhotoAnalysisService {
   ): Promise<PhotoAnalysis> {
     const supabase = await createClient();
     const startTime = Date.now();
+
+    // Check if AI features are enabled for this organization
+    const aiEnabled = await this.checkAIEnabled(supabase, organizationId);
+    if (!aiEnabled) {
+      throw new Error(
+        'AI photo analysis is not enabled for this organization. ' +
+        'Please enable AI features in Settings → AI & Automation to use this feature.'
+      );
+    }
 
     // Generate hash for deduplication
     const imageHash = createHash('sha256').update(imageBase64).digest('hex');
@@ -128,6 +190,12 @@ Always respond with valid JSON matching the requested schema.`,
       .single();
 
     if (error) throw error;
+
+    // Log successful AI usage
+    await this.logUsage(supabase, organizationId, 'analyze', {
+      processingTimeMs: processingTime,
+      success: true,
+    });
 
     return analysis;
   }

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { createHmac, randomBytes } from 'crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import type { LeadWebhookEndpoint, LeadProvider } from '@/types/integrations';
 import { logger, formatError } from '@/lib/utils/logger';
 
@@ -388,7 +388,20 @@ export class LeadWebhookService {
       ? signature.substring(7)
       : signature;
 
-    return expectedSignature === providedSignature;
+    // Use timing-safe comparison to prevent timing attacks
+    try {
+      const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
+      const providedBuffer = Buffer.from(providedSignature, 'utf8');
+
+      // Signatures must be same length for timingSafeEqual
+      if (expectedBuffer.length !== providedBuffer.length) {
+        return false;
+      }
+
+      return timingSafeEqual(expectedBuffer, providedBuffer);
+    } catch {
+      return false;
+    }
   }
 
   // ========== OPPORTUNITY CREATION ==========
