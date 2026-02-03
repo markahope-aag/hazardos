@@ -106,72 +106,64 @@ export class FeedbackService {
   static async getSurveyByToken(token: string): Promise<PublicSurveyView | null> {
     const supabase = await createClient()
 
-    const { data, error } = await supabase
-      .from('feedback_surveys')
-      .select(`
-        id,
-        status,
-        completed_at,
-        customer_name,
-        rating_overall,
-        rating_quality,
-        rating_communication,
-        rating_timeliness,
-        rating_value,
-        would_recommend,
-        likelihood_to_recommend,
-        feedback_text,
-        improvement_suggestions,
-        testimonial_text,
-        testimonial_permission,
-        token_expires_at,
-        job:jobs(id, job_number, name, organization_id),
-        organization:organizations(id, name, logo_url)
-      `)
-      .eq('access_token', token)
-      .single()
+    // Use secure RPC function that validates token at database level
+    // This prevents direct table access bypass
+    const { data: result, error } = await supabase
+      .rpc('get_feedback_survey_by_token', { p_token: token })
 
-    if (error || !data) return null
+    if (error || !result) return null
 
-    // Check expiration
-    if (new Date(data.token_expires_at) < new Date()) {
+    const response = result as {
+      success: boolean
+      error?: string
+      survey?: {
+        id: string
+        status: string
+        expires_at: string
+        rating_overall: number | null
+        rating_quality: number | null
+        rating_communication: number | null
+        rating_timeliness: number | null
+        rating_value: number | null
+        would_recommend: boolean | null
+        likelihood_to_recommend: number | null
+        feedback_text: string | null
+        improvement_suggestions: string | null
+        testimonial_text: string | null
+        testimonial_permission: boolean | null
+        job_number: string
+        organization_name: string
+        organization_logo: string | null
+        customer_first_name: string | null
+      }
+    }
+
+    if (!response.success || !response.survey) {
       return null
     }
 
-    const job = Array.isArray(data.job) ? data.job[0] : data.job
-    const organization = Array.isArray(data.organization) ? data.organization[0] : data.organization
-
-    // Mark as viewed if first view
-    if (data.status === 'sent') {
-      await supabase
-        .from('feedback_surveys')
-        .update({
-          status: 'viewed',
-          viewed_at: new Date().toISOString(),
-        })
-        .eq('access_token', token)
-    }
+    const survey = response.survey
 
     return {
-      id: data.id,
-      job_number: job?.job_number || '',
-      job_name: job?.name,
-      organization_name: organization?.name || '',
-      organization_logo: organization?.logo_url,
-      customer_name: data.customer_name,
-      status: data.status,
-      completed_at: data.completed_at,
-      rating_overall: data.rating_overall,
-      rating_quality: data.rating_quality,
-      rating_communication: data.rating_communication,
-      rating_timeliness: data.rating_timeliness,
-      rating_value: data.rating_value,
-      would_recommend: data.would_recommend,
-      likelihood_to_recommend: data.likelihood_to_recommend,
-      feedback_text: data.feedback_text,
-      improvement_suggestions: data.improvement_suggestions,
-      testimonial_text: data.testimonial_text,
-      testimonial_permission: data.testimonial_permission,
+      id: survey.id,
+      job_number: survey.job_number || '',
+      job_name: null,
+      organization_name: survey.organization_name || '',
+      organization_logo: survey.organization_logo,
+      customer_name: survey.customer_first_name,
+      status: survey.status as 'pending' | 'sent' | 'viewed' | 'completed' | 'expired',
+      completed_at: survey.status === 'completed' ? new Date().toISOString() : null,
+      rating_overall: survey.rating_overall,
+      rating_quality: survey.rating_quality,
+      rating_communication: survey.rating_communication,
+      rating_timeliness: survey.rating_timeliness,
+      rating_value: survey.rating_value,
+      would_recommend: survey.would_recommend,
+      likelihood_to_recommend: survey.likelihood_to_recommend,
+      feedback_text: survey.feedback_text,
+      improvement_suggestions: survey.improvement_suggestions,
+      testimonial_text: survey.testimonial_text,
+      testimonial_permission: survey.testimonial_permission ?? false,
     }
   }
 
@@ -183,49 +175,44 @@ export class FeedbackService {
   ): Promise<FeedbackSurvey> {
     const supabase = await createClient()
 
-    // Verify token and get survey
-    const { data: survey } = await supabase
-      .from('feedback_surveys')
-      .select('id, status, token_expires_at')
-      .eq('access_token', token)
-      .single()
-
-    if (!survey) throw new Error('Survey not found')
-
-    if (new Date(survey.token_expires_at) < new Date()) {
-      throw new Error('Survey has expired')
-    }
-
-    if (survey.status === 'completed') {
-      throw new Error('Survey already completed')
-    }
-
-    const { data, error } = await supabase
-      .from('feedback_surveys')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        rating_overall: input.rating_overall,
-        rating_quality: input.rating_quality,
-        rating_communication: input.rating_communication,
-        rating_timeliness: input.rating_timeliness,
-        rating_value: input.rating_value,
-        would_recommend: input.would_recommend,
-        likelihood_to_recommend: input.likelihood_to_recommend,
-        feedback_text: input.feedback_text,
-        improvement_suggestions: input.improvement_suggestions,
-        testimonial_text: input.testimonial_text,
-        testimonial_permission: input.testimonial_permission || false,
-        ip_address: ipAddress,
-        user_agent: userAgent,
+    // Use secure RPC function that validates token at database level
+    // This prevents direct table access bypass and ensures token validation
+    const { data: result, error } = await supabase
+      .rpc('submit_feedback', {
+        p_token: token,
+        p_rating_overall: input.rating_overall,
+        p_rating_quality: input.rating_quality ?? null,
+        p_rating_communication: input.rating_communication ?? null,
+        p_rating_timeliness: input.rating_timeliness ?? null,
+        p_rating_value: input.rating_value ?? null,
+        p_would_recommend: input.would_recommend ?? null,
+        p_likelihood_to_recommend: input.likelihood_to_recommend ?? null,
+        p_feedback_text: input.feedback_text ?? null,
+        p_improvement_suggestions: input.improvement_suggestions ?? null,
+        p_testimonial_text: input.testimonial_text ?? null,
+        p_testimonial_permission: input.testimonial_permission ?? false,
+        p_ip_address: ipAddress ?? null,
+        p_user_agent: userAgent ?? null,
       })
-      .eq('access_token', token)
-      .select()
-      .single()
 
     if (error) throw error
 
-    return data
+    const response = result as {
+      success: boolean
+      error?: string
+      survey_id?: string
+      status?: string
+    }
+
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to submit feedback')
+    }
+
+    // Return minimal survey data (caller doesn't need full details)
+    return {
+      id: response.survey_id!,
+      status: response.status || 'completed',
+    } as FeedbackSurvey
   }
 
   static async sendSurvey(surveyId: string, recipientEmail?: string): Promise<void> {

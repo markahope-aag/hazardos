@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceLogger } from '@/lib/utils/logger';
+import { redactPII } from '@/lib/utils/pii-redaction';
 import type { EstimateSuggestion, SuggestedLineItem } from '@/types/integrations';
 
 const log = createServiceLogger('AIEstimateService');
@@ -52,6 +53,93 @@ export class AIEstimateService {
     return this.client;
   }
 
+  /**
+   * Check if AI estimate suggestions are enabled for the organization
+   */
+  private static async checkAIEnabled(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    organizationId: string
+  ): Promise<{ enabled: boolean; anonymize: boolean }> {
+    const { data } = await supabase
+      .from('organization_ai_settings')
+      .select('ai_enabled, estimate_suggestions_enabled, anonymize_customer_data')
+      .eq('organization_id', organizationId)
+      .single();
+
+    return {
+      enabled: data?.ai_enabled && data?.estimate_suggestions_enabled,
+      anonymize: data?.anonymize_customer_data ?? true,
+    };
+  }
+
+  /**
+   * Log AI usage for audit trail
+   */
+  private static async logUsage(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    organizationId: string,
+    operation: string,
+    options: {
+      processingTimeMs?: number;
+      success?: boolean;
+      errorMessage?: string;
+      piiRedacted?: boolean;
+      relatedEntityType?: string;
+      relatedEntityId?: string;
+    } = {}
+  ): Promise<void> {
+    try {
+      await supabase.rpc('log_ai_usage', {
+        p_organization_id: organizationId,
+        p_service_name: 'estimate_suggestion',
+        p_operation: operation,
+        p_provider: 'anthropic',
+        p_model_version: MODEL_VERSION,
+        p_related_entity_type: options.relatedEntityType ?? null,
+        p_related_entity_id: options.relatedEntityId ?? null,
+        p_data_categories: ['text'],
+        p_pii_redacted: options.piiRedacted ?? false,
+        p_processing_time_ms: options.processingTimeMs ?? null,
+        p_success: options.success ?? true,
+        p_error_message: options.errorMessage ?? null,
+      });
+    } catch (error) {
+      log.warn({ error }, 'Failed to log AI usage');
+    }
+  }
+
+  /**
+   * Redact PII from estimate input before sending to AI
+   */
+  private static redactInputPII(input: EstimateInput): { input: EstimateInput; wasRedacted: boolean } {
+    let wasRedacted = false;
+
+    // Redact site survey notes
+    let redactedSurveyNotes = input.site_survey_notes;
+    if (input.site_survey_notes) {
+      const result = redactPII(input.site_survey_notes);
+      redactedSurveyNotes = result.text;
+      if (result.wasRedacted) wasRedacted = true;
+    }
+
+    // Redact customer notes
+    let redactedCustomerNotes = input.customer_notes;
+    if (input.customer_notes) {
+      const result = redactPII(input.customer_notes);
+      redactedCustomerNotes = result.text;
+      if (result.wasRedacted) wasRedacted = true;
+    }
+
+    return {
+      input: {
+        ...input,
+        site_survey_notes: redactedSurveyNotes,
+        customer_notes: redactedCustomerNotes,
+      },
+      wasRedacted,
+    };
+  }
+
   static async suggestEstimate(
     organizationId: string,
     input: EstimateInput
@@ -59,11 +147,37 @@ export class AIEstimateService {
     const supabase = await createClient();
     const startTime = Date.now();
 
+    // Check if AI features are enabled for this organization
+    const aiSettings = await this.checkAIEnabled(supabase, organizationId);
+    if (!aiSettings.enabled) {
+      throw new Error(
+        'AI estimate suggestions are not enabled for this organization. ' +
+        'Please enable AI features in Settings → AI & Automation to use this feature.'
+      );
+    }
+
+    // Redact PII from input if anonymization is enabled
+    let processedInput = input;
+    let piiWasRedacted = false;
+
+    if (aiSettings.anonymize) {
+      const redactionResult = this.redactInputPII(input);
+      processedInput = redactionResult.input;
+      piiWasRedacted = redactionResult.wasRedacted;
+
+      if (piiWasRedacted) {
+        log.info(
+          { organizationId, operation: 'suggestEstimate' },
+          'PII redacted from estimate input before AI processing'
+        );
+      }
+    }
+
     // Fetch organization's pricing data
     const pricingData = await this.getPricingData(organizationId);
 
-    // Build the prompt
-    const prompt = this.buildEstimatePrompt(input, pricingData);
+    // Build the prompt with redacted input
+    const prompt = this.buildEstimatePrompt(processedInput, pricingData);
 
     // Call Claude
     const client = this.getClient();
@@ -126,9 +240,17 @@ Include all necessary line items: labor, materials, equipment, disposal, permits
         confidence: parsedResponse.confidence,
         itemCount: parsedResponse.items.length,
         totalAmount,
+        piiRedacted: piiWasRedacted,
       },
       'AI estimate generated'
     );
+
+    // Log AI usage for audit trail
+    await this.logUsage(supabase, organizationId, 'suggest', {
+      processingTimeMs: durationMs,
+      success: true,
+      piiRedacted: piiWasRedacted,
+    });
 
     return suggestion;
   }
@@ -138,6 +260,15 @@ Include all necessary line items: labor, materials, equipment, disposal, permits
     jobId: string
   ): Promise<VarianceAnalysis> {
     const supabase = await createClient();
+
+    // Check if AI features are enabled
+    const aiSettings = await this.checkAIEnabled(supabase, organizationId);
+    if (!aiSettings.enabled) {
+      throw new Error(
+        'AI estimate suggestions are not enabled for this organization. ' +
+        'Please enable AI features in Settings → AI & Automation.'
+      );
+    }
 
     // Get job with estimate and actual costs
     const { data: job } = await supabase
@@ -226,6 +357,13 @@ Respond in JSON format:
         // Use defaults if parsing fails
       }
     }
+
+    // Log AI usage
+    await this.logUsage(supabase, organizationId, 'analyze_variance', {
+      success: true,
+      relatedEntityType: 'job',
+      relatedEntityId: jobId,
+    });
 
     return {
       job_id: jobId,
