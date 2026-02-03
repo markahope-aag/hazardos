@@ -121,8 +121,8 @@ const nextConfig = {
       // Scripts - allow self, and unsafe-inline/eval for Next.js hydration
       // In production, Next.js requires these for client-side rendering
       'script-src': isDev
-        ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://js.stripe.com']
-        : ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://js.stripe.com'],
+        ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://js.stripe.com', 'https://va.vercel-scripts.com']
+        : ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://js.stripe.com', 'https://va.vercel-scripts.com'],
 
       // Styles - allow self and unsafe-inline for Next.js styled-jsx and Tailwind
       'style-src': ["'self'", "'unsafe-inline'"],
@@ -133,7 +133,7 @@ const nextConfig = {
       // Fonts - allow self and data URIs (for inline fonts)
       'font-src': ["'self'", 'data:'],
 
-      // Connect (fetch, XHR, WebSocket) - allow self, Supabase, Stripe, and Sentry
+      // Connect (fetch, XHR, WebSocket) - allow self, Supabase, Stripe, Sentry, and Vercel
       'connect-src': isDev
         ? [
             "'self'",
@@ -144,6 +144,8 @@ const nextConfig = {
             'https://api.anthropic.com',
             'https://*.ingest.sentry.io',
             'https://*.sentry.io',
+            'https://va.vercel-scripts.com',
+            'https://vitals.vercel-insights.com',
             'ws://localhost:*',
             'http://localhost:*',
           ]
@@ -156,6 +158,8 @@ const nextConfig = {
             'https://api.anthropic.com',
             'https://*.ingest.sentry.io',
             'https://*.sentry.io',
+            'https://va.vercel-scripts.com',
+            'https://vitals.vercel-insights.com',
           ],
 
       // Frames - allow self and Stripe for checkout
