@@ -33,7 +33,7 @@ export function JobsByStatus() {
       try {
         const response = await fetch('/api/analytics/jobs-by-status');
         const result = await response.json();
-        setData(result);
+        setData(Array.isArray(result) ? result : []);
       } catch {
         // Job stats fetch failed - chart will show empty state
       } finally {
