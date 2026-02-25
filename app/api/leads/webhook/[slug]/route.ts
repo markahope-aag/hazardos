@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LeadWebhookService } from '@/lib/services/lead-webhook-service';
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
+import { createRequestLogger, formatError } from '@/lib/utils/logger';
 
 // This endpoint is public - no authentication required
 // Authentication is handled per-endpoint using API keys or signatures
@@ -69,7 +70,15 @@ export async function POST(
       );
     }
   } catch (error) {
-    console.error('Lead webhook error:', error);
+    const log = createRequestLogger({
+      requestId: crypto.randomUUID(),
+      method: 'POST',
+      path: '/api/leads/webhook/[slug]',
+    });
+    log.error(
+      { error: formatError(error, 'LEAD_WEBHOOK_ERROR') },
+      'Lead webhook error'
+    );
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

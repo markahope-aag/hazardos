@@ -4,6 +4,7 @@ import { ReportingService } from '@/lib/services/reporting-service'
 import { reportTypeConfig, dateRangePresets } from '@/types/reporting'
 import type { ReportType, ReportConfig, DateRangeType } from '@/types/reporting'
 import { ReportViewerLazy } from '@/components/reports/report-viewer-lazy'
+import { logger, formatError } from '@/lib/utils/logger'
 
 interface Props {
   params: Promise<{ type: string }>
@@ -59,7 +60,13 @@ export default async function ReportTypePage({ params, searchParams }: Props) {
         break
     }
   } catch (error) {
-    console.error('Failed to load initial report data:', error)
+    logger.error(
+      { 
+        error: formatError(error, 'REPORT_LOAD_ERROR'),
+        reportType: type
+      },
+      'Failed to load initial report data'
+    )
   }
 
   return (

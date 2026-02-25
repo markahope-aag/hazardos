@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Download, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { generatePDFAsync } from '@/components/pdf/pdf-lazy'
+import { logger, formatError } from '@/lib/utils/logger'
 
 interface ProposalPDFGeneratorProps {
   estimateId: string
@@ -76,7 +77,13 @@ export default function ProposalPDFGenerator({
         description: 'Proposal PDF generated successfully',
       })
     } catch (error) {
-      console.error('Error generating PDF:', error)
+      logger.error(
+        { 
+          error: formatError(error, 'PDF_GENERATION_ERROR'),
+          estimateId
+        },
+        'Error generating PDF'
+      )
       toast({
         title: 'Error',
         description: 'Failed to generate proposal PDF',

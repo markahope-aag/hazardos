@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { SignupForm } from '@/components/auth/signup-form'
 
 export const metadata: Metadata = {
@@ -18,7 +19,9 @@ export default function SignupPage() {
           Start your 14-day free trial. No credit card required.
         </p>
       </div>
-      <SignupForm />
+      <Suspense fallback={<div>Loading...</div>}>
+        <SignupForm />
+      </Suspense>
       <div className="space-y-4">
         <p className="text-center text-sm text-gray-600">
           <Link

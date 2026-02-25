@@ -158,7 +158,7 @@ export function NotificationBell() {
       logger.error(
         { 
           error: formatError(error, 'NOTIFICATION_MARK_READ_ERROR'),
-          notificationId: id
+          notificationId: notification.id
         },
         'Failed to mark notification as read'
       )

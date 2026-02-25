@@ -28,11 +28,11 @@ export function track(
     return;
   }
 
-  try {
-    const sanitizedProps = properties
-      ? sanitizeProperties(properties)
-      : undefined;
+  const sanitizedProps = properties
+    ? sanitizeProperties(properties)
+    : undefined;
 
+  try {
     vercelTrack(eventName, sanitizedProps);
 
     log.debug(

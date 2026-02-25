@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleCalendarService } from '@/lib/services/google-calendar-service';
 import { jwtDecode } from 'jwt-decode';
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
+import { createRequestLogger, formatError } from '@/lib/utils/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -64,7 +65,15 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (_error) {
-    console.error('Google Calendar callback error:', _error);
+    const log = createRequestLogger({
+      requestId: crypto.randomUUID(),
+      method: 'GET',
+      path: '/api/integrations/google-calendar/callback',
+    });
+    log.error(
+      { error: formatError(_error, 'GOOGLE_CALENDAR_CALLBACK_ERROR') },
+      'Google Calendar callback error'
+    );
     return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=callback_failed`
     );

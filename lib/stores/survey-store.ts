@@ -21,6 +21,9 @@ import {
 } from './survey-types'
 import { mapStoreToDb, mapDbToStore, createInitialDbRecord } from './survey-mappers'
 import { createClient } from '@/lib/supabase/client'
+import { createServiceLogger, formatError } from '@/lib/utils/logger'
+
+const log = createServiceLogger('SurveyStore')
 
 interface SurveyState {
   // Survey identification
@@ -516,7 +519,7 @@ export const useSurveyStore = create<SurveyState>()(
         const { organizationId, customerId } = state
 
         if (!organizationId) {
-          console.error('Cannot create survey: organizationId is required')
+          log.error('Cannot create survey: organizationId is required')
           return null
         }
 
@@ -544,7 +547,10 @@ export const useSurveyStore = create<SurveyState>()(
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to create survey'
           set({ isSyncing: false, syncError: message })
-          console.error('Create survey error:', error)
+          log.error(
+            { error: formatError(error, 'CREATE_SURVEY_ERROR') },
+            'Create survey error'
+          )
           return null
         }
       },
@@ -578,7 +584,13 @@ export const useSurveyStore = create<SurveyState>()(
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to load survey'
           set({ isSyncing: false, syncError: message })
-          console.error('Load survey error:', error)
+          log.error(
+            { 
+              error: formatError(error, 'LOAD_SURVEY_ERROR'),
+              surveyId
+            },
+            'Load survey error'
+          )
           return false
         }
       },
@@ -604,7 +616,7 @@ export const useSurveyStore = create<SurveyState>()(
 
         // Sync to Supabase
         if (!organizationId) {
-          console.warn('Cannot sync to database: organizationId is required')
+          log.warn('Cannot sync to database: organizationId is required')
           set({ isDirty: false, lastSavedAt: new Date().toISOString() })
           return true
         }
@@ -641,7 +653,10 @@ export const useSurveyStore = create<SurveyState>()(
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to save draft'
           set({ isSyncing: false, syncError: message })
-          console.error('Save draft error:', error)
+          log.error(
+            { error: formatError(error, 'SAVE_DRAFT_ERROR') },
+            'Save draft error'
+          )
           return false
         }
       },
@@ -651,13 +666,13 @@ export const useSurveyStore = create<SurveyState>()(
         const { currentSurveyId, organizationId } = state
 
         if (!currentSurveyId || !organizationId) {
-          console.error('Cannot submit: surveyId and organizationId are required')
+          log.error('Cannot submit: surveyId and organizationId are required')
           return false
         }
 
         // Validate all sections first
         if (!get().validateAll()) {
-          console.error('Cannot submit: validation failed')
+          log.error('Cannot submit: validation failed')
           return false
         }
 
@@ -694,7 +709,10 @@ export const useSurveyStore = create<SurveyState>()(
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to submit survey'
           set({ isSyncing: false, syncError: message })
-          console.error('Submit survey error:', error)
+          log.error(
+            { error: formatError(error, 'SUBMIT_SURVEY_ERROR') },
+            'Submit survey error'
+          )
           return false
         }
       },
