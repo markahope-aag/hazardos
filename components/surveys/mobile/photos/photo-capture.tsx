@@ -8,6 +8,7 @@ import { processPhotoQueue } from '@/lib/services/photo-upload-service'
 import { PhotoCategory } from '@/lib/stores/survey-types'
 import { Camera, Loader2, ImagePlus, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { logger, formatError } from '@/lib/utils/logger'
 
 // Image compression settings
 const MAX_IMAGE_WIDTH = 1920
@@ -231,14 +232,20 @@ export function PhotoCapture({
         onCapture?.()
 
         // Log success
-        console.log('Photo captured:', {
-          id: photoId,
+        logger.debug({
+          photoId,
           category,
-          size: `${(blob.size / 1024).toFixed(1)}KB`,
+          sizeKB: Math.round(blob.size / 1024),
           hasGPS: !!gpsCoordinates,
-        })
+        }, 'Photo captured')
       } catch (err) {
-        console.error('Error processing photo:', err)
+        logger.error(
+          { 
+            error: formatError(err, 'PHOTO_PROCESSING_ERROR'),
+            category
+          },
+          'Error processing photo'
+        )
         setError(err instanceof Error ? err.message : 'Failed to process photo')
       } finally {
         setIsProcessing(false)

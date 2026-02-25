@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase/client'
 import { FileText, Save, Loader2 } from 'lucide-react'
+import { logger, formatError } from '@/lib/utils/logger'
 import type { SiteSurvey } from '@/types/database'
 
 interface NotesSectionProps {
@@ -38,7 +39,13 @@ export function NotesSection({ survey }: NotesSectionProps) {
         description: 'Office notes have been updated.',
       })
     } catch (error) {
-      console.error('Error saving notes:', error)
+      logger.error(
+        { 
+          error: formatError(error, 'NOTES_SAVE_ERROR'),
+          surveyId: survey.id
+        },
+        'Error saving notes'
+      )
       toast({
         title: 'Error',
         description: 'Failed to save notes. Please try again.',

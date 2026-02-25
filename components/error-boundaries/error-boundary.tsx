@@ -5,25 +5,39 @@ import { AlertCircle, RefreshCw, Bug, ChevronDown, ChevronUp } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { logger, formatError } from '@/lib/utils/logger';
 
 // Error logging hook interface
 export interface ErrorLogger {
   logError: (error: Error, errorInfo: React.ErrorInfo, context?: Record<string, unknown>) => void;
 }
 
-// Default console logger
+// Default structured logger with console fallback
 const defaultLogger: ErrorLogger = {
   logError: (error, errorInfo, context) => {
-    console.error('[ErrorBoundary] Caught error:', {
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      },
-      componentStack: errorInfo.componentStack,
-      context,
-      timestamp: new Date().toISOString(),
-    });
+    try {
+      logger.error(
+        {
+          error: formatError(error, 'REACT_ERROR_BOUNDARY'),
+          componentStack: errorInfo.componentStack,
+          context,
+        },
+        'ErrorBoundary caught error'
+      );
+    } catch (loggingError) {
+      // Fallback to console if structured logging fails
+      console.error('[ErrorBoundary] Caught error:', {
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        },
+        componentStack: errorInfo.componentStack,
+        context,
+        timestamp: new Date().toISOString(),
+        loggingError: loggingError instanceof Error ? loggingError.message : String(loggingError),
+      });
+    }
   },
 };
 

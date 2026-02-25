@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,9 +11,12 @@ import { Loader2 } from 'lucide-react'
 
 export function SignupForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<{firstName?: string; lastName?: string; email?: string; password?: string; confirmPassword?: string}>({})
+
+  const inviteToken = searchParams.get('invite')
 
   // Check if Supabase is configured
   const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -69,6 +72,7 @@ export function SignupForm() {
           data: {
             first_name: firstName,
             last_name: lastName,
+            ...(inviteToken ? { invite_token: inviteToken } : {}),
           },
           emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboard`,
         },
@@ -112,6 +116,13 @@ export function SignupForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
+      {inviteToken && (
+        <div className="p-3 rounded-md bg-blue-50 text-blue-800 border border-blue-200">
+          <p className="text-sm">
+            You&apos;ve been invited to join a team. Create your account to get started.
+          </p>
+        </div>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="firstName">First Name</Label>

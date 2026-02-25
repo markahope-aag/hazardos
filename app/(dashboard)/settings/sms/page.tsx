@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2, MessageSquare, Clock, Bell, Shield, Phone, Save, AlertTriangle } from 'lucide-react';
+import { logger, formatError } from '@/lib/utils/logger';
 import type { OrganizationSmsSettings } from '@/types/sms';
 
 const TIMEZONES = [
@@ -61,7 +62,10 @@ export default function SmsSettingsPage() {
         setSettings(data);
       }
     } catch (err) {
-      console.error('Failed to fetch SMS settings:', err);
+      logger.error(
+        { error: formatError(err, 'SMS_SETTINGS_FETCH_ERROR') },
+        'Failed to fetch SMS settings'
+      );
     } finally {
       setLoading(false);
     }

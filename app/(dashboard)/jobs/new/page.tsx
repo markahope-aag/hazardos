@@ -24,6 +24,7 @@ import {
 import { ArrowLeft, CalendarIcon, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
+import { logger, formatError } from '@/lib/utils/logger'
 import Link from 'next/link'
 
 interface Customer {
@@ -74,7 +75,10 @@ export default function NewJobPage() {
           setCustomers(data.customers)
         }
       } catch (error) {
-        console.error('Failed to fetch customers:', error)
+        logger.error(
+          { error: formatError(error, 'CUSTOMERS_FETCH_ERROR') },
+          'Failed to fetch customers'
+        )
       } finally {
         setLoadingCustomers(false)
       }

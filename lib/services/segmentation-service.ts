@@ -2,6 +2,9 @@ import { createClient } from '@/lib/supabase/server';
 import type { CustomerSegment, SegmentRule } from '@/types/integrations';
 import { MailchimpService } from './mailchimp-service';
 import { HubSpotService } from './hubspot-service';
+import { createServiceLogger, formatError } from '@/lib/utils/logger';
+
+const log = createServiceLogger('SegmentationService');
 
 export interface CreateSegmentInput {
   name: string;
@@ -486,7 +489,14 @@ export class SegmentationService {
           tagName
         );
       } catch (error) {
-        console.error(`Failed to sync customer ${customer.id} to Mailchimp:`, error);
+        log.error(
+          { 
+            error: formatError(error, 'MAILCHIMP_SYNC_ERROR'),
+            customerId: customer.id,
+            segmentId: segment.id
+          },
+          'Failed to sync customer to Mailchimp'
+        );
       }
     }
 
@@ -525,7 +535,14 @@ export class SegmentationService {
       try {
         await HubSpotService.syncContact(segment.organization_id, customer.id);
       } catch (error) {
-        console.error(`Failed to sync customer ${customer.id} to HubSpot:`, error);
+        log.error(
+          { 
+            error: formatError(error, 'HUBSPOT_SYNC_ERROR'),
+            customerId: customer.id,
+            segmentId: segment.id
+          },
+          'Failed to sync customer to HubSpot'
+        );
       }
     }
 

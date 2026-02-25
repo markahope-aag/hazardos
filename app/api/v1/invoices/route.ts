@@ -4,6 +4,7 @@ import { withApiKeyAuth, ApiKeyAuthContext } from '@/lib/middleware/api-key-auth
 import { ApiKeyService } from '@/lib/services/api-key-service';
 import { handlePreflight } from '@/lib/middleware/cors';
 import { v1InvoiceListQuerySchema, v1CreateInvoiceSchema, formatZodError } from '@/lib/validations/v1-api';
+import { createRequestLogger, formatError } from '@/lib/utils/logger';
 
 async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
   // Check scope
@@ -166,7 +167,16 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     .single();
 
   if (error) {
-    console.error('Failed to create invoice:', error);
+    const log = createRequestLogger({
+      requestId: crypto.randomUUID(),
+      method: 'POST',
+      path: '/api/v1/invoices',
+      organizationId: context.apiKey.organization_id,
+    });
+    log.error(
+      { error: formatError(error, 'INVOICE_CREATE_ERROR') },
+      'Failed to create invoice'
+    );
     return NextResponse.json({ error: 'Failed to create invoice' }, { status: 500 });
   }
 

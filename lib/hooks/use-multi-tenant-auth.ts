@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { Profile, Organization } from '@/types/database'
+import { logger, formatError } from '@/lib/utils/logger'
 
 interface MultiTenantAuthState {
   user: User | null
@@ -25,7 +26,7 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
 
   const fetchProfileAndOrg = useCallback(async (currentUser: User) => {
     try {
-      console.log('[Auth] Fetching profile for user:', currentUser.id)
+      logger.debug({ userId: currentUser.id }, 'Fetching profile for user')
       // Get user profile
       const { data: userProfile, error: profileError } = await supabase
         .from('profiles')
@@ -33,20 +34,26 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
         .eq('id', currentUser.id)
         .single()
 
-      console.log('[Auth] Profile fetch complete:', { hasProfile: !!userProfile, error: profileError?.code })
+      logger.debug(
+        { hasProfile: !!userProfile, errorCode: profileError?.code },
+        'Profile fetch complete'
+      )
 
       if (profileError) {
         // PGRST116 means no rows found - profile doesn't exist yet
         if (profileError.code === 'PGRST116') {
-          console.log('[Auth] Profile not found for user, may need to be created')
+          logger.info('Profile not found for user, may need to be created')
         } else {
-          console.error('[Auth] Error fetching profile:', profileError.code, profileError.message)
+          logger.error(
+            { error: formatError(profileError, 'PROFILE_FETCH_ERROR') },
+            'Error fetching profile'
+          )
         }
         return
       }
 
       if (!userProfile) {
-        console.log('[Auth] No profile data returned')
+        logger.warn('No profile data returned')
         return
       }
 
@@ -61,7 +68,10 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
           .single()
 
         if (orgError) {
-          console.error('[Auth] Error fetching organization:', orgError)
+          logger.error(
+            { error: formatError(orgError, 'ORGANIZATION_FETCH_ERROR') },
+            'Error fetching organization'
+          )
         } else {
           setOrganization(org)
         }
@@ -78,13 +88,19 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
             })
             .eq('id', currentUser.id)
         } catch (error) {
-          console.error('[Auth] Failed to update login count:', error)
+          logger.error(
+            { error: formatError(error, 'LOGIN_COUNT_UPDATE_ERROR') },
+            'Failed to update login count'
+          )
         }
       }
       updateLoginInfo()
 
     } catch (error) {
-      console.error('[Auth] Error in fetchProfileAndOrg:', error)
+      logger.error(
+        { error: formatError(error, 'FETCH_PROFILE_ORG_ERROR') },
+        'Error in fetchProfileAndOrg'
+      )
     }
   }, [supabase])
 
@@ -96,7 +112,7 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
       if (!mounted) return
 
       if (!session?.user) {
-        console.log('[Auth] No session, clearing state')
+        logger.debug('No session, clearing state')
         setUser(null)
         setProfile(null)
         setOrganization(null)
@@ -104,7 +120,7 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
         return
       }
 
-      console.log('[Auth] Session found for:', session.user.email)
+      logger.debug({ userEmail: session.user.email }, 'Session found for user')
       setUser(session.user)
       await fetchProfileAndOrg(session.user)
       if (mounted) {
@@ -115,7 +131,10 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
     // Initial session check - use getSession which reads from storage without network call
     const initAuth = async () => {
       const { data: { session }, error } = await supabase.auth.getSession()
-      console.log('[Auth] Initial getSession:', { hasSession: !!session, error: error?.message })
+      logger.debug(
+        { hasSession: !!session, errorMessage: error?.message },
+        'Initial getSession'
+      )
       await handleSession(session)
     }
 
@@ -123,7 +142,10 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
 
     // Listen for auth changes - this handles login, logout, and token refresh
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[Auth] onAuthStateChange:', event, session?.user?.email)
+      logger.debug(
+        { event, userEmail: session?.user?.email },
+        'onAuthStateChange'
+      )
 
       if (!mounted) return
 

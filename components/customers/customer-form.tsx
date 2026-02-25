@@ -15,6 +15,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { customerSchema, US_STATES, CUSTOMER_STATUS_OPTIONS, CUSTOMER_SOURCE_OPTIONS } from '@/lib/validations/customer'
 import { useFormAnalytics } from '@/lib/hooks/use-analytics'
+import { logger, formatError } from '@/lib/utils/logger'
 import type { CustomerFormData } from '@/lib/validations/customer'
 import type { Customer, CustomerStatus, CustomerSource } from '@/types/database'
 
@@ -81,7 +82,10 @@ export default function CustomerForm({
     } catch (error) {
       // Error handling is done in the mutation hooks
       formAnalytics.trackFailure(error instanceof Error ? error.message : 'unknown_error')
-      console.error('Form submission error:', error)
+      logger.error(
+        { error: formatError(error, 'CUSTOMER_FORM_SUBMISSION_ERROR') },
+        'Form submission error'
+      )
     }
   })
 

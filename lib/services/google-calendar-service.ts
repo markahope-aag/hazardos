@@ -1,7 +1,9 @@
 import { google, calendar_v3 } from 'googleapis';
 import { createClient } from '@/lib/supabase/server';
 import type { GoogleCalendarConnectionStatus } from '@/types/integrations';
+import { createServiceLogger, formatError } from '@/lib/utils/logger';
 
+const log = createServiceLogger('GoogleCalendarService');
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
@@ -364,7 +366,15 @@ export class GoogleCalendarService {
       });
     } catch (error) {
       // Event may already be deleted
-      console.error('Failed to delete calendar event:', error);
+      log.error(
+        { 
+          error: formatError(error, 'GOOGLE_DELETE_EVENT_ERROR'),
+          eventId,
+          calendarId,
+          organizationId
+        },
+        'Failed to delete calendar event'
+      );
     }
 
     // Remove sync record

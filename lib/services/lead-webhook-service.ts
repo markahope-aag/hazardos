@@ -448,7 +448,10 @@ export class LeadWebhookService {
 
       if (!leadStage) {
         // No lead stage configured - skip opportunity creation
-        console.warn(`No lead pipeline stage found for organization ${organizationId}`);
+        logger.warn(
+          { organizationId },
+          'No lead pipeline stage found for organization'
+        );
         return null;
       }
 

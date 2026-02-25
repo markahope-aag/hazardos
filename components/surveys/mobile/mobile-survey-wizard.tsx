@@ -10,6 +10,7 @@ import { useOnlineStatus, useOnlineSync } from '@/lib/hooks/use-online-status'
 import { SurveySection, SURVEY_SECTIONS, SECTION_LABELS } from '@/lib/stores/survey-types'
 import { processPhotoQueue, waitForUploads } from '@/lib/services/photo-upload-service'
 import { FormErrorBoundary, ErrorBoundary } from '@/components/error-boundaries'
+import { logger, formatError } from '@/lib/utils/logger'
 import {
   Save,
   X,
@@ -184,7 +185,10 @@ export default function MobileSurveyWizard({
         setCurrentSurveyId(surveyId)
         const loaded = await loadSurveyFromDb(surveyId)
         if (!loaded) {
-          console.error('Failed to load survey:', surveyId)
+          logger.error(
+            { surveyId },
+            'Failed to load survey'
+          )
         }
       } else if (!currentSurveyId && organizationId) {
         // Create new survey in database
@@ -255,7 +259,13 @@ export default function MobileSurveyWizard({
     // Show validation errors but still allow navigation (soft validation)
     if (!validation.isValid && currentSection !== 'review') {
       // User can still proceed, but they'll see the warning
-      console.log('Section validation issues:', validation.errors)
+      logger.debug(
+        { 
+          section: currentSection,
+          validationErrors: validation.errors
+        },
+        'Section validation issues'
+      )
     }
 
     if (!isLastSection) {
@@ -390,7 +400,13 @@ export default function MobileSurveyWizard({
         setSubmitError(syncError || 'Failed to submit survey. Please try again.')
       }
     } catch (error) {
-      console.error('Submission error:', error)
+      logger.error(
+        { 
+          error: formatError(error, 'MOBILE_SURVEY_SUBMISSION_ERROR'),
+          surveyId: currentSurveyId
+        },
+        'Submission error'
+      )
       setSubmitError(
         error instanceof Error ? error.message : 'Failed to submit survey. Please try again.'
       )

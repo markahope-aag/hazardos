@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { LogoVertical } from '@/components/ui/logo'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
+import { logger, formatError } from '@/lib/utils/logger'
 import type { User } from '@supabase/supabase-js'
 
 export default function OnboardPage() {
@@ -104,7 +105,13 @@ export default function OnboardPage() {
       router.refresh()
 
     } catch (error) {
-      console.error('Onboarding error:', error)
+      logger.error(
+        { 
+          error: formatError(error, 'ONBOARDING_ERROR'),
+          userId: user?.id
+        },
+        'Onboarding error'
+      )
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'An error occurred during onboarding',

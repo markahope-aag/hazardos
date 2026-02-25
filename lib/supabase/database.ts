@@ -1,5 +1,6 @@
 import { createClient } from './client'
 import type { Assessment, AssessmentInsert, Profile } from '@/types/database'
+import { createServiceLogger, formatError } from '@/lib/utils/logger'
 
 interface MediaUploadResult {
   url: string
@@ -7,12 +8,17 @@ interface MediaUploadResult {
   size: number
 }
 
+const log = createServiceLogger('DatabaseService')
+
 // Create a typed Supabase client (only if environment variables are available)
 function getSupabaseClient() {
   try {
     return createClient()
   } catch (error) {
-    console.warn('Supabase client not available:', error)
+    log.warn(
+      { error: formatError(error, 'SUPABASE_CLIENT_INIT_ERROR') },
+      'Supabase client not available'
+    )
     return null
   }
 }
@@ -24,7 +30,7 @@ export class DatabaseService {
   // Profile operations
   static async getProfile(userId: string): Promise<Profile | null> {
     if (!supabase) {
-      console.error('Supabase client not available')
+      log.error('Supabase client not available')
       return null
     }
 
@@ -35,7 +41,10 @@ export class DatabaseService {
       .single()
 
     if (error) {
-      console.error('Error fetching profile:', error)
+      log.error(
+        { error: formatError(error, 'PROFILE_FETCH_ERROR'), userId },
+        'Error fetching profile'
+      )
       return null
     }
 
@@ -381,7 +390,14 @@ export class DatabaseService {
       .remove([filePath])
 
     if (storageError) {
-      console.error('Failed to delete file from storage:', storageError)
+      log.error(
+        { 
+          error: formatError(storageError, 'STORAGE_DELETE_ERROR'),
+          filePath,
+          photoId 
+        },
+        'Failed to delete file from storage'
+      )
     }
 
     // Delete from database

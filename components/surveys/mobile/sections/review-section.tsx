@@ -15,6 +15,7 @@ import {
 import { CompletionChecklist, SurveySummary } from '../review'
 import { UploadStatus } from '../photos'
 import { VoiceNoteButton } from '../inputs'
+import { logger, formatError } from '@/lib/utils/logger'
 import { FileCheck, Send, Loader2, WifiOff, CloudUpload } from 'lucide-react'
 
 export function ReviewSection() {
@@ -97,7 +98,13 @@ export function ReviewSection() {
         setSubmitError(syncError || 'Failed to submit survey. Please try again.')
       }
     } catch (error) {
-      console.error('Submission error:', error)
+      logger.error(
+        { 
+          error: formatError(error, 'SURVEY_REVIEW_SUBMISSION_ERROR'),
+          surveyId: currentSurveyId
+        },
+        'Submission error'
+      )
       setSubmitError(
         error instanceof Error ? error.message : 'Failed to submit survey. Please try again.'
       )

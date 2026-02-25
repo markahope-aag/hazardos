@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase/client'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
+import { logger, formatError } from '@/lib/utils/logger'
 import { SurveyStatusBadge, HazardTypeBadge } from '@/components/surveys/survey-status-badge'
 import { SurveyDetailTabs } from './survey-detail-tabs'
 import { SurveyActions } from './survey-actions'
@@ -79,7 +80,14 @@ export default function SurveyDetailPage() {
 
       setSurvey(transformedData)
     } catch (error) {
-      console.error('Error loading survey:', error)
+      logger.error(
+        { 
+          error: formatError(error, 'SURVEY_LOAD_ERROR'),
+          surveyId,
+          organizationId: organization?.id
+        },
+        'Error loading survey'
+      )
       toast({
         title: 'Error',
         description: 'Failed to load survey.',

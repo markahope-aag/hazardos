@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { SmsService } from '@/lib/services/sms-service';
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
+import { createRequestLogger, formatError } from '@/lib/utils/logger';
 
 // This endpoint should be called by a cron job (e.g., Vercel Cron) every hour
 // Configure in vercel.json:
@@ -13,6 +14,12 @@ import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
 // }
 
 export async function GET(request: NextRequest) {
+  const log = createRequestLogger({
+    requestId: crypto.randomUUID(),
+    method: 'GET',
+    path: '/api/cron/appointment-reminders',
+  });
+
   try {
     // Apply rate limiting (use auth type for cron jobs - 10/min is plenty)
     const rateLimitResponse = await applyUnifiedRateLimit(request, 'auth');
@@ -58,7 +65,7 @@ export async function GET(request: NextRequest) {
       // Get jobs in reminder window that haven't been reminded yet
       const { data: jobs } = await supabase
         .from('jobs')
-        .select('id')
+        .select('id, organization_id')
         .eq('organization_id', org.organization_id)
         .eq('status', 'scheduled')
         .gte('scheduled_start', windowStart.toISOString())
@@ -79,7 +86,14 @@ export async function GET(request: NextRequest) {
             sent++;
           }
         } catch (error) {
-          console.error(`Failed to send reminder for job ${job.id}:`, error);
+          log.error(
+            { 
+              error: formatError(error, 'REMINDER_SEND_ERROR'),
+              jobId: job.id,
+              organizationId: job.organization_id
+            },
+            'Failed to send reminder for job'
+          );
           errors.push({
             jobId: job.id,
             error: error instanceof Error ? error.message : 'Unknown error',
@@ -96,7 +110,10 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Cron job error:', error);
+    log.error(
+      { error: formatError(error, 'CRON_JOB_ERROR') },
+      'Cron job error'
+    );
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

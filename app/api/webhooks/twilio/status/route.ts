@@ -3,9 +3,17 @@ import twilio from 'twilio';
 import { SmsService } from '@/lib/services/sms-service';
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
 import { createClient } from '@/lib/supabase/server';
+import { createRequestLogger, formatError } from '@/lib/utils/logger';
 
 // Twilio status callback webhook
 export async function POST(request: NextRequest) {
+  const log = createRequestLogger({
+    requestId: crypto.randomUUID(),
+    method: 'POST',
+    path: '/api/webhooks/twilio/status',
+    userAgent: request.headers.get('user-agent') || undefined,
+  });
+
   try {
     // Apply rate limiting for webhooks
     const rateLimitResponse = await applyUnifiedRateLimit(request, 'webhook');
@@ -40,7 +48,13 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (msgError || !message) {
-      console.warn('No message found for SID:', messageSid);
+      log.warn(
+        { 
+          messageSid,
+          error: msgError ? formatError(msgError, 'MESSAGE_LOOKUP_ERROR') : undefined
+        },
+        'No message found for SID'
+      );
       // Return success to prevent Twilio retries
       return NextResponse.json({ success: true });
     }
@@ -53,7 +67,13 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (settingsError || !smsSettings?.twilio_auth_token) {
-      console.warn('No SMS settings found for organization:', message.organization_id);
+      log.warn(
+        { 
+          organizationId: message.organization_id,
+          error: settingsError ? formatError(settingsError, 'SMS_SETTINGS_ERROR') : undefined
+        },
+        'No SMS settings found for organization'
+      );
       return NextResponse.json({ success: true });
     }
 
@@ -61,7 +81,7 @@ export async function POST(request: NextRequest) {
     const twilioSignature = request.headers.get('X-Twilio-Signature');
 
     if (!twilioSignature) {
-      console.warn('Missing X-Twilio-Signature header');
+      log.warn('Missing X-Twilio-Signature header');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -75,7 +95,10 @@ export async function POST(request: NextRequest) {
     );
 
     if (!isValid) {
-      console.warn('Invalid Twilio signature for message:', messageSid);
+      log.warn(
+        { messageSid },
+        'Invalid Twilio signature for message'
+      );
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -89,7 +112,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Twilio status webhook error:', error);
+    log.error(
+      { error: formatError(error, 'TWILIO_STATUS_WEBHOOK_ERROR') },
+      'Twilio status webhook error'
+    );
     // Return 200 to prevent Twilio from retrying
     return NextResponse.json({ success: false });
   }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 
 export default function LoginForm() {
-  const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<{email?: string; password?: string}>({})
@@ -115,6 +114,14 @@ export default function LoginForm() {
             {errors.password}
           </p>
         )}
+        <div className="text-right">
+          <Link
+            href="/forgot-password"
+            className="text-sm text-primary underline-offset-4 hover:underline"
+          >
+            Forgot your password?
+          </Link>
+        </div>
       </div>
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? 'Signing in...' : 'Sign In'}
