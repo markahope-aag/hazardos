@@ -10,6 +10,7 @@ import {
   getPendingSurveys,
   getPendingPhotos,
 } from '@/lib/services/offline-storage-service'
+import { logger, formatError } from '@/lib/utils/logger'
 
 // Sync status
 export type SyncStatus =
@@ -152,7 +153,10 @@ export function useOfflineSync(): OfflineSyncState {
           storagePercentUsed: estimate.percentUsed,
         })
       } catch (error) {
-        console.error('Error updating offline counts:', error)
+        logger.error(
+          { error: formatError(error, 'OFFLINE_COUNTS_UPDATE_ERROR') },
+          'Error updating offline counts'
+        )
       }
     }
 
@@ -204,7 +208,10 @@ export function useOfflineSync(): OfflineSyncState {
         return false
       }
     } catch (error) {
-      console.error('Sync error:', error)
+      logger.error(
+        { error: formatError(error, 'SYNC_ERROR') },
+        'Sync error'
+      )
       setLastSyncError(
         error instanceof Error ? error.message : 'Sync failed'
       )

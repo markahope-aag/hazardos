@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { OutlookCalendarService } from '@/lib/services/outlook-calendar-service';
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
+import { createRequestLogger, formatError } from '@/lib/utils/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -58,7 +59,15 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (_error) {
-    console.error('Outlook Calendar callback error:', _error);
+    const log = createRequestLogger({
+      requestId: crypto.randomUUID(),
+      method: 'GET',
+      path: '/api/integrations/outlook-calendar/callback',
+    });
+    log.error(
+      { error: formatError(_error, 'OUTLOOK_CALLBACK_ERROR') },
+      'Outlook Calendar callback error'
+    );
     return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=callback_failed`
     );
