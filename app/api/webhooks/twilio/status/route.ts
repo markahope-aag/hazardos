@@ -62,13 +62,18 @@ export async function POST(request: NextRequest) {
     // Get the organization's Twilio auth token
     const { data: smsSettings, error: settingsError } = await supabase
       .from('organization_sms_settings')
-      .select('twilio_auth_token')
+      .select('twilio_auth_token, use_platform_twilio')
       .eq('organization_id', message.organization_id)
       .maybeSingle();
 
-    if (settingsError || !smsSettings?.twilio_auth_token) {
+    // Resolve auth token: platform-level or org-level
+    const authToken = smsSettings?.use_platform_twilio
+      ? (process.env.TWILIO_AUTH_TOKEN || null)
+      : smsSettings?.twilio_auth_token || null;
+
+    if (settingsError || !authToken) {
       log.warn(
-        { 
+        {
           organizationId: message.organization_id,
           error: settingsError ? formatError(settingsError, 'SMS_SETTINGS_ERROR') : undefined
         },
@@ -88,7 +93,7 @@ export async function POST(request: NextRequest) {
     const webhookUrl = process.env.TWILIO_STATUS_WEBHOOK_URL || request.url;
 
     const isValid = twilio.validateRequest(
-      smsSettings.twilio_auth_token,
+      authToken,
       twilioSignature,
       webhookUrl,
       params
