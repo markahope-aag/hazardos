@@ -14,8 +14,7 @@ interface SurveyDetailTabsProps {
     customer?: {
       id: string
       company_name: string | null
-      first_name: string
-      last_name: string
+      name: string
       email: string | null
       phone: string | null
     } | null

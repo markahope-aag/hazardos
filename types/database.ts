@@ -820,33 +820,30 @@ export interface Database {
         Row: {
           id: string
           organization_id: string
-          role_title: string
-          hourly_rate: number
-          overtime_multiplier: number
+          name: string
+          rate_per_hour: number
           description: string | null
-          is_active: boolean
+          is_default: boolean
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           organization_id: string
-          role_title: string
-          hourly_rate: number
-          overtime_multiplier?: number
+          name: string
+          rate_per_hour: number
           description?: string | null
-          is_active?: boolean
+          is_default?: boolean
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           organization_id?: string
-          role_title?: string
-          hourly_rate?: number
-          overtime_multiplier?: number
+          name?: string
+          rate_per_hour?: number
           description?: string | null
-          is_active?: boolean
+          is_default?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -855,39 +852,27 @@ export interface Database {
         Row: {
           id: string
           organization_id: string
-          equipment_name: string
-          daily_rate: number
-          weekly_rate: number | null
-          monthly_rate: number | null
-          category: string | null
+          name: string
+          rate_per_day: number
           description: string | null
-          is_active: boolean
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           organization_id: string
-          equipment_name: string
-          daily_rate: number
-          weekly_rate?: number | null
-          monthly_rate?: number | null
-          category?: string | null
+          name: string
+          rate_per_day: number
           description?: string | null
-          is_active?: boolean
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           organization_id?: string
-          equipment_name?: string
-          daily_rate?: number
-          weekly_rate?: number | null
-          monthly_rate?: number | null
-          category?: string | null
+          name?: string
+          rate_per_day?: number
           description?: string | null
-          is_active?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -896,39 +881,30 @@ export interface Database {
         Row: {
           id: string
           organization_id: string
-          material_name: string
-          unit_cost: number
-          unit_type: string
-          category: string | null
-          supplier: string | null
+          name: string
+          cost_per_unit: number
+          unit: string
           description: string | null
-          is_active: boolean
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           organization_id: string
-          material_name: string
-          unit_cost: number
-          unit_type: string
-          category?: string | null
-          supplier?: string | null
+          name: string
+          cost_per_unit: number
+          unit: string
           description?: string | null
-          is_active?: boolean
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           organization_id?: string
-          material_name?: string
-          unit_cost?: number
-          unit_type?: string
-          category?: string | null
-          supplier?: string | null
+          name?: string
+          cost_per_unit?: number
+          unit?: string
           description?: string | null
-          is_active?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -938,12 +914,8 @@ export interface Database {
           id: string
           organization_id: string
           hazard_type: DisposalHazardType
-          unit_cost: number
-          unit_type: string
-          facility_name: string | null
-          location: string | null
+          cost_per_cubic_yard: number
           description: string | null
-          is_active: boolean
           created_at: string
           updated_at: string
         }
@@ -951,12 +923,8 @@ export interface Database {
           id?: string
           organization_id: string
           hazard_type: DisposalHazardType
-          unit_cost: number
-          unit_type: string
-          facility_name?: string | null
-          location?: string | null
+          cost_per_cubic_yard: number
           description?: string | null
-          is_active?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -964,12 +932,8 @@ export interface Database {
           id?: string
           organization_id?: string
           hazard_type?: DisposalHazardType
-          unit_cost?: number
-          unit_type?: string
-          facility_name?: string | null
-          location?: string | null
+          cost_per_cubic_yard?: number
           description?: string | null
-          is_active?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -978,36 +942,30 @@ export interface Database {
         Row: {
           id: string
           organization_id: string
-          rate_name: string
-          mileage_rate: number | null
-          hourly_rate: number | null
+          min_miles: number
+          max_miles: number | null
           flat_fee: number | null
-          description: string | null
-          is_active: boolean
+          per_mile_rate: number | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           organization_id: string
-          rate_name: string
-          mileage_rate?: number | null
-          hourly_rate?: number | null
+          min_miles: number
+          max_miles?: number | null
           flat_fee?: number | null
-          description?: string | null
-          is_active?: boolean
+          per_mile_rate?: number | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           organization_id?: string
-          rate_name?: string
-          mileage_rate?: number | null
-          hourly_rate?: number | null
+          min_miles?: number
+          max_miles?: number | null
           flat_fee?: number | null
-          description?: string | null
-          is_active?: boolean
+          per_mile_rate?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -1016,36 +974,48 @@ export interface Database {
         Row: {
           id: string
           organization_id: string
-          default_markup_percentage: number
-          minimum_job_amount: number | null
-          emergency_multiplier: number | null
-          weekend_multiplier: number | null
-          holiday_multiplier: number | null
-          settings: unknown
+          default_markup_percent: number
+          minimum_markup_percent: number
+          maximum_markup_percent: number
+          office_address_line1: string | null
+          office_address_line2: string | null
+          office_city: string | null
+          office_state: string | null
+          office_zip: string | null
+          office_lat: number | null
+          office_lng: number | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           organization_id: string
-          default_markup_percentage: number
-          minimum_job_amount?: number | null
-          emergency_multiplier?: number | null
-          weekend_multiplier?: number | null
-          holiday_multiplier?: number | null
-          settings?: unknown
+          default_markup_percent?: number
+          minimum_markup_percent?: number
+          maximum_markup_percent?: number
+          office_address_line1?: string | null
+          office_address_line2?: string | null
+          office_city?: string | null
+          office_state?: string | null
+          office_zip?: string | null
+          office_lat?: number | null
+          office_lng?: number | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           organization_id?: string
-          default_markup_percentage?: number
-          minimum_job_amount?: number | null
-          emergency_multiplier?: number | null
-          weekend_multiplier?: number | null
-          holiday_multiplier?: number | null
-          settings?: unknown
+          default_markup_percent?: number
+          minimum_markup_percent?: number
+          maximum_markup_percent?: number
+          office_address_line1?: string | null
+          office_address_line2?: string | null
+          office_city?: string | null
+          office_state?: string | null
+          office_zip?: string | null
+          office_lat?: number | null
+          office_lng?: number | null
           created_at?: string
           updated_at?: string
         }

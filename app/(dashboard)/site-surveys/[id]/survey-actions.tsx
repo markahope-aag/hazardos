@@ -34,9 +34,10 @@ import type { SiteSurvey } from '@/types/database'
 
 interface SurveyActionsProps {
   survey: SiteSurvey
+  onStatusChange?: () => void
 }
 
-export function SurveyActions({ survey }: SurveyActionsProps) {
+export function SurveyActions({ survey, onStatusChange }: SurveyActionsProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isUpdating, setIsUpdating] = useState(false)
@@ -60,11 +61,15 @@ export function SurveyActions({ survey }: SurveyActionsProps) {
         title: 'Status updated',
         description: `Survey status changed to ${newStatus}.`,
       })
-      router.refresh()
-    } catch {
+      if (onStatusChange) {
+        onStatusChange()
+      } else {
+        router.refresh()
+      }
+    } catch (err) {
       toast({
         title: 'Error',
-        description: 'Failed to update status. Please try again.',
+        description: err instanceof Error ? err.message : 'Failed to update status. Please try again.',
         variant: 'destructive',
       })
     } finally {
@@ -85,10 +90,10 @@ export function SurveyActions({ survey }: SurveyActionsProps) {
         description: 'The survey has been deleted.',
       })
       router.push('/site-surveys')
-    } catch {
+    } catch (err) {
       toast({
         title: 'Error',
-        description: 'Failed to delete survey. Please try again.',
+        description: err instanceof Error ? err.message : 'Failed to delete survey. Please try again.',
         variant: 'destructive',
       })
     } finally {

@@ -23,7 +23,7 @@ export const GET = createApiHandler(
       .select(`
         *,
         site_survey:site_surveys(id, job_name, site_address, site_city, site_state, site_zip, hazard_type, status),
-        customer:customers(id, company_name, first_name, last_name, email, phone),
+        customer:customers(id, company_name, name, email, phone),
         created_by_user:profiles!created_by(id, first_name, last_name, email)
       `, { count: 'exact' })
       .eq('organization_id', context.profile.organization_id)
@@ -89,6 +89,7 @@ export const POST = createApiHandler(
     const calculation = await calculateEstimateFromSurvey(
       survey,
       context.profile.organization_id,
+      context.supabase,
       {
         customMarkup: body.markup_percent,
       }

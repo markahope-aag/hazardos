@@ -9,8 +9,7 @@ interface PropertySectionProps {
     customer?: {
       id: string
       company_name: string | null
-      first_name: string
-      last_name: string
+      name: string
       email: string | null
       phone: string | null
     } | null
@@ -102,8 +101,7 @@ export function PropertySection({ survey }: PropertySectionProps) {
               <div>
                 <label className="text-sm text-muted-foreground">Customer</label>
                 <p className="font-medium">
-                  {survey.customer.company_name ||
-                    `${survey.customer.first_name} ${survey.customer.last_name}`}
+                  {survey.customer.company_name || survey.customer.name}
                 </p>
               </div>
               {survey.customer.email && (

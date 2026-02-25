@@ -10,7 +10,7 @@ interface DebugResult {
   step: string
   status: 'pending' | 'success' | 'error'
   message: string
-  details?: any
+  details?: Record<string, unknown>
 }
 
 export function LoginDebugComponent() {
@@ -30,15 +30,15 @@ export function LoginDebugComponent() {
     // Step 1: Test Supabase connection
     addResult({ step: 'Supabase Connection', status: 'pending', message: 'Testing connection...' })
     try {
-      const { data, error } = await supabase.from('profiles').select('count').limit(1)
+      const { error } = await supabase.from('profiles').select('count').limit(1)
       if (error) throw error
       addResult({ step: 'Supabase Connection', status: 'success', message: 'Connected successfully' })
-    } catch (error: any) {
-      addResult({ 
-        step: 'Supabase Connection', 
-        status: 'error', 
-        message: error.message,
-        details: error
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error'
+      addResult({
+        step: 'Supabase Connection',
+        status: 'error',
+        message: msg,
       })
     }
 
@@ -92,12 +92,12 @@ export function LoginDebugComponent() {
                 message: `Organization: ${org.name}`,
                 details: org
               })
-            } catch (error: any) {
-              addResult({ 
-                step: 'Organization Fetch', 
-                status: 'error', 
-                message: error.message,
-                details: error
+            } catch (error) {
+              const msg = error instanceof Error ? error.message : 'Unknown error'
+              addResult({
+                step: 'Organization Fetch',
+                status: 'error',
+                message: msg,
               })
             }
           } else {
@@ -108,24 +108,24 @@ export function LoginDebugComponent() {
             })
           }
 
-        } catch (error: any) {
-          addResult({ 
-            step: 'Profile Fetch', 
-            status: 'error', 
-            message: error.message,
-            details: error
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : 'Unknown error'
+          addResult({
+            step: 'Profile Fetch',
+            status: 'error',
+            message: msg,
           })
         }
 
       } else {
         addResult({ step: 'Auth State', status: 'success', message: 'Not logged in' })
       }
-    } catch (error: any) {
-      addResult({ 
-        step: 'Auth State', 
-        status: 'error', 
-        message: error.message,
-        details: error
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error'
+      addResult({
+        step: 'Auth State',
+        status: 'error',
+        message: msg,
       })
     }
 

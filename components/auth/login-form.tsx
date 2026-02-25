@@ -62,7 +62,7 @@ export default function LoginForm() {
     }, 30000) // 30 second timeout
 
     try {
-      console.log('🔐 Attempting login for:', email)
+      // Login attempt
       
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -72,14 +72,14 @@ export default function LoginForm() {
       clearTimeout(timeoutId)
 
       if (error) {
-        console.error('❌ Login error:', error)
+        console.error('Login error:', error)
         toast({
           title: 'Login Failed',
           description: error.message,
           variant: 'destructive',
         })
       } else {
-        console.log('✅ Login successful, redirecting...')
+        // Login successful
         toast({
           title: 'Login Successful',
           description: 'Redirecting to dashboard...',
