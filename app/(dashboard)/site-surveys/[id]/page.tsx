@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, FileText, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Calculator } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase/client'
@@ -18,8 +18,7 @@ type SurveyWithRelations = SiteSurvey & {
   customer?: {
     id: string
     company_name: string | null
-    first_name: string
-    last_name: string
+    name: string
     email: string | null
     phone: string | null
   } | null
@@ -38,6 +37,7 @@ export default function SurveyDetailPage() {
   const { organization } = useMultiTenantAuth()
   const [survey, setSurvey] = useState<SurveyWithRelations | null>(null)
   const [loading, setLoading] = useState(true)
+  const [generatingEstimate, setGeneratingEstimate] = useState(false)
 
   const surveyId = params.id as string
 
@@ -52,7 +52,7 @@ export default function SurveyDetailPage() {
         .from('site_surveys')
         .select(`
           *,
-          customer:customers(id, company_name, first_name, last_name, email, phone),
+          customer:customers(id, company_name, name, email, phone),
           technician:profiles!assigned_to(id, first_name, last_name, email)
         `)
         .eq('id', surveyId)
@@ -125,7 +125,7 @@ export default function SurveyDetailPage() {
   }
 
   const customerName = survey.customer
-    ? survey.customer.company_name || `${survey.customer.first_name} ${survey.customer.last_name}`
+    ? survey.customer.company_name || survey.customer.name
     : survey.customer_name
 
   return (
@@ -161,14 +161,46 @@ export default function SurveyDetailPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <SurveyActions survey={survey} />
+          <SurveyActions survey={survey} onStatusChange={loadSurvey} />
 
           {survey.status === 'reviewed' && (
-            <Button asChild>
-              <Link href={`/estimates/new?survey=${survey.id}`}>
-                <FileText className="h-4 w-4 mr-2" />
-                Generate Estimate
-              </Link>
+            <Button
+              onClick={async () => {
+                try {
+                  setGeneratingEstimate(true)
+                  const res = await fetch('/api/estimates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ site_survey_id: survey.id }),
+                  })
+                  if (!res.ok) {
+                    const err = await res.json().catch(() => ({}))
+                    throw new Error(err.error || 'Failed to generate estimate')
+                  }
+                  const { estimate } = await res.json()
+                  toast({
+                    title: 'Estimate generated',
+                    description: `Estimate ${estimate.estimate_number} has been created.`,
+                  })
+                  router.push(`/estimates/${estimate.id}`)
+                } catch (error) {
+                  toast({
+                    title: 'Error',
+                    description: error instanceof Error ? error.message : 'Failed to generate estimate.',
+                    variant: 'destructive',
+                  })
+                } finally {
+                  setGeneratingEstimate(false)
+                }
+              }}
+              disabled={generatingEstimate}
+            >
+              {generatingEstimate ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Calculator className="h-4 w-4 mr-2" />
+              )}
+              {generatingEstimate ? 'Generating...' : 'Generate Estimate'}
             </Button>
           )}
         </div>

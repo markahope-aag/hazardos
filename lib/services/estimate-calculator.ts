@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { SiteSurvey, LaborRate, EquipmentRate, MaterialCost, DisposalFee, TravelRate, PricingSetting } from '@/types/database'
 import type { CalculatedLineItem, EstimateCalculation } from '@/types/estimates'
 
@@ -20,6 +20,49 @@ interface CalculatorOptions {
   includeTesting?: boolean
   includePermits?: boolean
   customMarkup?: number
+}
+
+// Hazard assessment JSONB types from mobile survey form
+interface AsbestosMaterial {
+  materialType: string
+  quantity: number
+  unit: string
+  location: string
+  condition: string
+  friable: boolean
+}
+
+interface MoldArea {
+  location: string
+  squareFootage: number
+  materialType: string
+  severity: string
+}
+
+interface LeadComponent {
+  componentType: string
+  location: string
+  quantity: number
+  unit: string
+  condition: string
+}
+
+interface HazardAssessments {
+  types?: string[]
+  asbestos?: {
+    materials?: AsbestosMaterial[]
+    estimatedWasteVolume?: number
+    containmentLevel?: number
+    epaNotificationRequired?: boolean
+  }
+  mold?: {
+    affectedAreas?: MoldArea[]
+  }
+  lead?: {
+    components?: LeadComponent[]
+    totalWorkArea?: number
+    rrpRuleApplies?: boolean
+  }
 }
 
 // ============================================================================
@@ -100,25 +143,25 @@ const DISPOSAL_MULTIPLIER: Record<string, number> = {
 
 export class EstimateCalculator {
   private organizationId: string
+  private supabase: SupabaseClient
   private pricingData: PricingData | null = null
 
-  constructor(organizationId: string) {
+  constructor(organizationId: string, supabase: SupabaseClient) {
     this.organizationId = organizationId
+    this.supabase = supabase
   }
 
   /**
    * Load all pricing data for the organization
    */
   async loadPricingData(): Promise<void> {
-    const supabase = createClient()
-
     const [laborRes, equipmentRes, materialRes, disposalRes, travelRes, settingsRes] = await Promise.all([
-      supabase.from('labor_rates').select('*').eq('organization_id', this.organizationId).eq('is_active', true),
-      supabase.from('equipment_rates').select('*').eq('organization_id', this.organizationId).eq('is_active', true),
-      supabase.from('material_costs').select('*').eq('organization_id', this.organizationId).eq('is_active', true),
-      supabase.from('disposal_fees').select('*').eq('organization_id', this.organizationId).eq('is_active', true),
-      supabase.from('travel_rates').select('*').eq('organization_id', this.organizationId).eq('is_active', true),
-      supabase.from('pricing_settings').select('*').eq('organization_id', this.organizationId).single(),
+      this.supabase.from('labor_rates').select('*').eq('organization_id', this.organizationId),
+      this.supabase.from('equipment_rates').select('*').eq('organization_id', this.organizationId),
+      this.supabase.from('material_costs').select('*').eq('organization_id', this.organizationId),
+      this.supabase.from('disposal_fees').select('*').eq('organization_id', this.organizationId),
+      this.supabase.from('travel_rates').select('*').eq('organization_id', this.organizationId),
+      this.supabase.from('pricing_settings').select('*').eq('organization_id', this.organizationId).single(),
     ])
 
     this.pricingData = {
@@ -132,7 +175,9 @@ export class EstimateCalculator {
   }
 
   /**
-   * Calculate estimate from a site survey
+   * Calculate estimate from a site survey.
+   * Uses hazard_assessments JSONB data when available for multi-hazard support,
+   * falling back to flat survey fields (hazard_type, area_sqft, containment_level).
    */
   async calculateFromSurvey(
     survey: SiteSurvey,
@@ -146,49 +191,58 @@ export class EstimateCalculator {
     const lineItems: CalculatedLineItem[] = []
     let sortOrder = 0
 
-    // Calculate area (use sqft, or estimate from linear ft or volume)
-    const areaSqft = this.calculateArea(survey)
-    const containmentLevel = survey.containment_level || 1
-    const hazardType = survey.hazard_type || 'other'
+    // Parse hazard assessments JSONB
+    const assessments = (survey as Record<string, unknown>).hazard_assessments as HazardAssessments | null
+    const hazardTypes = assessments?.types?.length
+      ? assessments.types
+      : [survey.hazard_type || 'other']
 
-    // 1. Calculate Labor
-    const laborItems = this.calculateLabor(hazardType, areaSqft, containmentLevel, sortOrder)
-    lineItems.push(...laborItems)
-    sortOrder += laborItems.length
+    // Generate line items for each hazard type
+    for (const hazardType of hazardTypes) {
+      const { areaSqft, containmentLevel, wasteVolumeCuYd, isFriable, needsPermits } =
+        this.deriveParamsFromAssessments(hazardType, assessments, survey)
 
-    // 2. Calculate Equipment
-    const equipmentItems = this.calculateEquipment(hazardType, containmentLevel, sortOrder)
-    lineItems.push(...equipmentItems)
-    sortOrder += equipmentItems.length
+      // 1. Calculate Labor
+      const laborItems = this.calculateLabor(hazardType, areaSqft, containmentLevel, sortOrder)
+      lineItems.push(...laborItems)
+      sortOrder += laborItems.length
 
-    // 3. Calculate Materials
-    const materialItems = this.calculateMaterials(hazardType, areaSqft, sortOrder)
-    lineItems.push(...materialItems)
-    sortOrder += materialItems.length
+      // 2. Calculate Equipment
+      const equipmentItems = this.calculateEquipment(hazardType, containmentLevel, sortOrder)
+      lineItems.push(...equipmentItems)
+      sortOrder += equipmentItems.length
 
-    // 4. Calculate Disposal
-    const disposalItems = this.calculateDisposal(hazardType, areaSqft, survey.volume_cuft, sortOrder)
-    lineItems.push(...disposalItems)
-    sortOrder += disposalItems.length
+      // 3. Calculate Materials
+      const materialItems = this.calculateMaterials(hazardType, areaSqft, sortOrder)
+      lineItems.push(...materialItems)
+      sortOrder += materialItems.length
 
-    // 5. Calculate Travel (optional)
+      // 4. Calculate Disposal
+      const disposalItems = this.calculateDisposal(hazardType, areaSqft, wasteVolumeCuYd, isFriable, sortOrder)
+      lineItems.push(...disposalItems)
+      sortOrder += disposalItems.length
+
+      // 5. Calculate Testing/Clearance (if required)
+      if (options.includeTesting !== false && survey.clearance_required) {
+        const testingItems = this.calculateTesting(hazardType, areaSqft, sortOrder)
+        lineItems.push(...testingItems)
+        sortOrder += testingItems.length
+      }
+
+      // 6. Calculate Permits (from JSONB or flat field)
+      const shouldIncludePermits = needsPermits || survey.regulatory_notifications_needed
+      if (options.includePermits !== false && shouldIncludePermits) {
+        const permitItems = this.calculatePermits(hazardType, sortOrder)
+        lineItems.push(...permitItems)
+        sortOrder += permitItems.length
+      }
+    }
+
+    // 7. Calculate Travel (once, not per hazard type)
     if (options.includeTravel !== false) {
       const travelItems = this.calculateTravel(sortOrder)
       lineItems.push(...travelItems)
       sortOrder += travelItems.length
-    }
-
-    // 6. Calculate Testing/Clearance (if required)
-    if (options.includeTesting !== false && survey.clearance_required) {
-      const testingItems = this.calculateTesting(hazardType, areaSqft, sortOrder)
-      lineItems.push(...testingItems)
-      sortOrder += testingItems.length
-    }
-
-    // 7. Calculate Permits (if regulatory notifications needed)
-    if (options.includePermits !== false && survey.regulatory_notifications_needed) {
-      const permitItems = this.calculatePermits(hazardType, sortOrder)
-      lineItems.push(...permitItems)
     }
 
     // Calculate totals
@@ -197,14 +251,11 @@ export class EstimateCalculator {
       .reduce((sum, item) => sum + item.total_price, 0)
 
     const markupPercent = options.customMarkup ??
-      this.pricingData?.pricingSettings?.default_markup_percentage ?? 20
+      this.pricingData?.pricingSettings?.default_markup_percent ?? 20
     const markupAmount = subtotal * (markupPercent / 100)
 
-    // No discount by default
     const discountPercent = 0
     const discountAmount = 0
-
-    // No tax by default (varies by jurisdiction)
     const taxPercent = 0
     const taxAmount = 0
 
@@ -224,6 +275,67 @@ export class EstimateCalculator {
   }
 
   // ============================================================================
+  // Hazard Assessment Data Extraction
+  // ============================================================================
+
+  private deriveParamsFromAssessments(
+    hazardType: string,
+    assessments: HazardAssessments | null,
+    survey: SiteSurvey
+  ): {
+    areaSqft: number
+    containmentLevel: number
+    wasteVolumeCuYd: number | null
+    isFriable: boolean | null
+    needsPermits: boolean
+  } {
+    // Default: fall back to flat survey fields
+    let areaSqft = this.calculateArea(survey)
+    let containmentLevel = survey.containment_level || 1
+    let wasteVolumeCuYd: number | null = survey.volume_cuft ? survey.volume_cuft / 27 : null
+    let isFriable: boolean | null = null
+    let needsPermits = false
+
+    if (!assessments) {
+      return { areaSqft, containmentLevel, wasteVolumeCuYd, isFriable, needsPermits }
+    }
+
+    switch (hazardType) {
+      case 'asbestos': {
+        const asb = assessments.asbestos
+        if (asb) {
+          if (asb.materials?.length) {
+            areaSqft = asb.materials.reduce((sum, m) => sum + (m.quantity || 0), 0) || areaSqft
+            isFriable = asb.materials.some(m => m.friable)
+          }
+          if (asb.containmentLevel) containmentLevel = asb.containmentLevel
+          if (asb.estimatedWasteVolume) wasteVolumeCuYd = asb.estimatedWasteVolume
+          if (asb.epaNotificationRequired) needsPermits = true
+        }
+        break
+      }
+      case 'mold': {
+        const mold = assessments.mold
+        if (mold?.affectedAreas?.length) {
+          const totalSqft = mold.affectedAreas.reduce((sum, a) => sum + (a.squareFootage || 0), 0)
+          if (totalSqft > 0) areaSqft = totalSqft
+        }
+        break
+      }
+      case 'lead': {
+        const lead = assessments.lead
+        if (lead) {
+          if (lead.totalWorkArea && lead.totalWorkArea > 0) areaSqft = lead.totalWorkArea
+          if (lead.rrpRuleApplies) needsPermits = true
+        }
+        break
+      }
+    }
+
+    return { areaSqft, containmentLevel, wasteVolumeCuYd, isFriable, needsPermits }
+  }
+
+  // ============================================================================
   // Private Calculation Methods
   // ============================================================================
 
@@ -231,15 +343,13 @@ export class EstimateCalculator {
     if (survey.area_sqft && survey.area_sqft > 0) {
       return survey.area_sqft
     }
-    // Estimate from linear feet (assume 2ft width for pipe/duct work)
     if (survey.linear_ft && survey.linear_ft > 0) {
       return survey.linear_ft * 2
     }
-    // Estimate from volume (assume 8ft ceiling)
     if (survey.volume_cuft && survey.volume_cuft > 0) {
       return survey.volume_cuft / 8
     }
-    return 100 // Default minimum area
+    return 100
   }
 
   private calculateLabor(
@@ -253,26 +363,23 @@ export class EstimateCalculator {
     const crewSize = CREW_SIZE_BY_CONTAINMENT[containmentLevel] || 2
     const totalHours = areaSqft * hoursPerSqft
 
-    // Find labor rates from pricing data
     const supervisorRate = this.pricingData?.laborRates.find(r =>
-      r.role_title.toLowerCase().includes('supervisor')
+      r.name.toLowerCase().includes('supervisor')
     )
     const technicianRate = this.pricingData?.laborRates.find(r =>
-      r.role_title.toLowerCase().includes('technician') ||
-      r.role_title.toLowerCase().includes('worker')
+      r.name.toLowerCase().includes('technician') ||
+      r.name.toLowerCase().includes('worker')
     )
 
-    // Default rates if not found
     const defaultSupervisorRate = 85
     const defaultTechnicianRate = 55
 
-    // Supervisor labor (1 supervisor, full hours)
     const supervisorHours = totalHours
-    const supervisorUnitPrice = supervisorRate?.hourly_rate || defaultSupervisorRate
+    const supervisorUnitPrice = supervisorRate?.rate_per_hour || defaultSupervisorRate
     items.push({
       item_type: 'labor',
       category: 'Supervisor',
-      description: 'Project Supervisor',
+      description: `Project Supervisor (${hazardType})`,
       quantity: this.roundQuantity(supervisorHours),
       unit: 'hour',
       unit_price: supervisorUnitPrice,
@@ -283,14 +390,13 @@ export class EstimateCalculator {
       is_included: true,
     })
 
-    // Technician labor (crew size - 1, full hours)
     const techCount = Math.max(crewSize - 1, 1)
     const technicianHours = totalHours * techCount
-    const technicianUnitPrice = technicianRate?.hourly_rate || defaultTechnicianRate
+    const technicianUnitPrice = technicianRate?.rate_per_hour || defaultTechnicianRate
     items.push({
       item_type: 'labor',
       category: 'Technician',
-      description: `Abatement Technicians (${techCount})`,
+      description: `Abatement Technicians x${techCount} (${hazardType})`,
       quantity: this.roundQuantity(technicianHours),
       unit: 'hour',
       unit_price: technicianUnitPrice,
@@ -311,18 +417,15 @@ export class EstimateCalculator {
   ): CalculatedLineItem[] {
     const items: CalculatedLineItem[] = []
     const neededEquipment = EQUIPMENT_BY_HAZARD[hazardType] || EQUIPMENT_BY_HAZARD.other
-
-    // Estimate days based on containment level
     const estimatedDays = Math.max(containmentLevel, 2)
 
     for (const equipmentName of neededEquipment) {
-      // Find matching equipment rate
       const rate = this.pricingData?.equipmentRates.find(r =>
-        r.equipment_name.toLowerCase().includes(equipmentName.toLowerCase()) ||
-        equipmentName.toLowerCase().includes(r.equipment_name.toLowerCase())
+        r.name.toLowerCase().includes(equipmentName.toLowerCase()) ||
+        equipmentName.toLowerCase().includes(r.name.toLowerCase())
       )
 
-      const dailyRate = rate?.daily_rate || this.getDefaultEquipmentRate(equipmentName)
+      const dailyRate = rate?.rate_per_day || this.getDefaultEquipmentRate(equipmentName)
 
       items.push({
         item_type: 'equipment',
@@ -353,13 +456,12 @@ export class EstimateCalculator {
     for (const material of materialList) {
       const quantity = areaSqft * material.qtyPerSqft
 
-      // Find matching material cost
       const cost = this.pricingData?.materialCosts.find(m =>
-        m.material_name.toLowerCase().includes(material.name.toLowerCase()) ||
-        material.name.toLowerCase().includes(m.material_name.toLowerCase())
+        m.name.toLowerCase().includes(material.name.toLowerCase()) ||
+        material.name.toLowerCase().includes(m.name.toLowerCase())
       )
 
-      const unitPrice = cost?.unit_cost || this.getDefaultMaterialRate(material.name)
+      const unitPrice = cost?.cost_per_unit || this.getDefaultMaterialRate(material.name)
 
       items.push({
         item_type: 'material',
@@ -382,38 +484,38 @@ export class EstimateCalculator {
   private calculateDisposal(
     hazardType: string,
     areaSqft: number,
-    volumeCuft: number | null,
+    wasteVolumeCuYd: number | null,
+    isFriable: boolean | null,
     startOrder: number
   ): CalculatedLineItem[] {
     const items: CalculatedLineItem[] = []
 
-    // Calculate waste volume (cubic yards)
-    let wasteVolumeCuYd: number
-    if (volumeCuft && volumeCuft > 0) {
-      wasteVolumeCuYd = volumeCuft / 27 // Convert cubic feet to cubic yards
+    // Use provided waste volume or estimate from area
+    let volume: number
+    if (wasteVolumeCuYd && wasteVolumeCuYd > 0) {
+      volume = wasteVolumeCuYd
     } else {
       const multiplier = DISPOSAL_MULTIPLIER[hazardType] || 0.02
-      wasteVolumeCuYd = areaSqft * multiplier
+      volume = areaSqft * multiplier
     }
 
-    // Map hazard type to disposal hazard type
-    const disposalHazardType = this.mapToDisposalHazardType(hazardType)
+    // Map hazard type to disposal hazard type, using friable info when available
+    const disposalHazardType = this.mapToDisposalHazardType(hazardType, isFriable)
 
-    // Find matching disposal fee
     const fee = this.pricingData?.disposalFees.find(f =>
       f.hazard_type === disposalHazardType
     )
 
-    const unitPrice = fee?.unit_cost || this.getDefaultDisposalRate(hazardType)
+    const unitPrice = fee?.cost_per_cubic_yard || this.getDefaultDisposalRate(hazardType)
 
     items.push({
       item_type: 'disposal',
       category: 'Waste Disposal',
       description: `${hazardType.charAt(0).toUpperCase() + hazardType.slice(1)} Waste Disposal`,
-      quantity: this.roundQuantity(wasteVolumeCuYd),
+      quantity: this.roundQuantity(volume),
       unit: 'cubic yard',
       unit_price: unitPrice,
-      total_price: this.roundCurrency(wasteVolumeCuYd * unitPrice),
+      total_price: this.roundCurrency(volume * unitPrice),
       source_rate_id: fee?.id,
       source_table: 'disposal_fees',
       is_optional: false,
@@ -426,8 +528,10 @@ export class EstimateCalculator {
   private calculateTravel(startOrder: number): CalculatedLineItem[] {
     const items: CalculatedLineItem[] = []
 
-    // Find travel rate
-    const rate = this.pricingData?.travelRates.find(r => r.is_active)
+    // Use the first travel rate (lowest min_miles range)
+    const rate = this.pricingData?.travelRates
+      .sort((a, b) => a.min_miles - b.min_miles)
+      .find(r => r.flat_fee || r.per_mile_rate)
 
     if (rate?.flat_fee) {
       items.push({
@@ -444,7 +548,6 @@ export class EstimateCalculator {
         is_included: true,
       })
     } else {
-      // Default travel fee
       items.push({
         item_type: 'travel',
         category: 'Travel',
@@ -468,10 +571,8 @@ export class EstimateCalculator {
   ): CalculatedLineItem[] {
     const items: CalculatedLineItem[] = []
 
-    // Number of clearance samples based on area
     const sampleCount = Math.max(Math.ceil(areaSqft / 500), 3)
 
-    // Testing costs vary by hazard type
     const testingCosts: Record<string, { name: string; costPerSample: number }> = {
       asbestos: { name: 'Air Clearance Testing (PCM)', costPerSample: 150 },
       mold: { name: 'Post-Remediation Verification', costPerSample: 175 },
@@ -500,7 +601,6 @@ export class EstimateCalculator {
   private calculatePermits(hazardType: string, startOrder: number): CalculatedLineItem[] {
     const items: CalculatedLineItem[] = []
 
-    // Permit costs by hazard type
     const permitCosts: Record<string, { name: string; cost: number }[]> = {
       asbestos: [
         { name: 'EPA Notification', cost: 350 },
@@ -544,9 +644,13 @@ export class EstimateCalculator {
   // Helper Methods
   // ============================================================================
 
-  private mapToDisposalHazardType(hazardType: string): string {
+  private mapToDisposalHazardType(hazardType: string, isFriable: boolean | null): string {
+    if (hazardType === 'asbestos') {
+      // Use friable info from hazard_assessments when available
+      if (isFriable === false) return 'asbestos_non_friable'
+      return 'asbestos_friable'
+    }
     const mapping: Record<string, string> = {
-      asbestos: 'asbestos_friable',
       mold: 'mold',
       lead: 'lead',
       vermiculite: 'asbestos_non_friable',
@@ -604,7 +708,6 @@ export class EstimateCalculator {
   }
 
   private roundQuantity(value: number): number {
-    // Round to 2 decimal places, but use whole numbers for small quantities
     if (value < 1) {
       return Math.round(value * 100) / 100
     }
@@ -619,8 +722,8 @@ export class EstimateCalculator {
 /**
  * Create an estimate calculator instance
  */
-export function createEstimateCalculator(organizationId: string): EstimateCalculator {
-  return new EstimateCalculator(organizationId)
+export function createEstimateCalculator(organizationId: string, supabase: SupabaseClient): EstimateCalculator {
+  return new EstimateCalculator(organizationId, supabase)
 }
 
 /**
@@ -629,8 +732,9 @@ export function createEstimateCalculator(organizationId: string): EstimateCalcul
 export async function calculateEstimateFromSurvey(
   survey: SiteSurvey,
   organizationId: string,
+  supabase: SupabaseClient,
   options?: CalculatorOptions
 ): Promise<EstimateCalculation> {
-  const calculator = new EstimateCalculator(organizationId)
+  const calculator = new EstimateCalculator(organizationId, supabase)
   return calculator.calculateFromSurvey(survey, options)
 }

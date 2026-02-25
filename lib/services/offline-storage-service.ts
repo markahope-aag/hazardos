@@ -7,7 +7,7 @@
  * This is used in addition to localStorage for larger data like photos.
  */
 
-import { createServiceLogger, formatError } from '@/lib/utils/logger';
+import { createServiceLogger } from '@/lib/utils/logger';
 
 const log = createServiceLogger('OfflineStorageService');
 const DB_NAME = 'hazardos-surveys'

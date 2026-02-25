@@ -388,19 +388,19 @@ Respond in JSON format:
     // Fetch material costs
     const { data: materialCosts } = await supabase
       .from('material_costs')
-      .select('material_name, cost_per_unit')
+      .select('name, cost_per_unit')
       .eq('organization_id', organizationId);
 
     // Fetch disposal fees
     const { data: disposalFees } = await supabase
       .from('disposal_fees')
-      .select('waste_type, fee_per_unit')
+      .select('hazard_type, cost_per_cubic_yard')
       .eq('organization_id', organizationId);
 
     return {
       laborRates: (laborRates || []).reduce((acc, r) => ({ ...acc, [r.hazard_type]: r.rate }), {}),
-      materialCosts: (materialCosts || []).reduce((acc, m) => ({ ...acc, [m.material_name]: m.cost_per_unit }), {}),
-      disposalFees: (disposalFees || []).reduce((acc, d) => ({ ...acc, [d.waste_type]: d.fee_per_unit }), {}),
+      materialCosts: (materialCosts || []).reduce((acc, m) => ({ ...acc, [m.name]: m.cost_per_unit }), {}),
+      disposalFees: (disposalFees || []).reduce((acc, d) => ({ ...acc, [d.hazard_type]: d.cost_per_cubic_yard }), {}),
     };
   }
 

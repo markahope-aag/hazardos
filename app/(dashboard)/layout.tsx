@@ -22,7 +22,6 @@ export default function DashboardLayout({
       if (!user) {
         router.push('/login')
       } else if (profile && !profile.organization_id && !profile.is_platform_user) {
-        // Non-platform user with no organization - send to onboard
         router.push('/onboard')
       }
     }
