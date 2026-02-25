@@ -50,16 +50,30 @@ export default async function DashboardPage() {
 
   const { data: { user } } = await supabase.auth.getUser();
 
+  // If no user on server-side, render a minimal shell (client layout handles redirect)
+  if (!user) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">Loading your dashboard...</p>
+        </div>
+        <StatsCardsSkeleton />
+      </div>
+    );
+  }
+
   // Single query with join to avoid N+1 (profile + organization)
+  // Must disambiguate FK since profiles has two relationships to organizations
   const { data: profile } = await supabase
     .from('profiles')
     .select(`
       full_name,
       organization_id,
       role,
-      organization:organizations(name)
+      organization:organizations!profiles_organization_id_fkey(name)
     `)
-    .eq('id', user?.id)
+    .eq('id', user.id)
     .single();
 
   const organization = Array.isArray(profile?.organization)
