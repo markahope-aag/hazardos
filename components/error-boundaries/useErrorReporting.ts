@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
+import { logger, formatError } from '@/lib/utils/logger';
 
 export interface ErrorReport {
   error: Error;
@@ -81,15 +82,34 @@ export function useErrorReporting(options: UseErrorReportingOptions = {}) {
       // Call custom error handler if provided
       onError?.(report);
 
-      // Log to console in development
-      if (process.env.NODE_ENV === 'development') {
-        console.group('Error Report');
-        console.error('Error:', error);
-        console.info('Context:', report.context);
-        if (errorInfo) {
-          console.info('Component Stack:', errorInfo.componentStack);
+      // Log using structured logging
+      try {
+        logger.error(
+          {
+            error: formatError(error, 'ERROR_REPORTING_HOOK'),
+            context: report.context,
+            componentStack: errorInfo?.componentStack,
+            userAgent: report.userAgent,
+            url: report.url,
+          },
+          'Error reported via useErrorReporting hook'
+        );
+      } catch (loggingError) {
+        // Fallback to console in development if structured logging fails
+        if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.group('Error Report (Fallback)');
+          console.error('Error:', error);
+          // eslint-disable-next-line no-console
+          console.info('Context:', report.context);
+          if (errorInfo) {
+            // eslint-disable-next-line no-console
+            console.info('Component Stack:', errorInfo.componentStack);
+          }
+          console.error('Logging Error:', loggingError);
+          // eslint-disable-next-line no-console
+          console.groupEnd();
         }
-        console.groupEnd();
       }
 
       // Send to endpoint in production
@@ -111,7 +131,18 @@ export function useErrorReporting(options: UseErrorReportingOptions = {}) {
           });
         } catch (reportingError) {
           // Silently fail - don't crash the app if error reporting fails
-          console.error('Failed to report error:', reportingError);
+          try {
+            logger.error(
+              { 
+                error: formatError(reportingError, 'ERROR_REPORTING_FAILED'),
+                originalError: formatError(error, 'ORIGINAL_ERROR')
+              },
+              'Failed to report error to endpoint'
+            );
+          } catch {
+            // Ultimate fallback - use console if everything else fails
+            console.error('Failed to report error:', reportingError);
+          }
         }
       }
     },

@@ -11,6 +11,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import { logger, formatError } from '@/lib/utils/logger'
 import {
   Bell,
   BellRing,
@@ -104,7 +105,10 @@ export function NotificationBell() {
         setUnreadCount(data.count)
       }
     } catch (error) {
-      console.error('Failed to fetch notifications:', error)
+      logger.error(
+        { error: formatError(error, 'NOTIFICATIONS_FETCH_ERROR') },
+        'Failed to fetch notifications'
+      )
     } finally {
       setLoading(false)
     }
@@ -151,7 +155,13 @@ export function NotificationBell() {
         }
       }
     } catch (error) {
-      console.error('Failed to mark notification as read:', error)
+      logger.error(
+        { 
+          error: formatError(error, 'NOTIFICATION_MARK_READ_ERROR'),
+          notificationId: id
+        },
+        'Failed to mark notification as read'
+      )
     } finally {
       setMarkingRead(null)
     }
@@ -173,7 +183,10 @@ export function NotificationBell() {
         setUnreadCount(0)
       }
     } catch (error) {
-      console.error('Failed to mark all as read:', error)
+      logger.error(
+        { error: formatError(error, 'NOTIFICATIONS_MARK_ALL_READ_ERROR') },
+        'Failed to mark all as read'
+      )
     } finally {
       setMarkingAllRead(false)
     }

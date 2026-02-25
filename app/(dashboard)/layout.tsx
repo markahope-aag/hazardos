@@ -60,9 +60,9 @@ export default function DashboardLayout({
       <header className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
         <div className="container flex h-14 items-center justify-between">
           <div className="flex items-center space-x-6">
-            <a className="flex items-center space-x-2" href="/">
+            <Link className="flex items-center space-x-2" href="/">
               <LogoHorizontal size="md" />
-            </a>
+            </Link>
             
             {organization && (
               <>

@@ -6,6 +6,7 @@ import { Camera, Video, Upload, X, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
+import { logger, formatError } from '@/lib/utils/logger'
 import imageCompression from 'browser-image-compression'
 
 interface MediaFile {
@@ -55,7 +56,14 @@ export function MediaUpload({
         lastModified: Date.now(),
       })
     } catch (error) {
-      console.error('Image compression failed:', error)
+      logger.error(
+        { 
+          error: formatError(error, 'IMAGE_COMPRESSION_ERROR'),
+          fileName: file.name,
+          fileSize: file.size
+        },
+        'Image compression failed'
+      )
       return file
     }
   }
@@ -194,7 +202,15 @@ export function MediaUpload({
         newMedia.push(mediaFile)
         setProcessingProgress(((i + 1) / totalFiles) * 100)
       } catch (error) {
-        console.error('Error processing file:', file.name, error)
+        logger.error(
+          { 
+            error: formatError(error, 'FILE_PROCESSING_ERROR'),
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type
+          },
+          'Error processing file'
+        )
         toast({
           title: 'Processing failed',
           description: `Failed to process ${file.name}`,
@@ -270,7 +286,10 @@ export function MediaUpload({
       // Clean up stream
       stream.getTracks().forEach(track => track.stop())
     } catch (error) {
-      console.error('Camera access failed:', error)
+      logger.error(
+        { error: formatError(error, 'CAMERA_ACCESS_ERROR') },
+        'Camera access failed'
+      )
       toast({
         title: 'Camera access denied',
         description: 'Please allow camera access or select files manually',

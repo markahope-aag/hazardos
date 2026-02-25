@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Mic, Square, AlertCircle } from 'lucide-react'
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { logger, formatError } from '@/lib/utils/logger'
 
 interface VoiceNoteButtonProps {
   onRecordingComplete?: (blob: Blob) => void
@@ -96,7 +97,10 @@ export function VoiceNoteButton({
         setRecordingDuration(Math.floor((Date.now() - startTime) / 1000))
       }, 1000)
     } catch (err) {
-      console.error('Error starting recording:', err)
+      logger.error(
+        { error: formatError(err, 'VOICE_RECORDING_START_ERROR') },
+        'Error starting recording'
+      )
       if (err instanceof DOMException) {
         if (err.name === 'NotAllowedError') {
           setError('Microphone permission denied')
@@ -237,7 +241,10 @@ export function VoiceNoteIconButton({
       mediaRecorder.start(1000)
       setIsRecording(true)
     } catch (err) {
-      console.error('Error starting recording:', err)
+      logger.error(
+        { error: formatError(err, 'VOICE_RECORDING_START_ERROR') },
+        'Error starting recording'
+      )
       setError('Microphone access denied')
       cleanup()
     }

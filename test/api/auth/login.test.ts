@@ -276,11 +276,11 @@ async function loginHandler(request: NextRequest): Promise<Response> {
         }
       )
     }
-  } catch (_error) {
+  } catch {
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: 'Invalid request format' 
+      JSON.stringify({
+        success: false,
+        error: 'Invalid request format'
       }),
       { 
         status: 400,

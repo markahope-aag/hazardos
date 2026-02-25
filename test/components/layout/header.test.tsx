@@ -120,6 +120,7 @@ const Header = ({
                 aria-label="User menu"
               >
                 {user.avatar ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={user.avatar} alt={user.name} className="profile-avatar" />
                 ) : (
                   <div className="profile-avatar-placeholder" aria-hidden="true">

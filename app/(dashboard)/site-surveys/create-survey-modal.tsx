@@ -25,6 +25,7 @@ import {
 import { CustomerCombobox } from '@/components/customers/customer-combobox'
 import { Plus, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { logger, formatError } from '@/lib/utils/logger'
 
 interface Technician {
   id: string
@@ -160,7 +161,13 @@ function CreateSurveyForm({ onSuccess }: { onSuccess: () => void }) {
       router.refresh()
       onSuccess()
     } catch (error) {
-      console.error('Error creating survey:', error)
+      logger.error(
+        { 
+          error: formatError(error, 'SURVEY_CREATE_ERROR'),
+          organizationId: organization?.id
+        },
+        'Error creating survey'
+      )
       toast({
         title: 'Error',
         description: 'Failed to schedule survey. Please try again.',

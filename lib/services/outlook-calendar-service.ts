@@ -1,7 +1,9 @@
 import { Client } from '@microsoft/microsoft-graph-client';
 import { createClient } from '@/lib/supabase/server';
 import type { OutlookCalendarConnectionStatus } from '@/types/integrations';
+import { createServiceLogger, formatError } from '@/lib/utils/logger';
 
+const log = createServiceLogger('OutlookCalendarService');
 const AZURE_AUTH_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize';
 const AZURE_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
 
@@ -367,7 +369,14 @@ export class OutlookCalendarService {
     try {
       await client.api(`/me/events/${eventId}`).delete();
     } catch (error) {
-      console.error('Failed to delete calendar event:', error);
+      log.error(
+        { 
+          error: formatError(error, 'OUTLOOK_DELETE_EVENT_ERROR'),
+          eventId,
+          organizationId
+        },
+        'Failed to delete calendar event'
+      );
     }
 
     await supabase

@@ -29,6 +29,8 @@ export default tseslint.config(
       "react-hooks/exhaustive-deps": "warn",
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
       "@typescript-eslint/no-explicit-any": "warn",
+      // Prevent console statements in production code
+      "no-console": ["error", { allow: ["warn", "error"] }],
     },
     settings: {
       react: {
@@ -36,15 +38,17 @@ export default tseslint.config(
       },
     },
   },
-  // Relaxed rules for test files
+  // Relaxed rules for test files and scripts
   {
-    files: ["test/**/*.{ts,tsx}", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
+    files: ["test/**/*.{ts,tsx}", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "scripts/**/*.{js,ts}"],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": ["warn", {
         argsIgnorePattern: "^_|^req$|^res$|^next$|^body$|^query$|^args$|^value$|^field$|^error$",
         varsIgnorePattern: "^_|^vi$|^render$|^screen$|^waitFor$|^act$|^fireEvent$|^userEvent$|^container$|^rerender$|^beforeEach$|^afterEach$|^beforeAll$|^afterAll$"
       }],
+      // Allow console in tests and scripts
+      "no-console": "off",
     },
   }
 );

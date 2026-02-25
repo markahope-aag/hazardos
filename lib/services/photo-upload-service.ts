@@ -2,7 +2,9 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { usePhotoQueueStore, QueuedPhoto } from '@/lib/stores/photo-queue-store'
+import { createServiceLogger } from '@/lib/utils/logger'
 
+const log = createServiceLogger('PhotoUploadService')
 const STORAGE_BUCKET = 'survey-photos'
 const MAX_CONCURRENT_UPLOADS = 2
 const RETRY_DELAY_MS = 2000
@@ -58,7 +60,7 @@ export async function processPhotoQueue(): Promise<void> {
 
   // Check if online
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    console.log('Offline - skipping photo queue processing')
+    log.debug('Offline - skipping photo queue processing')
     return
   }
 
@@ -85,7 +87,14 @@ export async function processPhotoQueue(): Promise<void> {
 
         // If we hit max retries, don't try again immediately
         if (store.queue.find((p) => p.id === photo.id)?.retryCount || 0 >= 3) {
-          console.error(`Photo ${photo.id} failed after max retries:`, errorMessage)
+          log.error(
+            { 
+              photoId: photo.id,
+              errorMessage,
+              retryCount: store.queue.find((p) => p.id === photo.id)?.retryCount
+            },
+            'Photo failed after max retries'
+          )
         } else {
           // Wait before retrying
           await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
@@ -200,6 +209,6 @@ export async function waitForUploads(
   }
 
   // Timeout
-  console.warn('Upload wait timeout reached')
+  log.warn('Upload wait timeout reached')
   return false
 }

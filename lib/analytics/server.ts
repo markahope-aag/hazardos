@@ -8,19 +8,24 @@
  * These functions provide additional custom tracking and logging.
  */
 
+import { createServiceLogger } from '@/lib/utils/logger';
 import type { ApiPerformanceData, DatabaseQueryData, PerformanceMetric } from './types';
+
+const log = createServiceLogger('ServerAnalytics');
 
 /**
  * Log API performance metrics (server-side)
  * These are logged for observability but also captured by Vercel Analytics automatically
  */
 export function logApiPerformance(data: ApiPerformanceData): void {
-  if (process.env.NODE_ENV === 'development') {
-    const status = data.success ? 'success' : 'error';
-    console.log(
-      `[API Performance] ${data.method} ${data.endpoint} - ${data.statusCode} (${status}) - ${Math.round(data.duration)}ms`
-    );
-  }
+  log.debug({
+    method: data.method,
+    endpoint: data.endpoint,
+    statusCode: data.statusCode,
+    success: data.success,
+    durationMs: Math.round(data.duration),
+    errorMessage: data.errorMessage
+  }, 'API Performance');
 
   // In production, this data is captured by Vercel's built-in metrics
   // Additional custom logging can be sent to external services here
@@ -30,20 +35,22 @@ export function logApiPerformance(data: ApiPerformanceData): void {
  * Log database query performance (server-side)
  */
 export function logDatabaseQuery(data: DatabaseQueryData): void {
-  if (process.env.NODE_ENV === 'development') {
-    const status = data.success ? 'success' : 'error';
-    console.log(
-      `[DB Query] ${data.operation.toUpperCase()} ${data.table} - ${status} - ${Math.round(data.duration)}ms${
-        data.rowCount !== undefined ? ` (${data.rowCount} rows)` : ''
-      }`
-    );
-  }
+  log.debug({
+    operation: data.operation.toUpperCase(),
+    table: data.table,
+    success: data.success,
+    durationMs: Math.round(data.duration),
+    rowCount: data.rowCount,
+    errorMessage: data.errorMessage
+  }, 'Database Query');
 
   // Log slow queries
   if (data.duration > 1000) {
-    console.warn(
-      `[Slow Query] ${data.operation.toUpperCase()} ${data.table} took ${Math.round(data.duration)}ms`
-    );
+    log.warn({
+      operation: data.operation.toUpperCase(),
+      table: data.table,
+      durationMs: Math.round(data.duration)
+    }, 'Slow database query detected');
   }
 }
 
@@ -51,11 +58,12 @@ export function logDatabaseQuery(data: DatabaseQueryData): void {
  * Log custom performance metric (server-side)
  */
 export function logPerformanceMetric(metric: PerformanceMetric): void {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(
-      `[Performance] ${metric.category}/${metric.name}: ${metric.value}${metric.unit}`
-    );
-  }
+  log.debug({
+    category: metric.category,
+    name: metric.name,
+    value: metric.value,
+    unit: metric.unit
+  }, 'Performance Metric');
 }
 
 /**
@@ -70,9 +78,10 @@ export function createServerTimer(name: string): {
     end: (success = true) => {
       const duration = performance.now() - startTime;
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[Timer] ${name}: ${Math.round(duration)}ms`);
-      }
+      log.debug({
+        timerName: name,
+        durationMs: Math.round(duration)
+      }, 'Timer completed');
 
       return { duration, success };
     },
@@ -167,9 +176,13 @@ export function logServerError(
   },
   error: Error
 ): void {
-  console.error(`[Server Error] ${context.component}/${context.operation}:`, {
-    message: error.message,
-    stack: error.stack,
+  log.error({
+    component: context.component,
+    operation: context.operation,
+    error: {
+      message: error.message,
+      stack: error.stack,
+    },
     userId: context.userId,
     organizationId: context.organizationId,
   });

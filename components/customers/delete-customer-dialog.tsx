@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useDeleteCustomer } from '@/lib/hooks/use-customers'
 import { createClient } from '@/lib/supabase/client'
+import { logger, formatError } from '@/lib/utils/logger'
 import type { Customer } from '@/types/database'
 
 interface DeleteCustomerDialogProps {
@@ -62,7 +63,13 @@ export default function DeleteCustomerDialog({
       onSuccess()
     } catch (error) {
       // Error handling is done in the mutation hook
-      console.error('Delete error:', error)
+      logger.error(
+        { 
+          error: formatError(error, 'CUSTOMER_DELETE_ERROR'),
+          customerId: customer.id
+        },
+        'Delete error'
+      )
     }
   }
 

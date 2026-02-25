@@ -206,7 +206,8 @@ Always respond with valid JSON matching the requested schema.`,
   ): Promise<AggregateAnalysisResult> {
     // Analyze each photo
     const analyses: PhotoAnalysis[] = [];
-    for (const image of images) {
+    for (let i = 0; i < images.length; i++) {
+      const image = images[i];
       try {
         const analysis = await this.analyzePhoto(
           organizationId,
@@ -215,7 +216,13 @@ Always respond with valid JSON matching the requested schema.`,
         );
         analyses.push(analysis);
       } catch (error) {
-        console.error('Failed to analyze photo:', error);
+        log.error(
+          {
+            error: error instanceof Error ? error.message : String(error),
+            imageIndex: i
+          },
+          'Failed to analyze photo'
+        );
       }
     }
 

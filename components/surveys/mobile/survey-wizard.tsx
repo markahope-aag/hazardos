@@ -11,6 +11,7 @@ import { WizardFooter } from './wizard-footer'
 import { Save, X } from 'lucide-react'
 import { FormErrorBoundary, ErrorBoundary } from '@/components/error-boundaries'
 import { useToast } from '@/components/ui/use-toast'
+import { logger, formatError } from '@/lib/utils/logger'
 
 // Section components will be imported here
 import { PropertySection } from './sections/property-section'
@@ -139,7 +140,13 @@ export function SurveyWizard({ surveyId, customerId, className }: SurveyWizardPr
         })
       }
     } catch (error) {
-      console.error('Survey submission error:', error)
+      logger.error(
+        { 
+          error: formatError(error, 'SURVEY_SUBMISSION_ERROR'),
+          surveyId: surveyId
+        },
+        'Survey submission error'
+      )
       toast({
         variant: 'destructive',
         title: 'Submission Error',

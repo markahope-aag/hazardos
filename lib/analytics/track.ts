@@ -7,12 +7,15 @@
 
 import { track as vercelTrack } from '@vercel/analytics';
 import { shouldTrack, sanitizeProperties, isExcludedPath } from './config';
+import { createServiceLogger, formatError } from '@/lib/utils/logger';
 import type {
   FormSubmissionEvent,
   UserActionEvent,
   FeatureUsageEvent,
   ErrorEvent,
 } from './types';
+
+const log = createServiceLogger('Analytics');
 
 /**
  * Track a custom event
@@ -32,14 +35,20 @@ export function track(
 
     vercelTrack(eventName, sanitizedProps);
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Analytics] Event:', eventName, sanitizedProps);
-    }
+    log.debug(
+      { eventName, properties: sanitizedProps },
+      'Analytics event tracked'
+    );
   } catch (error) {
     // Silently fail - analytics should never break the app
-    if (process.env.NODE_ENV === 'development') {
-      console.error('[Analytics] Failed to track event:', error);
-    }
+    log.error(
+      { 
+        error: formatError(error, 'ANALYTICS_TRACK_ERROR'),
+        eventName,
+        properties: sanitizedProps
+      },
+      'Failed to track event'
+    );
   }
 }
 

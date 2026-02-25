@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { track as vercelTrack } from '@vercel/analytics';
+import { logger, formatError } from '@/lib/utils/logger';
 
 /**
  * Global Error Boundary
@@ -20,8 +21,21 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log error to console
-    console.error('[GlobalError] Application error:', error);
+    // Log error using structured logging with console fallback
+    try {
+      logger.error(
+        { 
+          error: formatError(error, 'GLOBAL_ERROR'),
+          digest: error.digest,
+          url: typeof window !== 'undefined' ? window.location.href : undefined
+        },
+        'Global application error'
+      );
+    } catch (loggingError) {
+      // Fallback to console if structured logging fails
+      console.error('[GlobalError] Application error:', error);
+      console.error('[GlobalError] Logging failed:', loggingError);
+    }
 
     // Track critical error in analytics
     try {

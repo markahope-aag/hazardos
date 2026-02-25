@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import type { MailchimpConnectionStatus, MailchimpList } from '@/types/integrations';
+import { createServiceLogger, formatError } from '@/lib/utils/logger';
 
+const log = createServiceLogger('MailchimpService');
 const MAILCHIMP_AUTH_URL = 'https://login.mailchimp.com/oauth2/authorize';
 const MAILCHIMP_TOKEN_URL = 'https://login.mailchimp.com/oauth2/token';
 const MAILCHIMP_METADATA_URL = 'https://login.mailchimp.com/oauth2/metadata';
@@ -310,7 +312,15 @@ export class MailchimpService {
         await this.syncContact(organizationId, customer.id, listId);
         succeeded++;
       } catch (error) {
-        console.error(`Failed to sync customer ${customer.id}:`, error);
+        log.error(
+          { 
+            error: formatError(error, 'MAILCHIMP_CUSTOMER_SYNC_ERROR'),
+            customerId: customer.id,
+            listId,
+            organizationId
+          },
+          'Failed to sync customer to Mailchimp'
+        );
         failed++;
       }
     }

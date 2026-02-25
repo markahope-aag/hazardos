@@ -6,7 +6,10 @@
  */
 
 import { track } from './track';
+import { createServiceLogger } from '@/lib/utils/logger';
 import type { ApiPerformanceData, DatabaseQueryData, PerformanceMetric } from './types';
+
+const log = createServiceLogger('PerformanceAnalytics');
 
 /**
  * Performance marks storage for measuring durations
@@ -97,9 +100,10 @@ export function measurePerformance(
 ): number | null {
   const startTime = performanceMarks.get(markName);
   if (startTime === undefined) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn(`[Analytics] Performance mark "${markName}" not found`);
-    }
+    log.warn(
+      { markName },
+      'Performance mark not found'
+    );
     return null;
   }
 

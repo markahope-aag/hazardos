@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import type { HubSpotConnectionStatus } from '@/types/integrations';
+import { createServiceLogger, formatError } from '@/lib/utils/logger';
 
+const log = createServiceLogger('HubSpotService');
 const HUBSPOT_AUTH_URL = 'https://app.hubspot.com/oauth/authorize';
 const HUBSPOT_TOKEN_URL = 'https://api.hubapi.com/oauth/v1/token';
 const HUBSPOT_API_URL = 'https://api.hubapi.com';
@@ -364,7 +366,13 @@ export class HubSpotService {
         if (result.status === 'fulfilled') {
           succeeded++;
         } else {
-          console.error('Failed to sync customer:', result.reason);
+          log.error(
+            { 
+              error: formatError(result.reason, 'HUBSPOT_CUSTOMER_SYNC_ERROR'),
+              organizationId
+            },
+            'Failed to sync customer to HubSpot'
+          );
           failed++;
         }
       }

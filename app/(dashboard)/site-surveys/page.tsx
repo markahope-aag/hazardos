@@ -25,6 +25,7 @@ import { createClient } from '@/lib/supabase/client'
 import { SurveyStatusBadge, HazardTypeBadge } from '@/components/surveys/survey-status-badge'
 import { SurveyFilters } from './survey-filters'
 import { CreateSurveyButton } from './create-survey-modal'
+import { logger, formatError } from '@/lib/utils/logger'
 import { format } from 'date-fns'
 
 interface SurveyWithRelations {
@@ -136,7 +137,13 @@ export default function SiteSurveysPage() {
 
       setSurveys(filteredData)
     } catch (error) {
-      console.error('Error loading surveys:', error)
+      logger.error(
+        { 
+          error: formatError(error, 'SURVEYS_LOAD_ERROR'),
+          organizationId: organization?.id
+        },
+        'Error loading surveys'
+      )
     } finally {
       setLoading(false)
     }

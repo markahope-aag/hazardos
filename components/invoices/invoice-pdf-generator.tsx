@@ -11,7 +11,7 @@ interface InvoicePDFGeneratorProps {
 export default function InvoicePDFGenerator({ invoiceId, onGenerated }: InvoicePDFGeneratorProps) {
   const handleGenerate = () => {
     // TODO: Implement invoice PDF generation
-    console.log('Generating PDF for invoice:', invoiceId)
+    void invoiceId
     onGenerated?.()
   }
 

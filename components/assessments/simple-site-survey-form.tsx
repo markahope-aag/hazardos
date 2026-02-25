@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { MediaUpload } from './media-upload'
 import { SiteSurveyService } from '@/lib/supabase/site-survey-service'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
+import { logger, formatError } from '@/lib/utils/logger'
 import type { SiteSurveyStatus, HazardType } from '@/types/database'
 
 interface SiteSurveyFormProps {
@@ -166,7 +167,15 @@ export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFo
               organization.id
             )
           } catch (error) {
-            console.error('Failed to upload media file:', mediaFile.file.name, error)
+            logger.error(
+              { 
+                error: formatError(error, 'MEDIA_UPLOAD_ERROR'),
+                fileName: mediaFile.file.name,
+                siteSurveyId: currentSiteSurveyId,
+                organizationId: organization.id
+              },
+              'Failed to upload media file'
+            )
             toast({
               title: 'Media upload failed',
               description: `Failed to upload ${mediaFile.file.name}`,
@@ -200,7 +209,14 @@ export function SimpleSiteSurveyForm({ siteSurveyId, initialData }: SiteSurveyFo
         setLastSaved(new Date())
       }
     } catch (error) {
-      console.error('Error saving assessment:', error)
+      logger.error(
+        { 
+          error: formatError(error, 'ASSESSMENT_SAVE_ERROR'),
+          siteSurveyId: siteSurveyId,
+          organizationId: organization?.id
+        },
+        'Error saving assessment'
+      )
       toast({
         title: 'Error',
         description: 'Failed to save site survey. Please try again.',

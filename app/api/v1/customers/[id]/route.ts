@@ -4,6 +4,7 @@ import { withApiKeyAuth, ApiKeyAuthContext } from '@/lib/middleware/api-key-auth
 import { ApiKeyService } from '@/lib/services/api-key-service';
 import { handlePreflight } from '@/lib/middleware/cors';
 import { v1UpdateCustomerSchema, uuidParamSchema, formatZodError } from '@/lib/validations/v1-api';
+import { createRequestLogger, formatError } from '@/lib/utils/logger';
 
 async function handleGet(
   _request: NextRequest,
@@ -136,7 +137,16 @@ async function handleDelete(
     .eq('organization_id', context.organizationId);
 
   if (error) {
-    console.error('Failed to delete customer:', error);
+    const log = createRequestLogger({
+      requestId: crypto.randomUUID(),
+      method: 'DELETE',
+      path: '/api/v1/customers/[id]',
+      organizationId: context.apiKey.organization_id,
+    });
+    log.error(
+      { error: formatError(error, 'CUSTOMER_DELETE_ERROR'), customerId: params.id },
+      'Failed to delete customer'
+    );
     return NextResponse.json({ error: 'Failed to delete customer' }, { status: 500 });
   }
 

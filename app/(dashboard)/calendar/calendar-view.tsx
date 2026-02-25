@@ -38,6 +38,7 @@ import {
 import { ChevronLeft, ChevronRight, Plus, MapPin, Clock, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { jobStatusConfig } from '@/types/jobs'
+import { logger, formatError } from '@/lib/utils/logger'
 import Link from 'next/link'
 
 type ViewMode = 'month' | 'week' | 'day'
@@ -91,7 +92,10 @@ export function CalendarView() {
         setJobs(data.jobs)
       }
     } catch (error) {
-      console.error('Failed to fetch calendar jobs:', error)
+      logger.error(
+        { error: formatError(error, 'CALENDAR_FETCH_ERROR') },
+        'Failed to fetch calendar jobs'
+      )
     } finally {
       setLoading(false)
     }

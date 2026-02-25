@@ -1,38 +1,8 @@
-import { cn } from '@/lib/utils'
-
 interface LogoProps {
   variant?: 'horizontal' | 'vertical' | 'icon'
   color?: 'color' | 'bw' | 'white'
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'
   className?: string
-}
-
-const sizeClasses = {
-  sm: {
-    horizontal: 'h-6',
-    vertical: 'h-8',
-    icon: 'h-6 w-6'
-  },
-  md: {
-    horizontal: 'h-8',
-    vertical: 'h-12',
-    icon: 'h-8 w-8'
-  },
-  lg: {
-    horizontal: 'h-10',
-    vertical: 'h-16',
-    icon: 'h-10 w-10'
-  },
-  xl: {
-    horizontal: 'h-12',
-    vertical: 'h-20',
-    icon: 'h-12 w-12'
-  },
-  '2xl': {
-    horizontal: 'h-16',
-    vertical: 'h-32',
-    icon: 'h-16 w-16'
-  }
 }
 
 export function Logo({
@@ -47,8 +17,6 @@ export function Logo({
     }
     return `/logos/logo-${variant}-${color}.png`
   }
-
-  const sizeClass = sizeClasses[size][variant]
 
   const heights: Record<string, number> = {
     sm: variant === 'vertical' ? 32 : 24,

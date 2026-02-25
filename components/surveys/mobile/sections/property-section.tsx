@@ -22,6 +22,7 @@ import {
   SegmentedControl,
   RadioCardGroup,
 } from '../inputs'
+import { logger, formatError } from '@/lib/utils/logger'
 import {
   MapPin,
   Loader2,
@@ -154,11 +155,17 @@ export function PropertySection() {
           alert('Could not determine address from location. Please enter manually.')
         }
       } catch (geocodeError) {
-        console.error('Geocoding error:', geocodeError)
+        logger.error(
+          { error: formatError(geocodeError, 'GEOCODING_ERROR') },
+          'Geocoding error'
+        )
         alert('Could not look up address. Please enter it manually.')
       }
     } catch (error) {
-      console.error('Error getting location:', error)
+      logger.error(
+        { error: formatError(error, 'LOCATION_ERROR') },
+        'Error getting location'
+      )
       if (error instanceof GeolocationPositionError) {
         switch (error.code) {
           case error.PERMISSION_DENIED:

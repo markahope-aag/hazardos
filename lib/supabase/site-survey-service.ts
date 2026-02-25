@@ -1,5 +1,6 @@
 import { createClient } from './client'
 import type { SiteSurvey, SiteSurveyInsert, SiteSurveyUpdate } from '@/types/database'
+import { createServiceLogger, formatError } from '@/lib/utils/logger'
 
 interface MediaUploadResult {
   url: string
@@ -7,12 +8,17 @@ interface MediaUploadResult {
   size: number
 }
 
+const log = createServiceLogger('SiteSurveyService')
+
 // Create a typed Supabase client (only if environment variables are available)
 function getSupabaseClient() {
   try {
     return createClient()
   } catch (error) {
-    console.warn('Supabase client not available:', error)
+    log.warn(
+      { error: formatError(error, 'SUPABASE_CLIENT_INIT_ERROR') },
+      'Supabase client not available'
+    )
     return null
   }
 }
@@ -241,7 +247,13 @@ export class SiteSurveyService {
       .remove([filePath])
 
     if (storageError) {
-      console.error('Failed to delete file from storage:', storageError)
+      log.error(
+        { 
+          error: formatError(storageError, 'STORAGE_DELETE_ERROR'),
+          filePath 
+        },
+        'Failed to delete file from storage'
+      )
     }
 
     // Delete from database

@@ -12,7 +12,8 @@ interface ReportPDFExporterProps {
 export default function ReportPDFExporter({ reportType, data, onExported }: ReportPDFExporterProps) {
   const handleExport = () => {
     // TODO: Implement report PDF export
-    console.log('Exporting PDF for report:', reportType, data)
+    void reportType
+    void data
     onExported?.()
   }
 

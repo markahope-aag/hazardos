@@ -227,8 +227,8 @@ describe('usePhotoUploadStatus', () => {
   })
 
   it('should update status periodically when surveyId is provided', async () => {
-    const { result } = renderHook(() => usePhotoUploadStatus('survey-123'))
-    
+    renderHook(() => usePhotoUploadStatus('survey-123'))
+
     // Wait for initial update
     await act(async () => {
       await vi.runOnlyPendingTimersAsync()
@@ -259,7 +259,7 @@ describe('usePhotoUploadStatus', () => {
   })
 
   it('should update status when surveyId changes', async () => {
-    const { result, rerender } = renderHook(
+    const { rerender } = renderHook(
       ({ surveyId }) => usePhotoUploadStatus(surveyId),
       { initialProps: { surveyId: 'survey-123' } }
     )
@@ -309,8 +309,8 @@ describe('usePhotoUploadStatus', () => {
       progress: 70,
     })
     
-    const { result } = renderHook(() => usePhotoUploadStatus('survey-123'))
-    
+    renderHook(() => usePhotoUploadStatus('survey-123'))
+
     // Wait for status update
     await act(async () => {
       await vi.runOnlyPendingTimersAsync()

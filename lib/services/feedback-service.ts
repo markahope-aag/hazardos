@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
+import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type {
   FeedbackSurvey,
   ReviewRequest,
@@ -10,6 +11,8 @@ import type {
   Testimonial,
   PublicSurveyView,
 } from '@/types/feedback'
+
+const log = createServiceLogger('FeedbackService')
 
 export class FeedbackService {
   // ========== SURVEYS ==========
@@ -267,7 +270,13 @@ export class FeedbackService {
           `,
         })
       } catch (emailError) {
-        console.error('Failed to send feedback email:', emailError)
+        log.error(
+          { 
+            error: formatError(emailError, 'FEEDBACK_EMAIL_ERROR'),
+            surveyId: surveyId
+          },
+          'Failed to send feedback email'
+        )
       }
     }
 
