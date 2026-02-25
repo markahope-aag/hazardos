@@ -12,6 +12,7 @@ import { ArrowLeft, Edit, ChevronDown, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import CustomerInfoCard from './customer-info-card'
 import CustomerSurveysList from './customer-surveys-list'
+import CustomerInvoicesList from './customer-invoices-list'
 import CustomerActivityFeed from './customer-activity-feed'
 import CustomerStatusBadge from './customer-status-badge'
 import EditCustomerModal from './edit-customer-modal'
@@ -137,6 +138,9 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
 
       {/* Site Surveys */}
       <CustomerSurveysList customerId={customer.id} />
+
+      {/* Invoices */}
+      <CustomerInvoicesList customerId={customer.id} />
 
       {/* Activity Feed */}
       <CustomerActivityFeed customer={customer} />

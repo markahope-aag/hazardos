@@ -115,7 +115,7 @@ function CreateSurveyForm({ onSuccess }: { onSuccess: () => void }) {
       // Get customer details for address
       const { data: customer } = await supabase
         .from('customers')
-        .select('company_name, first_name, last_name, email, phone, address, city, state, zip')
+        .select('name, company_name, email, phone, address_line1, city, state, zip')
         .eq('id', customerId)
         .single()
 
@@ -123,7 +123,7 @@ function CreateSurveyForm({ onSuccess }: { onSuccess: () => void }) {
         throw new Error('Customer not found')
       }
 
-      const customerName = customer.company_name || `${customer.first_name} ${customer.last_name}`
+      const customerName = customer.company_name || customer.name
 
       const { error } = await supabase
         .from('site_surveys')
@@ -140,7 +140,7 @@ function CreateSurveyForm({ onSuccess }: { onSuccess: () => void }) {
           customer_name: customerName,
           customer_email: customer.email,
           customer_phone: customer.phone,
-          site_address: customer.address || '',
+          site_address: customer.address_line1 || '',
           site_city: customer.city || '',
           site_state: customer.state || '',
           site_zip: customer.zip || '',

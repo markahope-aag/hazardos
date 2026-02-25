@@ -21,7 +21,7 @@ export const GET = createApiHandlerWithParams(
           site_survey:site_surveys(id, job_name, site_address, site_city, site_state, site_zip, hazard_type),
           line_items:estimate_line_items(*)
         ),
-        customer:customers(id, company_name, first_name, last_name, email, phone, address_line1, city, state, zip),
+        customer:customers(id, company_name, name, email, phone, address_line1, city, state, zip),
         organization:organizations(id, name, logo_url, address, city, state, zip, phone, email, website)
       `)
       .eq('id', params.id)

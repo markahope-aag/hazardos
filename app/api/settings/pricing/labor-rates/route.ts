@@ -15,7 +15,7 @@ export const GET = createApiHandler(
   async (_request, context) => {
     const { data: laborRates, error } = await context.supabase
       .from('labor_rates')
-      .select('id, organization_id, name, role_title, hourly_rate, overtime_rate, description, is_active, is_default, created_at, updated_at')
+      .select('id, organization_id, name, rate_per_hour, description, is_default, created_at, updated_at')
       .order('is_default', { ascending: false })
       .order('name')
 

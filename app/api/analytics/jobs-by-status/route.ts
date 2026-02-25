@@ -27,15 +27,15 @@ export const GET = createApiHandler(
       statusCounts.set(job.status, count + 1)
     }
 
-    // Format response with readable status names
+    // Format response
     const data = Array.from(statusCounts.entries())
       .filter(([, count]) => count > 0)
       .map(([status, count]) => ({
-        status: status.replace('_', ' '),
+        status,
         count,
       }))
       .sort((a, b) => {
-        const order = ['scheduled', 'in progress', 'completed', 'invoiced', 'paid']
+        const order = ['scheduled', 'in_progress', 'completed', 'invoiced', 'paid', 'cancelled', 'on_hold']
         return order.indexOf(a.status) - order.indexOf(b.status)
       })
 

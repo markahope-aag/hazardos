@@ -116,8 +116,7 @@ describe('UpcomingJobs', () => {
         status: 'scheduled',
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
       {
@@ -129,8 +128,7 @@ describe('UpcomingJobs', () => {
         status: 'scheduled',
         customer: {
           company_name: 'XYZ Industries',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -158,8 +156,7 @@ describe('UpcomingJobs', () => {
         status: 'scheduled',
         customer: {
           company_name: null,
-          first_name: 'John',
-          last_name: 'Doe',
+          name: 'John Doe',
         },
       },
     ]
@@ -173,7 +170,7 @@ describe('UpcomingJobs', () => {
     expect(screen.getByText('John Doe')).toBeInTheDocument()
   })
 
-  it('should handle partial customer names gracefully', async () => {
+  it('should handle customer names gracefully', async () => {
     const mockJobs = [
       {
         id: '1',
@@ -184,8 +181,7 @@ describe('UpcomingJobs', () => {
         status: 'scheduled',
         customer: {
           company_name: null,
-          first_name: 'John',
-          last_name: null,
+          name: 'John',
         },
       },
       {
@@ -197,8 +193,7 @@ describe('UpcomingJobs', () => {
         status: 'scheduled',
         customer: {
           company_name: null,
-          first_name: null,
-          last_name: 'Smith',
+          name: 'Smith',
         },
       },
     ]
@@ -233,8 +228,7 @@ describe('UpcomingJobs', () => {
         status: 'scheduled',
         customer: {
           company_name: null,
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -259,8 +253,7 @@ describe('UpcomingJobs', () => {
         status: 'scheduled',
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
       {
@@ -272,8 +265,7 @@ describe('UpcomingJobs', () => {
         status: 'scheduled',
         customer: {
           company_name: 'XYZ Industries',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -301,8 +293,7 @@ describe('UpcomingJobs', () => {
         status: 'scheduled',
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -327,8 +318,7 @@ describe('UpcomingJobs', () => {
         status: 'scheduled',
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -354,8 +344,7 @@ describe('UpcomingJobs', () => {
         status: 'scheduled',
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -386,7 +375,7 @@ describe('UpcomingJobs', () => {
       scheduled_start_time,
       job_address,
       status,
-      customer:customers(company_name, first_name, last_name)
+      customer:customers(company_name, name)
     `)
     expect(mockSupabaseClient.gte).toHaveBeenCalledWith('scheduled_start_date', '2024-01-15')
     expect(mockSupabaseClient.lte).toHaveBeenCalledWith('scheduled_start_date', '2024-01-22')
@@ -416,8 +405,7 @@ describe('UpcomingJobs', () => {
         status: 'scheduled',
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -443,8 +431,7 @@ describe('UpcomingJobs', () => {
         status: 'scheduled',
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -470,8 +457,7 @@ describe('UpcomingJobs', () => {
         status: 'scheduled',
         customer: {
           company_name: '',
-          first_name: '',
-          last_name: '',
+          name: '',
         },
       },
     ]
@@ -497,8 +483,7 @@ describe('UpcomingJobs', () => {
         status: 'scheduled',
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]

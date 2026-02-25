@@ -45,8 +45,7 @@ interface SurveyWithRelations {
   customer?: {
     id: string
     company_name: string | null
-    first_name: string
-    last_name: string
+    name: string
   } | null
   technician?: {
     id: string
@@ -93,7 +92,7 @@ export default function SiteSurveysPage() {
           scheduled_time_start,
           assigned_to,
           created_at,
-          customer:customers(id, company_name, first_name, last_name),
+          customer:customers(id, company_name, name),
           technician:profiles!assigned_to(id, first_name, last_name)
         `)
         .eq('organization_id', organization.id)
@@ -163,8 +162,7 @@ export default function SiteSurveysPage() {
 
   const getCustomerDisplayName = (survey: SurveyWithRelations) => {
     if (survey.customer) {
-      return survey.customer.company_name ||
-        `${survey.customer.first_name} ${survey.customer.last_name}`
+      return survey.customer.company_name || survey.customer.name
     }
     return survey.customer_name
   }

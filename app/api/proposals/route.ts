@@ -25,7 +25,7 @@ export const GET = createApiHandler(
           id, estimate_number, project_name, total, status,
           site_survey:site_surveys(id, job_name, site_address, site_city, site_state)
         ),
-        customer:customers(id, company_name, first_name, last_name, email, phone)
+        customer:customers(id, company_name, name, email, phone)
       `, { count: 'exact' })
       .eq('organization_id', context.profile.organization_id)
       .order('created_at', { ascending: false })

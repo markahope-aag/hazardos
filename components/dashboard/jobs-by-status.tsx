@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   PieChart,
   Pie,
-  Cell,
   ResponsiveContainer,
   Legend,
   Tooltip,
 } from '@/components/charts/recharts-lazy';
+import { Cell } from 'recharts';
 
 interface JobStatusData {
   status: string;
@@ -71,7 +71,7 @@ export function JobsByStatus() {
                 cy="50%"
                 outerRadius={100}
                 label={({ name, percent }) =>
-                  `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`
+                  `${String(name).replace(/_/g, ' ')} (${((percent ?? 0) * 100).toFixed(0)}%)`
                 }
               >
                 {data.map((entry, index) => (

@@ -132,8 +132,7 @@ describe('OverdueInvoices', () => {
         balance_due: 1500,
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
       {
@@ -143,8 +142,7 @@ describe('OverdueInvoices', () => {
         balance_due: 2500,
         customer: {
           company_name: 'XYZ Industries',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -172,8 +170,7 @@ describe('OverdueInvoices', () => {
         balance_due: 1500,
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -196,8 +193,7 @@ describe('OverdueInvoices', () => {
         balance_due: 1500,
         customer: {
           company_name: null,
-          first_name: 'John',
-          last_name: 'Doe',
+          name: 'John Doe',
         },
       },
     ]
@@ -211,7 +207,7 @@ describe('OverdueInvoices', () => {
     expect(screen.getByText('John Doe')).toBeInTheDocument()
   })
 
-  it('should handle partial customer names gracefully', async () => {
+  it('should handle customer names gracefully', async () => {
     const mockInvoices = [
       {
         id: '1',
@@ -220,8 +216,7 @@ describe('OverdueInvoices', () => {
         balance_due: 1500,
         customer: {
           company_name: null,
-          first_name: 'John',
-          last_name: null,
+          name: 'John',
         },
       },
       {
@@ -231,8 +226,7 @@ describe('OverdueInvoices', () => {
         balance_due: 2500,
         customer: {
           company_name: null,
-          first_name: null,
-          last_name: 'Smith',
+          name: 'Smith',
         },
       },
     ]
@@ -263,8 +257,7 @@ describe('OverdueInvoices', () => {
         balance_due: 2500,
         customer: {
           company_name: null,
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -287,8 +280,7 @@ describe('OverdueInvoices', () => {
         balance_due: 1500,
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -312,8 +304,7 @@ describe('OverdueInvoices', () => {
         balance_due: 1500,
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -339,8 +330,7 @@ describe('OverdueInvoices', () => {
         balance_due: 1500,
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -368,7 +358,7 @@ describe('OverdueInvoices', () => {
       invoice_number,
       due_date,
       balance_due,
-      customer:customers(company_name, first_name, last_name)
+      customer:customers(company_name, name)
     `)
     expect(mockSupabaseClient.lt).toHaveBeenCalledWith('due_date', '2024-01-15')
     expect(mockSupabaseClient.gt).toHaveBeenCalledWith('balance_due', 0)
@@ -396,8 +386,7 @@ describe('OverdueInvoices', () => {
         balance_due: 1500,
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
       {
@@ -407,8 +396,7 @@ describe('OverdueInvoices', () => {
         balance_due: null,
         customer: {
           company_name: 'XYZ Industries',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -436,8 +424,7 @@ describe('OverdueInvoices', () => {
         balance_due: 1500,
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -466,8 +453,7 @@ describe('OverdueInvoices', () => {
         balance_due: 0,
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -491,8 +477,7 @@ describe('OverdueInvoices', () => {
         balance_due: 999999.99,
         customer: {
           company_name: 'ABC Corp',
-          first_name: null,
-          last_name: null,
+          name: null,
         },
       },
     ]
@@ -516,8 +501,7 @@ describe('OverdueInvoices', () => {
         balance_due: 1500,
         customer: {
           company_name: '',
-          first_name: '',
-          last_name: '',
+          name: '',
         },
       },
     ]
