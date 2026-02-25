@@ -33,7 +33,7 @@ async function handleGet(
     .from('jobs')
     .select(`
       *,
-      customer:customers(id, first_name, last_name, company_name, email, phone)
+      customer:customers(id, name, company_name, email, phone)
     `)
     .eq('id', params.id)
     .eq('organization_id', context.organizationId)

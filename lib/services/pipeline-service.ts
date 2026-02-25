@@ -87,7 +87,7 @@ export class PipelineService {
       .select(`
         *,
         stage:pipeline_stages(*),
-        customer:customers(id, company_name, first_name, last_name),
+        customer:customers(id, company_name, name),
         owner:profiles(id, full_name)
       `, { count: 'exact' })
       .is('outcome', null)
@@ -121,7 +121,7 @@ export class PipelineService {
       .select(`
         *,
         stage:pipeline_stages(*),
-        customer:customers(id, company_name, first_name, last_name),
+        customer:customers(id, company_name, name),
         owner:profiles(id, full_name)
       `)
       .eq('id', id)
@@ -358,7 +358,7 @@ export class PipelineService {
       .select(`
         *,
         stage:pipeline_stages(*),
-        customer:customers(id, company_name, first_name, last_name),
+        customer:customers(id, company_name, name),
         owner:profiles(id, full_name)
       `)
       .eq('outcome', 'won')
@@ -390,7 +390,7 @@ export class PipelineService {
       .select(`
         *,
         stage:pipeline_stages(*),
-        customer:customers(id, company_name, first_name, last_name),
+        customer:customers(id, company_name, name),
         owner:profiles(id, full_name)
       `)
       .eq('outcome', 'lost')

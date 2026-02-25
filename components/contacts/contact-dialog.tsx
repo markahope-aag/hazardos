@@ -258,14 +258,14 @@ export function ContactDialog({
               <div className="space-y-2">
                 <Label htmlFor="preferredMethod">Preferred Contact</Label>
                 <Select
-                  value={preferredMethod}
-                  onValueChange={(val) => setPreferredMethod(val as ContactMethod | '')}
+                  value={preferredMethod || 'none'}
+                  onValueChange={(val) => setPreferredMethod(val === 'none' ? '' : val as ContactMethod | '')}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No preference</SelectItem>
+                    <SelectItem value="none">No preference</SelectItem>
                     {(Object.keys(contactMethodConfig) as ContactMethod[]).map((m) => (
                       <SelectItem key={m} value={m}>
                         {contactMethodConfig[m].label}

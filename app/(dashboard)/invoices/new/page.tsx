@@ -231,15 +231,15 @@ export default function NewInvoicePage() {
                 <div className="space-y-2">
                   <Label>Link to Job (Optional)</Label>
                   <Select
-                    value={formData.job_id}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, job_id: value }))}
+                    value={formData.job_id || 'none'}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, job_id: value === 'none' ? '' : value }))}
                     disabled={loadingJobs}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a completed job" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No job (blank invoice)</SelectItem>
+                      <SelectItem value="none">No job (blank invoice)</SelectItem>
                       {completedJobs
                         .filter(job => !formData.customer_id || job.customer_id === formData.customer_id)
                         .map(job => (

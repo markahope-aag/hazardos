@@ -88,9 +88,9 @@ export function CalendarView() {
         `/api/jobs/calendar?start=${format(start, 'yyyy-MM-dd')}&end=${format(end, 'yyyy-MM-dd')}`
       )
       const data = await response.json()
-      if (data.jobs) {
-        setJobs(data.jobs)
-      }
+      // API returns array directly or { jobs: [...] }
+      const jobsList = Array.isArray(data) ? data : data.jobs || []
+      setJobs(jobsList)
     } catch (error) {
       logger.error(
         { error: formatError(error, 'CALENDAR_FETCH_ERROR') },

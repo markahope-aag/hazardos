@@ -15,7 +15,7 @@ export const GET = createApiHandler(
   async (_request, context) => {
     const { data, error } = await context.supabase
       .from('equipment_rates')
-      .select('id, organization_id, name, equipment_name, daily_rate, weekly_rate, monthly_rate, rate_per_day, description, is_active, created_at, updated_at')
+      .select('id, organization_id, name, rate_per_day, description, created_at, updated_at')
       .order('name')
 
     if (error) throw error

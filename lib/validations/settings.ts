@@ -101,10 +101,13 @@ export const deleteEquipmentRateQuerySchema = z.object({
 
 // Pricing settings
 export const updatePricingSettingsSchema = z.object({
-  default_markup_percentage: z.number().min(0).max(100).optional(),
-  default_tax_rate: z.number().min(0).max(100).optional(),
-  rounding_method: z.enum(['none', 'nearest', 'up', 'down']).optional(),
-  currency: z.string().max(3).optional(),
+  default_markup_percent: z.number().min(0).max(100).optional(),
+  minimum_markup_percent: z.number().min(0).max(100).optional(),
+  maximum_markup_percent: z.number().min(0).max(100).optional(),
+  office_address_line1: z.string().optional().nullable(),
+  office_city: z.string().optional().nullable(),
+  office_state: z.string().optional().nullable(),
+  office_zip: z.string().optional().nullable(),
 })
 
 // Export types

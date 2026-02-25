@@ -11,8 +11,7 @@ export { OverdueInvoicesErrorBoundary } from './error-wrappers';
 
 interface Customer {
   company_name: string | null;
-  first_name: string | null;
-  last_name: string | null;
+  name: string | null;
 }
 
 interface Invoice {
@@ -35,7 +34,7 @@ export async function OverdueInvoices() {
       invoice_number,
       due_date,
       balance_due,
-      customer:customers(company_name, first_name, last_name)
+      customer:customers(company_name, name)
     `)
     .lt('due_date', today)
     .gt('balance_due', 0)
@@ -75,7 +74,7 @@ export async function OverdueInvoices() {
                   <div>
                     <p className="font-medium text-sm">
                       {invoice.customer?.company_name ||
-                       `${invoice.customer?.first_name || ''} ${invoice.customer?.last_name || ''}`.trim() ||
+                       invoice.customer?.name ||
                        'Unknown Customer'}
                     </p>
                     <p className="text-xs text-muted-foreground">

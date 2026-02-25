@@ -10,8 +10,7 @@ export { UpcomingJobsErrorBoundary } from './error-wrappers';
 
 interface Customer {
   company_name: string | null;
-  first_name: string | null;
-  last_name: string | null;
+  name: string | null;
 }
 
 interface Job {
@@ -39,7 +38,7 @@ export async function UpcomingJobs() {
       scheduled_start_time,
       job_address,
       status,
-      customer:customers(company_name, first_name, last_name)
+      customer:customers(company_name, name)
     `)
     .gte('scheduled_start_date', today)
     .lte('scheduled_start_date', nextWeek)
@@ -72,7 +71,7 @@ export async function UpcomingJobs() {
                   <div>
                     <p className="font-medium">
                       {job.customer?.company_name ||
-                       `${job.customer?.first_name || ''} ${job.customer?.last_name || ''}`.trim() ||
+                       job.customer?.name ||
                        'Unknown Customer'}
                     </p>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
