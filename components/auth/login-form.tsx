@@ -51,26 +51,51 @@ export default function LoginForm() {
       return
     }
 
+    // Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      setIsLoading(false)
+      toast({
+        title: 'Login Timeout',
+        description: 'Login is taking too long. Please try again or check your connection.',
+        variant: 'destructive',
+      })
+    }, 30000) // 30 second timeout
+
     try {
+      console.log('🔐 Attempting login for:', email)
+      
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
+      clearTimeout(timeoutId)
+
       if (error) {
+        console.error('❌ Login error:', error)
         toast({
-          title: 'Error',
+          title: 'Login Failed',
           description: error.message,
           variant: 'destructive',
         })
       } else {
-        // Use full page navigation to ensure cookies are properly handled
-        window.location.href = '/'
+        console.log('✅ Login successful, redirecting...')
+        toast({
+          title: 'Login Successful',
+          description: 'Redirecting to dashboard...',
+        })
+        
+        // Small delay to show success message, then redirect
+        setTimeout(() => {
+          window.location.href = '/'
+        }, 1000)
       }
-    } catch {
+    } catch (error) {
+      clearTimeout(timeoutId)
+      console.error('❌ Login exception:', error)
       toast({
-        title: 'Error',
-        description: 'An unexpected error occurred',
+        title: 'Login Error',
+        description: 'An unexpected error occurred. Please try again.',
         variant: 'destructive',
       })
     } finally {
