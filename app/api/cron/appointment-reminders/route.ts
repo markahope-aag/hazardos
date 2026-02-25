@@ -63,26 +63,21 @@ export async function GET(request: NextRequest) {
       windowEnd.setHours(windowEnd.getHours() + 1);
 
       // Get jobs in reminder window that haven't been reminded yet
+      const windowStartDate = windowStart.toISOString().split('T')[0];
+      const windowEndDate = windowEnd.toISOString().split('T')[0];
       const { data: jobs } = await supabase
         .from('jobs')
         .select('id, organization_id')
         .eq('organization_id', org.organization_id)
         .eq('status', 'scheduled')
-        .gte('scheduled_start', windowStart.toISOString())
-        .lt('scheduled_start', windowEnd.toISOString())
-        .is('reminder_sent_at', null);
+        .gte('scheduled_start_date', windowStartDate)
+        .lte('scheduled_start_date', windowEndDate);
 
       for (const job of jobs || []) {
         try {
           const result = await SmsService.sendAppointmentReminder(job.id);
 
           if (result) {
-            // Mark job as reminded
-            await supabase
-              .from('jobs')
-              .update({ reminder_sent_at: new Date().toISOString() })
-              .eq('id', job.id);
-
             sent++;
           }
         } catch (error) {

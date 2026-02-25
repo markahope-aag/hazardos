@@ -206,12 +206,13 @@ export class SmsService {
 
     if (!job.customer?.phone || !job.customer?.sms_opt_in) return null;
 
-    const jobDate = new Date(job.scheduled_start);
+    const jobDate = new Date(job.scheduled_start_date);
+    const jobTime = job.scheduled_start_time || '08:00';
     const variables = {
-      customer_name: job.customer.first_name || job.customer.company_name || 'there',
+      customer_name: job.customer.name || 'there',
       company_name: job.organization.name,
       job_date: jobDate.toLocaleDateString(),
-      job_time: jobDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      job_time: jobTime,
       company_phone: job.organization.phone || '',
     };
 
@@ -375,7 +376,20 @@ export class SmsService {
     client: ReturnType<typeof twilio> | null;
     fromNumber: string | null;
   } {
-    // Organization must have their own Twilio credentials configured
+    // If org uses platform-level Twilio, fall back to env vars
+    if (settings.use_platform_twilio) {
+      const sid = process.env.TWILIO_ACCOUNT_SID;
+      const token = process.env.TWILIO_AUTH_TOKEN;
+      const phone = process.env.TWILIO_PHONE_NUMBER;
+
+      if (!sid || !token || !phone) {
+        return { client: null, fromNumber: null };
+      }
+
+      return { client: twilio(sid, token), fromNumber: phone };
+    }
+
+    // Organization has their own Twilio credentials configured
     if (!settings.twilio_account_sid || !settings.twilio_auth_token || !settings.twilio_phone_number) {
       return { client: null, fromNumber: null };
     }
@@ -384,6 +398,15 @@ export class SmsService {
       client: twilio(settings.twilio_account_sid, settings.twilio_auth_token),
       fromNumber: settings.twilio_phone_number,
     };
+  }
+
+  /** Get the auth token used for webhook signature validation */
+  static getAuthTokenForSettings(settings: OrganizationSmsSettings | null): string | null {
+    if (!settings) return null;
+    if (settings.use_platform_twilio) {
+      return process.env.TWILIO_AUTH_TOKEN || null;
+    }
+    return settings.twilio_auth_token || null;
   }
 
   private static normalizePhone(phone: string): string | null {
