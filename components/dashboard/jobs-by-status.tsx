@@ -18,10 +18,12 @@ interface JobStatusData {
 
 const COLORS: Record<string, string> = {
   scheduled: '#3b82f6',
-  'in progress': '#eab308',
+  in_progress: '#eab308',
   completed: '#22c55e',
   invoiced: '#a855f7',
   paid: '#06b6d4',
+  cancelled: '#ef4444',
+  on_hold: '#f97316',
 };
 
 export function JobsByStatus() {
