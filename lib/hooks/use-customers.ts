@@ -2,12 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { CustomersService } from '@/lib/supabase/customers'
 import { useMultiTenantAuth } from './use-multi-tenant-auth'
 import { useToast } from '@/components/ui/use-toast'
-import type { CustomerInsert, CustomerUpdate, CustomerStatus, CustomerSource } from '@/types/database'
+import type { CustomerInsert, CustomerUpdate, CustomerStatus, CustomerSource, ContactType } from '@/types/database'
 
 interface UseCustomersOptions {
   search?: string
   status?: CustomerStatus | 'all'
   source?: CustomerSource | 'all'
+  contactType?: ContactType | 'all'
   page?: number
   pageSize?: number
 }
@@ -15,11 +16,10 @@ interface UseCustomersOptions {
 // Hook to fetch customers with search/filter/pagination
 export function useCustomers(options: UseCustomersOptions = {}) {
   const { organization } = useMultiTenantAuth()
-  const { search, status, source, page = 1, pageSize = 25 } = options
+  const { search, status, source, contactType, page = 1, pageSize = 25 } = options
 
   return useQuery({
-    // Use primitive values in queryKey to ensure proper comparison
-    queryKey: ['customers', organization?.id, search, status, source, page, pageSize],
+    queryKey: ['customers', organization?.id, search, status, source, contactType, page, pageSize],
     queryFn: async () => {
       if (!organization?.id) {
         throw new Error('No organization found')
@@ -30,8 +30,9 @@ export function useCustomers(options: UseCustomersOptions = {}) {
       return CustomersService.getCustomers(organization.id, {
         search: search || undefined,
         status: status === 'all' ? undefined : status,
+        contactType: contactType === 'all' ? undefined : contactType,
         limit: pageSize,
-        offset
+        offset,
       })
     },
     enabled: !!organization?.id,

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 import { sanitizeSearchQuery } from '@/lib/utils/sanitize'
-import type { Customer, CustomerInsert, CustomerUpdate, CustomerStatus } from '@/types/database'
+import type { Customer, CustomerInsert, CustomerUpdate, CustomerStatus, ContactType } from '@/types/database'
 
 export class CustomersService {
   private static supabase = createClient()
@@ -10,13 +10,14 @@ export class CustomersService {
     options: {
       search?: string
       status?: CustomerStatus
+      contactType?: ContactType
       limit?: number
       offset?: number
     } = {}
   ): Promise<Customer[]> {
     let query = this.supabase
       .from('customers')
-      .select('*')
+      .select('*, company:companies(id, name)')
       .eq('organization_id', organizationId)
 
     if (options.search) {
@@ -26,6 +27,10 @@ export class CustomersService {
 
     if (options.status) {
       query = query.eq('status', options.status)
+    }
+
+    if (options.contactType) {
+      query = query.eq('contact_type', options.contactType)
     }
 
     if (options.limit) {

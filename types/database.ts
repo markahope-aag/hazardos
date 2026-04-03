@@ -9,6 +9,10 @@ export type UserRole = 'platform_owner' | 'platform_admin' | 'tenant_owner' | 'a
 export type OrganizationStatus = 'active' | 'suspended' | 'cancelled' | 'trial'
 export type SubscriptionTier = 'trial' | 'starter' | 'professional' | 'enterprise'
 
+// CRM types
+export type ContactType = 'residential' | 'commercial'
+export type CompanyStatus = 'active' | 'inactive'
+
 // Customer management types
 export type CustomerStatus = 'lead' | 'prospect' | 'customer' | 'inactive'
 export type CustomerSource = 'phone' | 'website' | 'mail' | 'referral' | 'other'
@@ -209,12 +213,73 @@ export interface Database {
           updated_at?: string
         }
       }
+      companies: {
+        Row: {
+          id: string
+          organization_id: string
+          name: string
+          website: string | null
+          industry: string | null
+          phone: string | null
+          email: string | null
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          state: string | null
+          zip: string | null
+          notes: string | null
+          status: CompanyStatus
+          created_at: string
+          updated_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          name: string
+          website?: string | null
+          industry?: string | null
+          phone?: string | null
+          email?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          state?: string | null
+          zip?: string | null
+          notes?: string | null
+          status?: CompanyStatus
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          name?: string
+          website?: string | null
+          industry?: string | null
+          phone?: string | null
+          email?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          state?: string | null
+          zip?: string | null
+          notes?: string | null
+          status?: CompanyStatus
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+      }
       customers: {
         Row: {
           id: string
           organization_id: string
           name: string
           company_name: string | null
+          company_id: string | null
+          contact_type: ContactType
           email: string | null
           phone: string | null
           address_line1: string | null
@@ -237,6 +302,8 @@ export interface Database {
           organization_id: string
           name: string
           company_name?: string | null
+          company_id?: string | null
+          contact_type?: ContactType
           email?: string | null
           phone?: string | null
           address_line1?: string | null
@@ -259,6 +326,8 @@ export interface Database {
           organization_id?: string
           name?: string
           company_name?: string | null
+          company_id?: string | null
+          contact_type?: ContactType
           email?: string | null
           phone?: string | null
           address_line1?: string | null
@@ -1058,6 +1127,7 @@ export type PlatformSetting = Database['public']['Tables']['platform_settings'][
 export type TenantUsage = Database['public']['Tables']['tenant_usage']['Row']
 export type AuditLog = Database['public']['Tables']['audit_log']['Row']
 export type TenantInvitation = Database['public']['Tables']['tenant_invitations']['Row']
+export type Company = Database['public']['Tables']['companies']['Row']
 export type Customer = Database['public']['Tables']['customers']['Row']
 export type LaborRate = Database['public']['Tables']['labor_rates']['Row']
 export type EquipmentRate = Database['public']['Tables']['equipment_rates']['Row']
@@ -1078,6 +1148,7 @@ export type EquipmentItemInsert = Database['public']['Tables']['equipment_catalo
 export type MaterialItemInsert = Database['public']['Tables']['materials_catalog']['Insert']
 export type EstimateInsert = Database['public']['Tables']['estimates']['Insert']
 export type JobInsert = Database['public']['Tables']['jobs']['Insert']
+export type CompanyInsert = Database['public']['Tables']['companies']['Insert']
 export type CustomerInsert = Database['public']['Tables']['customers']['Insert']
 export type LaborRateInsert = Database['public']['Tables']['labor_rates']['Insert']
 export type EquipmentRateInsert = Database['public']['Tables']['equipment_rates']['Insert']
@@ -1098,6 +1169,7 @@ export type EquipmentItemUpdate = Database['public']['Tables']['equipment_catalo
 export type MaterialItemUpdate = Database['public']['Tables']['materials_catalog']['Update']
 export type EstimateUpdate = Database['public']['Tables']['estimates']['Update']
 export type JobUpdate = Database['public']['Tables']['jobs']['Update']
+export type CompanyUpdate = Database['public']['Tables']['companies']['Update']
 export type CustomerUpdate = Database['public']['Tables']['customers']['Update']
 export type LaborRateUpdate = Database['public']['Tables']['labor_rates']['Update']
 export type EquipmentRateUpdate = Database['public']['Tables']['equipment_rates']['Update']
