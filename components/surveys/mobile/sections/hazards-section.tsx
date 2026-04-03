@@ -117,7 +117,7 @@ export function HazardsSection() {
             {areas.map((area) => {
               const totalQty = area.hazards.reduce((sum, h) => sum + (h.quantity || 0), 0)
               const photoCount = area.photo_ids.length
-              const hazardTypes = [...new Set(area.hazards.map((h) => h.hazard_type))]
+              const hazardTypes = Array.from(new Set(area.hazards.map((h) => h.hazard_type)))
 
               return (
                 <Card

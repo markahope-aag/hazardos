@@ -205,6 +205,7 @@ export function PhotoCapture({
           timestamp,
           gpsCoordinates,
           category,
+          area_id: null,
           location: '',
           caption: '',
         })

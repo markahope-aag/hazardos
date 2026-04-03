@@ -65,7 +65,7 @@ export function SurveySummary() {
       hasRestrictions: access.hasRestrictions,
       restrictionCount: access.restrictions.length,
     }
-  }, [property, access, hazards, photos, environment])
+  }, [property, access, hazards, photos])
 
   const formattedStartTime = startedAt
     ? new Date(startedAt).toLocaleString()
@@ -136,7 +136,7 @@ export function SurveySummary() {
                 </div>
                 {area.hazards.some((h) => h.containment_level) && (
                   <div className="text-xs text-muted-foreground mt-1">
-                    Containment: {[...new Set(area.hazards.filter((h) => h.containment_level).map((h) => CONTAINMENT_LABELS[h.containment_level as ContainmentLevel]))].join(', ')}
+                    Containment: {Array.from(new Set(area.hazards.filter((h) => h.containment_level).map((h) => CONTAINMENT_LABELS[h.containment_level as ContainmentLevel]))).join(', ')}
                   </div>
                 )}
               </div>

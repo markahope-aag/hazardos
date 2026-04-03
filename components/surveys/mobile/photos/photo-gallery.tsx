@@ -15,9 +15,7 @@ export function PhotoGallery() {
     const grouped: Record<PhotoCategory, PhotoData[]> = {
       exterior: [],
       interior: [],
-      asbestos_materials: [],
-      mold_areas: [],
-      lead_components: [],
+      hazard_area: [],
       utility_access: [],
       other: [],
     }
@@ -41,9 +39,7 @@ export function PhotoGallery() {
   const orderedCategories: PhotoCategory[] = [
     'exterior',
     'interior',
-    'asbestos_materials',
-    'mold_areas',
-    'lead_components',
+    'hazard_area',
     'utility_access',
     'other',
   ]

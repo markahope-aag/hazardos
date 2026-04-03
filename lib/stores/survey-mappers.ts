@@ -10,32 +10,10 @@ import type {
   EnvironmentData,
   HazardsData,
   PhotoData,
-  AsbestosMaterialType,
-  AsbestosMaterialCondition,
-  QuantityUnit,
-  ContainmentLevel,
-  MoistureSourceType,
-  MoistureSourceStatus,
-  MoldMaterialType,
-  MoldAffectedMaterial,
-  MoldSeverity,
-  OdorLevel,
-  MoldSizeCategory,
-  LeadWorkScope,
-  LeadComponentType,
-  LeadCondition,
-  LeadWorkMethod,
 } from './survey-types'
 
-import type {
-  SiteSurveyInsert,
-  SiteSurveyUpdate,
-  SiteSurvey,
-  SurveyAccessInfo,
-  SurveyEnvironmentInfo,
-  SurveyHazardAssessments,
-  SurveyPhotoMetadata,
-} from '@/types/database'
+// Use permissive types for DB JSONB fields
+type JsonValue = Record<string, unknown>
 
 interface SurveyStoreState {
   currentSurveyId: string | null
@@ -54,117 +32,27 @@ export function mapStoreToDb(
     status?: 'draft' | 'submitted'
     submittedAt?: string
   }
-): SiteSurveyUpdate {
+): Record<string, unknown> {
   const { formData, startedAt, customerId } = state
   const { property, access, environment, hazards, photos, notes } = formData
 
-  // Map access data to database format
-  const accessInfo: SurveyAccessInfo = {
-    hasRestrictions: access.hasRestrictions,
-    restrictions: access.restrictions,
-    restrictionNotes: access.restrictionNotes,
-    parkingAvailable: access.parkingAvailable,
-    loadingZoneAvailable: access.loadingZoneAvailable,
-    equipmentAccess: access.equipmentAccess,
-    equipmentAccessNotes: access.equipmentAccessNotes,
-    elevatorAvailable: access.elevatorAvailable,
-    minDoorwayWidth: access.minDoorwayWidth,
-  }
+  // Determine primary hazard type from areas for legacy field
+  const allHazardTypes = hazards.areas.flatMap((a) => a.hazards.map((h) => h.hazard_type))
+  const primaryHazardType = allHazardTypes[0] || 'other'
 
-  // Map environment data to database format
-  const environmentInfo: SurveyEnvironmentInfo = {
-    temperature: environment.temperature,
-    humidity: environment.humidity,
-    moistureIssues: environment.moistureIssues,
-    moistureNotes: environment.moistureNotes,
-    hasStructuralConcerns: environment.hasStructuralConcerns,
-    structuralConcerns: environment.structuralConcerns,
-    structuralNotes: environment.structuralNotes,
-    utilityShutoffsLocated: environment.utilityShutoffsLocated,
-  }
-
-  // Map hazard assessments to database format
-  const hazardAssessments: SurveyHazardAssessments = {
-    types: hazards.types,
-    asbestos: hazards.asbestos
-      ? {
-          materials: hazards.asbestos.materials.map((m) => ({
-            id: m.id,
-            materialType: m.materialType,
-            quantity: m.quantity,
-            unit: m.unit,
-            location: m.location,
-            condition: m.condition,
-            friable: m.friable,
-            pipeDiameter: m.pipeDiameter,
-            pipeThickness: m.pipeThickness,
-            notes: m.notes,
-          })),
-          estimatedWasteVolume: hazards.asbestos.estimatedWasteVolume,
-          containmentLevel: hazards.asbestos.containmentLevel,
-          epaNotificationRequired: hazards.asbestos.epaNotificationRequired,
-        }
-      : null,
-    mold: hazards.mold
-      ? {
-          moistureSourceIdentified: hazards.mold.moistureSourceIdentified,
-          moistureSourceTypes: hazards.mold.moistureSourceTypes,
-          moistureSourceStatus: hazards.mold.moistureSourceStatus,
-          moistureSourceNotes: hazards.mold.moistureSourceNotes,
-          affectedAreas: hazards.mold.affectedAreas.map((a) => ({
-            id: a.id,
-            location: a.location,
-            squareFootage: a.squareFootage,
-            materialType: a.materialType,
-            materialsAffected: a.materialsAffected,
-            severity: a.severity,
-            moistureReading: a.moistureReading,
-          })),
-          hvacContaminated: hazards.mold.hvacContaminated,
-          odorLevel: hazards.mold.odorLevel,
-          sizeCategory: hazards.mold.sizeCategory,
-        }
-      : null,
-    lead: hazards.lead
-      ? {
-          childrenUnder6Present: hazards.lead.childrenUnder6Present,
-          workScope: hazards.lead.workScope,
-          components: hazards.lead.components.map((c) => ({
-            id: c.id,
-            componentType: c.componentType,
-            location: c.location,
-            quantity: c.quantity,
-            unit: c.unit,
-            condition: c.condition,
-          })),
-          rrpRuleApplies: hazards.lead.rrpRuleApplies,
-          workMethod: hazards.lead.workMethod,
-          totalWorkArea: hazards.lead.totalWorkArea,
-        }
-      : null,
-    other: hazards.other
-      ? {
-          description: hazards.other.description,
-          notes: hazards.other.notes,
-        }
-      : null,
-  }
-
-  // Map photos to metadata format (URLs will be added after upload)
-  const photoMetadata: SurveyPhotoMetadata[] = photos.photos
-    .filter((p) => p.dataUrl) // Only include photos with data
+  // Map photos to metadata format
+  const photoMetadata = photos.photos
+    .filter((p) => p.dataUrl)
     .map((p) => ({
       id: p.id,
-      url: p.dataUrl || '', // Will be replaced with remote URL after upload
+      url: p.dataUrl || '',
       category: p.category,
+      area_id: p.area_id || null,
       location: p.location,
       caption: p.caption,
       gpsCoordinates: p.gpsCoordinates,
       timestamp: p.timestamp,
     }))
-
-  // Determine primary hazard type for legacy field
-  const primaryHazardType = hazards.types[0] || 'other'
 
   return {
     organization_id: organizationId,
@@ -184,19 +72,17 @@ export function mapStoreToDb(
     owner_name: property.ownerName,
     owner_phone: property.ownerPhone,
     owner_email: property.ownerEmail,
-    // Default customer info from owner if not set via customer_id
     customer_name: property.ownerName || 'Site Survey',
     customer_email: property.ownerEmail,
     customer_phone: property.ownerPhone,
-    // Job name from address
     job_name: property.address || 'New Survey',
-    // JSONB fields
-    access_info: accessInfo,
-    environment_info: environmentInfo,
-    hazard_assessments: hazardAssessments,
+    // JSONB fields — serialize as-is
+    access_info: access as unknown as JsonValue,
+    environment_info: environment as unknown as JsonValue,
+    hazard_assessments: hazards as unknown as JsonValue,
     photo_metadata: photoMetadata,
     // Legacy hazard field
-    hazard_type: primaryHazardType as 'asbestos' | 'mold' | 'lead' | 'vermiculite' | 'other',
+    hazard_type: primaryHazardType,
     // Notes
     technician_notes: notes,
     // Timestamps
@@ -211,32 +97,30 @@ export function mapStoreToDb(
 /**
  * Convert database format back to store format
  */
-export function mapDbToStore(db: SiteSurvey): Partial<SurveyStoreState> {
-  const accessInfo = (db.access_info as SurveyAccessInfo) || {}
-  const environmentInfo = (db.environment_info as SurveyEnvironmentInfo) || {}
-  const hazardAssessments = (db.hazard_assessments as SurveyHazardAssessments) || { types: [] }
-  const photoMetadata = (db.photo_metadata as SurveyPhotoMetadata[]) || []
+export function mapDbToStore(db: Record<string, unknown>): Partial<SurveyStoreState> {
+  const accessInfo = (db.access_info as Partial<AccessData>) || {}
+  const environmentInfo = (db.environment_info as Partial<EnvironmentData>) || {}
+  const hazardAssessments = (db.hazard_assessments as Partial<HazardsData>) || {}
+  const photoMetadata = (db.photo_metadata as Array<Record<string, unknown>>) || []
 
-  // Map property data
   const property: PropertyData = {
-    address: db.site_address || '',
-    city: db.site_city || '',
-    state: db.site_state || '',
-    zip: db.site_zip || '',
+    address: (db.site_address as string) || '',
+    city: (db.site_city as string) || '',
+    state: (db.site_state as string) || '',
+    zip: (db.site_zip as string) || '',
     buildingType: (db.building_type as PropertyData['buildingType']) || null,
-    yearBuilt: db.year_built,
-    squareFootage: db.building_sqft,
-    stories: db.stories || 1,
+    yearBuilt: (db.year_built as number) ?? null,
+    squareFootage: (db.building_sqft as number) ?? null,
+    stories: (db.stories as number) || 1,
     constructionType: (db.construction_type as PropertyData['constructionType']) || null,
     occupancyStatus: (db.occupancy_status as PropertyData['occupancyStatus']) || null,
-    occupiedHoursStart: null, // Not stored in DB currently
+    occupiedHoursStart: null,
     occupiedHoursEnd: null,
-    ownerName: db.owner_name || '',
-    ownerPhone: db.owner_phone || '',
-    ownerEmail: db.owner_email || '',
+    ownerName: (db.owner_name as string) || '',
+    ownerPhone: (db.owner_phone as string) || '',
+    ownerEmail: (db.owner_email as string) || '',
   }
 
-  // Map access data
   const access: AccessData = {
     hasRestrictions: accessInfo.hasRestrictions ?? null,
     restrictions: (accessInfo.restrictions || []) as AccessData['restrictions'],
@@ -249,7 +133,6 @@ export function mapDbToStore(db: SiteSurvey): Partial<SurveyStoreState> {
     minDoorwayWidth: accessInfo.minDoorwayWidth || 32,
   }
 
-  // Map environment data
   const environment: EnvironmentData = {
     temperature: environmentInfo.temperature ?? null,
     humidity: environmentInfo.humidity ?? null,
@@ -261,97 +144,36 @@ export function mapDbToStore(db: SiteSurvey): Partial<SurveyStoreState> {
     utilityShutoffsLocated: environmentInfo.utilityShutoffsLocated ?? null,
   }
 
-  // Map hazards data
+  // Hazards — new area-based structure or legacy format
   const hazards: HazardsData = {
-    types: hazardAssessments.types || [],
-    asbestos: hazardAssessments.asbestos
-      ? {
-          materials: hazardAssessments.asbestos.materials.map((m) => ({
-            id: m.id,
-            materialType: m.materialType as AsbestosMaterialType | null,
-            quantity: m.quantity,
-            unit: (m.unit as QuantityUnit) || 'sq_ft',
-            location: m.location || '',
-            condition: m.condition as AsbestosMaterialCondition | null,
-            friable: m.friable || false,
-            pipeDiameter: m.pipeDiameter,
-            pipeThickness: m.pipeThickness,
-            notes: m.notes || '',
-          })),
-          estimatedWasteVolume: hazardAssessments.asbestos.estimatedWasteVolume,
-          containmentLevel: hazardAssessments.asbestos.containmentLevel as ContainmentLevel | null,
-          epaNotificationRequired: hazardAssessments.asbestos.epaNotificationRequired || false,
-        }
-      : null,
-    mold: hazardAssessments.mold
-      ? {
-          moistureSourceIdentified: hazardAssessments.mold.moistureSourceIdentified,
-          moistureSourceTypes: (hazardAssessments.mold.moistureSourceTypes || []) as MoistureSourceType[],
-          moistureSourceStatus: hazardAssessments.mold.moistureSourceStatus as MoistureSourceStatus | null,
-          moistureSourceNotes: hazardAssessments.mold.moistureSourceNotes || '',
-          affectedAreas: hazardAssessments.mold.affectedAreas.map((a) => ({
-            id: a.id,
-            location: a.location || '',
-            squareFootage: a.squareFootage,
-            materialType: a.materialType as MoldMaterialType | null,
-            materialsAffected: (a.materialsAffected || []) as MoldAffectedMaterial[],
-            severity: a.severity as MoldSeverity | null,
-            moistureReading: a.moistureReading,
-          })),
-          hvacContaminated: hazardAssessments.mold.hvacContaminated,
-          odorLevel: hazardAssessments.mold.odorLevel as OdorLevel | null,
-          sizeCategory: hazardAssessments.mold.sizeCategory as MoldSizeCategory | null,
-        }
-      : null,
-    lead: hazardAssessments.lead
-      ? {
-          childrenUnder6Present: hazardAssessments.lead.childrenUnder6Present,
-          workScope: hazardAssessments.lead.workScope as LeadWorkScope | null,
-          components: hazardAssessments.lead.components.map((c) => ({
-            id: c.id,
-            componentType: c.componentType as LeadComponentType | null,
-            location: c.location || '',
-            quantity: c.quantity,
-            unit: (c.unit as QuantityUnit | 'count') || 'sq_ft',
-            condition: c.condition as LeadCondition | null,
-          })),
-          rrpRuleApplies: hazardAssessments.lead.rrpRuleApplies || false,
-          workMethod: hazardAssessments.lead.workMethod as LeadWorkMethod | null,
-          totalWorkArea: hazardAssessments.lead.totalWorkArea || 0,
-        }
-      : null,
-    other: hazardAssessments.other
-      ? {
-          description: hazardAssessments.other.description || '',
-          notes: hazardAssessments.other.notes || '',
-        }
-      : null,
+    areas: (hazardAssessments.areas || []) as HazardsData['areas'],
   }
 
-  // Map photos (note: these are remote URLs from DB)
+  // Map photos
   const photos: PhotoData[] = photoMetadata.map((p) => ({
-    id: p.id,
-    blob: null, // Not stored locally after sync
-    dataUrl: p.url, // Remote URL becomes the dataUrl for display
-    timestamp: p.timestamp,
-    gpsCoordinates: p.gpsCoordinates,
-    category: p.category as PhotoData['category'],
-    location: p.location || '',
-    caption: p.caption || '',
+    id: (p.id as string) || '',
+    blob: null,
+    dataUrl: (p.url as string) || '',
+    timestamp: (p.timestamp as string) || '',
+    gpsCoordinates: p.gpsCoordinates as PhotoData['gpsCoordinates'],
+    category: (p.category as PhotoData['category']) || 'other',
+    area_id: (p.area_id as string) || null,
+    location: (p.location as string) || '',
+    caption: (p.caption as string) || '',
   }))
 
   return {
-    currentSurveyId: db.id,
-    customerId: db.customer_id,
+    currentSurveyId: db.id as string,
+    customerId: db.customer_id as string | null,
     formData: {
       property,
       access,
       environment,
       hazards,
       photos: { photos },
-      notes: db.technician_notes || '',
+      notes: (db.technician_notes as string) || '',
     },
-    startedAt: db.started_at,
+    startedAt: db.started_at as string | null,
   }
 }
 
@@ -361,7 +183,7 @@ export function mapDbToStore(db: SiteSurvey): Partial<SurveyStoreState> {
 export function createInitialDbRecord(
   organizationId: string,
   customerId?: string
-): SiteSurveyInsert {
+): Record<string, unknown> {
   return {
     organization_id: organizationId,
     customer_id: customerId || null,
@@ -373,7 +195,7 @@ export function createInitialDbRecord(
     site_zip: '',
     hazard_type: 'other',
     status: 'draft',
-    hazard_assessments: { types: [], asbestos: null, mold: null, lead: null, other: null } as SurveyHazardAssessments,
+    hazard_assessments: { areas: [] },
     access_info: {
       hasRestrictions: null,
       restrictions: [],
@@ -384,7 +206,7 @@ export function createInitialDbRecord(
       equipmentAccessNotes: '',
       elevatorAvailable: null,
       minDoorwayWidth: 32,
-    } as SurveyAccessInfo,
+    },
     environment_info: {
       temperature: null,
       humidity: null,
@@ -394,7 +216,7 @@ export function createInitialDbRecord(
       structuralConcerns: [],
       structuralNotes: '',
       utilityShutoffsLocated: null,
-    } as SurveyEnvironmentInfo,
+    },
     photo_metadata: [],
     started_at: new Date().toISOString(),
   }
