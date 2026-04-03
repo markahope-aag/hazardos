@@ -42,8 +42,12 @@ const PREFERRED_METHOD_LABELS: Record<string, string> = {
   mail: 'Mail',
 }
 
+interface CustomerWithJoins extends Customer {
+  account_owner?: { id: string; first_name?: string; last_name?: string; full_name?: string } | null
+}
+
 interface CustomerDetailProps {
-  customer: Customer
+  customer: CustomerWithJoins
 }
 
 export default function CustomerDetail({ customer }: CustomerDetailProps) {
@@ -174,7 +178,11 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
                   <User className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-xs text-muted-foreground">Account Owner</p>
-                    <p className="font-medium">Assigned</p>
+                    <p className="font-medium">
+                      {customer.account_owner
+                        ? customer.account_owner.full_name || [customer.account_owner.first_name, customer.account_owner.last_name].filter(Boolean).join(' ')
+                        : 'Assigned'}
+                    </p>
                   </div>
                 </div>
               )}

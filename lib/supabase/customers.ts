@@ -17,7 +17,7 @@ export class CustomersService {
   ): Promise<Customer[]> {
     let query = this.supabase
       .from('customers')
-      .select('*, company:companies!company_id(id, name)')
+      .select('*, company:companies!company_id(id, name), account_owner:profiles!account_owner_id(id, first_name, last_name, full_name)')
       .eq('organization_id', organizationId)
 
     if (options.search) {
