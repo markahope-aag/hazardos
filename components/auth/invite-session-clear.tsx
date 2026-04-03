@@ -1,12 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 
 /**
  * Clears any existing Supabase session when an invite token is present.
- * Must wrap the signup form to ensure session is gone before form renders.
+ * Nukes localStorage and cookies so the signup form renders clean.
  */
 export function InviteSessionClear({
   hasInvite,
@@ -20,12 +19,30 @@ export function InviteSessionClear({
   useEffect(() => {
     if (!hasInvite) return
 
-    const clear = async () => {
-      const supabase = createClient()
-      await supabase.auth.signOut({ scope: 'local' })
-      setReady(true)
+    // Clear ALL Supabase keys from localStorage
+    const keysToRemove: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+        keysToRemove.push(key)
+      }
     }
-    clear()
+    keysToRemove.forEach(key => {
+      console.log('[InviteSessionClear] removing localStorage key:', key)
+      localStorage.removeItem(key)
+    })
+
+    // Clear Supabase cookies
+    document.cookie.split(';').forEach(cookie => {
+      const name = cookie.split('=')[0].trim()
+      if (name.startsWith('sb-')) {
+        console.log('[InviteSessionClear] removing cookie:', name)
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
+      }
+    })
+
+    console.log('[InviteSessionClear] session cleared, rendering signup form')
+    setReady(true)
   }, [hasInvite])
 
   if (!ready) {
