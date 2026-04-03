@@ -2,11 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { CompaniesService } from '@/lib/supabase/companies'
 import { useMultiTenantAuth } from './use-multi-tenant-auth'
 import { useToast } from '@/components/ui/use-toast'
-import type { CompanyInsert, CompanyUpdate, CompanyStatus } from '@/types/database'
+import type { CompanyInsert, CompanyUpdate, AccountStatus } from '@/types/database'
 
 interface UseCompaniesOptions {
   search?: string
-  status?: CompanyStatus | 'all'
+  status?: AccountStatus | 'all'
   page?: number
   pageSize?: number
 }

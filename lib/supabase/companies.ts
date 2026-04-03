@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 import { sanitizeSearchQuery } from '@/lib/utils/sanitize'
-import type { Company, CompanyInsert, CompanyUpdate, CompanyStatus } from '@/types/database'
+import type { Company, CompanyInsert, CompanyUpdate, AccountStatus } from '@/types/database'
 
 export class CompaniesService {
   private static supabase = createClient()
@@ -9,7 +9,7 @@ export class CompaniesService {
     organizationId: string,
     options: {
       search?: string
-      status?: CompanyStatus
+      status?: AccountStatus
       limit?: number
       offset?: number
     } = {}
@@ -25,7 +25,7 @@ export class CompaniesService {
     }
 
     if (options.status) {
-      query = query.eq('status', options.status)
+      query = query.eq('account_status', options.status)
     }
 
     if (options.limit) {
@@ -114,12 +114,12 @@ export class CompaniesService {
         .from('companies')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', organizationId)
-        .eq('status', 'active'),
+        .eq('account_status', 'active'),
       this.supabase
         .from('companies')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', organizationId)
-        .eq('status', 'inactive'),
+        .neq('account_status', 'active'),
     ])
 
     const active = activeCount.count || 0

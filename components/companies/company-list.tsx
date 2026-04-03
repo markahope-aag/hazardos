@@ -17,7 +17,7 @@ import { Building2, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { useCompanies } from '@/lib/hooks/use-companies'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import { formatCurrency } from '@/lib/utils'
-import type { CompanyStatus } from '@/types/database'
+import type { AccountStatus } from '@/types/database'
 
 const STATUS_COLORS: Record<string, string> = {
   prospect: 'bg-blue-100 text-blue-700',
@@ -39,7 +39,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default function CompanyList() {
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState<CompanyStatus | 'all'>('all')
+  const [status, setStatus] = useState<AccountStatus | 'all'>('all')
   const [page, setPage] = useState(1)
   const pageSize = 25
 
@@ -91,7 +91,7 @@ export default function CompanyList() {
           />
         </div>
         <div className="flex gap-2">
-          <Select value={status} onValueChange={(v) => { setStatus(v as CompanyStatus | 'all'); setPage(1) }}>
+          <Select value={status} onValueChange={(v) => { setStatus(v as AccountStatus | 'all'); setPage(1) }}>
             <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
