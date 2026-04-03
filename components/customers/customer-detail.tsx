@@ -6,9 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Textarea } from '@/components/ui/textarea'
 import {
   ArrowLeft, Edit, Mail, Phone, Building2, MapPin,
   MessageSquare, Briefcase, Target, ChevronDown, Trash2,
+  PhoneCall, CalendarPlus, User,
 } from 'lucide-react'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -20,7 +22,7 @@ import EditCustomerModal from './edit-customer-modal'
 import DeleteCustomerDialog from './delete-customer-dialog'
 import CustomerSurveysList from './customer-surveys-list'
 import CustomerActivityFeed from './customer-activity-feed'
-import { useUpdateCustomerStatus } from '@/lib/hooks/use-customers'
+import { useUpdateCustomer, useUpdateCustomerStatus } from '@/lib/hooks/use-customers'
 import { CUSTOMER_STATUS_OPTIONS } from '@/lib/validations/customer'
 import type { Customer, CustomerStatus } from '@/types/database'
 
@@ -33,6 +35,13 @@ const CONTACT_ROLE_LABELS: Record<string, string> = {
   other: 'Other',
 }
 
+const PREFERRED_METHOD_LABELS: Record<string, string> = {
+  email: 'Email',
+  phone: 'Phone',
+  text: 'SMS / Text',
+  mail: 'Mail',
+}
+
 interface CustomerDetailProps {
   customer: Customer
 }
@@ -43,7 +52,10 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'activity' | 'opportunities' | 'jobs'>('overview')
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
+  const [editingNotes, setEditingNotes] = useState(false)
+  const [notesValue, setNotesValue] = useState(customer.notes || '')
   const updateStatusMutation = useUpdateCustomerStatus()
+  const updateCustomerMutation = useUpdateCustomer()
 
   const displayName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.name
 
@@ -55,6 +67,14 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
     } finally {
       setIsUpdatingStatus(false)
     }
+  }
+
+  const handleSaveNotes = async () => {
+    await updateCustomerMutation.mutateAsync({
+      id: customer.id,
+      updates: { notes: notesValue }
+    })
+    setEditingNotes(false)
   }
 
   const tabs = [
@@ -138,12 +158,18 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
                     <span className="text-xs text-muted-foreground">office</span>
                   </div>
                 )}
-                {customer.preferred_contact_method && (
-                  <div className="text-xs text-muted-foreground">
-                    Prefers: <span className="capitalize">{customer.preferred_contact_method}</span>
-                  </div>
-                )}
               </div>
+
+              {/* Preferred Contact Method */}
+              {customer.preferred_contact_method && (
+                <div className="text-sm">
+                  <p className="text-xs text-muted-foreground">Preferred Contact Method</p>
+                  <p className="font-medium">{PREFERRED_METHOD_LABELS[customer.preferred_contact_method] || customer.preferred_contact_method}</p>
+                </div>
+              )}
+
+              {/* Account Owner - placeholder until we wire up profile lookup */}
+              {/* TODO: Look up account owner name from profiles table */}
 
               {customer.address_line1 && (
                 <>
@@ -186,6 +212,24 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Quick Actions */}
+          <div className="grid grid-cols-3 gap-2">
+            <Button variant="outline" size="sm" className="flex flex-col items-center gap-1 h-auto py-3">
+              <PhoneCall className="h-4 w-4" />
+              <span className="text-xs">Log Call</span>
+            </Button>
+            <Button variant="outline" size="sm" className="flex flex-col items-center gap-1 h-auto py-3" asChild>
+              <a href={customer.email ? `mailto:${customer.email}` : '#'}>
+                <Mail className="h-4 w-4" />
+                <span className="text-xs">Send Email</span>
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" className="flex flex-col items-center gap-1 h-auto py-3" onClick={() => setShowEditModal(true)}>
+              <CalendarPlus className="h-4 w-4" />
+              <span className="text-xs">Follow-up</span>
+            </Button>
+          </div>
         </div>
 
         {/* Right Main Content — Tabbed */}
@@ -229,7 +273,7 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
                         {customer.next_followup_date ? new Date(customer.next_followup_date).toLocaleDateString() : '—'}
                       </p>
                       {customer.next_followup_note && (
-                        <p className="text-xs text-muted-foreground">{customer.next_followup_note}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{customer.next_followup_note}</p>
                       )}
                     </div>
                     <div>
@@ -240,51 +284,84 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
                 </CardContent>
               </Card>
 
-              {/* Attribution */}
-              {(customer.lead_source || customer.utm_source || customer.referred_by_contact_id) && (
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Attribution</CardTitle></CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      {customer.lead_source && (
-                        <div>
-                          <p className="text-muted-foreground">Lead Source</p>
-                          <p className="font-medium">{customer.lead_source}</p>
-                          {customer.lead_source_detail && <p className="text-xs text-muted-foreground">{customer.lead_source_detail}</p>}
-                        </div>
-                      )}
-                      {customer.utm_source && (
-                        <div>
-                          <p className="text-muted-foreground">UTM Source</p>
-                          <p className="font-medium">{customer.utm_source}</p>
-                        </div>
-                      )}
-                      {customer.utm_medium && (
-                        <div>
-                          <p className="text-muted-foreground">UTM Medium</p>
-                          <p className="font-medium">{customer.utm_medium}</p>
-                        </div>
-                      )}
-                      {customer.utm_campaign && (
-                        <div>
-                          <p className="text-muted-foreground">UTM Campaign</p>
-                          <p className="font-medium">{customer.utm_campaign}</p>
-                        </div>
+              {/* Lead Source / Attribution */}
+              <Card>
+                <CardHeader><CardTitle className="text-base">Lead Source</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Lead Source</p>
+                      <p className="font-medium">{customer.lead_source || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Source Detail</p>
+                      <p className="font-medium">{customer.lead_source_detail || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Referred By</p>
+                      {customer.referred_by_contact_id ? (
+                        <Link href={`/crm/contacts/${customer.referred_by_contact_id}`} className="font-medium text-primary hover:underline flex items-center gap-1">
+                          <User className="h-3 w-3" />View Referrer
+                        </Link>
+                      ) : (
+                        <p className="font-medium">—</p>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                    {customer.utm_source && (
+                      <div>
+                        <p className="text-muted-foreground">UTM Source</p>
+                        <p className="font-medium">{customer.utm_source}</p>
+                      </div>
+                    )}
+                    {customer.utm_medium && (
+                      <div>
+                        <p className="text-muted-foreground">UTM Medium</p>
+                        <p className="font-medium">{customer.utm_medium}</p>
+                      </div>
+                    )}
+                    {customer.utm_campaign && (
+                      <div>
+                        <p className="text-muted-foreground">UTM Campaign</p>
+                        <p className="font-medium">{customer.utm_campaign}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
 
-              {/* Notes */}
-              {customer.notes && (
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Notes</CardTitle></CardHeader>
-                  <CardContent>
-                    <p className="text-sm whitespace-pre-wrap">{customer.notes}</p>
-                  </CardContent>
-                </Card>
-              )}
+              {/* Notes — inline editable */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">Notes</CardTitle>
+                    {!editingNotes && (
+                      <Button variant="ghost" size="sm" onClick={() => { setNotesValue(customer.notes || ''); setEditingNotes(true) }}>
+                        <Edit className="h-3 w-3 mr-1" />Edit
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {editingNotes ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={notesValue}
+                        onChange={(e) => setNotesValue(e.target.value)}
+                        rows={4}
+                        placeholder="Add notes about this contact..."
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="outline" size="sm" onClick={() => setEditingNotes(false)}>Cancel</Button>
+                        <Button size="sm" onClick={handleSaveNotes} disabled={updateCustomerMutation.isPending}>
+                          {updateCustomerMutation.isPending ? 'Saving...' : 'Save'}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{customer.notes || <span className="text-muted-foreground">No notes yet. Click Edit to add notes.</span>}</p>
+                  )}
+                </CardContent>
+              </Card>
 
               {/* Surveys */}
               <CustomerSurveysList customerId={customer.id} />
