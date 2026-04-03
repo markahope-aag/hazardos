@@ -100,11 +100,12 @@ export default async function OpportunitiesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Opportunity</TableHead>
-                  <TableHead>Contact</TableHead>
+                  <TableHead>Contact / Company</TableHead>
                   <TableHead>Stage</TableHead>
+                  <TableHead>Hazards</TableHead>
                   <TableHead>Value</TableHead>
+                  <TableHead>Urgency</TableHead>
                   <TableHead>Expected Close</TableHead>
-                  <TableHead>Owner</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -114,15 +115,20 @@ export default async function OpportunitiesPage() {
                       <Link href={`/crm/opportunities/${opp.id}`} className="font-medium text-primary hover:underline">
                         {opp.name}
                       </Link>
-                      {opp.description && (
-                        <div className="text-sm text-muted-foreground truncate max-w-[200px]">{opp.description}</div>
+                      {opp.service_city && opp.service_state && (
+                        <div className="text-xs text-muted-foreground">{opp.service_city}, {opp.service_state}</div>
                       )}
                     </TableCell>
                     <TableCell>
                       {opp.customer ? (
-                        <Link href={`/crm/contacts/${opp.customer.id}`} className="text-sm hover:underline">
-                          {opp.customer.company_name || opp.customer.name}
-                        </Link>
+                        <div>
+                          <Link href={`/crm/contacts/${opp.customer.id}`} className="text-sm hover:underline">
+                            {[opp.customer.first_name, opp.customer.last_name].filter(Boolean).join(' ') || opp.customer.name}
+                          </Link>
+                          {opp.customer.company_name && (
+                            <div className="text-xs text-muted-foreground">{opp.customer.company_name}</div>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
@@ -135,6 +141,19 @@ export default async function OpportunitiesPage() {
                         >
                           {opp.stage.name}
                         </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {opp.hazard_types && opp.hazard_types.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {opp.hazard_types.map((h) => (
+                            <Badge key={h} variant="outline" className="text-xs">
+                              {h.replace(/_/g, ' ')}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -151,13 +170,19 @@ export default async function OpportunitiesPage() {
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
+                    <TableCell>
+                      {opp.urgency && opp.urgency !== 'routine' ? (
+                        <Badge variant={opp.urgency === 'emergency' ? 'destructive' : 'secondary'}>
+                          {opp.urgency}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">routine</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {opp.expected_close_date
                         ? new Date(opp.expected_close_date).toLocaleDateString()
                         : '—'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {opp.owner?.full_name || '—'}
                     </TableCell>
                   </TableRow>
                 ))}

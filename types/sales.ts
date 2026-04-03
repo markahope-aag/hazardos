@@ -24,30 +24,67 @@ export interface Opportunity {
   id: string
   organization_id: string
   customer_id: string
+  company_id: string | null
   name: string
   description: string | null
   stage_id: string
+  // Status & pipeline
+  opportunity_status: import('@/types/database').OpportunityStatus | null
   estimated_value: number | null
   weighted_value: number | null
+  probability_pct: number
   expected_close_date: string | null
   actual_close_date: string | null
+  // Contacts
+  primary_contact_id: string | null
+  site_contact_id: string | null
   owner_id: string | null
+  // Property / Site
+  service_address_line1: string | null
+  service_address_line2: string | null
+  service_city: string | null
+  service_state: string | null
+  service_zip: string | null
+  property_type: import('@/types/database').PropertyType | null
+  property_age: number | null
+  // Hazard details
+  hazard_types: string[] | null
+  estimated_affected_area_sqft: number | null
+  urgency: import('@/types/database').UrgencyLevel | null
+  regulatory_trigger: import('@/types/database').RegulatoryTrigger | null
+  // Pipeline dates
+  assessment_date: string | null
+  estimate_sent_date: string | null
+  follow_up_date: string | null
+  // Related entities
   estimate_id: string | null
   proposal_id: string | null
   job_id: string | null
+  created_from_assessment_id: string | null
+  // Outcome
   outcome: OpportunityOutcome | null
   loss_reason: string | null
   loss_notes: string | null
   competitor: string | null
+  lost_to_competitor: string | null
+  // Marketing attribution
+  lead_source: string | null
+  lead_source_detail: string | null
+  utm_source: string | null
+  utm_medium: string | null
+  utm_campaign: string | null
+  first_touch_date: string | null
+  // Meta
   created_at: string
   updated_at: string
   // Joined
   stage?: PipelineStage
   customer?: {
     id: string
+    name: string
     company_name: string | null
-    first_name: string
-    last_name: string
+    first_name: string | null
+    last_name: string | null
   }
   owner?: {
     id: string

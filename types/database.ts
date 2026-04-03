@@ -16,6 +16,10 @@ export type CompanyType = 'residential_property_mgr' | 'commercial_property_mgr'
 export type AccountStatus = 'prospect' | 'active' | 'inactive' | 'churned'
 export type ContactRole = 'decision_maker' | 'influencer' | 'billing' | 'property_manager' | 'site_contact' | 'other'
 export type ContactStatus = 'active' | 'inactive' | 'do_not_contact'
+export type OpportunityStatus = 'new' | 'assessment_scheduled' | 'estimate_sent' | 'won' | 'lost' | 'no_decision'
+export type PropertyType = 'residential_single_family' | 'residential_multi_family' | 'commercial' | 'industrial' | 'government'
+export type UrgencyLevel = 'routine' | 'urgent' | 'emergency'
+export type RegulatoryTrigger = 'inspection_required' | 'sale_pending' | 'tenant_complaint' | 'insurance_claim' | 'voluntary'
 
 // Customer management types
 export type CustomerStatus = 'lead' | 'prospect' | 'customer' | 'inactive'
