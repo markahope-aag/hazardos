@@ -6,7 +6,7 @@ import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { Home, FileText, Calculator, Calendar, Settings, Users, Briefcase, DollarSign } from 'lucide-react'
+import { Home, FileText, Calculator, Calendar, Settings, Users, DollarSign, LayoutGrid } from 'lucide-react'
 import LoginForm from '@/components/auth/login-form'
 
 function InlineLogin() {
@@ -122,6 +122,18 @@ export default function DashboardLayout({
         <div className="container">
           <div className="flex space-x-8 overflow-x-auto">
             <Link
+              href="/crm"
+              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
+                pathname.startsWith('/crm')
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <LayoutGrid className="h-4 w-4" />
+              <span>CRM</span>
+            </Link>
+
+            <Link
               href="/"
               className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
                 pathname === '/'
@@ -132,19 +144,7 @@ export default function DashboardLayout({
               <Home className="h-4 w-4" />
               <span>Dashboard</span>
             </Link>
-            
-            <Link
-              href="/customers"
-              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
-                pathname.startsWith('/customers')
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Users className="h-4 w-4" />
-              <span>Customers</span>
-            </Link>
-            
+
             <Link
               href="/site-surveys"
               className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
@@ -156,7 +156,7 @@ export default function DashboardLayout({
               <FileText className="h-4 w-4" />
               <span>Site Surveys</span>
             </Link>
-            
+
             <Link
               href="/estimates"
               className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
@@ -167,18 +167,6 @@ export default function DashboardLayout({
             >
               <Calculator className="h-4 w-4" />
               <span>Estimates</span>
-            </Link>
-            
-            <Link
-              href="/jobs"
-              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
-                pathname.startsWith('/jobs')
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Briefcase className="h-4 w-4" />
-              <span>Jobs</span>
             </Link>
 
             <Link
