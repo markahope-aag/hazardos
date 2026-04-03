@@ -13,12 +13,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { customerSchema, US_STATES, CUSTOMER_STATUS_OPTIONS, CUSTOMER_SOURCE_OPTIONS, CONTACT_TYPE_OPTIONS } from '@/lib/validations/customer'
+import { customerSchema, US_STATES, CUSTOMER_STATUS_OPTIONS, CUSTOMER_SOURCE_OPTIONS, CONTACT_TYPE_OPTIONS, CONTACT_ROLE_OPTIONS } from '@/lib/validations/customer'
 import { useFormAnalytics } from '@/lib/hooks/use-analytics'
 import { useSearchCompanies } from '@/lib/hooks/use-companies'
 import { logger, formatError } from '@/lib/utils/logger'
 import type { CustomerFormData } from '@/lib/validations/customer'
-import type { Customer, CustomerStatus, CustomerSource, ContactType } from '@/types/database'
+import type { Customer, CustomerStatus, CustomerSource, ContactType, ContactRole } from '@/types/database'
 
 interface CustomerFormProps {
   customer?: Customer // For edit mode
@@ -47,11 +47,16 @@ export default function CustomerForm({
   } = useForm<CustomerFormData>({
     resolver: zodResolver(customerSchema),
     defaultValues: customer ? {
-      name: customer.name,
+      first_name: customer.first_name || '',
+      last_name: customer.last_name || '',
+      title: customer.title || '',
       contact_type: customer.contact_type || 'residential',
+      contact_role: customer.contact_role || undefined,
       company_name: customer.company_name || '',
       company_id: customer.company_id || '',
       email: customer.email || '',
+      mobile_phone: customer.mobile_phone || '',
+      office_phone: customer.office_phone || '',
       phone: customer.phone || '',
       address_line1: customer.address_line1 || '',
       address_line2: customer.address_line2 || '',
@@ -61,9 +66,15 @@ export default function CustomerForm({
       status: customer.status,
       source: customer.source || undefined,
       marketing_consent: customer.marketing_consent,
+      opted_into_email: customer.opted_into_email || false,
+      opted_into_sms: customer.opted_into_sms || false,
+      lead_source: customer.lead_source || '',
       notes: customer.notes || '',
+      next_followup_date: customer.next_followup_date || '',
+      next_followup_note: customer.next_followup_note || '',
     } : {
-      name: '',
+      first_name: '',
+      last_name: '',
       contact_type: 'residential' as const,
       status: 'lead' as const,
       marketing_consent: false,
@@ -85,6 +96,8 @@ export default function CustomerForm({
   }, [formAnalytics])
 
   const handleFormSubmit = handleSubmit(async (data: CustomerFormData) => {
+    // Compute name from first + last
+    data.name = [data.first_name, data.last_name].filter(Boolean).join(' ')
     try {
       await onSubmit(data)
       formAnalytics.trackSuccess()
@@ -132,30 +145,37 @@ export default function CustomerForm({
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Basic Information</h3>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <Label htmlFor="name">Name *</Label>
+            <Label htmlFor="first_name">First Name *</Label>
             <Input
-              id="name"
-              {...register('name')}
-              placeholder={watchedContactType === 'commercial' ? 'Contact person name' : 'Full name'}
+              id="first_name"
+              {...register('first_name')}
               aria-required="true"
-              aria-invalid={!!errors.name}
-              aria-describedby={errors.name ? 'name-error' : undefined}
+              aria-invalid={!!errors.first_name}
             />
-            {errors.name && (
-              <p id="name-error" className="text-sm text-red-600 mt-1" role="alert">{errors.name.message}</p>
+            {errors.first_name && (
+              <p className="text-sm text-red-600 mt-1" role="alert">{errors.first_name.message}</p>
             )}
           </div>
+          <div>
+            <Label htmlFor="last_name">Last Name</Label>
+            <Input id="last_name" {...register('last_name')} />
+          </div>
+          <div>
+            <Label htmlFor="title">Title / Role</Label>
+            <Input id="title" {...register('title')} placeholder="e.g., Facilities Manager" />
+          </div>
+        </div>
 
-          {watchedContactType === 'commercial' && (
+        {watchedContactType === 'commercial' && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="company_name">Company Name *</Label>
               <Input
                 id="company_name"
                 {...register('company_name')}
                 placeholder="Search or enter company name"
-                aria-invalid={!!errors.company_name}
                 list="company-suggestions"
               />
               {companyResults.length > 0 && watchedCompanyName && (
@@ -165,43 +185,35 @@ export default function CustomerForm({
                   ))}
                 </datalist>
               )}
-              {errors.company_name && (
-                <p className="text-sm text-red-600 mt-1" role="alert">{errors.company_name.message}</p>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Type to search existing companies or enter a new one
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Type to search existing or enter new</p>
             </div>
-          )}
-        </div>
+            <div>
+              <Label htmlFor="contact_role">Contact Role</Label>
+              <Select value={watch('contact_role') || ''} onValueChange={(v) => setValue('contact_role', v as ContactRole)}>
+                <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
+                <SelectContent>
+                  {CONTACT_ROLE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              {...register('email')}
-              aria-invalid={!!errors.email}
-              aria-describedby={errors.email ? 'email-error' : undefined}
-            />
-            {errors.email && (
-              <p id="email-error" className="text-sm text-red-600 mt-1" role="alert">{errors.email.message}</p>
-            )}
+            <Input id="email" type="email" {...register('email')} />
+            {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>}
           </div>
-
           <div>
-            <Label htmlFor="phone">Phone</Label>
-            <Input
-              id="phone"
-              type="tel"
-              {...register('phone')}
-              aria-invalid={!!errors.phone}
-              aria-describedby={errors.phone ? 'phone-error' : undefined}
-            />
-            {errors.phone && (
-              <p id="phone-error" className="text-sm text-red-600 mt-1" role="alert">{errors.phone.message}</p>
-            )}
+            <Label htmlFor="mobile_phone">Mobile Phone</Label>
+            <Input id="mobile_phone" type="tel" {...register('mobile_phone')} />
+          </div>
+          <div>
+            <Label htmlFor="office_phone">Office Phone</Label>
+            <Input id="office_phone" type="tel" {...register('office_phone')} />
           </div>
         </div>
       </div>
@@ -282,7 +294,7 @@ export default function CustomerForm({
 
       {/* Status & Source */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">Customer Details</h3>
+        <h3 className="text-lg font-medium">Contact Details</h3>
         
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>

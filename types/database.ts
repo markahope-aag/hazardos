@@ -14,6 +14,8 @@ export type ContactType = 'residential' | 'commercial'
 export type CompanyStatus = 'active' | 'inactive'
 export type CompanyType = 'residential_property_mgr' | 'commercial_property_mgr' | 'general_contractor' | 'industrial' | 'hoa' | 'government' | 'direct_homeowner' | 'other'
 export type AccountStatus = 'prospect' | 'active' | 'inactive' | 'churned'
+export type ContactRole = 'decision_maker' | 'influencer' | 'billing' | 'property_manager' | 'site_contact' | 'other'
+export type ContactStatus = 'active' | 'inactive' | 'do_not_contact'
 
 // Customer management types
 export type CustomerStatus = 'lead' | 'prospect' | 'customer' | 'inactive'
@@ -354,22 +356,51 @@ export interface Database {
           id: string
           organization_id: string
           name: string
+          first_name: string | null
+          last_name: string | null
+          title: string | null
+          role_title: string | null
           company_name: string | null
           company_id: string | null
           contact_type: ContactType
           email: string | null
           phone: string | null
+          mobile_phone: string | null
+          office_phone: string | null
+          preferred_contact_method: string | null
           address_line1: string | null
           address_line2: string | null
           city: string | null
           state: string | null
           zip: string | null
+          // Relationship
+          contact_role: ContactRole | null
+          is_primary_contact: boolean
+          contact_status: ContactStatus
+          opted_into_email: boolean
+          opted_into_email_date: string | null
+          opted_into_sms: boolean
+          opted_into_sms_date: string | null
+          // Legacy
           status: CustomerStatus
           source: CustomerSource | null
           communication_preferences: unknown
           marketing_consent: boolean
           marketing_consent_date: string | null
+          // Marketing attribution
+          lead_source: string | null
+          lead_source_detail: string | null
+          first_touch_date: string | null
+          utm_source: string | null
+          utm_medium: string | null
+          utm_campaign: string | null
+          referred_by_contact_id: string | null
+          // Notes
           notes: string | null
+          last_contacted_date: string | null
+          next_followup_date: string | null
+          next_followup_note: string | null
+          // Meta
           created_at: string
           updated_at: string
           created_by: string | null
@@ -378,22 +409,46 @@ export interface Database {
           id?: string
           organization_id: string
           name: string
+          first_name?: string | null
+          last_name?: string | null
+          title?: string | null
+          role_title?: string | null
           company_name?: string | null
           company_id?: string | null
           contact_type?: ContactType
           email?: string | null
           phone?: string | null
+          mobile_phone?: string | null
+          office_phone?: string | null
+          preferred_contact_method?: string | null
           address_line1?: string | null
           address_line2?: string | null
           city?: string | null
           state?: string | null
           zip?: string | null
+          contact_role?: ContactRole | null
+          is_primary_contact?: boolean
+          contact_status?: ContactStatus
+          opted_into_email?: boolean
+          opted_into_email_date?: string | null
+          opted_into_sms?: boolean
+          opted_into_sms_date?: string | null
           status?: CustomerStatus
           source?: CustomerSource | null
           communication_preferences?: unknown
           marketing_consent?: boolean
           marketing_consent_date?: string | null
+          lead_source?: string | null
+          lead_source_detail?: string | null
+          first_touch_date?: string | null
+          utm_source?: string | null
+          utm_medium?: string | null
+          utm_campaign?: string | null
+          referred_by_contact_id?: string | null
           notes?: string | null
+          last_contacted_date?: string | null
+          next_followup_date?: string | null
+          next_followup_note?: string | null
           created_at?: string
           updated_at?: string
           created_by?: string | null
@@ -402,22 +457,46 @@ export interface Database {
           id?: string
           organization_id?: string
           name?: string
+          first_name?: string | null
+          last_name?: string | null
+          title?: string | null
+          role_title?: string | null
           company_name?: string | null
           company_id?: string | null
           contact_type?: ContactType
           email?: string | null
           phone?: string | null
+          mobile_phone?: string | null
+          office_phone?: string | null
+          preferred_contact_method?: string | null
           address_line1?: string | null
           address_line2?: string | null
           city?: string | null
           state?: string | null
           zip?: string | null
+          contact_role?: ContactRole | null
+          is_primary_contact?: boolean
+          contact_status?: ContactStatus
+          opted_into_email?: boolean
+          opted_into_email_date?: string | null
+          opted_into_sms?: boolean
+          opted_into_sms_date?: string | null
           status?: CustomerStatus
           source?: CustomerSource | null
           communication_preferences?: unknown
           marketing_consent?: boolean
           marketing_consent_date?: string | null
+          lead_source?: string | null
+          lead_source_detail?: string | null
+          first_touch_date?: string | null
+          utm_source?: string | null
+          utm_medium?: string | null
+          utm_campaign?: string | null
+          referred_by_contact_id?: string | null
           notes?: string | null
+          last_contacted_date?: string | null
+          next_followup_date?: string | null
+          next_followup_note?: string | null
           created_at?: string
           updated_at?: string
           created_by?: string | null

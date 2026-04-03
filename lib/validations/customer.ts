@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { CustomerStatus, CustomerSource, ContactType } from '@/types/database'
+import type { CustomerStatus, CustomerSource, ContactType, ContactRole } from '@/types/database'
 
 // Contact type options
 export const CONTACT_TYPE_OPTIONS = [
@@ -7,14 +7,31 @@ export const CONTACT_TYPE_OPTIONS = [
   { value: 'commercial' as ContactType, label: 'Commercial', description: 'Business / organization' },
 ]
 
+// Contact role options
+export const CONTACT_ROLE_OPTIONS = [
+  { value: 'decision_maker' as ContactRole, label: 'Decision Maker' },
+  { value: 'influencer' as ContactRole, label: 'Influencer' },
+  { value: 'billing' as ContactRole, label: 'Billing' },
+  { value: 'property_manager' as ContactRole, label: 'Property Manager' },
+  { value: 'site_contact' as ContactRole, label: 'Site Contact' },
+  { value: 'other' as ContactRole, label: 'Other' },
+]
+
 // Customer form validation schema
 export const customerSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
+  first_name: z.string().min(1, 'First name is required').max(100),
+  last_name: z.string().max(100).optional().or(z.literal('')),
+  name: z.string().optional(), // computed from first + last
+  title: z.string().max(100).optional().or(z.literal('')),
   contact_type: z.enum(['residential', 'commercial']).default('residential'),
+  contact_role: z.enum(['decision_maker', 'influencer', 'billing', 'property_manager', 'site_contact', 'other']).optional(),
   company_name: z.string().max(255, 'Company name is too long').optional().or(z.literal('')),
   company_id: z.string().uuid().optional().or(z.literal('')),
   email: z.string().email('Invalid email address').optional().or(z.literal('')),
+  mobile_phone: z.string().max(20).optional().or(z.literal('')),
+  office_phone: z.string().max(20).optional().or(z.literal('')),
   phone: z.string().max(20, 'Phone number is too long').optional().or(z.literal('')),
+  preferred_contact_method: z.enum(['email', 'phone', 'text', 'mail']).optional(),
   address_line1: z.string().max(255, 'Address is too long').optional().or(z.literal('')),
   address_line2: z.string().max(255, 'Address is too long').optional().or(z.literal('')),
   city: z.string().max(100, 'City is too long').optional().or(z.literal('')),
@@ -23,7 +40,13 @@ export const customerSchema = z.object({
   status: z.enum(['lead', 'prospect', 'customer', 'inactive']),
   source: z.enum(['phone', 'website', 'mail', 'referral', 'other']).optional(),
   marketing_consent: z.boolean(),
+  opted_into_email: z.boolean().optional(),
+  opted_into_sms: z.boolean().optional(),
+  lead_source: z.string().max(100).optional().or(z.literal('')),
+  lead_source_detail: z.string().max(255).optional().or(z.literal('')),
   notes: z.string().max(2000, 'Notes are too long').optional().or(z.literal('')),
+  next_followup_date: z.string().optional().or(z.literal('')),
+  next_followup_note: z.string().max(500).optional().or(z.literal('')),
 })
 
 export type CustomerFormData = z.infer<typeof customerSchema>

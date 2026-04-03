@@ -76,8 +76,11 @@ function CustomerListItem({ customer, onEdit, onDelete }: CustomerListItemProps)
       <TableCell>
         <div>
           <Link href={`/crm/contacts/${customer.id}`} className="font-medium text-primary hover:underline">
-            {customer.name}
+            {[customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.name}
           </Link>
+          {customer.title && (
+            <div className="text-xs text-muted-foreground">{customer.title}</div>
+          )}
           {customer.company_name && (
             <div className="text-sm text-muted-foreground">{customer.company_name}</div>
           )}
