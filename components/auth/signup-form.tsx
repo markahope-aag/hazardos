@@ -74,7 +74,8 @@ export function SignupForm() {
             last_name: lastName,
             ...(inviteToken ? { invite_token: inviteToken } : {}),
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboard`,
+          // Auth callback checks if user has an org and routes accordingly
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       })
 
@@ -95,12 +96,28 @@ export function SignupForm() {
         })
         router.push('/login?message=Check your email to verify your account')
       } else if (data.session) {
-        // Auto-confirmed (local dev or disabled confirmation)
-        toast({
-          title: 'Account created',
-          description: 'Welcome! Let\'s set up your organization.',
-        })
-        router.push('/onboard')
+        // Auto-confirmed — check if the invite trigger already set up the org
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('id', data.user.id)
+          .single()
+
+        if (profile?.organization_id) {
+          // Invited user — org already assigned by trigger
+          toast({
+            title: 'Account created',
+            description: 'Welcome to the team!',
+          })
+          router.push('/')
+        } else {
+          // New user — needs to set up org
+          toast({
+            title: 'Account created',
+            description: 'Welcome! Let\'s set up your organization.',
+          })
+          router.push('/onboard')
+        }
         router.refresh()
       }
     } catch {
