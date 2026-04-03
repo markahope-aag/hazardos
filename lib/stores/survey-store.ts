@@ -10,14 +10,11 @@ import {
   EnvironmentData,
   HazardsData,
   PhotoData,
-  AsbestosMaterial,
-  MoldAffectedArea,
-  LeadComponent,
+  SurveyArea,
+  AreaHazard,
   DEFAULT_SURVEY_FORM_DATA,
-  DEFAULT_ASBESTOS_DATA,
-  DEFAULT_MOLD_DATA,
-  DEFAULT_LEAD_DATA,
-  HazardType,
+  DEFAULT_SURVEY_AREA,
+  DEFAULT_AREA_HAZARD,
 } from './survey-types'
 import { mapStoreToDb, mapDbToStore, createInitialDbRecord } from './survey-mappers'
 import { createClient } from '@/lib/supabase/client'
@@ -60,23 +57,19 @@ interface SurveyState {
   updateHazards: (data: Partial<HazardsData>) => void
   updateNotes: (notes: string) => void
 
-  // Hazard type management
-  toggleHazardType: (type: HazardType) => void
+  // Area management
+  addArea: () => string
+  updateArea: (id: string, data: Partial<Omit<SurveyArea, 'id' | 'hazards' | 'photo_ids'>>) => void
+  removeArea: (id: string) => void
 
-  // Asbestos materials
-  addAsbestosMaterial: () => string
-  updateAsbestosMaterial: (id: string, data: Partial<AsbestosMaterial>) => void
-  removeAsbestosMaterial: (id: string) => void
+  // Hazard management within areas
+  addHazardToArea: (areaId: string) => string
+  updateHazard: (areaId: string, hazardId: string, data: Partial<Omit<AreaHazard, 'id'>>) => void
+  removeHazard: (areaId: string, hazardId: string) => void
 
-  // Mold areas
-  addMoldArea: () => string
-  updateMoldArea: (id: string, data: Partial<MoldAffectedArea>) => void
-  removeMoldArea: (id: string) => void
-
-  // Lead components
-  addLeadComponent: () => string
-  updateLeadComponent: (id: string, data: Partial<LeadComponent>) => void
-  removeLeadComponent: (id: string) => void
+  // Area photo linking
+  linkPhotoToArea: (areaId: string, photoId: string) => void
+  unlinkPhotoFromArea: (areaId: string, photoId: string) => void
 
   // Photos
   addPhoto: (photo: Omit<PhotoData, 'id'>) => string
@@ -99,10 +92,8 @@ interface SurveyState {
   validateAll: () => boolean
 }
 
-// Generate unique IDs
 const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
-// Initial validation state
 const initialSectionValidation: Record<SurveySection, { isValid: boolean; errors: string[] }> = {
   property: { isValid: false, errors: [] },
   access: { isValid: false, errors: [] },
@@ -134,51 +125,34 @@ export const useSurveyStore = create<SurveyState>()(
       setOrganizationId: (id) => set({ organizationId: id }),
       setCurrentSection: (section) => set({ currentSection: section }),
 
-      // Property updates
       updateProperty: (data) =>
         set((state) => ({
-          formData: {
-            ...state.formData,
-            property: { ...state.formData.property, ...data },
-          },
+          formData: { ...state.formData, property: { ...state.formData.property, ...data } },
           isDirty: true,
           startedAt: state.startedAt || new Date().toISOString(),
         })),
 
-      // Access updates
       updateAccess: (data) =>
         set((state) => ({
-          formData: {
-            ...state.formData,
-            access: { ...state.formData.access, ...data },
-          },
+          formData: { ...state.formData, access: { ...state.formData.access, ...data } },
           isDirty: true,
           startedAt: state.startedAt || new Date().toISOString(),
         })),
 
-      // Environment updates
       updateEnvironment: (data) =>
         set((state) => ({
-          formData: {
-            ...state.formData,
-            environment: { ...state.formData.environment, ...data },
-          },
+          formData: { ...state.formData, environment: { ...state.formData.environment, ...data } },
           isDirty: true,
           startedAt: state.startedAt || new Date().toISOString(),
         })),
 
-      // Hazards updates
       updateHazards: (data) =>
         set((state) => ({
-          formData: {
-            ...state.formData,
-            hazards: { ...state.formData.hazards, ...data },
-          },
+          formData: { ...state.formData, hazards: { ...state.formData.hazards, ...data } },
           isDirty: true,
           startedAt: state.startedAt || new Date().toISOString(),
         })),
 
-      // Notes update
       updateNotes: (notes) =>
         set((state) => ({
           formData: { ...state.formData, notes },
@@ -186,265 +160,165 @@ export const useSurveyStore = create<SurveyState>()(
           startedAt: state.startedAt || new Date().toISOString(),
         })),
 
-      // Toggle hazard type
-      toggleHazardType: (type) =>
-        set((state) => {
-          const currentTypes = state.formData.hazards.types
-          const hasType = currentTypes.includes(type)
-          const newTypes = hasType
-            ? currentTypes.filter((t) => t !== type)
-            : [...currentTypes, type]
-
-          // Initialize or clear hazard data based on selection
-          const hazards = { ...state.formData.hazards, types: newTypes }
-
-          if (type === 'asbestos') {
-            hazards.asbestos = hasType ? null : DEFAULT_ASBESTOS_DATA
-          } else if (type === 'mold') {
-            hazards.mold = hasType ? null : DEFAULT_MOLD_DATA
-          } else if (type === 'lead') {
-            hazards.lead = hasType ? null : DEFAULT_LEAD_DATA
-          } else if (type === 'other') {
-            hazards.other = hasType ? null : { description: '', notes: '' }
-          }
-
-          return {
-            formData: { ...state.formData, hazards },
-            isDirty: true,
-            startedAt: state.startedAt || new Date().toISOString(),
-          }
-        }),
-
-      // Asbestos material management
-      addAsbestosMaterial: () => {
+      // ============================================
+      // Area management
+      // ============================================
+      addArea: () => {
         const id = generateId()
-        set((state) => {
-          if (!state.formData.hazards.asbestos) return state
-
-          const newMaterial: AsbestosMaterial = {
-            id,
-            materialType: null,
-            quantity: null,
-            unit: 'sq_ft',
-            location: '',
-            condition: null,
-            friable: false,
-            pipeDiameter: null,
-            pipeThickness: null,
-            notes: '',
-          }
-
-          return {
-            formData: {
-              ...state.formData,
-              hazards: {
-                ...state.formData.hazards,
-                asbestos: {
-                  ...state.formData.hazards.asbestos,
-                  materials: [...state.formData.hazards.asbestos.materials, newMaterial],
-                },
-              },
+        set((state) => ({
+          formData: {
+            ...state.formData,
+            hazards: {
+              ...state.formData.hazards,
+              areas: [...state.formData.hazards.areas, { ...DEFAULT_SURVEY_AREA, id }],
             },
-            isDirty: true,
-          }
-        })
+          },
+          isDirty: true,
+          startedAt: state.startedAt || new Date().toISOString(),
+        }))
         return id
       },
 
-      updateAsbestosMaterial: (id, data) =>
-        set((state) => {
-          if (!state.formData.hazards.asbestos) return state
-
-          return {
-            formData: {
-              ...state.formData,
-              hazards: {
-                ...state.formData.hazards,
-                asbestos: {
-                  ...state.formData.hazards.asbestos,
-                  materials: state.formData.hazards.asbestos.materials.map((m) =>
-                    m.id === id ? { ...m, ...data } : m
-                  ),
-                },
-              },
+      updateArea: (id, data) =>
+        set((state) => ({
+          formData: {
+            ...state.formData,
+            hazards: {
+              ...state.formData.hazards,
+              areas: state.formData.hazards.areas.map((a) =>
+                a.id === id ? { ...a, ...data } : a
+              ),
             },
-            isDirty: true,
-          }
-        }),
+          },
+          isDirty: true,
+        })),
 
-      removeAsbestosMaterial: (id) =>
-        set((state) => {
-          if (!state.formData.hazards.asbestos) return state
-
-          return {
-            formData: {
-              ...state.formData,
-              hazards: {
-                ...state.formData.hazards,
-                asbestos: {
-                  ...state.formData.hazards.asbestos,
-                  materials: state.formData.hazards.asbestos.materials.filter((m) => m.id !== id),
-                },
-              },
+      removeArea: (id) =>
+        set((state) => ({
+          formData: {
+            ...state.formData,
+            hazards: {
+              ...state.formData.hazards,
+              areas: state.formData.hazards.areas.filter((a) => a.id !== id),
             },
-            isDirty: true,
-          }
-        }),
+          },
+          isDirty: true,
+        })),
 
-      // Mold area management
-      addMoldArea: () => {
+      // ============================================
+      // Hazard management within areas
+      // ============================================
+      addHazardToArea: (areaId) => {
         const id = generateId()
-        set((state) => {
-          if (!state.formData.hazards.mold) return state
-
-          const newArea: MoldAffectedArea = {
-            id,
-            location: '',
-            squareFootage: null,
-            materialType: null,
-            materialsAffected: [],
-            severity: null,
-            moistureReading: null,
-          }
-
-          return {
-            formData: {
-              ...state.formData,
-              hazards: {
-                ...state.formData.hazards,
-                mold: {
-                  ...state.formData.hazards.mold,
-                  affectedAreas: [...state.formData.hazards.mold.affectedAreas, newArea],
-                },
-              },
+        set((state) => ({
+          formData: {
+            ...state.formData,
+            hazards: {
+              ...state.formData.hazards,
+              areas: state.formData.hazards.areas.map((a) =>
+                a.id === areaId
+                  ? { ...a, hazards: [...a.hazards, { ...DEFAULT_AREA_HAZARD, id }] }
+                  : a
+              ),
             },
-            isDirty: true,
-          }
-        })
+          },
+          isDirty: true,
+        }))
         return id
       },
 
-      updateMoldArea: (id, data) =>
-        set((state) => {
-          if (!state.formData.hazards.mold) return state
-
-          return {
-            formData: {
-              ...state.formData,
-              hazards: {
-                ...state.formData.hazards,
-                mold: {
-                  ...state.formData.hazards.mold,
-                  affectedAreas: state.formData.hazards.mold.affectedAreas.map((a) =>
-                    a.id === id ? { ...a, ...data } : a
-                  ),
-                },
-              },
+      updateHazard: (areaId, hazardId, data) =>
+        set((state) => ({
+          formData: {
+            ...state.formData,
+            hazards: {
+              ...state.formData.hazards,
+              areas: state.formData.hazards.areas.map((a) =>
+                a.id === areaId
+                  ? {
+                      ...a,
+                      hazards: a.hazards.map((h) =>
+                        h.id === hazardId ? { ...h, ...data } : h
+                      ),
+                    }
+                  : a
+              ),
             },
-            isDirty: true,
-          }
-        }),
+          },
+          isDirty: true,
+        })),
 
-      removeMoldArea: (id) =>
-        set((state) => {
-          if (!state.formData.hazards.mold) return state
-
-          return {
-            formData: {
-              ...state.formData,
-              hazards: {
-                ...state.formData.hazards,
-                mold: {
-                  ...state.formData.hazards.mold,
-                  affectedAreas: state.formData.hazards.mold.affectedAreas.filter((a) => a.id !== id),
-                },
-              },
+      removeHazard: (areaId, hazardId) =>
+        set((state) => ({
+          formData: {
+            ...state.formData,
+            hazards: {
+              ...state.formData.hazards,
+              areas: state.formData.hazards.areas.map((a) =>
+                a.id === areaId
+                  ? { ...a, hazards: a.hazards.filter((h) => h.id !== hazardId) }
+                  : a
+              ),
             },
-            isDirty: true,
-          }
-        }),
+          },
+          isDirty: true,
+        })),
 
-      // Lead component management
-      addLeadComponent: () => {
-        const id = generateId()
-        set((state) => {
-          if (!state.formData.hazards.lead) return state
-
-          const newComponent: LeadComponent = {
-            id,
-            componentType: null,
-            location: '',
-            quantity: null,
-            unit: 'sq_ft',
-            condition: null,
-          }
-
-          return {
-            formData: {
-              ...state.formData,
-              hazards: {
-                ...state.formData.hazards,
-                lead: {
-                  ...state.formData.hazards.lead,
-                  components: [...state.formData.hazards.lead.components, newComponent],
-                },
-              },
+      // ============================================
+      // Area photo linking
+      // ============================================
+      linkPhotoToArea: (areaId, photoId) =>
+        set((state) => ({
+          formData: {
+            ...state.formData,
+            hazards: {
+              ...state.formData.hazards,
+              areas: state.formData.hazards.areas.map((a) =>
+                a.id === areaId && !a.photo_ids.includes(photoId)
+                  ? { ...a, photo_ids: [...a.photo_ids, photoId] }
+                  : a
+              ),
             },
-            isDirty: true,
-          }
-        })
-        return id
-      },
-
-      updateLeadComponent: (id, data) =>
-        set((state) => {
-          if (!state.formData.hazards.lead) return state
-
-          return {
-            formData: {
-              ...state.formData,
-              hazards: {
-                ...state.formData.hazards,
-                lead: {
-                  ...state.formData.hazards.lead,
-                  components: state.formData.hazards.lead.components.map((c) =>
-                    c.id === id ? { ...c, ...data } : c
-                  ),
-                },
-              },
+            // Also update the photo's area_id
+            photos: {
+              photos: state.formData.photos.photos.map((p) =>
+                p.id === photoId ? { ...p, area_id: areaId } : p
+              ),
             },
-            isDirty: true,
-          }
-        }),
+          },
+          isDirty: true,
+        })),
 
-      removeLeadComponent: (id) =>
-        set((state) => {
-          if (!state.formData.hazards.lead) return state
-
-          return {
-            formData: {
-              ...state.formData,
-              hazards: {
-                ...state.formData.hazards,
-                lead: {
-                  ...state.formData.hazards.lead,
-                  components: state.formData.hazards.lead.components.filter((c) => c.id !== id),
-                },
-              },
+      unlinkPhotoFromArea: (areaId, photoId) =>
+        set((state) => ({
+          formData: {
+            ...state.formData,
+            hazards: {
+              ...state.formData.hazards,
+              areas: state.formData.hazards.areas.map((a) =>
+                a.id === areaId
+                  ? { ...a, photo_ids: a.photo_ids.filter((pid) => pid !== photoId) }
+                  : a
+              ),
             },
-            isDirty: true,
-          }
-        }),
+            photos: {
+              photos: state.formData.photos.photos.map((p) =>
+                p.id === photoId ? { ...p, area_id: null } : p
+              ),
+            },
+          },
+          isDirty: true,
+        })),
 
+      // ============================================
       // Photo management
+      // ============================================
       addPhoto: (photo) => {
         const id = generateId()
         set((state) => ({
           formData: {
             ...state.formData,
-            photos: {
-              photos: [...state.formData.photos.photos, { ...photo, id }],
-            },
+            photos: { photos: [...state.formData.photos.photos, { ...photo, id }] },
           },
           isDirty: true,
         }))
@@ -471,22 +345,27 @@ export const useSurveyStore = create<SurveyState>()(
             photos: {
               photos: state.formData.photos.photos.filter((p) => p.id !== id),
             },
+            // Also remove from any area photo_ids
+            hazards: {
+              ...state.formData.hazards,
+              areas: state.formData.hazards.areas.map((a) => ({
+                ...a,
+                photo_ids: a.photo_ids.filter((pid) => pid !== id),
+              })),
+            },
           },
           isDirty: true,
         })),
 
-      // Utility functions
-      markSaved: () =>
-        set({
-          isDirty: false,
-          lastSavedAt: new Date().toISOString(),
-        }),
+      // ============================================
+      // Utility
+      // ============================================
+      markSaved: () => set({ isDirty: false, lastSavedAt: new Date().toISOString() }),
 
       resetSurvey: () =>
         set({
           currentSurveyId: null,
           customerId: null,
-          // Keep organizationId as it's typically session-persistent
           formData: DEFAULT_SURVEY_FORM_DATA,
           currentSection: 'property',
           isDirty: false,
@@ -513,7 +392,9 @@ export const useSurveyStore = create<SurveyState>()(
           startedAt: new Date().toISOString(),
         }),
 
+      // ============================================
       // Database sync
+      // ============================================
       createSurveyInDb: async () => {
         const state = get()
         const { organizationId, customerId } = state
@@ -547,10 +428,7 @@ export const useSurveyStore = create<SurveyState>()(
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to create survey'
           set({ isSyncing: false, syncError: message })
-          log.error(
-            { error: formatError(error, 'CREATE_SURVEY_ERROR') },
-            'Create survey error'
-          )
+          log.error({ error: formatError(error, 'CREATE_SURVEY_ERROR') }, 'Create survey error')
           return null
         }
       },
@@ -584,13 +462,7 @@ export const useSurveyStore = create<SurveyState>()(
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to load survey'
           set({ isSyncing: false, syncError: message })
-          log.error(
-            { 
-              error: formatError(error, 'LOAD_SURVEY_ERROR'),
-              surveyId
-            },
-            'Load survey error'
-          )
+          log.error({ error: formatError(error, 'LOAD_SURVEY_ERROR'), surveyId }, 'Load survey error')
           return false
         }
       },
@@ -599,22 +471,16 @@ export const useSurveyStore = create<SurveyState>()(
         const state = get()
         const { currentSurveyId, organizationId } = state
 
-        // Always save to localStorage first (offline-first)
-        // This is handled by zustand persist middleware
-
-        // If no survey ID yet, create one first
         if (!currentSurveyId) {
           const newId = await get().createSurveyInDb()
           if (!newId) return false
         }
 
-        // If offline, just mark as saved locally
         if (typeof navigator !== 'undefined' && !navigator.onLine) {
           set({ isDirty: false, lastSavedAt: new Date().toISOString() })
           return true
         }
 
-        // Sync to Supabase
         if (!organizationId) {
           log.warn('Cannot sync to database: organizationId is required')
           set({ isDirty: false, lastSavedAt: new Date().toISOString() })
@@ -643,20 +509,12 @@ export const useSurveyStore = create<SurveyState>()(
 
           if (error) throw error
 
-          set({
-            isDirty: false,
-            isSyncing: false,
-            lastSavedAt: new Date().toISOString(),
-          })
-
+          set({ isDirty: false, isSyncing: false, lastSavedAt: new Date().toISOString() })
           return true
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to save draft'
           set({ isSyncing: false, syncError: message })
-          log.error(
-            { error: formatError(error, 'SAVE_DRAFT_ERROR') },
-            'Save draft error'
-          )
+          log.error({ error: formatError(error, 'SAVE_DRAFT_ERROR') }, 'Save draft error')
           return false
         }
       },
@@ -670,7 +528,6 @@ export const useSurveyStore = create<SurveyState>()(
           return false
         }
 
-        // Validate all sections first
         if (!get().validateAll()) {
           log.error('Cannot submit: validation failed')
           return false
@@ -699,25 +556,19 @@ export const useSurveyStore = create<SurveyState>()(
 
           if (error) throw error
 
-          set({
-            isDirty: false,
-            isSyncing: false,
-            lastSavedAt: submittedAt,
-          })
-
+          set({ isDirty: false, isSyncing: false, lastSavedAt: submittedAt })
           return true
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to submit survey'
           set({ isSyncing: false, syncError: message })
-          log.error(
-            { error: formatError(error, 'SUBMIT_SURVEY_ERROR') },
-            'Submit survey error'
-          )
+          log.error({ error: formatError(error, 'SUBMIT_SURVEY_ERROR') }, 'Submit survey error')
           return false
         }
       },
 
+      // ============================================
       // Validation
+      // ============================================
       validateSection: (section) => {
         const state = get()
         const errors: string[] = []
@@ -748,16 +599,18 @@ export const useSurveyStore = create<SurveyState>()(
             break
           }
           case 'hazards': {
-            const h = state.formData.hazards
-            if (h.types.length === 0) errors.push('At least one hazard type must be selected')
-            if (h.types.includes('asbestos') && h.asbestos?.materials.length === 0) {
-              errors.push('At least one asbestos material must be documented')
-            }
-            if (h.types.includes('mold') && h.mold?.affectedAreas.length === 0) {
-              errors.push('At least one mold affected area must be documented')
-            }
-            if (h.types.includes('lead') && h.lead?.components.length === 0) {
-              errors.push('At least one lead component must be documented')
+            const { areas } = state.formData.hazards
+            if (areas.length === 0) {
+              errors.push('At least one area must be documented')
+            } else {
+              const invalidAreas = areas.filter((a) => a.hazards.length === 0)
+              if (invalidAreas.length > 0) {
+                errors.push(`${invalidAreas.length} area(s) have no hazards documented`)
+              }
+              const unnamedAreas = areas.filter((a) => !a.area_name.trim())
+              if (unnamedAreas.length > 0) {
+                errors.push(`${unnamedAreas.length} area(s) are missing a name`)
+              }
             }
             break
           }
@@ -768,7 +621,6 @@ export const useSurveyStore = create<SurveyState>()(
             break
           }
           case 'review': {
-            // Review section validates all other sections
             const allValid = ['property', 'access', 'environment', 'hazards', 'photos'].every(
               (s) => state.validateSection(s as SurveySection).isValid
             )

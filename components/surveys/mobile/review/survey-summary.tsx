@@ -4,7 +4,8 @@ import { useMemo } from 'react'
 import { useSurveyStore } from '@/lib/stores/survey-store'
 import {
   PHOTO_REQUIREMENTS,
-  MoldSizeCategory
+  CONTAINMENT_LABELS,
+  ContainmentLevel,
 } from '@/lib/stores/survey-types'
 import {
   Building2,
@@ -16,13 +17,13 @@ import {
   Clock,
   User
 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 
 export function SurveySummary() {
   const { formData, startedAt } = useSurveyStore()
   const { property, access, environment, hazards, photos } = formData
 
   const summary = useMemo(() => {
-    // Property summary
     const propertyInfo = {
       address: [property.address, property.city, property.state, property.zip]
         .filter(Boolean)
@@ -33,67 +34,50 @@ export function SurveySummary() {
       stories: property.stories,
     }
 
-    // Hazard counts
-    const hazardTypes = hazards.types
-    const asbestosMaterialCount = hazards.asbestos?.materials.length || 0
-    const moldAreaCount = hazards.mold?.affectedAreas.length || 0
-    const leadComponentCount = hazards.lead?.components.length || 0
+    // Area-based hazard aggregation
+    const areas = hazards.areas
+    const totalAreas = areas.length
+    const totalHazards = areas.reduce((sum, a) => sum + a.hazards.length, 0)
 
-    // Calculate total affected areas for mold
-    const moldTotalSqFt = hazards.mold?.affectedAreas.reduce(
-      (sum: number, area: { squareFootage: number | null }) => sum + (area.squareFootage || 0), 0
-    ) || 0
-
-    // Determine mold size category
-    let moldSizeCategory: MoldSizeCategory | null = null
-    if (hazards.mold) {
-      if (moldTotalSqFt >= 100 || hazards.mold.hvacContaminated) {
-        moldSizeCategory = 'large'
-      } else if (moldTotalSqFt >= 10) {
-        moldSizeCategory = 'medium'
-      } else {
-        moldSizeCategory = 'small'
+    // Aggregate by hazard type
+    const hazardTypeAgg: Record<string, { count: number; totalQty: number; unit: string }> = {}
+    for (const area of areas) {
+      for (const h of area.hazards) {
+        if (!hazardTypeAgg[h.hazard_type]) {
+          hazardTypeAgg[h.hazard_type] = { count: 0, totalQty: 0, unit: h.unit }
+        }
+        hazardTypeAgg[h.hazard_type].count++
+        hazardTypeAgg[h.hazard_type].totalQty += h.quantity || 0
       }
     }
 
-    // Photo counts
     const photoCount = photos.photos.length
     const exteriorPhotoCount = photos.photos.filter((p: { category: string }) => p.category === 'exterior').length
 
     return {
       property: propertyInfo,
-      hazardTypes,
-      asbestosMaterialCount,
-      moldAreaCount,
-      moldTotalSqFt,
-      moldSizeCategory,
-      leadComponentCount,
+      totalAreas,
+      totalHazards,
+      hazardTypeAgg,
+      areas,
       photoCount,
       exteriorPhotoCount,
       hasRestrictions: access.hasRestrictions,
       restrictionCount: access.restrictions.length,
     }
-  }, [
-    property.address,
-    property.city,
-    property.state,
-    property.zip,
-    property.buildingType,
-    property.yearBuilt,
-    property.squareFootage,
-    property.stories,
-    access.hasRestrictions,
-    access.restrictions.length,
-    hazards.types,
-    hazards.asbestos?.materials.length,
-    hazards.lead?.components.length,
-    hazards.mold,
-    photos.photos
-  ])
+  }, [property, access, hazards, photos, environment])
 
   const formattedStartTime = startedAt
     ? new Date(startedAt).toLocaleString()
     : 'Unknown'
+
+  const HAZARD_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
+    asbestos: { bg: 'bg-orange-100', text: 'text-orange-800', icon: '⚠️' },
+    mold: { bg: 'bg-green-100', text: 'text-green-800', icon: '🦠' },
+    lead: { bg: 'bg-blue-100', text: 'text-blue-800', icon: '🎨' },
+    vermiculite: { bg: 'bg-amber-100', text: 'text-amber-800', icon: '🏔️' },
+    other: { bg: 'bg-purple-100', text: 'text-purple-800', icon: '📋' },
+  }
 
   return (
     <div className="space-y-4">
@@ -110,7 +94,7 @@ export function SurveySummary() {
           </p>
           <p><strong>Type:</strong> {summary.property.buildingType}</p>
           <p><strong>Year Built:</strong> {summary.property.yearBuilt}</p>
-          <p><strong>Size:</strong> {summary.property.sqft} sq ft • {summary.property.stories} stor{summary.property.stories === 1 ? 'y' : 'ies'}</p>
+          <p><strong>Size:</strong> {summary.property.sqft} sq ft &bull; {summary.property.stories} stor{summary.property.stories === 1 ? 'y' : 'ies'}</p>
         </div>
         {property.ownerName && (
           <div className="pt-2 border-t border-border/50">
@@ -122,65 +106,61 @@ export function SurveySummary() {
         )}
       </div>
 
-      {/* Hazards Card */}
+      {/* Areas & Hazards Card */}
       <div className="p-4 bg-muted rounded-xl space-y-3">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-muted-foreground" />
-          <h4 className="font-semibold">Hazards Identified</h4>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-muted-foreground" />
+            <h4 className="font-semibold">Areas & Hazards</h4>
+          </div>
+          <span className="text-sm text-muted-foreground">
+            {summary.totalAreas} area{summary.totalAreas !== 1 ? 's' : ''} &bull; {summary.totalHazards} hazard{summary.totalHazards !== 1 ? 's' : ''}
+          </span>
         </div>
 
-        {summary.hazardTypes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No hazards documented</p>
+        {summary.totalAreas === 0 ? (
+          <p className="text-sm text-muted-foreground">No areas documented</p>
         ) : (
-          <div className="space-y-2 text-sm">
-            {summary.hazardTypes.includes('asbestos') && (
-              <div className="flex items-center gap-2 p-2 bg-orange-100 rounded-lg">
-                <span className="text-lg">⚠️</span>
-                <div>
-                  <p className="font-medium text-orange-800">Asbestos</p>
-                  <p className="text-orange-700">
-                    {summary.asbestosMaterialCount} material{summary.asbestosMaterialCount !== 1 ? 's' : ''} documented
-                  </p>
+          <div className="space-y-3">
+            {/* Per-area summary */}
+            {summary.areas.map((area) => (
+              <div key={area.id} className="p-3 bg-background rounded-lg border text-sm">
+                <div className="font-medium">{area.area_name || 'Unnamed Area'}</div>
+                {area.floor_level && <div className="text-muted-foreground text-xs">{area.floor_level}</div>}
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {area.hazards.map((h) => (
+                    <Badge key={h.id} variant="outline" className="text-xs">
+                      {h.hazard_type} {h.quantity ? `(${h.quantity} ${h.unit.replace('_', ' ')})` : ''}
+                    </Badge>
+                  ))}
                 </div>
+                {area.hazards.some((h) => h.containment_level) && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Containment: {[...new Set(area.hazards.filter((h) => h.containment_level).map((h) => CONTAINMENT_LABELS[h.containment_level as ContainmentLevel]))].join(', ')}
+                  </div>
+                )}
               </div>
-            )}
+            ))}
 
-            {summary.hazardTypes.includes('mold') && (
-              <div className="flex items-center gap-2 p-2 bg-green-100 rounded-lg">
-                <span className="text-lg">🦠</span>
-                <div>
-                  <p className="font-medium text-green-800">Mold</p>
-                  <p className="text-green-700">
-                    {summary.moldAreaCount} area{summary.moldAreaCount !== 1 ? 's' : ''} • {summary.moldTotalSqFt.toLocaleString()} sq ft
-                    {summary.moldSizeCategory && ` • ${summary.moldSizeCategory.charAt(0).toUpperCase() + summary.moldSizeCategory.slice(1)} project`}
-                  </p>
-                </div>
+            {/* Aggregate totals by hazard type */}
+            <div className="pt-2 border-t border-border/50">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Totals by Hazard Type</p>
+              <div className="space-y-1">
+                {Object.entries(summary.hazardTypeAgg).map(([type, agg]) => {
+                  const colors = HAZARD_COLORS[type] || HAZARD_COLORS.other
+                  return (
+                    <div key={type} className={`flex items-center gap-2 p-2 ${colors.bg} rounded-lg`}>
+                      <span>{colors.icon}</span>
+                      <span className={`font-medium capitalize ${colors.text}`}>{type}</span>
+                      <span className={`text-sm ${colors.text}`}>
+                        &mdash; {agg.count} item{agg.count !== 1 ? 's' : ''}
+                        {agg.totalQty > 0 && `, ${agg.totalQty.toLocaleString()} ${agg.unit.replace('_', ' ')} total`}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
-            )}
-
-            {summary.hazardTypes.includes('lead') && (
-              <div className="flex items-center gap-2 p-2 bg-blue-100 rounded-lg">
-                <span className="text-lg">🎨</span>
-                <div>
-                  <p className="font-medium text-blue-800">Lead Paint</p>
-                  <p className="text-blue-700">
-                    {summary.leadComponentCount} component{summary.leadComponentCount !== 1 ? 's' : ''} documented
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {summary.hazardTypes.includes('other') && (
-              <div className="flex items-center gap-2 p-2 bg-purple-100 rounded-lg">
-                <span className="text-lg">⚡</span>
-                <div>
-                  <p className="font-medium text-purple-800">Other Hazards</p>
-                  <p className="text-purple-700">
-                    {hazards.other?.description || 'See details'}
-                  </p>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         )}
       </div>
@@ -206,7 +186,7 @@ export function SurveySummary() {
           </div>
           <p className="text-sm text-muted-foreground">
             {environment.temperature !== null ? `${environment.temperature}°F` : '--'}
-            {' • '}
+            {' \u2022 '}
             {environment.humidity !== null ? `${environment.humidity}%` : '--'} RH
           </p>
         </div>

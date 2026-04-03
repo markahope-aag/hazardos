@@ -1,5 +1,4 @@
 // Survey Form Types for Mobile UI
-// These are independent of database types - will be reconciled after branch merge
 
 export type SurveySection =
   | 'property'
@@ -22,7 +21,7 @@ export const SECTION_LABELS: Record<SurveySection, string> = {
   property: 'Property',
   access: 'Access',
   environment: 'Environment',
-  hazards: 'Hazards',
+  hazards: 'Areas & Hazards',
   photos: 'Photos',
   review: 'Review',
 }
@@ -112,34 +111,142 @@ export interface EnvironmentData {
   utilityShutoffsLocated: boolean | null
 }
 
-// Hazards Section
-export type HazardType = 'asbestos' | 'mold' | 'lead' | 'other'
+// ============================================
+// Area-Based Hazard System
+// ============================================
 
-// Asbestos Types
-export type AsbestosMaterialType =
-  | 'pipe_insulation'
-  | 'boiler_insulation'
-  | 'duct_insulation'
-  | 'ceiling_tiles'
-  | 'spray_applied_ceiling'
-  | 'floor_tiles_9x9'
-  | 'floor_tiles_12x12'
-  | 'sheet_vinyl'
-  | 'mastic_adhesive'
-  | 'transite_siding'
-  | 'roofing_materials'
-  | 'vermiculite_insulation'
-  | 'drywall_joint_compound'
-  | 'other'
-
-export type AsbestosMaterialCondition =
-  | 'intact'
-  | 'minor_damage'
-  | 'significant_damage'
-  | 'severe_damage'
+export type HazardType = 'asbestos' | 'mold' | 'lead' | 'vermiculite' | 'other'
 
 export type QuantityUnit = 'linear_ft' | 'sq_ft' | 'cu_ft'
 
+// Condition types by hazard category
+export type AsbestosCondition = 'intact' | 'damaged' | 'friable'
+export type MoldCondition = 'light' | 'moderate' | 'heavy'
+export type LeadCondition = 'intact' | 'damaged' | 'friable'
+export type HazardCondition = AsbestosCondition | MoldCondition
+
+// Containment levels (OSHA)
+export type ContainmentLevel = 'type_i' | 'type_ii' | 'type_iii'
+
+// Material type options by hazard type
+export const MATERIAL_TYPES_BY_HAZARD: Record<HazardType, { value: string; label: string }[]> = {
+  asbestos: [
+    { value: 'floor_tile_9x9', label: 'Floor Tile (9x9)' },
+    { value: 'floor_tile_12x12', label: 'Floor Tile (12x12)' },
+    { value: 'sheet_vinyl', label: 'Sheet Vinyl' },
+    { value: 'pipe_insulation', label: 'Pipe Insulation' },
+    { value: 'boiler_insulation', label: 'Boiler Insulation' },
+    { value: 'ceiling_tile', label: 'Ceiling Tile' },
+    { value: 'drywall_joint_compound', label: 'Drywall/Joint Compound' },
+    { value: 'transite_siding', label: 'Transite Siding' },
+    { value: 'roofing_felt', label: 'Roofing Felt' },
+    { value: 'vermiculite_insulation', label: 'Vermiculite Insulation' },
+    { value: 'other', label: 'Other' },
+  ],
+  mold: [
+    { value: 'drywall', label: 'Drywall' },
+    { value: 'wood_framing', label: 'Wood Framing/Studs' },
+    { value: 'insulation', label: 'Insulation' },
+    { value: 'concrete_masonry', label: 'Concrete/Masonry' },
+    { value: 'ceiling_tile', label: 'Ceiling Tile' },
+    { value: 'subfloor', label: 'Subfloor' },
+    { value: 'other', label: 'Other' },
+  ],
+  lead: [
+    { value: 'interior_wall', label: 'Interior Wall' },
+    { value: 'exterior_siding', label: 'Exterior Siding' },
+    { value: 'window', label: 'Window (frame/sill/sash)' },
+    { value: 'door', label: 'Door (frame/slab)' },
+    { value: 'baseboard_trim', label: 'Baseboard/Trim' },
+    { value: 'structural_steel', label: 'Structural Steel' },
+    { value: 'other', label: 'Other' },
+  ],
+  vermiculite: [
+    { value: 'attic_insulation', label: 'Attic Insulation' },
+    { value: 'wall_insulation', label: 'Wall Insulation' },
+    { value: 'other', label: 'Other' },
+  ],
+  other: [
+    { value: 'other', label: 'Other (describe in notes)' },
+  ],
+}
+
+// Condition options by hazard type
+export const CONDITION_OPTIONS_BY_HAZARD: Record<HazardType, { value: string; label: string }[]> = {
+  asbestos: [
+    { value: 'intact', label: 'Intact' },
+    { value: 'damaged', label: 'Damaged' },
+    { value: 'friable', label: 'Friable' },
+  ],
+  mold: [
+    { value: 'light', label: 'Light' },
+    { value: 'moderate', label: 'Moderate' },
+    { value: 'heavy', label: 'Heavy' },
+  ],
+  lead: [
+    { value: 'intact', label: 'Intact' },
+    { value: 'damaged', label: 'Damaged' },
+    { value: 'friable', label: 'Friable' },
+  ],
+  vermiculite: [
+    { value: 'intact', label: 'Intact' },
+    { value: 'damaged', label: 'Damaged' },
+    { value: 'friable', label: 'Friable' },
+  ],
+  other: [
+    { value: 'intact', label: 'Intact' },
+    { value: 'damaged', label: 'Damaged' },
+  ],
+}
+
+// Containment auto-suggestion logic
+export function suggestContainment(hazardType: HazardType, condition: string): ContainmentLevel {
+  if (hazardType === 'asbestos' || hazardType === 'vermiculite') {
+    if (condition === 'friable') return 'type_iii'
+    if (condition === 'damaged') return 'type_ii'
+    return 'type_i'
+  }
+  // Lead and Mold default to Type II
+  return 'type_ii'
+}
+
+export const CONTAINMENT_LABELS: Record<ContainmentLevel, string> = {
+  type_i: 'Type I (Mini)',
+  type_ii: 'Type II (Standard)',
+  type_iii: 'Type III (Large/Complex)',
+}
+
+// Single hazard record within an area
+export interface AreaHazard {
+  id: string
+  hazard_type: HazardType
+  material_type: string
+  condition: string
+  quantity: number | null
+  unit: QuantityUnit
+  containment_level: ContainmentLevel | null
+  notes: string
+}
+
+// An area with its hazards and photos
+export interface SurveyArea {
+  id: string
+  area_name: string
+  floor_level: string
+  hazards: AreaHazard[]
+  photo_ids: string[] // references to photos by ID
+}
+
+// The hazards section now contains areas
+export interface HazardsData {
+  areas: SurveyArea[]
+}
+
+// ============================================
+// Legacy type aliases for backward compatibility
+// ============================================
+export type AsbestosMaterialType = string
+export type AsbestosMaterialCondition = string
 export interface AsbestosMaterial {
   id: string
   materialType: AsbestosMaterialType | null
@@ -148,48 +255,23 @@ export interface AsbestosMaterial {
   location: string
   condition: AsbestosMaterialCondition | null
   friable: boolean
-  pipeDiameter: number | null // For pipe insulation
-  pipeThickness: number | null // For pipe insulation
+  pipeDiameter: number | null
+  pipeThickness: number | null
   notes: string
 }
-
-export type ContainmentLevel = 1 | 2 | 3 | 4
-
 export interface AsbestosData {
   materials: AsbestosMaterial[]
   estimatedWasteVolume: number | null
-  containmentLevel: ContainmentLevel | null
+  containmentLevel: number | null
   epaNotificationRequired: boolean
 }
-
-// Mold Types
-export type MoistureSourceType =
-  | 'roof_leak'
-  | 'plumbing_leak'
-  | 'hvac_condensation'
-  | 'foundation_intrusion'
-  | 'window_leak'
-  | 'appliance_overflow'
-  | 'unknown'
-
-export type MoistureSourceStatus = 'active' | 'fixed'
-
-export type MoldMaterialType = 'porous' | 'semi_porous' | 'non_porous'
-
-export type MoldAffectedMaterial =
-  | 'drywall'
-  | 'wood_studs'
-  | 'insulation'
-  | 'baseboard_trim'
-  | 'flooring'
-  | 'ceiling'
-
-export type MoldSeverity = 'light' | 'moderate' | 'heavy'
-
-export type MoldSizeCategory = 'small' | 'medium' | 'large'
-
-export type OdorLevel = 'none' | 'mild' | 'moderate' | 'strong'
-
+export type MoldSeverity = string
+export type MoldSizeCategory = string
+export type OdorLevel = string
+export type MoistureSourceType = string
+export type MoistureSourceStatus = string
+export type MoldMaterialType = string
+export type MoldAffectedMaterial = string
 export interface MoldAffectedArea {
   id: string
   location: string
@@ -199,7 +281,6 @@ export interface MoldAffectedArea {
   severity: MoldSeverity | null
   moistureReading: number | null
 }
-
 export interface MoldData {
   moistureSourceIdentified: boolean | null
   moistureSourceTypes: MoistureSourceType[]
@@ -210,35 +291,17 @@ export interface MoldData {
   odorLevel: OdorLevel | null
   sizeCategory: MoldSizeCategory | null
 }
-
-// Lead Types
-export type LeadWorkScope = 'interior_only' | 'exterior_only' | 'both'
-
-export type LeadComponentType =
-  | 'interior_walls'
-  | 'windows_trim'
-  | 'doors_frames'
-  | 'baseboards'
-  | 'stairs_railings'
-  | 'cabinets'
-  | 'exterior_siding'
-  | 'exterior_trim'
-  | 'porch_deck'
-  | 'fencing'
-
-export type LeadCondition = 'intact' | 'minor_deterioration' | 'significant_deterioration'
-
-export type LeadWorkMethod = 'stabilization' | 'partial_removal' | 'full_abatement'
-
+export type LeadWorkScope = string
+export type LeadComponentType = string
+export type LeadWorkMethod = string
 export interface LeadComponent {
   id: string
   componentType: LeadComponentType | null
   location: string
   quantity: number | null
   unit: QuantityUnit | 'count'
-  condition: LeadCondition | null
+  condition: string | null
 }
-
 export interface LeadData {
   childrenUnder6Present: boolean | null
   workScope: LeadWorkScope | null
@@ -247,28 +310,16 @@ export interface LeadData {
   workMethod: LeadWorkMethod | null
   totalWorkArea: number
 }
-
-// Other Hazard
 export interface OtherHazardData {
   description: string
   notes: string
-}
-
-export interface HazardsData {
-  types: HazardType[]
-  asbestos: AsbestosData | null
-  mold: MoldData | null
-  lead: LeadData | null
-  other: OtherHazardData | null
 }
 
 // Photos Section
 export type PhotoCategory =
   | 'exterior'
   | 'interior'
-  | 'asbestos_materials'
-  | 'mold_areas'
-  | 'lead_components'
+  | 'hazard_area'
   | 'utility_access'
   | 'other'
 
@@ -282,6 +333,7 @@ export interface PhotoData {
     longitude: number
   } | null
   category: PhotoCategory
+  area_id: string | null // links photo to a specific area
   location: string
   caption: string
 }
@@ -342,39 +394,8 @@ export const DEFAULT_ENVIRONMENT_DATA: EnvironmentData = {
   utilityShutoffsLocated: null,
 }
 
-export const DEFAULT_ASBESTOS_DATA: AsbestosData = {
-  materials: [],
-  estimatedWasteVolume: null,
-  containmentLevel: null,
-  epaNotificationRequired: false,
-}
-
-export const DEFAULT_MOLD_DATA: MoldData = {
-  moistureSourceIdentified: null,
-  moistureSourceTypes: [],
-  moistureSourceStatus: null,
-  moistureSourceNotes: '',
-  affectedAreas: [],
-  hvacContaminated: null,
-  odorLevel: null,
-  sizeCategory: null,
-}
-
-export const DEFAULT_LEAD_DATA: LeadData = {
-  childrenUnder6Present: null,
-  workScope: null,
-  components: [],
-  rrpRuleApplies: false,
-  workMethod: null,
-  totalWorkArea: 0,
-}
-
 export const DEFAULT_HAZARDS_DATA: HazardsData = {
-  types: [],
-  asbestos: null,
-  mold: null,
-  lead: null,
-  other: null,
+  areas: [],
 }
 
 export const DEFAULT_PHOTOS_DATA: PhotosData = {
@@ -394,9 +415,26 @@ export const DEFAULT_SURVEY_FORM_DATA: SurveyFormData = {
 export const PHOTO_REQUIREMENTS: Record<PhotoCategory, { label: string; required: number }> = {
   exterior: { label: 'Exterior', required: 4 },
   interior: { label: 'Interior', required: 0 },
-  asbestos_materials: { label: 'Asbestos Materials', required: 0 },
-  mold_areas: { label: 'Mold Areas', required: 0 },
-  lead_components: { label: 'Lead Components', required: 0 },
+  hazard_area: { label: 'Hazard Areas', required: 0 },
   utility_access: { label: 'Utility/Access', required: 0 },
   other: { label: 'Other', required: 0 },
+}
+
+// Default values for new area hazard
+export const DEFAULT_AREA_HAZARD: Omit<AreaHazard, 'id'> = {
+  hazard_type: 'asbestos',
+  material_type: '',
+  condition: '',
+  quantity: null,
+  unit: 'sq_ft',
+  containment_level: null,
+  notes: '',
+}
+
+// Default values for new survey area
+export const DEFAULT_SURVEY_AREA: Omit<SurveyArea, 'id'> = {
+  area_name: '',
+  floor_level: '',
+  hazards: [],
+  photo_ids: [],
 }
