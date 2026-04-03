@@ -100,7 +100,7 @@ export function SignupForm() {
         const { data: profile } = await supabase
           .from('profiles')
           .select('organization_id')
-          .eq('id', data.user.id)
+          .eq('id', data.user!.id)
           .single()
 
         if (profile?.organization_id) {
