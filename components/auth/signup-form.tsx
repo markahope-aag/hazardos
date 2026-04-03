@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -14,12 +14,31 @@ export function SignupForm() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const [errors, setErrors] = useState<{firstName?: string; lastName?: string; email?: string; password?: string; confirmPassword?: string}>({})
 
   const inviteToken = searchParams.get('invite')
 
   // Check if Supabase is configured
   const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // Sign out any existing user when arriving with an invite token
+  useEffect(() => {
+    if (inviteToken && isSupabaseConfigured) {
+      setIsSigningOut(true)
+      const sb = createClient()
+      sb.auth.signOut().finally(() => setIsSigningOut(false))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  if (isSigningOut) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   if (!isSupabaseConfigured) {
     return (
