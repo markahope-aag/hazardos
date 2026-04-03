@@ -20,6 +20,43 @@ export type OpportunityStatus = 'new' | 'assessment_scheduled' | 'estimate_sent'
 export type PropertyType = 'residential_single_family' | 'residential_multi_family' | 'commercial' | 'industrial' | 'government'
 export type UrgencyLevel = 'routine' | 'urgent' | 'emergency'
 export type RegulatoryTrigger = 'inspection_required' | 'sale_pending' | 'tenant_complaint' | 'insurance_claim' | 'voluntary'
+export type TouchType = 'first_touch' | 'last_touch' | 'converting_touch' | 'nurture_touch'
+export type TouchChannel = 'web' | 'phone' | 'email' | 'in_person' | 'social' | 'event'
+
+// Multi-touch attribution fields (shared across entities)
+export interface MultiTouchAttribution {
+  first_touch_source: string | null
+  first_touch_medium: string | null
+  first_touch_campaign: string | null
+  last_touch_source: string | null
+  last_touch_medium: string | null
+  last_touch_campaign: string | null
+  converting_touch_source: string | null
+  converting_touch_medium: string | null
+  converting_touch_campaign: string | null
+}
+
+export interface AttributionTouchpoint {
+  id: string
+  organization_id: string
+  entity_type: 'contact' | 'company' | 'opportunity' | 'job'
+  entity_id: string
+  touch_type: TouchType
+  source: string | null
+  medium: string | null
+  campaign: string | null
+  content: string | null
+  term: string | null
+  referrer_url: string | null
+  landing_page: string | null
+  referred_by_contact_id: string | null
+  referred_by_company_id: string | null
+  referred_by_job_id: string | null
+  channel: TouchChannel | null
+  notes: string | null
+  touched_at: string
+  created_at: string
+}
 
 // Customer management types
 export type CustomerStatus = 'lead' | 'prospect' | 'customer' | 'inactive'
