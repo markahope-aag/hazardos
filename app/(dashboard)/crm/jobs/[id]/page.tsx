@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dialog'
 import {
   ArrowLeft, Building2, User, MapPin, AlertCircle, DollarSign,
-  Shield, Calendar, Users, FileText, Clock, Loader2, TrendingUp,
+  Shield, Calendar, Users, FileText, Clock, Loader2,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
@@ -224,20 +224,6 @@ export default function JobDetailPage({ params }: Props) {
             </CardContent>
           </Card>
 
-          {/* Variance (Ralph Wiggum Loop) */}
-          {(job.estimate_variance_pct != null || job.job_complexity_rating || job.customer_satisfaction_score) && (
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><TrendingUp className="h-4 w-4" />Learning Loop</CardTitle></CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                {job.estimate_variance_pct != null && (
-                  <div className="flex justify-between"><span className="text-muted-foreground">Est. Variance</span><span className={job.estimate_variance_pct > 10 ? 'text-destructive font-medium' : ''}>{job.estimate_variance_pct}%</span></div>
-                )}
-                {job.variance_reason && <div className="flex justify-between"><span className="text-muted-foreground">Reason</span><span className="capitalize">{job.variance_reason.replace(/_/g, ' ')}</span></div>}
-                {job.job_complexity_rating && <div className="flex justify-between"><span className="text-muted-foreground">Complexity</span><span>{job.job_complexity_rating}/5</span></div>}
-                {job.customer_satisfaction_score && <div className="flex justify-between"><span className="text-muted-foreground">Satisfaction</span><span>{job.customer_satisfaction_score}/5</span></div>}
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {/* Right Main Content */}

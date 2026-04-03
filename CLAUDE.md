@@ -165,7 +165,7 @@ The `attribution_touchpoints` table logs every interaction for full-funnel analy
 
 **Opportunities:** opportunity_status, hazard_types[], property_type, property_age, urgency (routine/urgent/emergency), regulatory_trigger, estimated_value/probability/weighted_value, assessment/estimate dates
 
-**Jobs:** containment_level (OSHA Type I/II/III), permit_numbers[], disposal_manifest_numbers[], air_monitoring/clearance_testing flags, estimated/actual revenue & cost, gross_margin_pct, Ralph Wiggum Loop fields (estimate_variance_pct, variance_reason, job_complexity_rating, customer_satisfaction_score)
+**Jobs:** containment_level (OSHA Type I/II/III), permit_numbers[], disposal_manifest_numbers[], air_monitoring/clearance_testing flags, estimated/actual revenue & cost, gross_margin_pct
 
 ## Proposal Templates
 

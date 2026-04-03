@@ -226,7 +226,6 @@ Stages are configurable per organization with custom names, colors, and probabil
 
 **Financial:** `estimated_revenue`, `actual_revenue`, `estimated_cost`, `actual_cost`, `gross_margin_pct`, `deposit_amount`, `deposit_received_date`, `final_invoice_date`, `final_payment_date`, `invoice_id` (QB)
 
-**Ralph Wiggum Loop (learning engine):** `estimate_variance_pct`, `variance_reason` (scope_change, estimator_error, unforeseen_conditions, weather, access_issues, material_shortage), `estimator_override_notes`, `job_complexity_rating` (1-5), `customer_satisfaction_score` (1-5)
 
 **Attribution:** `lead_source`, `first/last/converting_touch_source/medium/campaign`, `attributed_lead_source`, `is_repeat_customer`, `referral_job_id`
 
@@ -244,7 +243,6 @@ Stages are configurable per organization with custom names, colors, and probabil
 - Company link, contact link, address
 - Hazards, containment level
 - Schedule dates, revenue
-- Learning Loop metrics (variance %, reason, complexity, satisfaction) — shown when populated
 
 **Right content (tabbed):**
 - **Overview** — Linked opportunity, compliance (air monitoring, clearance, permits, manifests), notes/special instructions
@@ -325,7 +323,7 @@ types/
 | `20260403000003_enhance_companies.sql` | Full company model (type, addresses, attribution, financials) |
 | `20260403000004_enhance_contacts.sql` | Full contact model (first/last name, roles, opt-in, attribution, follow-up) |
 | `20260403000005_enhance_opportunities.sql` | Full opportunity model (property, hazards, urgency, dates, attribution) |
-| `20260403000006_enhance_jobs.sql` | Full job model (containment, compliance, financials, learning loop, attribution) |
+| `20260403000006_enhance_jobs.sql` | Full job model (containment, compliance, financials, attribution) |
 | `20260403000007_multi_touch_attribution.sql` | Three-touch attribution, source inheritance triggers, touchpoints log |
 
 ## API Routes
