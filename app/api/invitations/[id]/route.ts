@@ -4,7 +4,7 @@ import { SecureError } from '@/lib/utils/secure-error-handler'
 
 export const DELETE = createApiHandlerWithParams(
   {
-    allowedRoles: ['admin', 'tenant_owner'],
+    allowedRoles: ['admin', 'tenant_owner', 'platform_admin', 'platform_owner'],
   },
   async (_request, context, params) => {
     const { id } = params

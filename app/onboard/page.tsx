@@ -239,7 +239,18 @@ export default function OnboardPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end pt-6">
+              <div className="flex items-center justify-between pt-6">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    await supabase.auth.signOut()
+                    window.location.href = '/login'
+                  }}
+                >
+                  Sign in as a different user
+                </Button>
                 <Button type="submit" disabled={loading} size="lg">
                   {loading ? 'Creating Organization...' : 'Create Organization'}
                 </Button>

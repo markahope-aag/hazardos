@@ -23,6 +23,7 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'default',
     title: 'HazardOS',
+    startupImage: '/logos/icon-512-color.png',
   },
 }
 

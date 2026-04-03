@@ -169,8 +169,12 @@ export default function MobileSurveyWizard({
   const failedPhotos = currentSurveyId ? getFailedCount(currentSurveyId) : 0
   const hasPhotosToUpload = pendingPhotos > 0 || failedPhotos > 0
 
-  // Initialize survey on mount
+  // Initialize survey on mount (runs once)
+  const initializedRef = useRef(false)
   useEffect(() => {
+    if (initializedRef.current) return
+    initializedRef.current = true
+
     const initializeSurvey = async () => {
       // Set organization and customer IDs
       if (organizationId) {
@@ -199,17 +203,8 @@ export default function MobileSurveyWizard({
     }
 
     initializeSurvey()
-  }, [
-    surveyId,
-    customerId,
-    organizationId,
-    currentSurveyId,
-    setCurrentSurveyId,
-    setCustomerId,
-    setOrganizationId,
-    loadSurveyFromDb,
-    createSurveyInDb,
-  ])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Auto-save effect
   useEffect(() => {

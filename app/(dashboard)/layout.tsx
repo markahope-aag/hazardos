@@ -7,6 +7,37 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { Home, FileText, Calculator, Calendar, Settings, Users, Briefcase, DollarSign } from 'lucide-react'
+import LoginForm from '@/components/auth/login-form'
+
+function InlineLogin() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-gray-50">
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <LogoHorizontal size="lg" />
+            </div>
+            <p className="text-gray-600 text-sm">
+              Environmental Remediation Management
+            </p>
+          </div>
+          <div className="space-y-6">
+            <div className="space-y-2 text-center">
+              <h1 className="text-2xl font-semibold tracking-tight">
+                Welcome back
+              </h1>
+              <p className="text-sm text-gray-600">
+                Enter your email to sign in to your account
+              </p>
+            </div>
+            <LoginForm />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function DashboardLayout({
   children,
@@ -18,12 +49,8 @@ export default function DashboardLayout({
   const pathname = usePathname()
 
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.push('/login')
-      } else if (profile && !profile.organization_id && !profile.is_platform_user) {
-        router.push('/onboard')
-      }
+    if (!loading && user && profile && !profile.organization_id && !profile.is_platform_user) {
+      router.push('/onboard')
     }
   }, [user, profile, loading, router])
 
@@ -39,7 +66,8 @@ export default function DashboardLayout({
   }
 
   if (!user) {
-    return null
+    // Render login inline instead of redirecting to avoid routing issues
+    return <InlineLogin />
   }
 
   // Allow rendering even without profile/org - will redirect via useEffect

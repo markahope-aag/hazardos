@@ -47,7 +47,7 @@ export default function TeamSettingsPage() {
 
       if (!profile?.organization_id) return
 
-      setIsAdmin(profile.role === 'admin' || profile.role === 'tenant_owner')
+      setIsAdmin(['admin', 'tenant_owner', 'platform_admin', 'platform_owner'].includes(profile.role))
 
       // Fetch team members
       const { data: membersData } = await supabase
@@ -59,7 +59,7 @@ export default function TeamSettingsPage() {
       setMembers(membersData || [])
 
       // Fetch pending invitations (only if admin)
-      if (profile.role === 'admin' || profile.role === 'tenant_owner') {
+      if (['admin', 'tenant_owner', 'platform_admin', 'platform_owner'].includes(profile.role)) {
         const res = await fetch('/api/invitations')
         if (res.ok) {
           const data = await res.json()

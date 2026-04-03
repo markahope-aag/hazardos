@@ -12,16 +12,16 @@ export default function LoginForm() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<{email?: string; password?: string}>({})
-  
+
   // Check if Supabase is configured
   const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  
+
   if (!isSupabaseConfigured) {
     return (
       <div className="space-y-4">
         <div className="p-4 rounded-md bg-yellow-50 text-yellow-800 border border-yellow-200">
           <p className="text-sm">
-            <strong>Setup Required:</strong> Supabase environment variables are not configured. 
+            <strong>Setup Required:</strong> Supabase environment variables are not configured.
             Please add your Supabase credentials to continue.
           </p>
         </div>
@@ -44,7 +44,7 @@ export default function LoginForm() {
     const newErrors: {email?: string; password?: string} = {}
     if (!email) newErrors.email = 'Email is required'
     if (!password) newErrors.password = 'Password is required'
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
       setIsLoading(false)
@@ -63,7 +63,7 @@ export default function LoginForm() {
 
     try {
       // Login attempt
-      
+
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -84,7 +84,7 @@ export default function LoginForm() {
           title: 'Login Successful',
           description: 'Redirecting to dashboard...',
         })
-        
+
         // Small delay to show success message, then redirect
         setTimeout(() => {
           window.location.href = '/'
@@ -92,7 +92,7 @@ export default function LoginForm() {
       }
     } catch (error) {
       clearTimeout(timeoutId)
-      console.error('❌ Login exception:', error)
+      console.error('Login exception:', error)
       toast({
         title: 'Login Error',
         description: 'An unexpected error occurred. Please try again.',

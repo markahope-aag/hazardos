@@ -12,7 +12,7 @@ const createInvitationSchema = z.object({
 
 export const GET = createApiHandler(
   {
-    allowedRoles: ['admin', 'tenant_owner'],
+    allowedRoles: ['admin', 'tenant_owner', 'platform_admin', 'platform_owner'],
   },
   async (_request, context) => {
     const { data, error } = await context.supabase
@@ -30,7 +30,7 @@ export const GET = createApiHandler(
 
 export const POST = createApiHandler(
   {
-    allowedRoles: ['admin', 'tenant_owner'],
+    allowedRoles: ['admin', 'tenant_owner', 'platform_admin', 'platform_owner'],
     bodySchema: createInvitationSchema,
   },
   async (_request, context, body) => {

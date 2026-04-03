@@ -3,6 +3,7 @@
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import MobileSurveyWizard from '@/components/surveys/mobile/mobile-survey-wizard'
+import { PWAInstallPrompt } from '@/components/pwa/pwa-install-prompt'
 import { Loader2 } from 'lucide-react'
 
 function MobileSurveyWizardWithParams() {
@@ -32,6 +33,7 @@ export default function MobileSurveyPage() {
       >
         <MobileSurveyWizardWithParams />
       </Suspense>
+      <PWAInstallPrompt />
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { withSentryConfig } from '@sentry/nextjs';
-import withPWA from 'next-pwa';
+import withSerwist from '@serwist/next';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -396,10 +396,9 @@ const nextConfig = {
   },
 };
 
-const configWithPWA = withPWA({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
+const configWithPWA = withSerwist({
+  swSrc: 'app/sw.ts',
+  swDest: 'public/sw.js',
   disable: process.env.NODE_ENV === 'development',
 })(nextConfig);
 
