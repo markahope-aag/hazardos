@@ -12,6 +12,8 @@ export type SubscriptionTier = 'trial' | 'starter' | 'professional' | 'enterpris
 // CRM types
 export type ContactType = 'residential' | 'commercial'
 export type CompanyStatus = 'active' | 'inactive'
+export type CompanyType = 'residential_property_mgr' | 'commercial_property_mgr' | 'general_contractor' | 'industrial' | 'hoa' | 'government' | 'direct_homeowner' | 'other'
+export type AccountStatus = 'prospect' | 'active' | 'inactive' | 'churned'
 
 // Customer management types
 export type CustomerStatus = 'lead' | 'prospect' | 'customer' | 'inactive'
@@ -218,15 +220,46 @@ export interface Database {
           id: string
           organization_id: string
           name: string
-          website: string | null
+          company_type: CompanyType | null
           industry: string | null
+          website: string | null
+          primary_phone: string | null
+          primary_email: string | null
           phone: string | null
           email: string | null
-          address_line1: string | null
-          address_line2: string | null
-          city: string | null
-          state: string | null
-          zip: string | null
+          // Billing address
+          billing_address_line1: string | null
+          billing_address_line2: string | null
+          billing_city: string | null
+          billing_state: string | null
+          billing_zip: string | null
+          // Service address
+          service_address_line1: string | null
+          service_address_line2: string | null
+          service_city: string | null
+          service_state: string | null
+          service_zip: string | null
+          // Relationship
+          account_owner_id: string | null
+          account_status: AccountStatus
+          customer_since: string | null
+          preferred_contact_method: string | null
+          // Marketing attribution
+          lead_source: string | null
+          lead_source_detail: string | null
+          first_touch_date: string | null
+          utm_source: string | null
+          utm_medium: string | null
+          utm_campaign: string | null
+          referred_by_company_id: string | null
+          referred_by_contact_id: string | null
+          // Financial
+          lifetime_value: number
+          total_jobs_completed: number
+          average_job_value: number
+          payment_terms: string | null
+          quickbooks_customer_id: string | null
+          // Meta
           notes: string | null
           status: CompanyStatus
           created_at: string
@@ -237,15 +270,37 @@ export interface Database {
           id?: string
           organization_id: string
           name: string
-          website?: string | null
+          company_type?: CompanyType | null
           industry?: string | null
+          website?: string | null
+          primary_phone?: string | null
+          primary_email?: string | null
           phone?: string | null
           email?: string | null
-          address_line1?: string | null
-          address_line2?: string | null
-          city?: string | null
-          state?: string | null
-          zip?: string | null
+          billing_address_line1?: string | null
+          billing_address_line2?: string | null
+          billing_city?: string | null
+          billing_state?: string | null
+          billing_zip?: string | null
+          service_address_line1?: string | null
+          service_address_line2?: string | null
+          service_city?: string | null
+          service_state?: string | null
+          service_zip?: string | null
+          account_owner_id?: string | null
+          account_status?: AccountStatus
+          customer_since?: string | null
+          preferred_contact_method?: string | null
+          lead_source?: string | null
+          lead_source_detail?: string | null
+          first_touch_date?: string | null
+          utm_source?: string | null
+          utm_medium?: string | null
+          utm_campaign?: string | null
+          referred_by_company_id?: string | null
+          referred_by_contact_id?: string | null
+          payment_terms?: string | null
+          quickbooks_customer_id?: string | null
           notes?: string | null
           status?: CompanyStatus
           created_at?: string
@@ -256,15 +311,37 @@ export interface Database {
           id?: string
           organization_id?: string
           name?: string
-          website?: string | null
+          company_type?: CompanyType | null
           industry?: string | null
+          website?: string | null
+          primary_phone?: string | null
+          primary_email?: string | null
           phone?: string | null
           email?: string | null
-          address_line1?: string | null
-          address_line2?: string | null
-          city?: string | null
-          state?: string | null
-          zip?: string | null
+          billing_address_line1?: string | null
+          billing_address_line2?: string | null
+          billing_city?: string | null
+          billing_state?: string | null
+          billing_zip?: string | null
+          service_address_line1?: string | null
+          service_address_line2?: string | null
+          service_city?: string | null
+          service_state?: string | null
+          service_zip?: string | null
+          account_owner_id?: string | null
+          account_status?: AccountStatus
+          customer_since?: string | null
+          preferred_contact_method?: string | null
+          lead_source?: string | null
+          lead_source_detail?: string | null
+          first_touch_date?: string | null
+          utm_source?: string | null
+          utm_medium?: string | null
+          utm_campaign?: string | null
+          referred_by_company_id?: string | null
+          referred_by_contact_id?: string | null
+          payment_terms?: string | null
+          quickbooks_customer_id?: string | null
           notes?: string | null
           status?: CompanyStatus
           created_at?: string

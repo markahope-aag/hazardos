@@ -6,9 +6,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ArrowLeft, Building2, Users, Mail, Phone, MapPin, Globe, AlertCircle } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { ArrowLeft, Building2, Users, Mail, Phone, MapPin, Globe, AlertCircle, DollarSign, Briefcase, TrendingUp } from 'lucide-react'
 import { useCompany } from '@/lib/hooks/use-companies'
 import { useCustomers } from '@/lib/hooks/use-customers'
+import { formatCurrency } from '@/lib/utils'
+
+const COMPANY_TYPE_LABELS: Record<string, string> = {
+  residential_property_mgr: 'Residential Property Manager',
+  commercial_property_mgr: 'Commercial Property Manager',
+  general_contractor: 'General Contractor',
+  industrial: 'Industrial',
+  hoa: 'HOA',
+  government: 'Government',
+  direct_homeowner: 'Direct Homeowner',
+  other: 'Other',
+}
 
 interface CompanyDetailPageProps {
   params: Promise<{ id: string }>
@@ -17,9 +30,6 @@ interface CompanyDetailPageProps {
 export default function CompanyDetailPage({ params }: CompanyDetailPageProps) {
   const { id } = use(params)
   const { data: company, isLoading, error } = useCompany(id)
-
-  // Fetch contacts linked to this company
-  // We pass the company ID but the hook filters by org — we'll filter client-side for now
   const { data: allContacts = [] } = useCustomers({ pageSize: 100 })
   const contacts = allContacts.filter((c: { company_id: string | null }) => c.company_id === id)
 
@@ -39,15 +49,16 @@ export default function CompanyDetailPage({ params }: CompanyDetailPageProps) {
           <CardContent className="p-6 text-center">
             <AlertCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <h2 className="text-lg font-semibold mb-2">{error ? 'Error Loading Company' : 'Company Not Found'}</h2>
-            <p className="text-gray-600">{error instanceof Error ? error.message : 'The company doesn\'t exist or has been deleted.'}</p>
           </CardContent>
         </Card>
       </div>
     )
   }
 
-  const address = [company.address_line1, company.address_line2].filter(Boolean).join(', ')
-  const cityStateZip = [company.city, company.state, company.zip].filter(Boolean).join(', ')
+  const billingAddress = [company.billing_address_line1, company.billing_address_line2].filter(Boolean).join(', ')
+  const billingCityStateZip = [company.billing_city, company.billing_state, company.billing_zip].filter(Boolean).join(', ')
+  const serviceAddress = [company.service_address_line1, company.service_address_line2].filter(Boolean).join(', ')
+  const serviceCityStateZip = [company.service_city, company.service_state, company.service_zip].filter(Boolean).join(', ')
 
   return (
     <div className="space-y-6">
@@ -61,39 +72,40 @@ export default function CompanyDetailPage({ params }: CompanyDetailPageProps) {
             <div className="flex items-center gap-2">
               <Building2 className="h-6 w-6 text-muted-foreground" />
               <h1 className="text-2xl font-bold">{company.name}</h1>
-              <Badge variant={company.status === 'active' ? 'default' : 'secondary'}>
-                {company.status}
+              <Badge variant={company.account_status === 'active' ? 'default' : 'secondary'}>
+                {company.account_status || company.status}
               </Badge>
             </div>
-            {company.industry && (
-              <p className="text-muted-foreground ml-9">{company.industry}</p>
-            )}
+            <div className="flex items-center gap-3 ml-9 text-sm text-muted-foreground">
+              {company.company_type && <span>{COMPANY_TYPE_LABELS[company.company_type] || company.company_type}</span>}
+              {company.industry && <><span>·</span><span>{company.industry}</span></>}
+            </div>
           </div>
         </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        {/* Company Info */}
         <div className="md:col-span-2 space-y-6">
+          {/* Contact Info */}
           <Card>
-            <CardHeader><CardTitle>Company Details</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Contact Information</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                {company.email && (
+                {(company.primary_email || company.email) && (
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Email</p>
-                      <p>{company.email}</p>
+                      <p>{company.primary_email || company.email}</p>
                     </div>
                   </div>
                 )}
-                {company.phone && (
+                {(company.primary_phone || company.phone) && (
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Phone</p>
-                      <p>{company.phone}</p>
+                      <p>{company.primary_phone || company.phone}</p>
                     </div>
                   </div>
                 )}
@@ -106,25 +118,82 @@ export default function CompanyDetailPage({ params }: CompanyDetailPageProps) {
                     </div>
                   </div>
                 )}
-                {(address || cityStateZip) && (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Address</p>
-                      {address && <p>{address}</p>}
-                      {cityStateZip && <p>{cityStateZip}</p>}
-                    </div>
+                {company.preferred_contact_method && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Preferred Contact</p>
+                    <p className="capitalize">{company.preferred_contact_method}</p>
                   </div>
                 )}
               </div>
-              {company.notes && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Notes</p>
-                  <p className="text-sm">{company.notes}</p>
+
+              {(billingAddress || billingCityStateZip) && (
+                <>
+                  <Separator />
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Billing Address</p>
+                      {billingAddress && <p>{billingAddress}</p>}
+                      {billingCityStateZip && <p>{billingCityStateZip}</p>}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {(serviceAddress || serviceCityStateZip) && (
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Service Address</p>
+                    {serviceAddress && <p>{serviceAddress}</p>}
+                    {serviceCityStateZip && <p>{serviceCityStateZip}</p>}
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
+
+          {/* Marketing Attribution */}
+          {(company.lead_source || company.utm_source || company.referred_by_company_id) && (
+            <Card>
+              <CardHeader><CardTitle>Marketing Attribution</CardTitle></CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {company.lead_source && (
+                    <div>
+                      <p className="text-muted-foreground">Lead Source</p>
+                      <p className="font-medium">{company.lead_source}</p>
+                      {company.lead_source_detail && <p className="text-muted-foreground">{company.lead_source_detail}</p>}
+                    </div>
+                  )}
+                  {company.first_touch_date && (
+                    <div>
+                      <p className="text-muted-foreground">First Touch</p>
+                      <p className="font-medium">{new Date(company.first_touch_date).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                  {company.utm_source && (
+                    <div>
+                      <p className="text-muted-foreground">UTM Source</p>
+                      <p className="font-medium">{company.utm_source}</p>
+                    </div>
+                  )}
+                  {company.utm_medium && (
+                    <div>
+                      <p className="text-muted-foreground">UTM Medium</p>
+                      <p className="font-medium">{company.utm_medium}</p>
+                    </div>
+                  )}
+                  {company.utm_campaign && (
+                    <div>
+                      <p className="text-muted-foreground">UTM Campaign</p>
+                      <p className="font-medium">{company.utm_campaign}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Associated Contacts */}
           <Card>
@@ -160,9 +229,50 @@ export default function CompanyDetailPage({ params }: CompanyDetailPageProps) {
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Financial Summary */}
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><DollarSign className="h-5 w-5" />Financial</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Lifetime Value</span>
+                <span className="font-bold">{formatCurrency(company.lifetime_value || 0, false)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Jobs Completed</span>
+                <span className="font-medium">{company.total_jobs_completed || 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Avg Job Value</span>
+                <span className="font-medium">{formatCurrency(company.average_job_value || 0, false)}</span>
+              </div>
+              {company.payment_terms && (
+                <>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Payment Terms</span>
+                    <span className="font-medium">{company.payment_terms}</span>
+                  </div>
+                </>
+              )}
+              {company.quickbooks_customer_id && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">QuickBooks ID</span>
+                  <span className="text-xs font-mono">{company.quickbooks_customer_id}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Timeline */}
           <Card>
             <CardHeader><CardTitle>Timeline</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
+              {company.customer_since && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Customer Since</span>
+                  <span>{new Date(company.customer_since).toLocaleDateString()}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Created</span>
                 <span>{new Date(company.created_at).toLocaleDateString()}</span>
@@ -173,6 +283,15 @@ export default function CompanyDetailPage({ params }: CompanyDetailPageProps) {
               </div>
             </CardContent>
           </Card>
+
+          {company.notes && (
+            <Card>
+              <CardHeader><CardTitle>Notes</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-sm whitespace-pre-wrap">{company.notes}</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

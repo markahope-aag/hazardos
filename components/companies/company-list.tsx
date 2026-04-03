@@ -131,10 +131,10 @@ export default function CompanyList({ onEditCompany, onDeleteCompany }: CompanyL
                         {company.industry || '—'}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {company.phone || '—'}
+                        {company.primary_phone || company.phone || '—'}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {[company.city, company.state].filter(Boolean).join(', ') || '—'}
+                        {[company.billing_city, company.billing_state].filter(Boolean).join(', ') || '—'}
                       </TableCell>
                       <TableCell>
                         <Badge variant={company.status === 'active' ? 'default' : 'secondary'}>
