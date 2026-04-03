@@ -117,7 +117,8 @@ export default function DashboardLayout({
         </div>
       </header>
       
-      {/* Navigation */}
+      {/* Navigation - hidden when inside CRM */}
+      {!pathname.startsWith('/crm') && (
       <nav className="border-b bg-white">
         <div className="container">
           <div className="flex space-x-8 overflow-x-auto">
@@ -207,6 +208,7 @@ export default function DashboardLayout({
           </div>
         </div>
       </nav>
+      )}
 
       <main className="container py-6">
         {children}
