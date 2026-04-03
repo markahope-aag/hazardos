@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Check if user has an organization
       const { data: { user } } = await supabase.auth.getUser()
 
       if (user) {
@@ -21,17 +20,25 @@ export async function GET(request: NextRequest) {
           .eq('id', user.id)
           .single()
 
+        // Mark any pending invitation as accepted (safety net for trigger)
+        if (user.email && profile?.organization_id) {
+          await supabase
+            .from('tenant_invitations')
+            .update({ accepted_at: new Date().toISOString() })
+            .eq('email', user.email)
+            .eq('organization_id', profile.organization_id)
+            .is('accepted_at', null)
+        }
+
         // If no organization, redirect to onboard
         if (!profile?.organization_id) {
           return NextResponse.redirect(`${origin}/onboard`)
         }
       }
 
-      // Redirect to the next URL or dashboard
       return NextResponse.redirect(`${origin}${next}`)
     }
   }
 
-  // Return to login with error
   return NextResponse.redirect(`${origin}/login?error=auth_callback_error`)
 }
