@@ -296,6 +296,15 @@ export interface Database {
           utm_campaign: string | null
           referred_by_company_id: string | null
           referred_by_contact_id: string | null
+          // Multi-touch
+          last_touch_source: string | null
+          last_touch_medium: string | null
+          last_touch_campaign: string | null
+          last_touch_date: string | null
+          converting_touch_source: string | null
+          converting_touch_medium: string | null
+          converting_touch_campaign: string | null
+          converting_touch_date: string | null
           // Financial
           lifetime_value: number
           total_jobs_completed: number
