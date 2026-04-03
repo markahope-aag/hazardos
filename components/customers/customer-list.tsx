@@ -66,7 +66,7 @@ export default function CustomerList({ onEditCustomer, onDeleteCustomer }: Custo
       <Card>
         <CardContent className="p-6">
           <div className="text-center">
-            <div className="text-destructive mb-2">Error loading customers</div>
+            <div className="text-destructive mb-2">Error loading contacts</div>
             <div className="text-sm text-gray-500">
               {error instanceof Error ? error.message : 'An unexpected error occurred'}
             </div>
@@ -100,7 +100,7 @@ export default function CustomerList({ onEditCustomer, onDeleteCustomer }: Custo
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Customers
+            Contacts
             {!isLoading && (
               <span className="text-sm font-normal text-gray-500">
                 ({customers.length} {customers.length === pageSize ? 'of many' : 'total'})
@@ -126,14 +126,14 @@ export default function CustomerList({ onEditCustomer, onDeleteCustomer }: Custo
               <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
                 {search || status !== 'all' || source !== 'all' 
-                  ? 'No customers found' 
-                  : 'No customers yet'
+                  ? 'No contacts found' 
+                  : 'No contacts yet'
                 }
               </h3>
               <p className="text-gray-500 mb-4">
                 {search || status !== 'all' || source !== 'all'
                   ? 'Try adjusting your search or filters'
-                  : 'Get started by adding your first customer'
+                  : 'Get started by adding your first contact'
                 }
               </p>
               {(search || status !== 'all' || source !== 'all') && (

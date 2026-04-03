@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal, Eye, Edit, Trash2, Plus, ChevronDown } from 'lucide-react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import CustomerStatusBadge from './customer-status-badge'
 import { useUpdateCustomerStatus } from '@/lib/hooks/use-customers'
@@ -54,7 +55,7 @@ function CustomerListItem({ customer, onEdit, onDelete }: CustomerListItemProps)
   }, [customer.id, customer.status, updateStatusMutation])
 
   const handleViewCustomer = useCallback(() => {
-    router.push(`/customers/${customer.id}`)
+    router.push(`/crm/contacts/${customer.id}`)
   }, [router, customer.id])
 
   const handleCreateSurvey = useCallback(() => {
@@ -74,7 +75,9 @@ function CustomerListItem({ customer, onEdit, onDelete }: CustomerListItemProps)
       {/* Name & Company */}
       <TableCell>
         <div>
-          <div className="font-medium text-foreground">{customer.name}</div>
+          <Link href={`/crm/contacts/${customer.id}`} className="font-medium text-primary hover:underline">
+            {customer.name}
+          </Link>
           {customer.company_name && (
             <div className="text-sm text-muted-foreground">{customer.company_name}</div>
           )}
@@ -161,7 +164,7 @@ function CustomerListItem({ customer, onEdit, onDelete }: CustomerListItemProps)
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleEdit}>
               <Edit className="mr-2 h-4 w-4" />
-              Edit Customer
+              Edit Contact
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleCreateSurvey}>
               <Plus className="mr-2 h-4 w-4" />
@@ -173,7 +176,7 @@ function CustomerListItem({ customer, onEdit, onDelete }: CustomerListItemProps)
               className="text-destructive focus:text-destructive"
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Delete Customer
+              Delete Contact
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
