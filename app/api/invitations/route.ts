@@ -19,7 +19,7 @@ export const GET = createApiHandler(
       .from('tenant_invitations')
       .select('*')
       .eq('organization_id', context.profile.organization_id)
-      .eq('status', 'pending')
+      .is('accepted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -48,13 +48,13 @@ export const POST = createApiHandler(
       throw new SecureError('CONFLICT', 'A user with this email already belongs to this organization')
     }
 
-    // Check for existing pending invitation
+    // Check for existing pending invitation (pending = accepted_at is null)
     const { data: existingInvitation } = await context.supabase
       .from('tenant_invitations')
       .select('id')
       .eq('organization_id', context.profile.organization_id)
       .eq('email', email)
-      .eq('status', 'pending')
+      .is('accepted_at', null)
       .single()
 
     if (existingInvitation) {
@@ -76,7 +76,6 @@ export const POST = createApiHandler(
         token,
         invited_by: context.user.id,
         expires_at: expiresAt.toISOString(),
-        status: 'pending',
       })
       .select()
       .single()
