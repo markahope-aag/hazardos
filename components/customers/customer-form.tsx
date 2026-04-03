@@ -5,15 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { customerSchema, US_STATES, CUSTOMER_STATUS_OPTIONS, CUSTOMER_SOURCE_OPTIONS, CONTACT_TYPE_OPTIONS, CONTACT_ROLE_OPTIONS } from '@/lib/validations/customer'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
+import { customerSchema, CUSTOMER_STATUS_OPTIONS, CUSTOMER_SOURCE_OPTIONS, CONTACT_TYPE_OPTIONS, CONTACT_ROLE_OPTIONS } from '@/lib/validations/customer'
 import { useFormAnalytics } from '@/lib/hooks/use-analytics'
 import { useSearchCompanies } from '@/lib/hooks/use-companies'
 import { logger, formatError } from '@/lib/utils/logger'
@@ -21,7 +17,7 @@ import type { CustomerFormData } from '@/lib/validations/customer'
 import type { Customer, CustomerStatus, CustomerSource, ContactType, ContactRole } from '@/types/database'
 
 interface CustomerFormProps {
-  customer?: Customer // For edit mode
+  customer?: Customer
   onSubmit: (data: CustomerFormData) => Promise<void>
   onCancel: () => void
   isSubmitting?: boolean
@@ -33,16 +29,12 @@ export default function CustomerForm({
   onSubmit,
   onCancel,
   isSubmitting = false,
-  submitLabel = 'Save Customer'
+  submitLabel = 'Save Contact'
 }: CustomerFormProps) {
-  // Analytics tracking for form submissions
   const formAnalytics = useFormAnalytics('customer', customer ? 'edit_customer' : 'create_customer')
 
   const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
+    register, handleSubmit, setValue, watch,
     formState: { errors }
   } = useForm<CustomerFormData>({
     resolver: zodResolver(customerSchema),
@@ -58,6 +50,7 @@ export default function CustomerForm({
       mobile_phone: customer.mobile_phone || '',
       office_phone: customer.office_phone || '',
       phone: customer.phone || '',
+      preferred_contact_method: customer.preferred_contact_method as 'email' | 'phone' | 'text' | 'mail' | undefined,
       address_line1: customer.address_line1 || '',
       address_line2: customer.address_line2 || '',
       city: customer.city || '',
@@ -69,6 +62,7 @@ export default function CustomerForm({
       opted_into_email: customer.opted_into_email || false,
       opted_into_sms: customer.opted_into_sms || false,
       lead_source: customer.lead_source || '',
+      lead_source_detail: customer.lead_source_detail || '',
       notes: customer.notes || '',
       next_followup_date: customer.next_followup_date || '',
       next_followup_note: customer.next_followup_note || '',
@@ -81,41 +75,30 @@ export default function CustomerForm({
     }
   })
 
-  const watchedStatus = watch('status')
-  const watchedSource = watch('source')
-  const watchedMarketingConsent = watch('marketing_consent')
   const watchedContactType = watch('contact_type')
   const watchedCompanyName = watch('company_name')
-
-  // Search companies when typing in commercial mode
   const { data: companyResults = [] } = useSearchCompanies(watchedContactType === 'commercial' ? (watchedCompanyName || '') : '')
 
-  // Start form analytics tracking on mount
   useEffect(() => {
-    formAnalytics.startTracking(15) // 15 fields in the form
+    formAnalytics.startTracking(20)
   }, [formAnalytics])
 
   const handleFormSubmit = handleSubmit(async (data: CustomerFormData) => {
-    // Compute name from first + last
     data.name = [data.first_name, data.last_name].filter(Boolean).join(' ')
     try {
       await onSubmit(data)
       formAnalytics.trackSuccess()
     } catch (error) {
-      // Error handling is done in the mutation hooks
       formAnalytics.trackFailure(error instanceof Error ? error.message : 'unknown_error')
-      logger.error(
-        { error: formatError(error, 'CUSTOMER_FORM_SUBMISSION_ERROR') },
-        'Form submission error'
-      )
+      logger.error({ error: formatError(error, 'CONTACT_FORM_ERROR') }, 'Form submission error')
     }
   })
 
   return (
     <form onSubmit={handleFormSubmit} className="space-y-6">
-      {/* Contact Type */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Contact Type</h3>
+      {/* Section 1: Contact Type */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact Type</h3>
         <div className="flex gap-3">
           {CONTACT_TYPE_OPTIONS.map((option) => (
             <button
@@ -126,6 +109,7 @@ export default function CustomerForm({
                 if (option.value === 'residential') {
                   setValue('company_name', '')
                   setValue('company_id', '')
+                  setValue('contact_role', undefined)
                 }
               }}
               className={`flex-1 p-3 rounded-lg border-2 text-left transition-colors ${
@@ -141,52 +125,26 @@ export default function CustomerForm({
         </div>
       </div>
 
-      {/* Basic Information */}
+      {/* Section 2: Basic Info */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">Basic Information</h3>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Basic Information</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="first_name">First Name *</Label>
-            <Input
-              id="first_name"
-              {...register('first_name')}
-              aria-required="true"
-              aria-invalid={!!errors.first_name}
-            />
-            {errors.first_name && (
-              <p className="text-sm text-red-600 mt-1" role="alert">{errors.first_name.message}</p>
-            )}
+            <Input id="first_name" {...register('first_name')} />
+            {errors.first_name && <p className="text-sm text-red-600 mt-1">{errors.first_name.message}</p>}
           </div>
           <div>
             <Label htmlFor="last_name">Last Name</Label>
             <Input id="last_name" {...register('last_name')} />
           </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="title">Title / Role</Label>
             <Input id="title" {...register('title')} placeholder="e.g., Facilities Manager" />
           </div>
-        </div>
-
-        {watchedContactType === 'commercial' && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="company_name">Company Name *</Label>
-              <Input
-                id="company_name"
-                {...register('company_name')}
-                placeholder="Search or enter company name"
-                list="company-suggestions"
-              />
-              {companyResults.length > 0 && watchedCompanyName && (
-                <datalist id="company-suggestions">
-                  {companyResults.map((c) => (
-                    <option key={c.id} value={c.name} />
-                  ))}
-                </datalist>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">Type to search existing or enter new</p>
-            </div>
+          {watchedContactType === 'commercial' && (
             <div>
               <Label htmlFor="contact_role">Contact Role</Label>
               <Select value={watch('contact_role') || ''} onValueChange={(v) => setValue('contact_role', v as ContactRole)}>
@@ -198,9 +156,25 @@ export default function CustomerForm({
                 </SelectContent>
               </Select>
             </div>
+          )}
+        </div>
+        {watchedContactType === 'commercial' && (
+          <div>
+            <Label htmlFor="company_name">Company *</Label>
+            <Input id="company_name" {...register('company_name')} placeholder="Search or enter company name" list="company-suggestions" />
+            {companyResults.length > 0 && watchedCompanyName && (
+              <datalist id="company-suggestions">
+                {companyResults.map((c) => (<option key={c.id} value={c.name} />))}
+              </datalist>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">Type to search existing or enter new</p>
           </div>
         )}
+      </div>
 
+      {/* Section 3: Contact Methods */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact Methods</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <Label htmlFor="email">Email</Label>
@@ -216,167 +190,121 @@ export default function CustomerForm({
             <Input id="office_phone" type="tel" {...register('office_phone')} />
           </div>
         </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <Label>Preferred Contact Method</Label>
+            <Select value={watch('preferred_contact_method') || ''} onValueChange={(v) => setValue('preferred_contact_method', v as 'email' | 'phone' | 'text' | 'mail')}>
+              <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="phone">Phone</SelectItem>
+                <SelectItem value="text">Text / SMS</SelectItem>
+                <SelectItem value="mail">Mail</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex gap-6">
+          <div className="flex items-center space-x-2">
+            <Checkbox id="opted_into_email" checked={watch('opted_into_email')} onCheckedChange={(c) => setValue('opted_into_email', !!c)} />
+            <Label htmlFor="opted_into_email" className="text-sm">Opted into email</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox id="opted_into_sms" checked={watch('opted_into_sms')} onCheckedChange={(c) => setValue('opted_into_sms', !!c)} />
+            <Label htmlFor="opted_into_sms" className="text-sm">Opted into SMS</Label>
+          </div>
+        </div>
       </div>
 
-      {/* Address */}
+      {/* Section 4: Relationship */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">Address</h3>
-        
-        <div>
-          <Label htmlFor="address_line1">Address Line 1</Label>
-          <Input
-            id="address_line1"
-            {...register('address_line1')}
-            className={errors.address_line1 ? 'border-red-500' : ''}
-          />
-          {errors.address_line1 && (
-            <p className="text-sm text-red-600 mt-1">{errors.address_line1.message}</p>
-          )}
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Relationship</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <Label>Status *</Label>
+            <Select value={watch('status')} onValueChange={(v) => setValue('status', v as CustomerStatus)}>
+              <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+              <SelectContent>
+                {CUSTOMER_STATUS_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Source</Label>
+            <Select value={watch('source') || ''} onValueChange={(v) => setValue('source', v as CustomerSource)}>
+              <SelectTrigger><SelectValue placeholder="Select source" /></SelectTrigger>
+              <SelectContent>
+                {CUSTOMER_SOURCE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+      </div>
 
-        <div>
-          <Label htmlFor="address_line2">Address Line 2</Label>
-          <Input
-            id="address_line2"
-            {...register('address_line2')}
-            className={errors.address_line2 ? 'border-red-500' : ''}
-          />
-          {errors.address_line2 && (
-            <p className="text-sm text-red-600 mt-1">{errors.address_line2.message}</p>
-          )}
+      {/* Section 5: Attribution */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Attribution</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="lead_source">Lead Source</Label>
+            <Input id="lead_source" {...register('lead_source')} placeholder="e.g., Google Ads, Referral" />
+          </div>
+          <div>
+            <Label htmlFor="lead_source_detail">Source Detail</Label>
+            <Input id="lead_source_detail" {...register('lead_source_detail')} placeholder="e.g., Spring 2026 campaign" />
+          </div>
         </div>
+      </div>
 
+      {/* Section 6: Address */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Address</h3>
+        <div>
+          <Label htmlFor="address_line1">Street Address</Label>
+          <Input id="address_line1" {...register('address_line1')} />
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <Label htmlFor="city">City</Label>
-            <Input
-              id="city"
-              {...register('city')}
-              className={errors.city ? 'border-red-500' : ''}
-            />
-            {errors.city && (
-              <p className="text-sm text-red-600 mt-1">{errors.city.message}</p>
-            )}
+            <Input id="city" {...register('city')} />
           </div>
-
           <div>
             <Label htmlFor="state">State</Label>
-            <Select value={watch('state') || ''} onValueChange={(value: string) => setValue('state', value)}>
-              <SelectTrigger className={errors.state ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Select state" />
-              </SelectTrigger>
-              <SelectContent>
-                {US_STATES.map((state) => (
-                  <SelectItem key={state.value} value={state.value}>
-                    {state.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.state && (
-              <p className="text-sm text-red-600 mt-1">{errors.state.message}</p>
-            )}
+            <Input id="state" {...register('state')} placeholder="CO" maxLength={2} />
           </div>
-
           <div>
-            <Label htmlFor="zip">ZIP Code</Label>
-            <Input
-              id="zip"
-              {...register('zip')}
-              className={errors.zip ? 'border-red-500' : ''}
-            />
-            {errors.zip && (
-              <p className="text-sm text-red-600 mt-1">{errors.zip.message}</p>
-            )}
+            <Label htmlFor="zip">ZIP</Label>
+            <Input id="zip" {...register('zip')} />
           </div>
         </div>
       </div>
 
-      {/* Status & Source */}
+      {/* Section 7: Notes & Follow-up */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">Contact Details</h3>
-        
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Notes & Follow-up</h3>
+        <div>
+          <Label htmlFor="notes">Notes</Label>
+          <Textarea id="notes" rows={3} {...register('notes')} placeholder="Add any notes about this contact..." />
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="status">Status *</Label>
-            <Select value={watchedStatus} onValueChange={(value: string) => setValue('status', value as CustomerStatus)}>
-              <SelectTrigger
-                aria-required="true"
-                aria-invalid={!!errors.status}
-                aria-describedby={errors.status ? 'status-error' : undefined}
-                className={errors.status ? 'border-red-500' : ''}
-              >
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                {CUSTOMER_STATUS_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div>
-                      <div className="font-medium">{option.label}</div>
-                      <div className="text-xs text-gray-500">{option.description}</div>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.status && (
-              <p id="status-error" className="text-sm text-red-600 mt-1" role="alert">{errors.status.message}</p>
-            )}
+            <Label htmlFor="next_followup_date">Next Follow-up Date</Label>
+            <Input id="next_followup_date" type="date" {...register('next_followup_date')} />
           </div>
-
           <div>
-            <Label htmlFor="source">Source</Label>
-            <Select value={watchedSource || ''} onValueChange={(value: string) => setValue('source', value as CustomerSource)}>
-              <SelectTrigger className={errors.source ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Select source" />
-              </SelectTrigger>
-              <SelectContent>
-                {CUSTOMER_SOURCE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.source && (
-              <p className="text-sm text-red-600 mt-1">{errors.source.message}</p>
-            )}
+            <Label htmlFor="next_followup_note">Follow-up Note</Label>
+            <Input id="next_followup_note" {...register('next_followup_note')} placeholder="e.g., Call to discuss estimate" />
           </div>
         </div>
       </div>
 
-      {/* Notes */}
-      <div>
-        <Label htmlFor="notes">Notes</Label>
-        <Textarea
-          id="notes"
-          rows={4}
-          placeholder="Add any additional notes about this customer..."
-          {...register('notes')}
-          className={errors.notes ? 'border-red-500' : ''}
-        />
-        {errors.notes && (
-          <p className="text-sm text-red-600 mt-1">{errors.notes.message}</p>
-        )}
-      </div>
-
-      {/* Marketing Consent */}
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="marketing_consent"
-          checked={watchedMarketingConsent}
-          onCheckedChange={(checked) => setValue('marketing_consent', !!checked)}
-        />
-        <Label htmlFor="marketing_consent" className="text-sm">
-          Customer consents to marketing communications
-        </Label>
-      </div>
-
-      {/* Form Actions */}
+      {/* Actions */}
       <div className="flex justify-end space-x-3 pt-6 border-t">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
+        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Saving...' : submitLabel}
         </Button>
