@@ -206,19 +206,14 @@ export default function MobileSurveyWizard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Auto-save effect
+  // Auto-save effect — read from store directly to avoid dep re-renders
   useEffect(() => {
     if (!isInitialized) return
 
-    // Clear existing timer
-    if (autoSaveTimerRef.current) {
-      clearInterval(autoSaveTimerRef.current)
-    }
-
-    // Set up auto-save interval
     autoSaveTimerRef.current = setInterval(async () => {
-      if (isDirty) {
-        await saveDraft()
+      const state = useSurveyStore.getState()
+      if (state.isDirty) {
+        await state.saveDraft()
       }
     }, AUTO_SAVE_INTERVAL_MS)
 
@@ -227,7 +222,7 @@ export default function MobileSurveyWizard({
         clearInterval(autoSaveTimerRef.current)
       }
     }
-  }, [isDirty, saveDraft, isInitialized])
+  }, [isInitialized])
 
   // Process photo queue when coming online
   useEffect(() => {
