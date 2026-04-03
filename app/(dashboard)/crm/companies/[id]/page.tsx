@@ -7,11 +7,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { Textarea } from '@/components/ui/textarea'
 import {
   ArrowLeft, Building2, Users, Mail, Phone, MapPin, Globe, AlertCircle,
-  DollarSign, Briefcase, Target, ExternalLink,
+  DollarSign, Briefcase, Target, ExternalLink, Edit, User,
 } from 'lucide-react'
-import { useCompany } from '@/lib/hooks/use-companies'
+import { useCompany, useUpdateCompany } from '@/lib/hooks/use-companies'
 import { useCustomers } from '@/lib/hooks/use-customers'
 import { formatCurrency } from '@/lib/utils'
 
@@ -33,6 +34,13 @@ const STATUS_COLORS: Record<string, string> = {
   churned: 'bg-red-100 text-red-700',
 }
 
+const PREFERRED_METHOD_LABELS: Record<string, string> = {
+  email: 'Email',
+  phone: 'Phone',
+  text: 'SMS / Text',
+  mail: 'Mail',
+}
+
 const ROLE_LABELS: Record<string, string> = {
   decision_maker: 'Decision Maker',
   influencer: 'Influencer',
@@ -50,6 +58,9 @@ export default function CompanyDetailPage({ params }: Props) {
   const { data: allContacts = [] } = useCustomers({ pageSize: 100 })
   const contacts = allContacts.filter((c: { company_id: string | null }) => c.company_id === id)
   const [activeTab, setActiveTab] = useState<'overview' | 'contacts' | 'opportunities' | 'jobs' | 'activity'>('overview')
+  const [editingNotes, setEditingNotes] = useState(false)
+  const [notesValue, setNotesValue] = useState('')
+  const updateCompanyMutation = useUpdateCompany()
 
   if (isLoading) {
     return <div className="space-y-6"><Skeleton className="h-8 w-48" /><Card><CardContent className="p-6"><Skeleton className="h-40 w-full" /></CardContent></Card></div>
@@ -70,6 +81,11 @@ export default function CompanyDetailPage({ params }: Props) {
   const serviceCSZ = [company.service_city, company.service_state, company.service_zip].filter(Boolean).join(', ')
   const displayStatus = company.account_status || company.status
   const statusColor = STATUS_COLORS[displayStatus] || ''
+
+  const handleSaveNotes = async () => {
+    await updateCompanyMutation.mutateAsync({ id: company.id, updates: { notes: notesValue } })
+    setEditingNotes(false)
+  }
 
   const tabs = [
     { id: 'overview' as const, label: 'Overview' },
@@ -92,17 +108,21 @@ export default function CompanyDetailPage({ params }: Props) {
               <Building2 className="h-6 w-6 text-muted-foreground" />
               {company.name}
             </h1>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground ml-8">
-              {company.company_type && <span>{TYPE_LABELS[company.company_type] || company.company_type}</span>}
-              {company.industry && <><span>·</span><span>{company.industry}</span></>}
-            </div>
+            {company.industry && (
+              <p className="text-sm text-muted-foreground ml-8">{company.industry}</p>
+            )}
           </div>
         </div>
-        <Button variant="outline" asChild>
-          <Link href={`/crm/opportunities/new?company=${company.name}`}>
-            <Target className="h-4 w-4 mr-2" />New Opportunity
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <Edit className="h-4 w-4 mr-2" />Edit
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href={`/crm/opportunities/new?company=${company.name}`}>
+              <Target className="h-4 w-4 mr-2" />New Opportunity
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
@@ -110,10 +130,17 @@ export default function CompanyDetailPage({ params }: Props) {
         <div className="space-y-4">
           <Card>
             <CardContent className="pt-6 space-y-4">
-              <Badge className={`border-0 ${statusColor}`}>{displayStatus}</Badge>
+              {/* Status + Type */}
+              <div className="flex flex-wrap gap-2">
+                <Badge className={`border-0 ${statusColor}`}>{displayStatus}</Badge>
+                {company.company_type && (
+                  <Badge variant="outline">{TYPE_LABELS[company.company_type] || company.company_type}</Badge>
+                )}
+              </div>
 
               <Separator />
 
+              {/* Contact Info */}
               <div className="space-y-2 text-sm">
                 {(company.primary_email || company.email) && (
                   <div className="flex items-center gap-2">
@@ -137,13 +164,14 @@ export default function CompanyDetailPage({ params }: Props) {
                 )}
               </div>
 
+              {/* Billing Address */}
               {(billingAddr || billingCSZ) && (
                 <>
                   <Separator />
                   <div className="flex items-start gap-2 text-sm">
                     <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                     <div>
-                      <p className="text-xs text-muted-foreground font-medium">Billing</p>
+                      <p className="text-xs text-muted-foreground font-medium">Billing Address</p>
                       {billingAddr && <p>{billingAddr}</p>}
                       {billingCSZ && <p>{billingCSZ}</p>}
                     </div>
@@ -154,7 +182,7 @@ export default function CompanyDetailPage({ params }: Props) {
                 <div className="flex items-start gap-2 text-sm">
                   <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-xs text-muted-foreground font-medium">Service</p>
+                    <p className="text-xs text-muted-foreground font-medium">Service Address</p>
                     {serviceAddr && <p>{serviceAddr}</p>}
                     {serviceCSZ && <p>{serviceCSZ}</p>}
                   </div>
@@ -163,7 +191,17 @@ export default function CompanyDetailPage({ params }: Props) {
 
               <Separator />
 
+              {/* Relationship Details */}
               <div className="space-y-2 text-sm">
+                {company.account_owner_id && (
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Account Owner</p>
+                      <p className="font-medium">Assigned</p>
+                    </div>
+                  </div>
+                )}
                 {company.customer_since && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Customer Since</span>
@@ -173,7 +211,7 @@ export default function CompanyDetailPage({ params }: Props) {
                 {company.preferred_contact_method && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Preferred Contact</span>
-                    <span className="capitalize">{company.preferred_contact_method}</span>
+                    <span>{PREFERRED_METHOD_LABELS[company.preferred_contact_method] || company.preferred_contact_method}</span>
                   </div>
                 )}
               </div>
@@ -228,52 +266,108 @@ export default function CompanyDetailPage({ params }: Props) {
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              {(company.lead_source || company.utm_source || company.referred_by_company_id) && (
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Attribution</CardTitle></CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                      {company.lead_source && (
-                        <div>
-                          <p className="text-muted-foreground">Lead Source</p>
-                          <p className="font-medium">{company.lead_source}</p>
-                          {company.lead_source_detail && <p className="text-xs text-muted-foreground">{company.lead_source_detail}</p>}
-                        </div>
-                      )}
-                      {company.first_touch_date && (
-                        <div>
-                          <p className="text-muted-foreground">First Touch</p>
-                          <p className="font-medium">{new Date(company.first_touch_date).toLocaleDateString()}</p>
-                        </div>
-                      )}
-                      {company.utm_source && <div><p className="text-muted-foreground">UTM Source</p><p className="font-medium">{company.utm_source}</p></div>}
-                      {company.utm_medium && <div><p className="text-muted-foreground">UTM Medium</p><p className="font-medium">{company.utm_medium}</p></div>}
-                      {company.utm_campaign && <div><p className="text-muted-foreground">UTM Campaign</p><p className="font-medium">{company.utm_campaign}</p></div>}
+              {/* Key Dates */}
+              <Card>
+                <CardHeader><CardTitle className="text-base">Key Dates</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">First Touch</p>
+                      <p className="font-medium">{company.first_touch_date ? new Date(company.first_touch_date).toLocaleDateString() : '—'}</p>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {company.quickbooks_customer_id && (
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Integrations</CardTitle></CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">QuickBooks Customer ID</span>
-                      <span className="font-mono text-xs">{company.quickbooks_customer_id}</span>
+                    <div>
+                      <p className="text-muted-foreground">Last Activity</p>
+                      <p className="font-medium">{company.last_touch_date ? new Date(company.last_touch_date).toLocaleDateString() : '—'}</p>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                    <div>
+                      <p className="text-muted-foreground">Created</p>
+                      <p className="font-medium">{new Date(company.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-              {company.notes && (
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Notes</CardTitle></CardHeader>
-                  <CardContent>
-                    <p className="text-sm whitespace-pre-wrap">{company.notes}</p>
-                  </CardContent>
-                </Card>
-              )}
+              {/* Lead Source */}
+              <Card>
+                <CardHeader><CardTitle className="text-base">Lead Source</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Lead Source</p>
+                      <p className="font-medium">{company.lead_source || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Source Detail</p>
+                      <p className="font-medium">{company.lead_source_detail || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Referred By</p>
+                      {company.referred_by_company_id ? (
+                        <Link href={`/crm/companies/${company.referred_by_company_id}`} className="font-medium text-primary hover:underline flex items-center gap-1">
+                          <Building2 className="h-3 w-3" />View Referrer
+                        </Link>
+                      ) : company.referred_by_contact_id ? (
+                        <Link href={`/crm/contacts/${company.referred_by_contact_id}`} className="font-medium text-primary hover:underline flex items-center gap-1">
+                          <User className="h-3 w-3" />View Referrer
+                        </Link>
+                      ) : (
+                        <p className="font-medium">—</p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Account Details */}
+              <Card>
+                <CardHeader><CardTitle className="text-base">Account Details</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Payment Terms</p>
+                      <p className="font-medium">{company.payment_terms || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">QuickBooks Customer ID</p>
+                      <p className="font-medium">{company.quickbooks_customer_id ? <span className="font-mono text-xs">{company.quickbooks_customer_id}</span> : '—'}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Notes — inline editable */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">Notes</CardTitle>
+                    {!editingNotes && (
+                      <Button variant="ghost" size="sm" onClick={() => { setNotesValue(company.notes || ''); setEditingNotes(true) }}>
+                        <Edit className="h-3 w-3 mr-1" />Edit
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {editingNotes ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={notesValue}
+                        onChange={(e) => setNotesValue(e.target.value)}
+                        rows={4}
+                        placeholder="Add notes about this company..."
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="outline" size="sm" onClick={() => setEditingNotes(false)}>Cancel</Button>
+                        <Button size="sm" onClick={handleSaveNotes} disabled={updateCompanyMutation.isPending}>
+                          {updateCompanyMutation.isPending ? 'Saving...' : 'Save'}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{company.notes || <span className="text-muted-foreground">No notes yet. Click Edit to add notes.</span>}</p>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           )}
 
