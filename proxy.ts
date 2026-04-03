@@ -43,7 +43,17 @@ export async function proxy(request: NextRequest) {
   const isDashboardRoute = !isPublicRoute && pathname !== '/'
 
   // Redirect authenticated users away from auth pages
+  // Exception: signup with invite token — clear session so invitee can register
   if (hasAuthCookie && isAuthRoute) {
+    if (pathname === '/signup' && request.nextUrl.searchParams.has('invite')) {
+      // Strip auth cookies so the signup page renders clean
+      for (const cookie of request.cookies.getAll()) {
+        if (cookie.name.startsWith('sb-')) {
+          response.cookies.delete(cookie.name)
+        }
+      }
+      return response
+    }
     return NextResponse.redirect(new URL('/', request.url))
   }
 
