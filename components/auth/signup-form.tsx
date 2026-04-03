@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -20,15 +20,6 @@ export function SignupForm() {
 
   // Check if Supabase is configured
   const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  // Sign out any existing user when arriving with an invite token
-  useEffect(() => {
-    if (inviteToken && isSupabaseConfigured) {
-      const sb = createClient()
-      sb.auth.signOut()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   if (!isSupabaseConfigured) {
     return (

@@ -1,6 +1,8 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { Suspense } from 'react'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
 import { SignupForm } from '@/components/auth/signup-form'
 
 export const metadata: Metadata = {
@@ -8,7 +10,24 @@ export const metadata: Metadata = {
   description: 'Create your HazardOS account',
 }
 
-export default function SignupPage() {
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ invite?: string }>
+}) {
+  const { invite } = await searchParams
+
+  // If there's an invite token and a logged-in user, sign them out server-side
+  if (invite) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      await supabase.auth.signOut()
+      // Redirect back to this page so the browser gets fresh cookies (no session)
+      redirect(`/signup?invite=${invite}`)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center">
