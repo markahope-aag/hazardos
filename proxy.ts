@@ -35,7 +35,7 @@ export async function proxy(request: NextRequest) {
 
   // Check for Supabase auth cookie to determine if user is authenticated
   const hasAuthCookie = request.cookies.getAll().some(
-    (cookie) => cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')
+    (cookie) => cookie.name.startsWith('sb-') && cookie.name.includes('-auth-token')
   )
 
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route))
