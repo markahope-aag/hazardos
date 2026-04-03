@@ -16,7 +16,7 @@ interface TeamMember {
   last_name: string | null
   email: string | null
   role: string
-  last_sign_in_at: string | null
+  last_login_at: string | null
 }
 
 interface TeamMemberListProps {
@@ -74,7 +74,7 @@ export function TeamMemberList({ members }: TeamMemberListProps) {
               </Badge>
             </TableCell>
             <TableCell className="text-muted-foreground">
-              {formatDate(member.last_sign_in_at)}
+              {formatDate(member.last_login_at)}
             </TableCell>
           </TableRow>
         ))}

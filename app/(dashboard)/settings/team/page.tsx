@@ -15,7 +15,7 @@ interface TeamMember {
   last_name: string | null
   email: string | null
   role: string
-  last_sign_in_at: string | null
+  last_login_at: string | null
 }
 
 interface Invitation {
@@ -53,7 +53,7 @@ export default function TeamSettingsPage() {
       // Fetch team members
       const { data: membersData } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, email, role, last_sign_in_at')
+        .select('id, first_name, last_name, email, role, last_login_at')
         .eq('organization_id', profile.organization_id)
         .order('first_name')
 
