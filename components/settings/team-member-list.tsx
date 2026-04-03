@@ -12,7 +12,8 @@ import { Badge } from '@/components/ui/badge'
 
 interface TeamMember {
   id: string
-  full_name: string | null
+  first_name: string | null
+  last_name: string | null
   email: string | null
   role: string
   last_sign_in_at: string | null
@@ -64,7 +65,7 @@ export function TeamMemberList({ members }: TeamMemberListProps) {
         {members.map((member) => (
           <TableRow key={member.id}>
             <TableCell className="font-medium">
-              {member.full_name || 'Unknown'}
+              {[member.first_name, member.last_name].filter(Boolean).join(' ') || 'Unknown'}
             </TableCell>
             <TableCell>{member.email || '—'}</TableCell>
             <TableCell>
