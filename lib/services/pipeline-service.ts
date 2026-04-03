@@ -86,9 +86,9 @@ export class PipelineService {
       .from('opportunities')
       .select(`
         *,
-        stage:pipeline_stages(*),
-        customer:customers(id, name, first_name, last_name, company_name),
-        owner:profiles(id, full_name)
+        stage:pipeline_stages!stage_id(*),
+        customer:customers!customer_id(id, name, first_name, last_name, company_name),
+        owner:profiles!owner_id(id, full_name)
       `, { count: 'exact' })
       .is('outcome', null)
       .order('updated_at', { ascending: false })
@@ -120,9 +120,9 @@ export class PipelineService {
       .from('opportunities')
       .select(`
         *,
-        stage:pipeline_stages(*),
-        customer:customers(id, name, first_name, last_name, company_name),
-        owner:profiles(id, full_name)
+        stage:pipeline_stages!stage_id(*),
+        customer:customers!customer_id(id, name, first_name, last_name, company_name),
+        owner:profiles!owner_id(id, full_name)
       `)
       .eq('id', id)
       .single()
@@ -357,9 +357,9 @@ export class PipelineService {
       .from('opportunities')
       .select(`
         *,
-        stage:pipeline_stages(*),
-        customer:customers(id, name, first_name, last_name, company_name),
-        owner:profiles(id, full_name)
+        stage:pipeline_stages!stage_id(*),
+        customer:customers!customer_id(id, name, first_name, last_name, company_name),
+        owner:profiles!owner_id(id, full_name)
       `)
       .eq('outcome', 'won')
       .order('actual_close_date', { ascending: false })
@@ -389,9 +389,9 @@ export class PipelineService {
       .from('opportunities')
       .select(`
         *,
-        stage:pipeline_stages(*),
-        customer:customers(id, name, first_name, last_name, company_name),
-        owner:profiles(id, full_name)
+        stage:pipeline_stages!stage_id(*),
+        customer:customers!customer_id(id, name, first_name, last_name, company_name),
+        owner:profiles!owner_id(id, full_name)
       `)
       .eq('outcome', 'lost')
       .order('actual_close_date', { ascending: false })
