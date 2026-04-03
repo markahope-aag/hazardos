@@ -23,7 +23,7 @@ export const customerSchema = z.object({
   last_name: z.string().max(100).optional().or(z.literal('')),
   name: z.string().optional(), // computed from first + last
   title: z.string().max(100).optional().or(z.literal('')),
-  contact_type: z.enum(['residential', 'commercial']).default('residential'),
+  contact_type: z.enum(['residential', 'commercial']),
   contact_role: z.enum(['decision_maker', 'influencer', 'billing', 'property_manager', 'site_contact', 'other']).optional(),
   company_name: z.string().max(255, 'Company name is too long').optional().or(z.literal('')),
   company_id: z.string().uuid().optional().or(z.literal('')),
