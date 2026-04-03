@@ -25,7 +25,7 @@ export default function ContactsPage() {
         </div>
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Add Contact
+          New Contact
         </Button>
       </div>
 

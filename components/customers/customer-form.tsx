@@ -13,11 +13,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { customerSchema, US_STATES, CUSTOMER_STATUS_OPTIONS, CUSTOMER_SOURCE_OPTIONS } from '@/lib/validations/customer'
+import { customerSchema, US_STATES, CUSTOMER_STATUS_OPTIONS, CUSTOMER_SOURCE_OPTIONS, CONTACT_TYPE_OPTIONS } from '@/lib/validations/customer'
 import { useFormAnalytics } from '@/lib/hooks/use-analytics'
+import { useSearchCompanies } from '@/lib/hooks/use-companies'
 import { logger, formatError } from '@/lib/utils/logger'
 import type { CustomerFormData } from '@/lib/validations/customer'
-import type { Customer, CustomerStatus, CustomerSource } from '@/types/database'
+import type { Customer, CustomerStatus, CustomerSource, ContactType } from '@/types/database'
 
 interface CustomerFormProps {
   customer?: Customer // For edit mode
@@ -47,7 +48,9 @@ export default function CustomerForm({
     resolver: zodResolver(customerSchema),
     defaultValues: customer ? {
       name: customer.name,
+      contact_type: customer.contact_type || 'residential',
       company_name: customer.company_name || '',
+      company_id: customer.company_id || '',
       email: customer.email || '',
       phone: customer.phone || '',
       address_line1: customer.address_line1 || '',
@@ -61,6 +64,7 @@ export default function CustomerForm({
       notes: customer.notes || '',
     } : {
       name: '',
+      contact_type: 'residential' as const,
       status: 'lead' as const,
       marketing_consent: false,
     }
@@ -69,6 +73,11 @@ export default function CustomerForm({
   const watchedStatus = watch('status')
   const watchedSource = watch('source')
   const watchedMarketingConsent = watch('marketing_consent')
+  const watchedContactType = watch('contact_type')
+  const watchedCompanyName = watch('company_name')
+
+  // Search companies when typing in commercial mode
+  const { data: companyResults = [] } = useSearchCompanies(watchedContactType === 'commercial' ? (watchedCompanyName || '') : '')
 
   // Start form analytics tracking on mount
   useEffect(() => {
@@ -91,16 +100,45 @@ export default function CustomerForm({
 
   return (
     <form onSubmit={handleFormSubmit} className="space-y-6">
+      {/* Contact Type */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">Contact Type</h3>
+        <div className="flex gap-3">
+          {CONTACT_TYPE_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                setValue('contact_type', option.value as ContactType)
+                if (option.value === 'residential') {
+                  setValue('company_name', '')
+                  setValue('company_id', '')
+                }
+              }}
+              className={`flex-1 p-3 rounded-lg border-2 text-left transition-colors ${
+                watchedContactType === option.value
+                  ? 'border-primary bg-primary/5'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="font-medium text-sm">{option.label}</div>
+              <div className="text-xs text-muted-foreground">{option.description}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Basic Information */}
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Basic Information</h3>
-        
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="name">Name *</Label>
             <Input
               id="name"
               {...register('name')}
+              placeholder={watchedContactType === 'commercial' ? 'Contact person name' : 'Full name'}
               aria-required="true"
               aria-invalid={!!errors.name}
               aria-describedby={errors.name ? 'name-error' : undefined}
@@ -110,18 +148,31 @@ export default function CustomerForm({
             )}
           </div>
 
-          <div>
-            <Label htmlFor="company_name">Company Name</Label>
-            <Input
-              id="company_name"
-              {...register('company_name')}
-              aria-invalid={!!errors.company_name}
-              aria-describedby={errors.company_name ? 'company-name-error' : undefined}
-            />
-            {errors.company_name && (
-              <p id="company-name-error" className="text-sm text-red-600 mt-1" role="alert">{errors.company_name.message}</p>
-            )}
-          </div>
+          {watchedContactType === 'commercial' && (
+            <div>
+              <Label htmlFor="company_name">Company Name *</Label>
+              <Input
+                id="company_name"
+                {...register('company_name')}
+                placeholder="Search or enter company name"
+                aria-invalid={!!errors.company_name}
+                list="company-suggestions"
+              />
+              {companyResults.length > 0 && watchedCompanyName && (
+                <datalist id="company-suggestions">
+                  {companyResults.map((c) => (
+                    <option key={c.id} value={c.name} />
+                  ))}
+                </datalist>
+              )}
+              {errors.company_name && (
+                <p className="text-sm text-red-600 mt-1" role="alert">{errors.company_name.message}</p>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                Type to search existing companies or enter a new one
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

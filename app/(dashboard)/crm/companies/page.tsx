@@ -1,7 +1,5 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
 import CompanyList from '@/components/companies/company-list'
 
 export default function CompaniesPage() {
@@ -14,10 +12,9 @@ export default function CompaniesPage() {
             Manage your business accounts and organizations
           </p>
         </div>
-        <Button disabled title="Coming soon">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Company
-        </Button>
+        <p className="text-xs text-muted-foreground max-w-[200px] text-right">
+          Companies are created when adding a commercial contact
+        </p>
       </div>
 
       <CompanyList />

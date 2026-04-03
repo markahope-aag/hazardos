@@ -25,14 +25,14 @@ export default function CreateCustomerModal({ open, onClose }: CreateCustomerMod
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Customer</DialogTitle>
+          <DialogTitle>Add New Contact</DialogTitle>
         </DialogHeader>
         
         <CustomerForm
           onSubmit={handleSubmit}
           onCancel={onClose}
           isSubmitting={createCustomerMutation.isPending}
-          submitLabel="Create Customer"
+          submitLabel="Create Contact"
         />
       </DialogContent>
     </Dialog>

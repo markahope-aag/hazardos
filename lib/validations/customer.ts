@@ -1,10 +1,18 @@
 import { z } from 'zod'
-import type { CustomerStatus, CustomerSource } from '@/types/database'
+import type { CustomerStatus, CustomerSource, ContactType } from '@/types/database'
+
+// Contact type options
+export const CONTACT_TYPE_OPTIONS = [
+  { value: 'residential' as ContactType, label: 'Residential', description: 'Individual / homeowner' },
+  { value: 'commercial' as ContactType, label: 'Commercial', description: 'Business / organization' },
+]
 
 // Customer form validation schema
 export const customerSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
+  contact_type: z.enum(['residential', 'commercial']).default('residential'),
   company_name: z.string().max(255, 'Company name is too long').optional().or(z.literal('')),
+  company_id: z.string().uuid().optional().or(z.literal('')),
   email: z.string().email('Invalid email address').optional().or(z.literal('')),
   phone: z.string().max(20, 'Phone number is too long').optional().or(z.literal('')),
   address_line1: z.string().max(255, 'Address is too long').optional().or(z.literal('')),

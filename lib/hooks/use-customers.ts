@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { CustomersService } from '@/lib/supabase/customers'
+import { CompaniesService } from '@/lib/supabase/companies'
 import { useMultiTenantAuth } from './use-multi-tenant-auth'
 import { useToast } from '@/components/ui/use-toast'
 import type { CustomerInsert, CustomerUpdate, CustomerStatus, CustomerSource, ContactType } from '@/types/database'
@@ -74,23 +75,44 @@ export function useCreateCustomer() {
   const { organization } = useMultiTenantAuth()
 
   return useMutation({
-    mutationFn: (customerData: Omit<CustomerInsert, 'organization_id' | 'created_by'>) => {
+    mutationFn: async (customerData: Omit<CustomerInsert, 'organization_id' | 'created_by'>) => {
       if (!organization?.id) {
         throw new Error('No organization found')
       }
-      
+
+      let companyId = customerData.company_id || undefined
+
+      // Auto-create company if commercial contact with a company name but no company_id
+      if (customerData.contact_type === 'commercial' && customerData.company_name && !companyId) {
+        // Check if company already exists
+        const existing = await CompaniesService.searchCompanies(organization.id, customerData.company_name)
+        const match = existing.find(c => c.name.toLowerCase() === customerData.company_name!.toLowerCase())
+
+        if (match) {
+          companyId = match.id
+        } else {
+          const newCompany = await CompaniesService.createCompany({
+            organization_id: organization.id,
+            name: customerData.company_name,
+          })
+          companyId = newCompany.id
+        }
+      }
+
       return CustomersService.createCustomer({
         ...customerData,
-        organization_id: organization.id
+        company_id: companyId || null,
+        organization_id: organization.id,
       })
     },
     onSuccess: (newCustomer) => {
-      // Invalidate customers list for this organization only
       queryClient.invalidateQueries({ queryKey: ['customers', organization?.id] })
       queryClient.invalidateQueries({ queryKey: ['customer-stats', organization?.id] })
+      queryClient.invalidateQueries({ queryKey: ['companies', organization?.id] })
+      queryClient.invalidateQueries({ queryKey: ['company-stats', organization?.id] })
 
       toast({
-        title: 'Customer created',
+        title: 'Contact created',
         description: `${newCustomer.name} has been added successfully.`,
       })
     },
