@@ -24,9 +24,10 @@ export default function EditCustomerModal({ customer, open, onClose }: EditCusto
   const updateCustomerMutation = useUpdateCustomer()
 
   const handleSubmit = async (data: CustomerFormData) => {
+    const name = data.name || [data.first_name, data.last_name].filter(Boolean).join(' ')
     await updateCustomerMutation.mutateAsync({
       id: customer.id,
-      updates: data
+      updates: { ...data, name }
     })
     onClose()
   }
@@ -45,7 +46,7 @@ export default function EditCustomerModal({ customer, open, onClose }: EditCusto
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="flex flex-row items-center justify-between">
-            <DialogTitle>Edit Customer</DialogTitle>
+            <DialogTitle>Edit Contact</DialogTitle>
             <Button
               variant="ghost"
               size="sm"
@@ -62,7 +63,7 @@ export default function EditCustomerModal({ customer, open, onClose }: EditCusto
             onSubmit={handleSubmit}
             onCancel={onClose}
             isSubmitting={updateCustomerMutation.isPending}
-            submitLabel="Update Customer"
+            submitLabel="Update Contact"
           />
         </DialogContent>
       </Dialog>

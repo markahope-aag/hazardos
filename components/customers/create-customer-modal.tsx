@@ -17,7 +17,8 @@ export default function CreateCustomerModal({ open, onClose }: CreateCustomerMod
   const createCustomerMutation = useCreateCustomer()
 
   const handleSubmit = async (data: CustomerFormData) => {
-    await createCustomerMutation.mutateAsync(data)
+    const name = data.name || [data.first_name, data.last_name].filter(Boolean).join(' ')
+    await createCustomerMutation.mutateAsync({ ...data, name })
     onClose()
   }
 
