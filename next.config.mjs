@@ -384,7 +384,7 @@ const nextConfig = {
             ]
           : [
               ...apiSecurityHeaders,
-              { key: 'Access-Control-Allow-Origin', value: process.env.NEXT_PUBLIC_APP_URL || 'https://hazardos.vercel.app' },
+              { key: 'Access-Control-Allow-Origin', value: process.env.NEXT_PUBLIC_APP_URL || 'https://hazardos.app' },
               { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, PATCH, DELETE, OPTIONS' },
               { key: 'Access-Control-Allow-Headers', value: 'Authorization, Content-Type, Accept, X-Requested-With, X-Request-ID' },
               { key: 'Access-Control-Allow-Credentials', value: 'true' },
