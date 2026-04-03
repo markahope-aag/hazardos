@@ -41,6 +41,13 @@ const CONTAINMENT_LABELS: Record<string, string> = {
   type_iii: 'Type III (Large/Complex)',
 }
 
+function getPaymentStatus(job: Record<string, unknown>): { label: string; color: string } {
+  if (job.status === 'paid' || job.final_payment_date) return { label: 'Paid in Full', color: 'bg-emerald-100 text-emerald-700' }
+  if (job.deposit_received_date) return { label: 'Deposit Received', color: 'bg-blue-100 text-blue-700' }
+  if (job.final_invoice_date || job.status === 'invoiced') return { label: 'Invoiced', color: 'bg-purple-100 text-purple-700' }
+  return { label: 'Unpaid', color: 'bg-gray-100 text-gray-500' }
+}
+
 interface Props { params: Promise<{ id: string }> }
 
 export default function JobDetailPage({ params }: Props) {
@@ -60,7 +67,8 @@ export default function JobDetailPage({ params }: Props) {
         .select(`
           *,
           customer:customers!customer_id(id, name, first_name, last_name, company_name, company_id),
-          company:companies!company_id(id, name)
+          company:companies!company_id(id, name),
+          crew_lead_profile:profiles!crew_lead_id(id, first_name, last_name, full_name)
         `)
         .eq('id', id).single()
       if (error) throw error
@@ -68,6 +76,7 @@ export default function JobDetailPage({ params }: Props) {
         ...data,
         customer: Array.isArray(data.customer) ? data.customer[0] : data.customer,
         company: Array.isArray(data.company) ? data.company[0] : data.company,
+        crew_lead_profile: Array.isArray(data.crew_lead_profile) ? data.crew_lead_profile[0] : data.crew_lead_profile,
       }
     },
     enabled: !!id,
@@ -99,8 +108,13 @@ export default function JobDetailPage({ params }: Props) {
 
   const contactName = job.customer ? [job.customer.first_name, job.customer.last_name].filter(Boolean).join(' ') || job.customer.name : null
   const companyName = job.company?.name || job.customer?.company_name
+  const crewLeadName = job.crew_lead_profile ? (job.crew_lead_profile.full_name || [job.crew_lead_profile.first_name, job.crew_lead_profile.last_name].filter(Boolean).join(' ')) : null
   const sc = STATUS_CONFIG[job.status] || { label: job.status, color: '' }
+  const ps = getPaymentStatus(job)
   const address = [job.job_address, job.job_city, job.job_state, job.job_zip].filter(Boolean).join(', ')
+  const calcMargin = (job.actual_revenue || job.estimated_revenue) && job.actual_cost
+    ? (((job.actual_revenue || job.estimated_revenue) - job.actual_cost) / (job.actual_revenue || job.estimated_revenue) * 100).toFixed(1)
+    : job.gross_margin_pct
 
   const tabs = [
     { id: 'overview' as const, label: 'Overview' },
@@ -131,7 +145,7 @@ export default function JobDetailPage({ params }: Props) {
         <div className="space-y-4">
           <Card>
             <CardContent className="pt-6 space-y-4">
-              {/* Company / Contact */}
+              {/* Company / Contact / Crew Lead */}
               <div className="space-y-2 text-sm">
                 {companyName && (
                   <div className="flex items-center gap-2">
@@ -145,6 +159,15 @@ export default function JobDetailPage({ params }: Props) {
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
                     <Link href={`/crm/contacts/${job.customer?.id}`} className="hover:underline">{contactName}</Link>
+                  </div>
+                )}
+                {crewLeadName && (
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Crew Lead</p>
+                      <p className="font-medium">{crewLeadName}</p>
+                    </div>
                   </div>
                 )}
                 {address && (
@@ -168,8 +191,8 @@ export default function JobDetailPage({ params }: Props) {
               )}
               {job.containment_level && (
                 <div className="text-sm">
-                  <p className="text-xs text-muted-foreground">Containment</p>
-                  <p className="flex items-center gap-1"><Shield className="h-3 w-3" />{CONTAINMENT_LABELS[job.containment_level] || job.containment_level}</p>
+                  <p className="text-xs text-muted-foreground">Containment Level</p>
+                  <p className="font-medium flex items-center gap-1"><Shield className="h-3 w-3" />{CONTAINMENT_LABELS[job.containment_level] || job.containment_level}</p>
                 </div>
               )}
 
@@ -187,10 +210,16 @@ export default function JobDetailPage({ params }: Props) {
 
               <Separator />
 
-              {/* Revenue */}
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" />Revenue</span>
-                <span className="font-bold">{formatCurrency(job.actual_revenue || job.estimated_revenue || job.contract_amount || 0, false)}</span>
+              {/* Revenue + Payment Status */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" />Revenue</span>
+                  <span className="font-bold">{formatCurrency(job.actual_revenue || job.estimated_revenue || job.contract_amount || 0, false)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Payment</span>
+                  <Badge className={`text-xs border-0 ${ps.color}`}>{ps.label}</Badge>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -223,27 +252,50 @@ export default function JobDetailPage({ params }: Props) {
 
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              {job.opportunity_id && (
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Linked Opportunity</CardTitle></CardHeader>
-                  <CardContent>
-                    <Button variant="outline" asChild><Link href={`/crm/opportunities/${job.opportunity_id}`}>View Opportunity &rarr;</Link></Button>
-                  </CardContent>
-                </Card>
-              )}
+              {/* Job Details */}
+              <Card>
+                <CardHeader><CardTitle className="text-base">Job Details</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    {job.opportunity_id && (
+                      <div>
+                        <p className="text-muted-foreground">Opportunity</p>
+                        <Link href={`/crm/opportunities/${job.opportunity_id}`} className="font-medium text-primary hover:underline">View Opportunity &rarr;</Link>
+                      </div>
+                    )}
+                    {job.property_type && (
+                      <div>
+                        <p className="text-muted-foreground">Property Type</p>
+                        <p className="font-medium capitalize">{job.property_type.replace(/_/g, ' ')}</p>
+                      </div>
+                    )}
+                    {job.permit_numbers?.length > 0 && (
+                      <div>
+                        <p className="text-muted-foreground">Permit Numbers</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {job.permit_numbers.map((p: string, i: number) => <Badge key={i} variant="outline" className="text-xs font-mono">{p}</Badge>)}
+                        </div>
+                      </div>
+                    )}
+                    {job.disposal_manifest_numbers?.length > 0 && (
+                      <div>
+                        <p className="text-muted-foreground">Disposal Manifests</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {job.disposal_manifest_numbers.map((m: string, i: number) => <Badge key={i} variant="outline" className="text-xs font-mono">{m}</Badge>)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
 
+              {/* Compliance */}
               <Card>
                 <CardHeader><CardTitle className="text-base">Compliance</CardTitle></CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div><p className="text-muted-foreground">Air Monitoring</p><p className="font-medium">{job.air_monitoring_required ? 'Required' : 'Not required'}</p></div>
                     <div><p className="text-muted-foreground">Clearance Testing</p><p className="font-medium">{job.clearance_testing_required ? 'Required' : 'Not required'}</p></div>
-                    {job.permit_numbers?.length > 0 && (
-                      <div><p className="text-muted-foreground">Permits</p><div className="flex flex-wrap gap-1">{job.permit_numbers.map((p: string, i: number) => <Badge key={i} variant="outline" className="text-xs font-mono">{p}</Badge>)}</div></div>
-                    )}
-                    {job.disposal_manifest_numbers?.length > 0 && (
-                      <div><p className="text-muted-foreground">Disposal Manifests</p><div className="flex flex-wrap gap-1">{job.disposal_manifest_numbers.map((m: string, i: number) => <Badge key={i} variant="outline" className="text-xs font-mono">{m}</Badge>)}</div></div>
-                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -275,10 +327,19 @@ export default function JobDetailPage({ params }: Props) {
                     <div className="flex justify-between"><span>Estimated</span><span className="font-medium">{job.estimated_cost ? formatCurrency(job.estimated_cost, false) : '—'}</span></div>
                     <div className="flex justify-between"><span>Actual</span><span className="font-medium">{job.actual_cost ? formatCurrency(job.actual_cost, false) : '—'}</span></div>
                   </div>
-                  {job.gross_margin_pct != null && (
-                    <div className="col-span-2"><div className="flex justify-between border-t pt-3"><span className="font-medium">Gross Margin</span><span className="font-bold text-lg">{job.gross_margin_pct}%</span></div></div>
+
+                  {/* Gross Margin */}
+                  {calcMargin != null && (
+                    <div className="col-span-2">
+                      <div className="flex justify-between border-t pt-3">
+                        <span className="font-medium">Gross Margin</span>
+                        <span className={`font-bold text-lg ${Number(calcMargin) < 0 ? 'text-destructive' : ''}`}>{calcMargin}%</span>
+                      </div>
+                    </div>
                   )}
+
                   <Separator className="col-span-2" />
+
                   <div className="space-y-3">
                     <h4 className="font-medium text-muted-foreground">Deposit</h4>
                     <div className="flex justify-between"><span>Amount</span><span>{job.deposit_amount ? formatCurrency(job.deposit_amount, false) : '—'}</span></div>
@@ -290,6 +351,18 @@ export default function JobDetailPage({ params }: Props) {
                     <div className="flex justify-between"><span>Payment Date</span><span>{job.final_payment_date ? new Date(job.final_payment_date).toLocaleDateString() : '—'}</span></div>
                     {job.invoice_id && <div className="flex justify-between"><span>QB Invoice</span><span className="font-mono text-xs">{job.invoice_id}</span></div>}
                   </div>
+
+                  {/* QB Sync Status */}
+                  <div className="col-span-2 border-t pt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">QuickBooks Sync</span>
+                      {job.invoice_id ? (
+                        <Badge className="bg-green-100 text-green-700 border-0">Synced</Badge>
+                      ) : (
+                        <Badge className="bg-gray-100 text-gray-500 border-0">Not synced</Badge>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -297,7 +370,14 @@ export default function JobDetailPage({ params }: Props) {
 
           {activeTab === 'crew' && (
             <Card>
-              <CardHeader><CardTitle className="text-base flex items-center gap-2"><Users className="h-5 w-5" />Crew & Schedule</CardTitle></CardHeader>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2"><Users className="h-5 w-5" />Crew & Schedule</CardTitle>
+                  <Button size="sm" variant="outline" disabled>
+                    <Users className="h-4 w-4 mr-2" />Assign Crew
+                  </Button>
+                </div>
+              </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4 text-sm mb-6">
                   <div><p className="text-muted-foreground">Estimated Hours</p><p className="font-medium">{job.estimated_labor_hours || job.estimated_duration_hours || '—'}</p></div>
@@ -305,7 +385,20 @@ export default function JobDetailPage({ params }: Props) {
                   <div><p className="text-muted-foreground">Actual Start</p><p className="font-medium">{job.actual_start_at ? new Date(job.actual_start_at).toLocaleString() : '—'}</p></div>
                   <div><p className="text-muted-foreground">Actual End</p><p className="font-medium">{job.actual_end_at ? new Date(job.actual_end_at).toLocaleString() : '—'}</p></div>
                 </div>
-                <p className="text-sm text-muted-foreground text-center py-4">Crew assignment details will appear here</p>
+
+                {crewLeadName && (
+                  <div className="border rounded-lg p-3 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{crewLeadName}</p>
+                      <p className="text-xs text-muted-foreground">Crew Lead</p>
+                    </div>
+                    <Badge>Lead</Badge>
+                  </div>
+                )}
+
+                {!crewLeadName && (
+                  <p className="text-sm text-muted-foreground text-center py-4">No crew assigned yet</p>
+                )}
               </CardContent>
             </Card>
           )}

@@ -30,16 +30,26 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-700' },
 }
 
+function getPaymentStatus(job: Record<string, unknown>): { label: string; color: string } {
+  if (job.status === 'paid' || job.final_payment_date) return { label: 'Paid', color: 'bg-emerald-100 text-emerald-700' }
+  if (job.deposit_received_date) return { label: 'Deposit', color: 'bg-blue-100 text-blue-700' }
+  if (job.final_invoice_date || job.status === 'invoiced') return { label: 'Invoiced', color: 'bg-purple-100 text-purple-700' }
+  return { label: 'Unpaid', color: 'bg-gray-100 text-gray-500' }
+}
+
 export default function CrmJobsPage() {
   const { organization } = useMultiTenantAuth()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [hazardFilter, setHazardFilter] = useState('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [page, setPage] = useState(1)
   const pageSize = 25
   const debouncedSearch = useDebouncedValue(search, 300)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['crm-jobs', organization?.id, debouncedSearch, statusFilter, page],
+    queryKey: ['crm-jobs', organization?.id, debouncedSearch, statusFilter, hazardFilter, dateFrom, dateTo, page],
     queryFn: async () => {
       const supabase = createClient()
       let query = supabase
@@ -57,6 +67,15 @@ export default function CrmJobsPage() {
       }
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter)
+      }
+      if (hazardFilter !== 'all') {
+        query = query.contains('hazard_types', [hazardFilter])
+      }
+      if (dateFrom) {
+        query = query.gte('scheduled_start_date', dateFrom)
+      }
+      if (dateTo) {
+        query = query.lte('scheduled_start_date', dateTo)
       }
 
       const { data: jobs, count, error } = await query
@@ -77,7 +96,7 @@ export default function CrmJobsPage() {
   const jobs = useMemo(() => data?.jobs || [], [data?.jobs])
   const hasNextPage = jobs.length === pageSize
   const hasPrevPage = page > 1
-  const hasFilters = statusFilter !== 'all' || search !== ''
+  const hasFilters = statusFilter !== 'all' || hazardFilter !== 'all' || dateFrom !== '' || dateTo !== '' || search !== ''
 
   const stats = useMemo(() => ({
     total: data?.total || 0,
@@ -112,7 +131,7 @@ export default function CrmJobsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} placeholder="Search job number, company, address..." className="pl-9" />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1) }}>
             <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -122,7 +141,19 @@ export default function CrmJobsPage() {
               ))}
             </SelectContent>
           </Select>
-          {hasFilters && <Button variant="ghost" size="sm" onClick={() => { setStatusFilter('all'); setSearch(''); setPage(1) }}>Clear</Button>}
+          <Select value={hazardFilter} onValueChange={(v) => { setHazardFilter(v); setPage(1) }}>
+            <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Hazards</SelectItem>
+              <SelectItem value="asbestos_friable">Asbestos (Friable)</SelectItem>
+              <SelectItem value="asbestos_non_friable">Asbestos (Non-Friable)</SelectItem>
+              <SelectItem value="lead">Lead</SelectItem>
+              <SelectItem value="mold">Mold</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1) }} className="w-[140px]" placeholder="From" />
+          <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1) }} className="w-[140px]" placeholder="To" />
+          {hasFilters && <Button variant="ghost" size="sm" onClick={() => { setStatusFilter('all'); setHazardFilter('all'); setDateFrom(''); setDateTo(''); setSearch(''); setPage(1) }}>Clear</Button>}
         </div>
       </div>
 
@@ -149,6 +180,7 @@ export default function CrmJobsPage() {
                     <TableHead>Status</TableHead>
                     <TableHead>Scheduled</TableHead>
                     <TableHead className="text-right">Revenue</TableHead>
+                    <TableHead>Payment</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -190,6 +222,9 @@ export default function CrmJobsPage() {
                         </TableCell>
                         <TableCell className="text-right font-medium">
                           {(job.actual_revenue || job.estimated_revenue || job.contract_amount) ? formatCurrency(job.actual_revenue || job.estimated_revenue || job.contract_amount || 0, false) : '—'}
+                        </TableCell>
+                        <TableCell>
+                          {(() => { const ps = getPaymentStatus(job); return <Badge className={`text-xs border-0 ${ps.color}`}>{ps.label}</Badge> })()}
                         </TableCell>
                       </TableRow>
                     )
