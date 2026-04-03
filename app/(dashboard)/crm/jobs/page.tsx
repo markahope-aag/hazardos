@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -74,7 +74,7 @@ export default function CrmJobsPage() {
     staleTime: 30000,
   })
 
-  const jobs = data?.jobs || []
+  const jobs = useMemo(() => data?.jobs || [], [data?.jobs])
   const hasNextPage = jobs.length === pageSize
   const hasPrevPage = page > 1
   const hasFilters = statusFilter !== 'all' || search !== ''

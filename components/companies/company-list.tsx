@@ -17,7 +17,7 @@ import { Building2, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { useCompanies } from '@/lib/hooks/use-companies'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import { formatCurrency } from '@/lib/utils'
-import type { Company, CompanyStatus } from '@/types/database'
+import type { CompanyStatus } from '@/types/database'
 
 const STATUS_COLORS: Record<string, string> = {
   prospect: 'bg-blue-100 text-blue-700',

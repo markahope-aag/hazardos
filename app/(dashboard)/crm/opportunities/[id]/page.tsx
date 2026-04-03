@@ -2,7 +2,6 @@
 
 import { use, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -54,7 +53,6 @@ interface Props { params: Promise<{ id: string }> }
 
 export default function OpportunityDetailPage({ params }: Props) {
   const { id } = use(params)
-  const router = useRouter()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'overview' | 'assessment' | 'estimate' | 'activity' | 'jobs'>('overview')

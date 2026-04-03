@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
   ArrowLeft, Edit, Mail, Phone, Building2, MapPin,
-  Calendar, MessageSquare, Briefcase, Target, ChevronDown, Trash2,
+  MessageSquare, Briefcase, Target, ChevronDown, Trash2,
 } from 'lucide-react'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -19,7 +19,6 @@ import CustomerStatusBadge from './customer-status-badge'
 import EditCustomerModal from './edit-customer-modal'
 import DeleteCustomerDialog from './delete-customer-dialog'
 import CustomerSurveysList from './customer-surveys-list'
-import CustomerInvoicesList from './customer-invoices-list'
 import CustomerActivityFeed from './customer-activity-feed'
 import { useUpdateCustomerStatus } from '@/lib/hooks/use-customers'
 import { CUSTOMER_STATUS_OPTIONS } from '@/lib/validations/customer'

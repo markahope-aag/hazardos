@@ -6,7 +6,7 @@ import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { Home, FileText, Calculator, Calendar, Settings, Users, DollarSign, LayoutGrid } from 'lucide-react'
+import { Home, FileText, Calculator, Calendar, Settings, DollarSign, LayoutGrid } from 'lucide-react'
 import LoginForm from '@/components/auth/login-form'
 
 function InlineLogin() {

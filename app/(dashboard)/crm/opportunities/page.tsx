@@ -67,13 +67,12 @@ export default function OpportunitiesPage() {
     staleTime: 30000,
   })
 
-  const opportunities = data?.opportunities || []
+  const opportunities = useMemo(() => data?.opportunities || [], [data?.opportunities])
   const total = data?.total || 0
   const hasNextPage = opportunities.length === pageSize
   const hasPrevPage = page > 1
   const hasFilters = statusFilter !== 'all' || urgencyFilter !== 'all' || search !== ''
 
-  // Stats from loaded data
   const stats = useMemo(() => ({
     count: total,
     totalValue: opportunities.reduce((sum, o) => sum + (o.estimated_value || 0), 0),

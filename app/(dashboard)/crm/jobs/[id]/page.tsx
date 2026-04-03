@@ -17,8 +17,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  ArrowLeft, Building2, User, MapPin, AlertCircle, DollarSign, Briefcase,
-  Shield, Calendar, Users, FileText, Clock, Loader2, CheckCircle, TrendingUp,
+  ArrowLeft, Building2, User, MapPin, AlertCircle, DollarSign,
+  Shield, Calendar, Users, FileText, Clock, Loader2, TrendingUp,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'

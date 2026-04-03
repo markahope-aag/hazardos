@@ -34,7 +34,7 @@ const CONTACT_STATUS_COLORS: Record<string, string> = {
   do_not_contact: 'bg-red-100 text-red-700',
 }
 
-export default function CustomerList({ onEditCustomer, onDeleteCustomer }: CustomerListProps) {
+export default function CustomerList({ onEditCustomer: _onEditCustomer, onDeleteCustomer: _onDeleteCustomer }: CustomerListProps) {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<CustomerStatus | 'all'>('all')
   const [contactType, setContactType] = useState<ContactType | 'all'>('all')
