@@ -168,8 +168,16 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
                 </div>
               )}
 
-              {/* Account Owner - placeholder until we wire up profile lookup */}
-              {/* TODO: Look up account owner name from profiles table */}
+              {/* Account Owner */}
+              {customer.account_owner_id && (
+                <div className="text-sm flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Account Owner</p>
+                    <p className="font-medium">Assigned</p>
+                  </div>
+                </div>
+              )}
 
               {customer.address_line1 && (
                 <>

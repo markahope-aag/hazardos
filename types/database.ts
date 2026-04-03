@@ -415,6 +415,7 @@ export interface Database {
           state: string | null
           zip: string | null
           // Relationship
+          account_owner_id: string | null
           contact_role: ContactRole | null
           is_primary_contact: boolean
           contact_status: ContactStatus
@@ -467,6 +468,7 @@ export interface Database {
           city?: string | null
           state?: string | null
           zip?: string | null
+          account_owner_id?: string | null
           contact_role?: ContactRole | null
           is_primary_contact?: boolean
           contact_status?: ContactStatus
@@ -515,6 +517,7 @@ export interface Database {
           city?: string | null
           state?: string | null
           zip?: string | null
+          account_owner_id?: string | null
           contact_role?: ContactRole | null
           is_primary_contact?: boolean
           contact_status?: ContactStatus
