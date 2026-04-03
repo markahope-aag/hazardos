@@ -14,7 +14,6 @@ export function SignupForm() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
-  const [isSigningOut, setIsSigningOut] = useState(false)
   const [errors, setErrors] = useState<{firstName?: string; lastName?: string; email?: string; password?: string; confirmPassword?: string}>({})
 
   const inviteToken = searchParams.get('invite')
@@ -25,20 +24,11 @@ export function SignupForm() {
   // Sign out any existing user when arriving with an invite token
   useEffect(() => {
     if (inviteToken && isSupabaseConfigured) {
-      setIsSigningOut(true)
       const sb = createClient()
-      sb.auth.signOut().finally(() => setIsSigningOut(false))
+      sb.auth.signOut()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  if (isSigningOut) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
 
   if (!isSupabaseConfigured) {
     return (
