@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 const updateCompanySchema = z.object({
   name: z.string().min(1).optional(),
@@ -59,7 +60,7 @@ export const PATCH = createApiHandlerWithParams(
 )
 
 export const DELETE = createApiHandlerWithParams(
-  { allowedRoles: ['admin', 'tenant_owner', 'platform_admin', 'platform_owner'] },
+  { allowedRoles: ROLES.TENANT_ADMIN },
   async (_request, context, params) => {
     const { id } = params
 

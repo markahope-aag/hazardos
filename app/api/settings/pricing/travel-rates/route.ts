@@ -6,6 +6,7 @@ import {
   updateTravelRateSchema,
   deleteTravelRateQuerySchema,
 } from '@/lib/validations/settings'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * GET /api/settings/pricing/travel-rates
@@ -33,7 +34,7 @@ export const POST = createApiHandler(
   {
     rateLimit: 'general',
     bodySchema: createTravelRateSchema,
-    allowedRoles: ['admin', 'tenant_owner'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, body) => {
     const { data, error } = await context.supabase
@@ -62,7 +63,7 @@ export const PATCH = createApiHandler(
   {
     rateLimit: 'general',
     bodySchema: updateTravelRateSchema,
-    allowedRoles: ['admin', 'tenant_owner'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, body) => {
     const { id, ...updateData } = body
@@ -88,7 +89,7 @@ export const DELETE = createApiHandler(
   {
     rateLimit: 'general',
     querySchema: deleteTravelRateQuerySchema,
-    allowedRoles: ['admin', 'tenant_owner'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, _body, query) => {
     const { error } = await context.supabase

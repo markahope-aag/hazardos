@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { StripeService } from '@/lib/services/stripe-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { cancelSubscriptionSchema } from '@/lib/validations/billing'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * GET /api/billing/subscription
@@ -23,7 +24,7 @@ export const DELETE = createApiHandler(
   {
     rateLimit: 'general',
     bodySchema: cancelSubscriptionSchema,
-    allowedRoles: ['owner', 'admin', 'tenant_owner'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, body) => {
     await StripeService.cancelSubscription(

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { FeedbackService } from '@/lib/services/feedback-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * POST /api/feedback/[id]/approve-testimonial
@@ -9,7 +10,7 @@ import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
-    allowedRoles: ['admin', 'tenant_owner', 'platform_owner', 'platform_admin'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, _context, params) => {
     const survey = await FeedbackService.approveTestimonial(params.id)
@@ -24,7 +25,7 @@ export const POST = createApiHandlerWithParams(
 export const DELETE = createApiHandlerWithParams(
   {
     rateLimit: 'general',
-    allowedRoles: ['admin', 'tenant_owner', 'platform_owner', 'platform_admin'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, _context, params) => {
     const survey = await FeedbackService.rejectTestimonial(params.id)

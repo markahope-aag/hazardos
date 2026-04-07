@@ -65,7 +65,7 @@ export const POST = createApiHandler(
       .from('profiles')
       .update({
         organization_id: newOrg.id,
-        role: 'owner',
+        role: 'tenant_owner',
       })
       .eq('id', context.user.id)
 

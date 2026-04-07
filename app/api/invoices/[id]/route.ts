@@ -3,6 +3,7 @@ import { InvoicesService } from '@/lib/services/invoices-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateInvoiceSchema } from '@/lib/validations/invoices'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * GET /api/invoices/[id]
@@ -45,7 +46,7 @@ export const PATCH = createApiHandlerWithParams(
 export const DELETE = createApiHandlerWithParams(
   {
     rateLimit: 'general',
-    allowedRoles: ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, _context, params) => {
     await InvoicesService.delete(params.id)

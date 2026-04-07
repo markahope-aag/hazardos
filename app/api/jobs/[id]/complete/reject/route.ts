@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { JobCompletionService } from '@/lib/services/job-completion-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { rejectCompletionSchema } from '@/lib/validations/jobs'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * POST /api/jobs/[id]/complete/reject
@@ -11,7 +12,7 @@ export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: rejectCompletionSchema,
-    allowedRoles: ['admin', 'tenant_owner', 'platform_owner', 'platform_admin'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, _context, params, body) => {
     const completion = await JobCompletionService.rejectCompletion(params.id, {

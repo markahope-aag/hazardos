@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { throwDbError } from '@/lib/utils/secure-error-handler'
 import { updatePricingSettingsSchema } from '@/lib/validations/settings'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * GET /api/settings/pricing
@@ -45,7 +46,7 @@ export const PATCH = createApiHandler(
   {
     rateLimit: 'general',
     bodySchema: updatePricingSettingsSchema,
-    allowedRoles: ['admin', 'tenant_owner'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, body) => {
     const { data: settings, error } = await context.supabase

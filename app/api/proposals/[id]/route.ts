@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateProposalSchema } from '@/lib/validations/proposals'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * GET /api/proposals/[id]
@@ -110,7 +111,7 @@ export const PATCH = createApiHandlerWithParams(
 export const DELETE = createApiHandlerWithParams(
   {
     rateLimit: 'general',
-    allowedRoles: ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, params) => {
     // Delete the proposal

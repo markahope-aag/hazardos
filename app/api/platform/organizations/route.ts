@@ -3,6 +3,7 @@ import { PlatformAdminService } from '@/lib/services/platform-admin-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { organizationFiltersSchema } from '@/lib/validations/platform'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 import type { OrganizationFilters } from '@/types/platform-admin'
 
 /**
@@ -13,7 +14,7 @@ export const GET = createApiHandler(
   {
     rateLimit: 'general',
     querySchema: organizationFiltersSchema,
-    allowedRoles: ['platform_owner', 'platform_admin'],
+    allowedRoles: ROLES.PLATFORM_ONLY,
   },
   async (_request, _context, _body, query) => {
     const isAdmin = await PlatformAdminService.isPlatformAdmin()

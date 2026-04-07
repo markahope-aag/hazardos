@@ -6,6 +6,7 @@ import {
   updateEquipmentRateSchema,
   deleteEquipmentRateQuerySchema,
 } from '@/lib/validations/settings'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * GET /api/settings/pricing/equipment-rates
@@ -33,7 +34,7 @@ export const POST = createApiHandler(
   {
     rateLimit: 'general',
     bodySchema: createEquipmentRateSchema,
-    allowedRoles: ['admin', 'tenant_owner'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, body) => {
     const { data, error } = await context.supabase
@@ -61,7 +62,7 @@ export const PATCH = createApiHandler(
   {
     rateLimit: 'general',
     bodySchema: updateEquipmentRateSchema,
-    allowedRoles: ['admin', 'tenant_owner'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, body) => {
     const { id, ...updateData } = body
@@ -87,7 +88,7 @@ export const DELETE = createApiHandler(
   {
     rateLimit: 'general',
     querySchema: deleteEquipmentRateQuerySchema,
-    allowedRoles: ['admin', 'tenant_owner'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, _body, query) => {
     const { error } = await context.supabase

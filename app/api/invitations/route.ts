@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 const createInvitationSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -12,7 +13,7 @@ const createInvitationSchema = z.object({
 
 export const GET = createApiHandler(
   {
-    allowedRoles: ['admin', 'tenant_owner', 'platform_admin', 'platform_owner'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context) => {
     const { data, error } = await context.supabase
@@ -30,7 +31,7 @@ export const GET = createApiHandler(
 
 export const POST = createApiHandler(
   {
-    allowedRoles: ['admin', 'tenant_owner', 'platform_admin', 'platform_owner'],
+    allowedRoles: ROLES.TENANT_ADMIN,
     bodySchema: createInvitationSchema,
   },
   async (_request, context, body) => {

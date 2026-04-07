@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { SmsService } from '@/lib/services/sms-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { updateSmsSettingsSchema } from '@/lib/validations/sms'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * GET /api/sms/settings
@@ -36,7 +37,7 @@ export const GET = createApiHandler(
 export const PATCH = createApiHandler(
   {
     rateLimit: 'general',
-    allowedRoles: ['admin', 'owner'],
+    allowedRoles: ROLES.TENANT_ADMIN,
     bodySchema: updateSmsSettingsSchema,
   },
   async (_request, context, body) => {

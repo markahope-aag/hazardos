@@ -2,8 +2,9 @@
 
 **Complete guide for developers working on HazardOS**
 
-> **Last Updated**: February 1, 2026
-> **For Developers**: Setup, workflows, standards, and best practices
+> **Last Updated**: April 7, 2026  
+> **For Developers**: Setup, workflows, standards, and best practices  
+> **Status**: ✅ Updated Post-Audit
 
 ---
 
@@ -91,6 +92,8 @@ QUICKBOOKS_REDIRECT_URI=http://localhost:3000/api/integrations/quickbooks/callba
 
 #### 4. Database Setup
 
+**⚠️ CRITICAL**: Ensure you have the latest migrations applied. The audit identified 57 migration files with important security fixes.
+
 **Option A: Using Supabase CLI (Recommended)**
 
 ```bash
@@ -100,32 +103,78 @@ supabase login
 # Link to project
 supabase link --project-ref inzwwbbbdookxkkotbxj
 
-# Push migrations
+# Push all migrations (57 files)
 supabase db push
 
-# Verify migrations
+# Verify migrations - should show all applied
 supabase db status
+
+# Check for any migration errors
+supabase db diff
 ```
 
 **Option B: Manual SQL Execution**
 
-1. Go to Supabase Dashboard → SQL Editor
-2. Run migrations from `supabase/migrations/` in order
-3. Verify tables created successfully
+⚠️ **Important**: Migrations must be applied in chronological order by filename.
 
-#### 5. Start Development Server
+1. Go to Supabase Dashboard → SQL Editor
+2. Apply migrations from `supabase/migrations/` in filename order
+3. Key migrations include:
+   - `20260401000006_fix_rls_function_search_path.sql` (Critical RLS fix)
+   - `20260406000001_fix_search_path_mutable.sql` (Security update)
+4. Verify RLS policies are working: Test with `/database-status` page
+
+**Database Health Check**:
+After setup, visit `http://localhost:3000/database-status` to verify:
+- All migrations applied ✅
+- RLS policies active ✅  
+- Helper functions working ✅
+- Multi-tenant isolation ✅
+
+#### 5. Security Check (CRITICAL)
+
+**⚠️ Before starting development**, address critical security vulnerabilities:
 
 ```bash
+# Check for vulnerabilities (23 found in audit)
+npm audit
+
+# Fix critical vulnerabilities
+npm audit fix
+
+# Verify fixes
+npm audit --audit-level=moderate
+```
+
+**Expected vulnerabilities to fix**:
+- jsPDF (Critical RCE)
+- axios (High DoS)
+- Next.js (CSRF bypass)
+- rollup, vite, tar (Path traversal)
+
+#### 6. Start Development Server
+
+```bash
+# Start with Turbopack (Next.js 16)
 npm run dev
+
+# Alternative: Start with legacy webpack
+npm run dev -- --turbo=false
 ```
 
 Visit [http://localhost:3000](http://localhost:3000)
 
-#### 6. Login
+#### 7. Login & Testing
 
 **Platform Owner Account**:
 - Email: `mark.hope@asymmetric.pro`
 - Password: (Contact admin for credentials)
+
+**Test Multi-Tenant Isolation**:
+1. Login as platform owner
+2. Visit `/database-status` to verify RLS
+3. Test organization switching
+4. Verify data isolation between tenants
 
 ---
 
@@ -318,6 +367,85 @@ const npsScore = (promoters / total * 100) - (detractors / total * 100)
 // TODO: Add caching for frequently accessed customers
 // Context: Customer list API called ~50 times/min during peak
 const customers = await fetchCustomers()
+```
+
+### Security & Quality Standards (Post-Audit)
+
+**Current Status**: B+ (Strong foundations with critical issues to address)
+
+#### Security Requirements (MANDATORY)
+
+**1. Dependency Security**:
+```bash
+# REQUIRED: Check before every commit
+npm audit --audit-level=moderate
+
+# Fix critical vulnerabilities immediately
+npm audit fix
+```
+
+**2. Error Handling**:
+```typescript
+// ❌ BAD: Raw error throwing (172 instances found)
+if (error) throw error
+
+// ✅ GOOD: Secure error handling
+if (error) {
+  logger.error('Database operation failed', { error, context })
+  throw new SecureError('INTERNAL_ERROR', 'Operation failed')
+}
+```
+
+**3. Input Validation**:
+```typescript
+// ❌ BAD: SQL injection risk
+query = query.or(`name.ilike.%${search}%`)
+
+// ✅ GOOD: Sanitized input
+import { sanitizeSearchQuery } from '@/lib/utils/sanitize'
+const sanitizedSearch = sanitizeSearchQuery(search)
+query = query.or(`name.ilike.%${sanitizedSearch}%`)
+```
+
+#### Quality Standards
+
+**Code Complexity Limits**:
+- Files: < 800 lines (5 files currently exceed this)
+- Functions: < 50 lines
+- Components: < 300 lines (break into smaller components)
+
+**Performance Requirements**:
+- No O(n) operations in state updates
+- Use React.memo for expensive components
+- Implement proper database indexing
+- Avoid N+1 query patterns
+
+**Testing Requirements**:
+- All new API routes: 90%+ coverage
+- Critical business logic: 85%+ coverage
+- Components: 70%+ coverage (currently 8%)
+- Integration tests for user workflows
+
+#### Pre-Commit Checklist (Enhanced)
+
+```bash
+# 1. Security check (CRITICAL)
+npm audit --audit-level=moderate
+
+# 2. Type check
+npm run type-check
+
+# 3. Linting
+npm run lint
+
+# 4. Tests
+npm run test:run
+
+# 5. Build verification
+npm run build
+
+# All-in-one command
+npm run check-all
 ```
 
 ---
@@ -857,7 +985,44 @@ UPSTASH_REDIS_REST_TOKEN=[redis-token]
 
 ---
 
-## Troubleshooting
+## Troubleshooting (Updated Post-Audit)
+
+### Critical Issues (Fix Immediately)
+
+#### Security Vulnerabilities
+
+**Issue**: 23 dependency vulnerabilities found
+```bash
+# Check vulnerabilities
+npm audit
+
+# Fix critical issues
+npm audit fix
+
+# Verify resolution
+npm audit --audit-level=moderate
+```
+
+**Issue**: SQL injection in search endpoints
+- **Location**: `app/api/v1/customers/route.ts:50`
+- **Fix**: Use `sanitizeSearchQuery()` utility
+- **Test**: Try search with `'; DROP TABLE customers; --`
+
+#### Performance Issues
+
+**Issue**: Survey store causing mobile lag
+```bash
+# Symptoms: Slow form updates on mobile
+# Location: lib/stores/survey-store.ts
+# Fix: Replace array.map() with Map-based operations
+```
+
+**Issue**: N+1 database queries
+```bash
+# Symptoms: Slow page loads with many records
+# Check: Network tab shows multiple similar queries
+# Fix: Use proper joins and aggregation queries
+```
 
 ### Common Issues
 
@@ -865,17 +1030,25 @@ UPSTASH_REDIS_REST_TOKEN=[redis-token]
 
 **Issue**: TypeScript compilation errors
 ```bash
-# Check errors
-npm run type-check
+# Check errors with detailed output
+npm run type-check -- --noEmit --pretty
 
 # Fix imports, type mismatches
 ```
 
 **Issue**: Module not found
 ```bash
-# Clear cache and reinstall
-rm -rf node_modules package-lock.json
+# Clear all caches
+rm -rf node_modules package-lock.json .next
 npm install
+npm run dev
+```
+
+**Issue**: Next.js 16 proxy.ts conflicts
+```bash
+# NEVER create middleware.ts - it conflicts with proxy.ts
+# If you see 404s on all routes, check for middleware.ts file
+rm middleware.ts  # Remove if exists
 ```
 
 #### Database Issues
@@ -893,9 +1066,32 @@ supabase db reset
 ```
 
 **Issue**: RLS policy blocking queries
-- Check if user is authenticated
-- Verify `get_user_organization_id()` returns correct value
-- Check policy conditions in Supabase Dashboard
+```bash
+# Debug RLS issues
+# 1. Check authentication
+curl -H "Authorization: Bearer $JWT_TOKEN" http://localhost:3000/api/customers
+
+# 2. Test RLS helper function
+# In Supabase SQL Editor:
+SELECT get_user_organization_id();
+
+# 3. Check policy conditions
+# Visit /database-status page for RLS verification
+
+# 4. Common RLS issues from audit:
+# - search_path not set on SECURITY DEFINER functions
+# - Policies using non-existent role names ('owner' vs 'tenant_owner')
+# - Platform admin access inconsistencies
+```
+
+**Issue**: Multi-tenant data leakage
+```bash
+# Test tenant isolation
+# 1. Login as user from Org A
+# 2. Try to access data from Org B via API
+# 3. Should return empty results, not 403 error
+# 4. Check organization_id in all queries
+```
 
 #### Development Server Issues
 
@@ -912,12 +1108,34 @@ npm run dev
 - Verify variable names start with `NEXT_PUBLIC_` for client-side access
 - Check for typos in variable names
 
+### Security Issues (Immediate Action Required)
+
+#### Authentication Bypass
+```bash
+# Issue: Webhook secrets fall back to empty string
+# Fix: Ensure all webhook secrets are set in environment
+# Test: Try webhook with no secret - should fail
+
+# Issue: Cron endpoints use non-timing-safe comparison
+# Fix: Use timingSafeEqual for all secret comparisons
+```
+
+#### Platform Admin Access
+```bash
+# Issue: Inconsistent platform admin patterns
+# Locations: createApiHandler, platform layout, services
+# Fix: Standardize platform admin access across all layers
+# Test: Try accessing platform features as tenant admin
+```
+
 ### Getting Help
 
-1. **Check Documentation**: docs/ folder
-2. **Search Codebase**: Look for similar implementations
-3. **Check Git History**: `git log --grep="keyword"`
-4. **Ask Team**: Contact mark.hope@asymmetric.pro
+1. **Security Issues**: Report immediately to mark.hope@asymmetric.pro
+2. **Check Documentation**: docs/ folder (37 files, 100% current)
+3. **Search Codebase**: Look for similar implementations
+4. **Check Git History**: `git log --grep="keyword"`
+5. **Audit Reference**: [Codebase Audit 2026-04-07](./CODEBASE-AUDIT-2026-04-07.md)
+6. **Ask Team**: Contact mark.hope@asymmetric.pro
 
 ---
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import {
   getQueryMetrics,
   getMetricsByTable,
@@ -14,7 +15,7 @@ import {
 export const GET = createApiHandler(
   {
     requireAuth: true,
-    allowedRoles: ['admin', 'platform_admin'],
+    allowedRoles: ROLES.PLATFORM_ONLY,
   },
   async () => {
     const metrics = getQueryMetrics()
@@ -51,7 +52,7 @@ export const GET = createApiHandler(
 export const DELETE = createApiHandler(
   {
     requireAuth: true,
-    allowedRoles: ['platform_admin'],
+    allowedRoles: ROLES.PLATFORM_ONLY,
   },
   async () => {
     clearMetrics()

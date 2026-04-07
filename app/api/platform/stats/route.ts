@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { PlatformAdminService } from '@/lib/services/platform-admin-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * GET /api/platform/stats
@@ -10,7 +11,7 @@ import { SecureError } from '@/lib/utils/secure-error-handler'
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
-    allowedRoles: ['platform_owner', 'platform_admin'],
+    allowedRoles: ROLES.PLATFORM_ONLY,
   },
   async () => {
     const isAdmin = await PlatformAdminService.isPlatformAdmin()

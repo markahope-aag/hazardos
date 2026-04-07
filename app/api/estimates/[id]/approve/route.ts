@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { approveEstimateSchema } from '@/lib/validations/estimates'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * POST /api/estimates/[id]/approve
@@ -11,7 +12,7 @@ export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: approveEstimateSchema,
-    allowedRoles: ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, params, body) => {
     // Get the estimate

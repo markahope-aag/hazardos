@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { CommissionService } from '@/lib/services/commission-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { z } from 'zod'
 
 const commissionActionSchema = z.object({
@@ -15,7 +16,7 @@ export const PATCH = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: commissionActionSchema,
-    allowedRoles: ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, _context, params, body) => {
     let earning

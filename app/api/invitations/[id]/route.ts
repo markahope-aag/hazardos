@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 export const DELETE = createApiHandlerWithParams(
   {
-    allowedRoles: ['admin', 'tenant_owner', 'platform_admin', 'platform_owner'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, params) => {
     const { id } = params

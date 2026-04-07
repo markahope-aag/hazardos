@@ -3,6 +3,7 @@ import { CustomersService } from '@/lib/supabase/customers'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateCustomerSchema } from '@/lib/validations/customers'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 import type { CustomerUpdate } from '@/types/database'
 
 /**
@@ -73,7 +74,7 @@ export const PATCH = createApiHandlerWithParams(
 export const DELETE = createApiHandlerWithParams(
   {
     rateLimit: 'general',
-    allowedRoles: ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'],
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, _context, params) => {
     try {
