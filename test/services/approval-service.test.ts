@@ -102,7 +102,7 @@ describe('ApprovalService', () => {
         error: { message: 'Query failed' },
       })
 
-      await expect(ApprovalService.getThresholds()).rejects.toThrow('Query failed')
+      await expect(ApprovalService.getThresholds()).rejects.toThrow('Failed to fetch approval thresholds')
     })
   })
 
@@ -215,7 +215,7 @@ describe('ApprovalService', () => {
 
       await expect(
         ApprovalService.updateThreshold('threshold-1', { is_active: false })
-      ).rejects.toThrow('Update failed')
+      ).rejects.toThrow('Failed to update approval threshold')
     })
   })
 
@@ -301,7 +301,7 @@ describe('ApprovalService', () => {
         error: { message: 'Query failed' },
       })
 
-      await expect(ApprovalService.getRequests()).rejects.toThrow('Query failed')
+      await expect(ApprovalService.getRequests()).rejects.toThrow('Failed to fetch approval requests')
     })
   })
 
@@ -342,7 +342,7 @@ describe('ApprovalService', () => {
         error: { code: 'OTHER', message: 'Database error' },
       })
 
-      await expect(ApprovalService.getRequest('request-1')).rejects.toThrow('Database error')
+      await expect(ApprovalService.getRequest('request-1')).rejects.toThrow('Failed to fetch approval request')
     })
   })
 

@@ -39,7 +39,7 @@ describe('Billing Subscription API', () => {
 
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'owner'
+    role: 'tenant_owner'
   }
 
   describe('GET /api/billing/subscription', () => {

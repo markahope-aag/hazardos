@@ -249,14 +249,21 @@ describe('Customer Validation Schema', () => {
       expect(result.success).toBe(true)
     })
 
-    it('should accept empty address fields', () => {
+    it('should reject empty required address fields', () => {
       const result = customerSchema.safeParse({
         ...validCustomerData,
         address_line1: '',
-        address_line2: '',
         city: '',
         state: '',
         zip: ''
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it('should accept empty optional address_line2', () => {
+      const result = customerSchema.safeParse({
+        ...validCustomerData,
+        address_line2: '',
       })
       expect(result.success).toBe(true)
     })
@@ -375,7 +382,11 @@ describe('Customer Validation Schema', () => {
         first_name: 'Jane',
         contact_type: 'residential' as const,
         status: 'prospect' as const,
-        marketing_consent: true
+        marketing_consent: true,
+        address_line1: '123 Test St',
+        city: 'Denver',
+        state: 'CO',
+        zip: '80202',
       }
       const result = customerSchema.safeParse(minimalData)
       expect(result.success).toBe(true)

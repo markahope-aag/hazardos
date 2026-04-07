@@ -197,7 +197,7 @@ describe('JobsService', () => {
         error: { message: 'Database error' },
       })
 
-      await expect(JobsService.create(mockInput)).rejects.toThrow('Database error')
+      await expect(JobsService.create(mockInput)).rejects.toThrow('Failed to create job')
     })
   })
 
@@ -391,7 +391,7 @@ describe('JobsService', () => {
       setupChainableMock()
       mockSupabase.range.mockResolvedValue({ data: null, error: { message: 'Query failed' } })
 
-      await expect(JobsService.list()).rejects.toThrow('Query failed')
+      await expect(JobsService.list()).rejects.toThrow('Failed to fetch jobs')
     })
   })
 
@@ -460,7 +460,7 @@ describe('JobsService', () => {
         error: { message: 'Update failed' },
       })
 
-      await expect(JobsService.update('job-1', {})).rejects.toThrow('Update failed')
+      await expect(JobsService.update('job-1', {})).rejects.toThrow('Failed to update job')
     })
   })
 
@@ -574,7 +574,7 @@ describe('JobsService', () => {
       }
       mockSupabase.delete.mockReturnValue(mockDeleteChain)
 
-      await expect(JobsService.delete('job-1')).rejects.toThrow('Delete failed')
+      await expect(JobsService.delete('job-1')).rejects.toThrow('Failed to delete job')
     })
   })
 

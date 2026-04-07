@@ -77,7 +77,7 @@ describe('SmsService', () => {
         maybeSingle: vi.fn().mockResolvedValue({ data: null, error: new Error('DB error') })
       })
 
-      await expect(SmsService.getSettings('org-123')).rejects.toThrow('DB error')
+      await expect(SmsService.getSettings('org-123')).rejects.toThrow('Failed to fetch SMS settings')
     })
   })
 

@@ -451,6 +451,17 @@ export interface Database {
           last_contacted_date: string | null
           next_followup_date: string | null
           next_followup_note: string | null
+          // Business intelligence
+          lifetime_value: number
+          total_jobs: number
+          last_job_date: string | null
+          referral_source: string | null
+          // Insurance
+          insurance_carrier: string | null
+          insurance_policy_number: string | null
+          insurance_adjuster_name: string | null
+          insurance_adjuster_phone: string | null
+          insurance_adjuster_email: string | null
           // Meta
           created_at: string
           updated_at: string
@@ -501,6 +512,15 @@ export interface Database {
           last_contacted_date?: string | null
           next_followup_date?: string | null
           next_followup_note?: string | null
+          lifetime_value?: number
+          total_jobs?: number
+          last_job_date?: string | null
+          referral_source?: string | null
+          insurance_carrier?: string | null
+          insurance_policy_number?: string | null
+          insurance_adjuster_name?: string | null
+          insurance_adjuster_phone?: string | null
+          insurance_adjuster_email?: string | null
           created_at?: string
           updated_at?: string
           created_by?: string | null
@@ -550,6 +570,15 @@ export interface Database {
           last_contacted_date?: string | null
           next_followup_date?: string | null
           next_followup_note?: string | null
+          lifetime_value?: number
+          total_jobs?: number
+          last_job_date?: string | null
+          referral_source?: string | null
+          insurance_carrier?: string | null
+          insurance_policy_number?: string | null
+          insurance_adjuster_name?: string | null
+          insurance_adjuster_phone?: string | null
+          insurance_adjuster_email?: string | null
           created_at?: string
           updated_at?: string
           created_by?: string | null

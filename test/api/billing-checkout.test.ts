@@ -45,7 +45,7 @@ describe('POST /api/billing/checkout', () => {
 
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'owner'
+    role: 'tenant_owner'
   }
 
   it('should create checkout session for authenticated user with owner role', async () => {

@@ -10,6 +10,15 @@ interface UseCustomersOptions {
   status?: CustomerStatus | 'all'
   source?: CustomerSource | 'all'
   contactType?: ContactType | 'all'
+  activityFilter?: 'no_contact_30' | 'no_contact_90' | 'no_contact_365' | 'all'
+  minRevenue?: number
+  maxRevenue?: number
+  minJobs?: number
+  insuranceCarrier?: string
+  referralSource?: string
+  hasOpenJobs?: boolean | 'all'
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
   page?: number
   pageSize?: number
 }
@@ -17,10 +26,18 @@ interface UseCustomersOptions {
 // Hook to fetch customers with search/filter/pagination
 export function useCustomers(options: UseCustomersOptions = {}) {
   const { organization } = useMultiTenantAuth()
-  const { search, status, source, contactType, page = 1, pageSize = 25 } = options
+  const {
+    search, status, source, contactType,
+    activityFilter, minRevenue, maxRevenue, minJobs,
+    insuranceCarrier, referralSource, hasOpenJobs,
+    sortBy, sortOrder,
+    page = 1, pageSize = 25,
+  } = options
 
   return useQuery({
-    queryKey: ['customers', organization?.id, search, status, source, contactType, page, pageSize],
+    queryKey: ['customers', organization?.id, search, status, source, contactType,
+      activityFilter, minRevenue, maxRevenue, minJobs, insuranceCarrier, referralSource, hasOpenJobs,
+      sortBy, sortOrder, page, pageSize],
     queryFn: async () => {
       if (!organization?.id) {
         throw new Error('No organization found')
@@ -32,6 +49,15 @@ export function useCustomers(options: UseCustomersOptions = {}) {
         search: search || undefined,
         status: status === 'all' ? undefined : status,
         contactType: contactType === 'all' ? undefined : contactType,
+        activityFilter: activityFilter === 'all' ? undefined : activityFilter,
+        minRevenue,
+        maxRevenue,
+        minJobs,
+        insuranceCarrier: insuranceCarrier || undefined,
+        referralSource: referralSource || undefined,
+        hasOpenJobs: hasOpenJobs === 'all' ? undefined : hasOpenJobs,
+        sortBy,
+        sortOrder,
         limit: pageSize,
         offset,
       })

@@ -42,9 +42,9 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
           </div>
           <Link
             href="/"
-            className="flex items-center space-x-1 text-sm text-gray-500 hover:text-gray-700 whitespace-nowrap ml-4"
+            className="flex items-center space-x-2 text-sm font-medium whitespace-nowrap ml-4 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors"
           >
-            <ArrowLeft className="h-3.5 w-3.5" />
+            <ArrowLeft className="h-4 w-4" />
             <span>Main Menu</span>
           </Link>
         </div>

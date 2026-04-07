@@ -63,6 +63,12 @@ export default function CustomerForm({
       opted_into_sms: customer.opted_into_sms || false,
       lead_source: customer.lead_source || '',
       lead_source_detail: customer.lead_source_detail || '',
+      referral_source: customer.referral_source || '',
+      insurance_carrier: customer.insurance_carrier || '',
+      insurance_policy_number: customer.insurance_policy_number || '',
+      insurance_adjuster_name: customer.insurance_adjuster_name || '',
+      insurance_adjuster_phone: customer.insurance_adjuster_phone || '',
+      insurance_adjuster_email: customer.insurance_adjuster_email || '',
       notes: customer.notes || '',
       next_followup_date: customer.next_followup_date || '',
       next_followup_note: customer.next_followup_note || '',
@@ -85,6 +91,22 @@ export default function CustomerForm({
 
   const handleFormSubmit = handleSubmit(async (data: CustomerFormData) => {
     data.name = [data.first_name, data.last_name].filter(Boolean).join(' ')
+    // Coerce empty strings to undefined so DB receives null instead of ""
+    if (!data.next_followup_date) data.next_followup_date = undefined
+    if (!data.next_followup_note) data.next_followup_note = undefined
+    if (!data.lead_source) data.lead_source = undefined
+    if (!data.lead_source_detail) data.lead_source_detail = undefined
+    if (!data.address_line2) data.address_line2 = undefined
+    if (!data.office_phone) data.office_phone = undefined
+    if (!data.phone) data.phone = undefined
+    if (!data.title) data.title = undefined
+    if (!data.company_id) data.company_id = undefined
+    if (!data.referral_source) data.referral_source = undefined
+    if (!data.insurance_carrier) data.insurance_carrier = undefined
+    if (!data.insurance_policy_number) data.insurance_policy_number = undefined
+    if (!data.insurance_adjuster_name) data.insurance_adjuster_name = undefined
+    if (!data.insurance_adjuster_phone) data.insurance_adjuster_phone = undefined
+    if (!data.insurance_adjuster_email) data.insurance_adjuster_email = undefined
     try {
       await onSubmit(data)
       formAnalytics.trackSuccess()
@@ -132,19 +154,19 @@ export default function CustomerForm({
           <div>
             <Label htmlFor="first_name">First Name *</Label>
             <Input id="first_name" {...register('first_name')} />
-            {errors.first_name && <p className="text-sm text-red-600 mt-1">{errors.first_name.message}</p>}
+            {errors.first_name && <p className="text-sm text-destructive mt-1">{errors.first_name.message}</p>}
           </div>
           <div>
             <Label htmlFor="last_name">Last Name</Label>
             <Input id="last_name" {...register('last_name')} />
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="title">Title / Role</Label>
-            <Input id="title" {...register('title')} placeholder="e.g., Facilities Manager" />
-          </div>
-          {watchedContactType === 'commercial' && (
+        {watchedContactType === 'commercial' && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="title">Title / Role</Label>
+              <Input id="title" {...register('title')} placeholder="e.g., Facilities Manager" />
+            </div>
             <div>
               <Label htmlFor="contact_role">Contact Role</Label>
               <Select value={watch('contact_role') || ''} onValueChange={(v) => setValue('contact_role', v as ContactRole)}>
@@ -156,8 +178,8 @@ export default function CustomerForm({
                 </SelectContent>
               </Select>
             </div>
-          )}
-        </div>
+          </div>
+        )}
         {watchedContactType === 'commercial' && (
           <div>
             <Label htmlFor="company_name">Company *</Label>
@@ -175,20 +197,22 @@ export default function CustomerForm({
       {/* Section 3: Contact Methods */}
       <div className="space-y-4">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact Methods</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className={`grid grid-cols-1 gap-4 ${watchedContactType === 'commercial' ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
           <div>
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" {...register('email')} />
-            {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>}
+            {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
           </div>
           <div>
-            <Label htmlFor="mobile_phone">Mobile Phone</Label>
+            <Label htmlFor="mobile_phone">{watchedContactType === 'commercial' ? 'Mobile Phone' : 'Phone'}</Label>
             <Input id="mobile_phone" type="tel" {...register('mobile_phone')} />
           </div>
-          <div>
-            <Label htmlFor="office_phone">Office Phone</Label>
-            <Input id="office_phone" type="tel" {...register('office_phone')} />
-          </div>
+          {watchedContactType === 'commercial' && (
+            <div>
+              <Label htmlFor="office_phone">Office Phone</Label>
+              <Input id="office_phone" type="tel" {...register('office_phone')} />
+            </div>
+          )}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
@@ -245,40 +269,58 @@ export default function CustomerForm({
         </div>
       </div>
 
-      {/* Section 5: Attribution */}
+      {/* Section 5: Address */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Attribution</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Address</h3>
+        <div>
+          <Label htmlFor="address_line1">Street Address *</Label>
+          <Input id="address_line1" {...register('address_line1')} />
+          {errors.address_line1 && <p className="text-sm text-destructive mt-1">{errors.address_line1.message}</p>}
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <Label htmlFor="lead_source">Lead Source</Label>
-            <Input id="lead_source" {...register('lead_source')} placeholder="e.g., Google Ads, Referral" />
+            <Label htmlFor="city">City *</Label>
+            <Input id="city" {...register('city')} />
+            {errors.city && <p className="text-sm text-destructive mt-1">{errors.city.message}</p>}
           </div>
           <div>
-            <Label htmlFor="lead_source_detail">Source Detail</Label>
-            <Input id="lead_source_detail" {...register('lead_source_detail')} placeholder="e.g., Spring 2026 campaign" />
+            <Label htmlFor="state">State *</Label>
+            <Input id="state" {...register('state')} placeholder="CO" maxLength={2} />
+            {errors.state && <p className="text-sm text-destructive mt-1">{errors.state.message}</p>}
+          </div>
+          <div>
+            <Label htmlFor="zip">ZIP *</Label>
+            <Input id="zip" {...register('zip')} />
+            {errors.zip && <p className="text-sm text-destructive mt-1">{errors.zip.message}</p>}
           </div>
         </div>
       </div>
 
-      {/* Section 6: Address */}
+      {/* Section 6: Source & Insurance */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Address</h3>
-        <div>
-          <Label htmlFor="address_line1">Street Address</Label>
-          <Input id="address_line1" {...register('address_line1')} />
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Source & Insurance</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="referral_source">Referral Source</Label>
+            <Input id="referral_source" {...register('referral_source')} placeholder="e.g., John Smith, Google Ads, Nextdoor" />
+          </div>
+          <div>
+            <Label htmlFor="insurance_carrier">Insurance Carrier</Label>
+            <Input id="insurance_carrier" {...register('insurance_carrier')} placeholder="e.g., State Farm, Allstate" />
+          </div>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <Label htmlFor="city">City</Label>
-            <Input id="city" {...register('city')} />
+            <Label htmlFor="insurance_adjuster_name">Adjuster Name</Label>
+            <Input id="insurance_adjuster_name" {...register('insurance_adjuster_name')} />
           </div>
           <div>
-            <Label htmlFor="state">State</Label>
-            <Input id="state" {...register('state')} placeholder="CO" maxLength={2} />
+            <Label htmlFor="insurance_adjuster_phone">Adjuster Phone</Label>
+            <Input id="insurance_adjuster_phone" type="tel" {...register('insurance_adjuster_phone')} />
           </div>
           <div>
-            <Label htmlFor="zip">ZIP</Label>
-            <Input id="zip" {...register('zip')} />
+            <Label htmlFor="insurance_adjuster_email">Adjuster Email</Label>
+            <Input id="insurance_adjuster_email" type="email" {...register('insurance_adjuster_email')} />
           </div>
         </div>
       </div>

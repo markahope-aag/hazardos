@@ -448,7 +448,7 @@ describe('ContactsService', () => {
         return mockSupabase
       })
 
-      await expect(ContactsService.delete('contact-1')).rejects.toThrow('Delete failed')
+      await expect(ContactsService.delete('contact-1')).rejects.toThrow('Failed to delete contact')
     })
   })
 

@@ -11,18 +11,27 @@ export class CustomersService {
       search?: string
       status?: CustomerStatus
       contactType?: ContactType
+      activityFilter?: 'no_contact_30' | 'no_contact_90' | 'no_contact_365'
+      minRevenue?: number
+      maxRevenue?: number
+      minJobs?: number
+      insuranceCarrier?: string
+      referralSource?: string
+      hasOpenJobs?: boolean
+      sortBy?: string
+      sortOrder?: 'asc' | 'desc'
       limit?: number
       offset?: number
     } = {}
   ): Promise<Customer[]> {
     let query = this.supabase
       .from('customers')
-      .select('*, company:companies!company_id(id, name), account_owner:profiles!account_owner_id(id, first_name, last_name, full_name)')
+      .select('*, company:companies!company_id(id, name), account_owner:profiles!account_owner_id(id, first_name, last_name, full_name), open_jobs:jobs!customer_id(id)')
       .eq('organization_id', organizationId)
 
     if (options.search) {
       const sanitizedSearch = sanitizeSearchQuery(options.search)
-      query = query.or(`name.ilike.%${sanitizedSearch}%,company_name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%,phone.ilike.%${sanitizedSearch}%`)
+      query = query.or(`name.ilike.%${sanitizedSearch}%,company_name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%,phone.ilike.%${sanitizedSearch}%,insurance_carrier.ilike.%${sanitizedSearch}%`)
     }
 
     if (options.status) {
@@ -33,6 +42,40 @@ export class CustomersService {
       query = query.eq('contact_type', options.contactType)
     }
 
+    // Activity-based filters
+    if (options.activityFilter) {
+      const now = new Date()
+      const daysMap = { no_contact_30: 30, no_contact_90: 90, no_contact_365: 365 }
+      const days = daysMap[options.activityFilter]
+      const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString()
+      query = query.or(`last_job_date.is.null,last_job_date.lt.${cutoff}`)
+    }
+
+    // Revenue filters
+    if (options.minRevenue !== undefined) {
+      query = query.gte('lifetime_value', options.minRevenue)
+    }
+    if (options.maxRevenue !== undefined) {
+      query = query.lte('lifetime_value', options.maxRevenue)
+    }
+
+    // Job count filter
+    if (options.minJobs !== undefined) {
+      query = query.gte('total_jobs', options.minJobs)
+    }
+
+    // Insurance carrier filter
+    if (options.insuranceCarrier) {
+      const safe = sanitizeSearchQuery(options.insuranceCarrier)
+      query = query.ilike('insurance_carrier', `%${safe}%`)
+    }
+
+    // Referral source filter
+    if (options.referralSource) {
+      const safe = sanitizeSearchQuery(options.referralSource)
+      query = query.or(`referral_source.ilike.%${safe}%,lead_source.ilike.%${safe}%`)
+    }
+
     if (options.limit) {
       query = query.limit(options.limit)
     }
@@ -41,7 +84,10 @@ export class CustomersService {
       query = query.range(options.offset, options.offset + (options.limit || 25) - 1)
     }
 
-    query = query.order('created_at', { ascending: false })
+    // Sorting
+    const sortCol = options.sortBy || 'created_at'
+    const sortAsc = (options.sortOrder || 'desc') === 'asc'
+    query = query.order(sortCol, { ascending: sortAsc })
 
     const { data, error } = await query
 
@@ -49,7 +95,20 @@ export class CustomersService {
       throw new Error(`Failed to fetch customers: ${error.message}`)
     }
 
-    return data || []
+    // Post-process: count open jobs from the joined data and filter if needed
+    const results = (data || []).map((c) => {
+      const openJobs = Array.isArray((c as Record<string, unknown>).open_jobs) ? ((c as Record<string, unknown>).open_jobs as unknown[]).length : 0
+      return { ...c, open_jobs_count: openJobs } as Customer & { open_jobs_count: number }
+    })
+
+    if (options.hasOpenJobs === true) {
+      return results.filter((c) => c.open_jobs_count > 0)
+    }
+    if (options.hasOpenJobs === false) {
+      return results.filter((c) => c.open_jobs_count === 0)
+    }
+
+    return results
   }
 
   static async getCustomer(id: string): Promise<Customer | null> {

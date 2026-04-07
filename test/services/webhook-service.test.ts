@@ -99,7 +99,7 @@ describe('WebhookService', () => {
         error: { message: 'Query failed' },
       })
 
-      await expect(WebhookService.list('org-1')).rejects.toThrow('Query failed')
+      await expect(WebhookService.list('org-1')).rejects.toThrow('Failed to fetch webhooks')
     })
   })
 
@@ -128,7 +128,7 @@ describe('WebhookService', () => {
         error: { message: 'Not found' },
       })
 
-      await expect(WebhookService.get('non-existent')).rejects.toThrow('Not found')
+      await expect(WebhookService.get('non-existent')).rejects.toThrow('Failed to fetch webhook')
     })
   })
 
@@ -245,7 +245,7 @@ describe('WebhookService', () => {
     it('should throw on delete error', async () => {
       mockSupabase.eq.mockResolvedValue({ error: { message: 'Delete failed' } })
 
-      await expect(WebhookService.delete('webhook-1')).rejects.toThrow('Delete failed')
+      await expect(WebhookService.delete('webhook-1')).rejects.toThrow('Failed to delete webhook')
     })
   })
 

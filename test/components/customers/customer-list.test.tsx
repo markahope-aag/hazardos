@@ -15,6 +15,9 @@ vi.mock('@/lib/hooks/use-customers', () => ({
     isLoading: mockIsLoading,
     error: mockError,
   }),
+  useCustomerStats: () => ({
+    data: null,
+  }),
 }))
 
 vi.mock('@/lib/hooks/use-debounced-value', () => ({

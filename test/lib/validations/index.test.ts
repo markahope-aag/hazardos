@@ -74,6 +74,10 @@ describe('validations index', () => {
       contact_type: 'residential',
       status: 'lead',
       marketing_consent: false,
+      address_line1: '123 Test St',
+      city: 'Denver',
+      state: 'CO',
+      zip: '80202',
     })
     expect(customerResult.success).toBe(true)
   })

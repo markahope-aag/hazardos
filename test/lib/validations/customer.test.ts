@@ -14,6 +14,10 @@ describe('customerSchema', () => {
     contact_type: 'residential' as const,
     status: 'lead' as const,
     marketing_consent: false,
+    address_line1: '123 Test St',
+    city: 'Denver',
+    state: 'CO',
+    zip: '80202',
   }
 
   it('accepts valid customer', () => {

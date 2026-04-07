@@ -63,9 +63,9 @@ describe('CustomerForm Component', () => {
     expect(screen.getByLabelText(/last name/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/street address/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/^city$/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/^state$/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/^zip$/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^city/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^state/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^zip/i)).toBeInTheDocument()
   })
 
   it('should show validation error for empty first name', async () => {
@@ -143,6 +143,18 @@ describe('CustomerForm Component', () => {
     })
     await act(async () => {
       await userEvent.type(screen.getByLabelText(/^email$/i), 'test@example.com', { delay: null })
+    })
+    await act(async () => {
+      await userEvent.type(screen.getByLabelText(/street address/i), '123 Test St', { delay: null })
+    })
+    await act(async () => {
+      await userEvent.type(screen.getByLabelText(/^city/i), 'Denver', { delay: null })
+    })
+    await act(async () => {
+      await userEvent.type(screen.getByLabelText(/^state/i), 'CO', { delay: null })
+    })
+    await act(async () => {
+      await userEvent.type(screen.getByLabelText(/^zip/i), '80202', { delay: null })
     })
 
     const submitButton = screen.getByRole('button', { name: /save contact/i })
@@ -228,7 +240,7 @@ describe('CustomerForm Component', () => {
     )
 
     // State is now an Input field with placeholder "CO" and maxLength 2
-    const stateInput = screen.getByLabelText(/^state$/i)
+    const stateInput = screen.getByLabelText(/^state/i)
     expect(stateInput).toBeInTheDocument()
     expect(stateInput).toHaveAttribute('maxlength', '2')
   })

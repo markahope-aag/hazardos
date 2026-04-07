@@ -53,6 +53,7 @@ describe('CustomersService', () => {
           name: 'John Doe',
           email: 'john@example.com',
           status: 'prospect',
+          open_jobs_count: 0,
           created_at: '2026-01-31T10:00:00Z'
         }
       ]

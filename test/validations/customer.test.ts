@@ -35,7 +35,11 @@ describe('Customer Validation Schema', () => {
         first_name: 'Jane',
         contact_type: 'residential' as const,
         status: 'lead' as const,
-        marketing_consent: false
+        marketing_consent: false,
+        address_line1: '123 Test St',
+        city: 'Denver',
+        state: 'CO',
+        zip: '80202',
       }
 
       const result = customerSchema.safeParse(minimalCustomer)
@@ -48,6 +52,10 @@ describe('Customer Validation Schema', () => {
         contact_type: 'residential' as const,
         status: 'lead' as const,
         marketing_consent: false,
+        address_line1: '123 Test St',
+        city: 'Denver',
+        state: 'CO',
+        zip: '80202',
       }
 
       const result = customerSchema.safeParse(invalidCustomer)
@@ -64,6 +72,10 @@ describe('Customer Validation Schema', () => {
         email: 'invalid-email',
         status: 'lead' as const,
         marketing_consent: false,
+        address_line1: '123 Test St',
+        city: 'Denver',
+        state: 'CO',
+        zip: '80202',
       }
 
       const result = customerSchema.safeParse(invalidCustomer)
@@ -79,7 +91,11 @@ describe('Customer Validation Schema', () => {
         contact_type: 'residential' as const,
         email: '',
         status: 'lead' as const,
-        marketing_consent: false
+        marketing_consent: false,
+        address_line1: '123 Test St',
+        city: 'Denver',
+        state: 'CO',
+        zip: '80202',
       }
 
       const result = customerSchema.safeParse(customer)
@@ -94,7 +110,11 @@ describe('Customer Validation Schema', () => {
           first_name: 'Test',
           contact_type: 'residential' as const,
           status,
-          marketing_consent: false
+          marketing_consent: false,
+          address_line1: '123 Test St',
+          city: 'Denver',
+          state: 'CO',
+          zip: '80202',
         }
 
         const result = customerSchema.safeParse(customer)
@@ -108,6 +128,10 @@ describe('Customer Validation Schema', () => {
         contact_type: 'residential' as const,
         status: 'invalid-status',
         marketing_consent: false,
+        address_line1: '123 Test St',
+        city: 'Denver',
+        state: 'CO',
+        zip: '80202',
       }
 
       const result = customerSchema.safeParse(customer)
@@ -123,6 +147,10 @@ describe('Customer Validation Schema', () => {
           contact_type: 'residential' as const,
           status: 'lead' as const,
           marketing_consent: false,
+          address_line1: '123 Test St',
+          city: 'Denver',
+          state: 'CO',
+          zip: '80202',
           source
         }
 
@@ -138,6 +166,10 @@ describe('Customer Validation Schema', () => {
         source: 'invalid-source',
         status: 'lead' as const,
         marketing_consent: false,
+        address_line1: '123 Test St',
+        city: 'Denver',
+        state: 'CO',
+        zip: '80202',
       }
 
       const result = customerSchema.safeParse(customer)
@@ -149,14 +181,22 @@ describe('Customer Validation Schema', () => {
         first_name: 'Test',
         contact_type: 'residential' as const,
         status: 'lead' as const,
-        marketing_consent: true
+        marketing_consent: true,
+        address_line1: '123 Test St',
+        city: 'Denver',
+        state: 'CO',
+        zip: '80202',
       }
 
       const customerFalse = {
         first_name: 'Test',
         contact_type: 'residential' as const,
         status: 'lead' as const,
-        marketing_consent: false
+        marketing_consent: false,
+        address_line1: '123 Test St',
+        city: 'Denver',
+        state: 'CO',
+        zip: '80202',
       }
 
       expect(customerSchema.safeParse(customerTrue).success).toBe(true)
@@ -169,6 +209,10 @@ describe('Customer Validation Schema', () => {
         contact_type: 'residential' as const,
         status: 'lead' as const,
         marketing_consent: false,
+        address_line1: '123 Test St',
+        city: 'Denver',
+        state: 'CO',
+        zip: '80202',
         notes: 'A'.repeat(1000) // Very long notes
       }
 
@@ -181,7 +225,10 @@ describe('Customer Validation Schema', () => {
         first_name: '  John  ',
         contact_type: 'residential' as const,
         email: 'john@example.com',
+        address_line1: '123 Test St',
         city: '  Anytown  ',
+        state: 'CO',
+        zip: '80202',
         status: 'lead' as const,
         marketing_consent: false
       }
@@ -213,6 +260,10 @@ describe('Customer Validation Schema', () => {
         ...defaultCustomerValues,
         first_name: 'Test',
         contact_type: 'residential' as const,
+        address_line1: '123 Test St',
+        city: 'Denver',
+        state: 'CO',
+        zip: '80202',
       }
       const result = customerSchema.safeParse(completeCustomer)
       expect(result.success).toBe(true)

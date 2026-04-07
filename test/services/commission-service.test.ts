@@ -111,7 +111,7 @@ describe('CommissionService', () => {
         error: { message: 'Query failed' },
       })
 
-      await expect(CommissionService.getPlans()).rejects.toThrow('Query failed')
+      await expect(CommissionService.getPlans()).rejects.toThrow('Failed to fetch commission plans')
     })
   })
 

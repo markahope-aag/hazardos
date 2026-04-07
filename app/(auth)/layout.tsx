@@ -8,12 +8,12 @@ export default function AuthLayout({
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-4 px-8">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/logos/logo-vertical-color.png"
                 alt="HazardOS"
-                style={{ height: '140px', width: 'auto' }}
+                className="max-h-[140px] w-auto object-contain"
               />
             </div>
             <p className="text-gray-600 text-sm">
