@@ -564,21 +564,35 @@ describe('CacheService', () => {
   describe('size limits and eviction', () => {
     it('should evict oldest entries when max size is reached', () => {
       const smallCache = new CacheService({ maxSize: 2, autoCleanup: false })
-      
+
+      // Use mocked Date.now to ensure distinct timestamps for LRU ordering
+      // Keep mock active through assertions (get() checks TTL via Date.now)
+      let mockTime = 1000
+      const originalDateNow = Date.now
+      Date.now = vi.fn(() => mockTime)
+
+      mockTime = 1000
       smallCache.set('key1', 'value1')
+
+      mockTime = 2000
       smallCache.set('key2', 'value2')
-      
+
       // Access key1 to make it more recently used
+      mockTime = 3000
       smallCache.get('key1')
-      
+
       // This should evict key2 (least recently used)
+      mockTime = 4000
       smallCache.set('key3', 'value3')
-      
+
+      // Keep mockTime within TTL for assertions
+      mockTime = 5000
       expect(smallCache.size()).toBe(2)
       expect(smallCache.get('key1')).toBe('value1')
       expect(smallCache.get('key2')).toBeNull()
       expect(smallCache.get('key3')).toBe('value3')
-      
+
+      Date.now = originalDateNow
       smallCache.destroy()
     })
   })

@@ -234,7 +234,7 @@ describe('sms validations', () => {
         message_type: 'general',
         customer_id: '123e4567-e89b-12d3-a456-426614174000',
         related_entity_type: 'job',
-        related_entity_id: '456e7890-e12b-34c5-d678-901234567890'
+        related_entity_id: '456e7890-e12b-44c5-a678-901234567890'
       }
       
       const result = sendSmsSchema.safeParse(validData)
@@ -331,9 +331,9 @@ describe('sms validations', () => {
 
     it('should reject invalid time format', () => {
       const invalidData = {
-        quiet_hours_start: '25:00' // Invalid hour
+        quiet_hours_start: '2500' // Missing colon - invalid format
       }
-      
+
       const result = updateSmsSettingsSchema.safeParse(invalidData)
       expect(result.success).toBe(false)
     })

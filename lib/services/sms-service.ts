@@ -1,5 +1,6 @@
 import twilio from 'twilio';
 import { createClient } from '@/lib/supabase/server';
+import { SecureError } from '@/lib/utils/secure-error-handler';
 import type {
   SmsMessage,
   SmsTemplate,
@@ -55,18 +56,18 @@ export class SmsService {
     const settings = await this.getSettings(organizationId);
 
     if (!settings?.sms_enabled) {
-      throw new Error('SMS is not enabled for this organization');
+      throw new SecureError('BAD_REQUEST', 'SMS is not enabled for this organization');
     }
 
     // Check quiet hours
     if (settings.quiet_hours_enabled && this.isQuietHours(settings)) {
-      throw new Error('Cannot send SMS during quiet hours');
+      throw new SecureError('BAD_REQUEST', 'Cannot send SMS during quiet hours');
     }
 
     // Normalize phone number
     const normalizedPhone = this.normalizePhone(input.to);
     if (!normalizedPhone) {
-      throw new Error('Invalid phone number');
+      throw new SecureError('VALIDATION_ERROR', 'Invalid phone number', 'to');
     }
 
     // Check opt-in if customer provided
@@ -78,7 +79,7 @@ export class SmsService {
         .single();
 
       if (!customer?.sms_opt_in) {
-        throw new Error('Customer has not opted in to SMS');
+        throw new SecureError('BAD_REQUEST', 'Customer has not opted in to SMS');
       }
     }
 
@@ -86,7 +87,7 @@ export class SmsService {
     const { client, fromNumber } = this.getTwilioClient(settings);
 
     if (!client || !fromNumber) {
-      throw new Error('Twilio credentials not configured. Please add your Twilio Account SID, Auth Token, and Phone Number in Settings → SMS.');
+      throw new SecureError('BAD_REQUEST', 'Twilio credentials not configured. Please add your Twilio Account SID, Auth Token, and Phone Number in Settings → SMS.');
     }
 
     // Create message record
@@ -164,7 +165,7 @@ export class SmsService {
 
     const template = templates?.[0];
     if (!template) {
-      throw new Error(`No active template found for type: ${input.template_type}`);
+      throw new SecureError('NOT_FOUND', `No active template found for type: ${input.template_type}`);
     }
 
     // Interpolate variables
@@ -198,7 +199,7 @@ export class SmsService {
       .eq('id', jobId)
       .single();
 
-    if (!job) throw new Error('Job not found');
+    if (!job) throw new SecureError('NOT_FOUND', 'Job not found');
 
     const settings = await this.getSettings(job.organization_id);
     if (!settings?.appointment_reminders_enabled) return null;
@@ -243,7 +244,7 @@ export class SmsService {
       .eq('id', jobId)
       .single();
 
-    if (!job) throw new Error('Job not found');
+    if (!job) throw new SecureError('NOT_FOUND', 'Job not found');
 
     const settings = await this.getSettings(job.organization_id);
     if (!settings?.job_status_updates_enabled) return null;

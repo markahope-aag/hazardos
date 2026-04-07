@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import type { MailchimpConnectionStatus, MailchimpList } from '@/types/integrations';
 import { createServiceLogger, formatError } from '@/lib/utils/logger';
+import { SecureError } from '@/lib/utils/secure-error-handler';
 
 const log = createServiceLogger('MailchimpService');
 const MAILCHIMP_AUTH_URL = 'https://login.mailchimp.com/oauth2/authorize';
@@ -41,7 +42,7 @@ export class MailchimpService {
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`Token exchange failed: ${error}`);
+      throw new SecureError('BAD_REQUEST', `Token exchange failed: ${error}`);
     }
 
     return response.json();
@@ -60,7 +61,7 @@ export class MailchimpService {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to get account metadata');
+      throw new SecureError('BAD_REQUEST', 'Failed to get account metadata');
     }
 
     return response.json();
@@ -169,7 +170,7 @@ export class MailchimpService {
     body?: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     const tokens = await this.getValidTokens(organizationId);
-    if (!tokens) throw new Error('Mailchimp not connected');
+    if (!tokens) throw new SecureError('BAD_REQUEST', 'Mailchimp not connected');
 
     const url = `${tokens.api_endpoint}${endpoint}`;
 
@@ -184,7 +185,7 @@ export class MailchimpService {
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`Mailchimp API error: ${response.status} - ${error}`);
+      throw new SecureError('BAD_REQUEST', `Mailchimp API error: ${response.status} - ${error}`);
     }
 
     // DELETE requests may not return content
@@ -232,8 +233,8 @@ export class MailchimpService {
       .eq('id', customerId)
       .single();
 
-    if (!customer) throw new Error('Customer not found');
-    if (!customer.email) throw new Error('Customer has no email address');
+    if (!customer) throw new SecureError('NOT_FOUND', 'Customer not found');
+    if (!customer.email) throw new SecureError('VALIDATION_ERROR', 'Customer has no email address', 'email');
 
     // Create subscriber hash (MD5 of lowercase email)
     const { createHash } = await import('crypto');

@@ -112,7 +112,7 @@ describe('InvoicesService', () => {
           customer_id: 'cust-1',
           due_date: '2026-03-01',
         })
-      ).rejects.toThrow('Unauthorized')
+      ).rejects.toThrow('Authentication is required')
     })
 
     it('should create invoice with optional job_id', async () => {

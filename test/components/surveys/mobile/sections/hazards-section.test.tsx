@@ -1,114 +1,93 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { HazardsSection } from '@/components/surveys/mobile/sections/hazards-section'
 
-// Mock child components
-vi.mock('@/components/surveys/mobile/hazards', () => ({
-  HazardTypeSelector: () => <div data-testid="hazard-type-selector">Hazard Type Selector</div>,
-  AsbestosForm: () => <div data-testid="asbestos-form">Asbestos Form</div>,
-  MoldForm: () => <div data-testid="mold-form">Mold Form</div>,
-  LeadForm: () => <div data-testid="lead-form">Lead Form</div>,
-  OtherHazardForm: () => <div data-testid="other-hazard-form">Other Hazard Form</div>,
-}))
-
-// Mock survey store
-let mockHazardTypes: string[] = []
+// Mock the survey store
+const mockAreas: any[] = []
+const mockPhotos: any[] = []
+const mockAddArea = vi.fn().mockReturnValue('area-new')
+const mockUpdateArea = vi.fn()
+const mockRemoveArea = vi.fn()
+const mockAddHazardToArea = vi.fn().mockReturnValue('hazard-new')
+const mockUpdateHazard = vi.fn()
+const mockRemoveHazard = vi.fn()
 
 vi.mock('@/lib/stores/survey-store', () => ({
-  useSurveyStore: () => ({
-    formData: {
-      hazards: {
-        types: mockHazardTypes,
+  useSurveyStore: (selector?: (state: any) => any) => {
+    const state = {
+      formData: {
+        hazards: { areas: mockAreas },
+        photos: { photos: mockPhotos },
       },
-    },
-  }),
+      addArea: mockAddArea,
+      updateArea: mockUpdateArea,
+      removeArea: mockRemoveArea,
+      addHazardToArea: mockAddHazardToArea,
+      updateHazard: mockUpdateHazard,
+      removeHazard: mockRemoveHazard,
+    }
+    if (selector) return selector(state)
+    return state
+  },
+}))
+
+vi.mock('@/lib/stores/survey-types', () => ({
+  HazardType: {},
+  MATERIAL_TYPES_BY_HAZARD: {},
+  CONDITION_OPTIONS_BY_HAZARD: {},
+  CONTAINMENT_LABELS: {},
+  suggestContainment: vi.fn(() => null),
 }))
 
 describe('HazardsSection', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockHazardTypes = []
+    mockAreas.length = 0
   })
 
   it('renders section title', () => {
     render(<HazardsSection />)
 
-    expect(screen.getByText('Hazard Types Present')).toBeInTheDocument()
+    expect(screen.getByText('Areas & Hazards')).toBeInTheDocument()
   })
 
-  it('renders HazardTypeSelector', () => {
+  it('shows empty state when no areas', () => {
     render(<HazardsSection />)
 
-    expect(screen.getByTestId('hazard-type-selector')).toBeInTheDocument()
+    expect(screen.getByText('No areas documented yet')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /add area/i })).toBeInTheDocument()
   })
 
-  it('does not show hazard forms when no types selected', () => {
+  it('calls addArea when add button clicked', async () => {
+    const user = userEvent.setup()
     render(<HazardsSection />)
 
-    expect(screen.queryByTestId('asbestos-form')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('mold-form')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('lead-form')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('other-hazard-form')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /add area/i }))
+
+    expect(mockAddArea).toHaveBeenCalled()
   })
 
-  it('shows AsbestosForm when asbestos is selected', () => {
-    mockHazardTypes = ['asbestos']
+  it('shows areas when they exist', () => {
+    mockAreas.push({
+      id: 'area-1',
+      area_name: 'Basement',
+      floor_level: '1st Floor',
+      hazards: [
+        { id: 'h1', hazard_type: 'asbestos', material_type: 'pipe_insulation', quantity: 50, unit: 'sq_ft', condition: '', containment_level: null, notes: '' },
+      ],
+      photo_ids: [],
+    })
+
     render(<HazardsSection />)
 
-    expect(screen.getByTestId('asbestos-form')).toBeInTheDocument()
-    expect(screen.getByText('Asbestos Details')).toBeInTheDocument()
-    expect(screen.getByText('⚠️')).toBeInTheDocument()
+    expect(screen.getByText('Basement')).toBeInTheDocument()
+    expect(screen.getByText(/1 hazard/)).toBeInTheDocument()
   })
 
-  it('shows MoldForm when mold is selected', () => {
-    mockHazardTypes = ['mold']
+  it('shows description text', () => {
     render(<HazardsSection />)
 
-    expect(screen.getByTestId('mold-form')).toBeInTheDocument()
-    expect(screen.getByText('Mold Details')).toBeInTheDocument()
-    expect(screen.getByText('🦠')).toBeInTheDocument()
-  })
-
-  it('shows LeadForm when lead is selected', () => {
-    mockHazardTypes = ['lead']
-    render(<HazardsSection />)
-
-    expect(screen.getByTestId('lead-form')).toBeInTheDocument()
-    expect(screen.getByText('Lead Paint Details')).toBeInTheDocument()
-    expect(screen.getByText('🎨')).toBeInTheDocument()
-  })
-
-  it('shows OtherHazardForm when other is selected', () => {
-    mockHazardTypes = ['other']
-    render(<HazardsSection />)
-
-    expect(screen.getByTestId('other-hazard-form')).toBeInTheDocument()
-    expect(screen.getByText('Other Hazards')).toBeInTheDocument()
-    expect(screen.getByText('⚡')).toBeInTheDocument()
-  })
-
-  it('shows multiple forms when multiple types selected', () => {
-    mockHazardTypes = ['asbestos', 'mold', 'lead', 'other']
-    render(<HazardsSection />)
-
-    expect(screen.getByTestId('asbestos-form')).toBeInTheDocument()
-    expect(screen.getByTestId('mold-form')).toBeInTheDocument()
-    expect(screen.getByTestId('lead-form')).toBeInTheDocument()
-    expect(screen.getByTestId('other-hazard-form')).toBeInTheDocument()
-  })
-
-  it('shows divider border when hazards are selected', () => {
-    mockHazardTypes = ['asbestos']
-    const { container } = render(<HazardsSection />)
-
-    const divider = container.querySelector('.border-t')
-    expect(divider).toBeInTheDocument()
-  })
-
-  it('does not show divider when no hazards selected', () => {
-    const { container } = render(<HazardsSection />)
-
-    const divider = container.querySelector('.border-t')
-    expect(divider).not.toBeInTheDocument()
+    expect(screen.getByText(/document hazards by area/i)).toBeInTheDocument()
   })
 })

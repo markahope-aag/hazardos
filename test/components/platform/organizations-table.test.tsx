@@ -523,7 +523,7 @@ describe('OrganizationsTable', () => {
       render(<OrganizationsTable organizations={[orgUnpaid]} />)
 
       const badge = screen.getByText('Unpaid')
-      expect(badge).toHaveClass('text-red-800', 'bg-red-100')
+      expect(badge).toHaveClass('text-destructive')
     })
   })
 

@@ -384,6 +384,7 @@ describe('Estimates API', () => {
       expect(calculateEstimateFromSurvey).toHaveBeenCalledWith(
         mockSurvey,
         'org-123',
+        expect.any(Object),
         expect.objectContaining({ customMarkup: 15 })
       )
     })

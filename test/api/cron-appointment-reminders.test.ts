@@ -34,6 +34,16 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
   applyUnifiedRateLimit: vi.fn(() => Promise.resolve(null))
 }))
 
+vi.mock('@/lib/utils/logger', () => ({
+  createRequestLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  })),
+  formatError: vi.fn((err: unknown, type: string) => ({ type, message: String(err) })),
+}))
+
 describe('GET /api/cron/appointment-reminders', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -59,11 +69,12 @@ describe('GET /api/cron/appointment-reminders', () => {
             eq: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 gte: vi.fn().mockReturnValue({
-                  lt: vi.fn().mockReturnValue({
-                    is: vi.fn().mockResolvedValue({
-                      data: [{ id: 'job-1' }, { id: 'job-2' }],
-                      error: null
-                    })
+                  lte: vi.fn().mockResolvedValue({
+                    data: [
+                      { id: 'job-1', organization_id: 'org-1' },
+                      { id: 'job-2', organization_id: 'org-1' },
+                    ],
+                    error: null
                   })
                 })
               })

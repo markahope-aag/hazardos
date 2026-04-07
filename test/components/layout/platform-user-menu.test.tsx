@@ -54,7 +54,7 @@ describe('PlatformUserMenu', () => {
 
     await user.click(screen.getByText('Back to Dashboard'))
 
-    expect(mockPush).toHaveBeenCalledWith('/dashboard')
+    expect(mockPush).toHaveBeenCalledWith('/')
   })
 
   it('shows ? for empty email', () => {

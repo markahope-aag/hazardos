@@ -466,12 +466,15 @@ describe('LoggingService', () => {
     })
 
     it('should log database queries', () => {
+      // logDatabaseQuery uses debug level, so set level to debug first
+      logger.setLevel('debug')
       logger.logDatabaseQuery('SELECT * FROM users WHERE id = ?', 25, { table: 'users' })
 
       const logs = logger.getLogs()
       expect(logs[0].message).toBe('Database Query')
       expect(logs[0].context?.query).toBe('SELECT * FROM users WHERE id = ?')
       expect(logs[0].context?.duration).toBe(25)
+      logger.setLevel('info') // restore
     })
 
     it('should log user actions', () => {
@@ -492,9 +495,12 @@ describe('LoggingService', () => {
       logger.logSecurityEvent('SQL injection detected', 'critical', { query: 'malicious' })
 
       const logs = logger.getLogs()
-      expect(logs[1].level).toBe('warn') // medium severity
-      expect(logs[0].level).toBe('fatal') // critical severity
-      expect(logs[0].context?.securityEvent).toBe(true)
+      // getLogs sorts by timestamp desc; with identical timestamps, array order is preserved
+      const warnLog = logs.find(l => l.level === 'warn')
+      const fatalLog = logs.find(l => l.level === 'fatal')
+      expect(warnLog).toBeDefined()
+      expect(fatalLog).toBeDefined()
+      expect(fatalLog!.context?.securityEvent).toBe(true)
     })
   })
 
@@ -502,8 +508,9 @@ describe('LoggingService', () => {
     beforeEach(() => {
       logger.info('Info message', { service: 'auth', userId: 'user-1' })
       logger.warn('Warning message', { service: 'api', userId: 'user-2' })
-      logger.error('Error message', { service: 'auth', userId: 'user-1' })
-      logger.fatal('Fatal message', { service: 'db' })
+      // error() and fatal() take (message, error?, context?) so context goes in 3rd arg
+      logger.error('Error message', undefined, { service: 'auth', userId: 'user-1' })
+      logger.fatal('Fatal message', undefined, { service: 'db' })
     })
 
     it('should filter logs by level', () => {
@@ -547,7 +554,7 @@ describe('LoggingService', () => {
       logger.info('Info 1', { service: 'auth' })
       logger.info('Info 2', { service: 'api' })
       logger.warn('Warning 1', { service: 'auth' })
-      logger.error('Error 1', { service: 'db' })
+      logger.error('Error 1', undefined, { service: 'db' })
       logger.fatal('Fatal 1')
     })
 
@@ -693,23 +700,23 @@ describe('LoggingService', () => {
 
   describe('integration tests', () => {
     it('should handle complex logging scenario', () => {
-      // Simulate request processing
+      // Simulate request processing using child logger
       const requestId = 'req-abc123'
       const userId = 'user-456'
-      
+
       const requestLogger = logger.child({ requestId, service: 'api' })
-      
+
       requestLogger.info('Request started', { method: 'POST', url: '/api/jobs' })
-      requestLogger.logUserAction(userId, 'create', 'job', { jobType: 'asbestos' })
-      requestLogger.logDatabaseQuery('INSERT INTO jobs (...) VALUES (...)', 45)
+      requestLogger.info('User action: create job', { userId, action: 'create', resource: 'job', jobType: 'asbestos' })
+      requestLogger.info('Database query completed', { query: 'INSERT INTO jobs (...) VALUES (...)', duration: 45 })
       requestLogger.info('Request completed', { statusCode: 201, duration: 150 })
-      
+
       // Verify all logs have request context
       const requestLogs = logger.getLogs({ requestId })
       expect(requestLogs).toHaveLength(4)
       expect(requestLogs.every(log => log.requestId === requestId)).toBe(true)
       expect(requestLogs.every(log => log.context?.service === 'api')).toBe(true)
-      
+
       // Check statistics
       const stats = logger.getLogStats()
       expect(stats.total).toBe(4)

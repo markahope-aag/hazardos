@@ -75,11 +75,10 @@ describe('PhotoGallery', () => {
   it('renders all category groups', () => {
     render(<PhotoGallery />)
 
+    // New categories: exterior, interior, hazard_area, utility_access, other
     expect(screen.getByTestId('category-exterior')).toBeInTheDocument()
     expect(screen.getByTestId('category-interior')).toBeInTheDocument()
-    expect(screen.getByTestId('category-asbestos_materials')).toBeInTheDocument()
-    expect(screen.getByTestId('category-mold_areas')).toBeInTheDocument()
-    expect(screen.getByTestId('category-lead_components')).toBeInTheDocument()
+    expect(screen.getByTestId('category-hazard_area')).toBeInTheDocument()
     expect(screen.getByTestId('category-utility_access')).toBeInTheDocument()
     expect(screen.getByTestId('category-other')).toBeInTheDocument()
   })
@@ -106,7 +105,6 @@ describe('PhotoGallery', () => {
 
     // Detail should be shown
     expect(screen.getByTestId('photo-detail')).toBeInTheDocument()
-    // Caption appears both in button and detail, so use within
     const detail = screen.getByTestId('photo-detail')
     expect(detail).toHaveTextContent('Front view')
   })

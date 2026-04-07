@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import type { QuickBooksConnectionStatus, QuickBooksCompanyInfo } from '@/types/integrations';
+import { SecureError } from '@/lib/utils/secure-error-handler';
 
 const QBO_BASE_URL = process.env.QBO_ENVIRONMENT === 'production'
   ? 'https://quickbooks.api.intuit.com'
@@ -45,7 +46,7 @@ export class QuickBooksService {
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`Token exchange failed: ${error}`);
+      throw new SecureError('BAD_REQUEST', `Token exchange failed: ${error}`);
     }
 
     return response.json();
@@ -71,7 +72,7 @@ export class QuickBooksService {
     });
 
     if (!response.ok) {
-      throw new Error('Token refresh failed');
+      throw new SecureError('BAD_REQUEST', 'Token refresh failed');
     }
 
     return response.json();
@@ -201,7 +202,7 @@ export class QuickBooksService {
     body?: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     const tokens = await this.getValidTokens(organizationId);
-    if (!tokens) throw new Error('QuickBooks not connected');
+    if (!tokens) throw new SecureError('BAD_REQUEST', 'QuickBooks not connected');
 
     const url = `${QBO_BASE_URL}/v3/company/${tokens.realmId}${endpoint}`;
 
@@ -217,7 +218,7 @@ export class QuickBooksService {
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`QuickBooks API error: ${response.status} - ${error}`);
+      throw new SecureError('BAD_REQUEST', `QuickBooks API error: ${response.status} - ${error}`);
     }
 
     return response.json();
@@ -246,7 +247,7 @@ export class QuickBooksService {
       .eq('id', customerId)
       .single();
 
-    if (!customer) throw new Error('Customer not found');
+    if (!customer) throw new SecureError('NOT_FOUND', 'Customer not found');
 
     const displayName = customer.company_name ||
       `${customer.first_name || ''} ${customer.last_name || ''}`.trim();
@@ -335,7 +336,7 @@ export class QuickBooksService {
       .eq('id', invoiceId)
       .single();
 
-    if (!invoice) throw new Error('Invoice not found');
+    if (!invoice) throw new SecureError('NOT_FOUND', 'Invoice not found');
 
     // Ensure customer is synced first
     let qbCustomerId = invoice.customer?.qb_customer_id;
@@ -432,7 +433,7 @@ export class QuickBooksService {
       .eq('id', paymentId)
       .single();
 
-    if (!payment) throw new Error('Payment not found');
+    if (!payment) throw new SecureError('NOT_FOUND', 'Payment not found');
 
     interface Invoice {
       qb_invoice_id: string;
@@ -444,7 +445,7 @@ export class QuickBooksService {
     const invoiceData = payment.invoice as Invoice;
 
     if (!invoiceData?.qb_invoice_id) {
-      throw new Error('Invoice must be synced to QuickBooks first');
+      throw new SecureError('BAD_REQUEST', 'Invoice must be synced to QuickBooks first');
     }
 
     const qbPayment: Record<string, unknown> = {

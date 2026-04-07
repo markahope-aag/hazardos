@@ -1,128 +1,100 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { Logo, LogoHorizontal, LogoVertical, LogoIcon } from '@/components/ui/logo'
-
-// Mock Next.js Image component
-vi.mock('next/image', () => ({
-  default: ({ src, alt, className, width, height, ...props }: any) => (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt={alt}
-      className={className}
-      width={width}
-      height={height}
-      data-testid="logo-image"
-      {...props}
-    />
-  ),
-}))
 
 describe('Logo Component', () => {
   it('should render with default props', () => {
     render(<Logo />)
 
-    const image = screen.getByTestId('logo-image')
+    const image = screen.getByAltText('HazardOS')
     expect(image).toBeInTheDocument()
     expect(image).toHaveAttribute('src', '/logos/logo-horizontal-color.png')
-    expect(image).toHaveAttribute('alt', 'HazardOS')
-    expect(image).toHaveAttribute('width', '120')
-    expect(image).toHaveAttribute('height', '40')
+    expect(image).toHaveStyle({ height: '32px', width: 'auto' })
   })
 
   it('should render horizontal variant', () => {
     render(<Logo variant="horizontal" />)
 
-    const image = screen.getByTestId('logo-image')
+    const image = screen.getByAltText('HazardOS')
     expect(image).toHaveAttribute('src', '/logos/logo-horizontal-color.png')
-    expect(image).toHaveClass('h-8') // md size for horizontal
+    expect(image).toHaveStyle({ height: '32px' }) // md size for horizontal
   })
 
   it('should render vertical variant', () => {
     render(<Logo variant="vertical" />)
 
-    const image = screen.getByTestId('logo-image')
+    const image = screen.getByAltText('HazardOS')
     expect(image).toHaveAttribute('src', '/logos/logo-vertical-color.png')
-    expect(image).toHaveClass('h-12') // md size for vertical
+    expect(image).toHaveStyle({ height: '48px' }) // md size for vertical
   })
 
   it('should render icon variant', () => {
     render(<Logo variant="icon" />)
 
-    const image = screen.getByTestId('logo-image')
+    const image = screen.getByAltText('HazardOS')
     expect(image).toHaveAttribute('src', '/logos/icon-512-color.png')
-    expect(image).toHaveAttribute('width', '32')
-    expect(image).toHaveAttribute('height', '32')
-    expect(image).toHaveClass('h-8', 'w-8') // md size for icon
+    expect(image).toHaveStyle({ height: '32px' }) // md size for icon
   })
 
   it('should render with different colors', () => {
     const colors = ['color', 'bw', 'white'] as const
 
     colors.forEach((color) => {
-      const { rerender } = render(<Logo color={color} />)
-      const image = screen.getByTestId('logo-image')
+      const { unmount } = render(<Logo color={color} />)
+      const image = screen.getByAltText('HazardOS')
       expect(image).toHaveAttribute('src', `/logos/logo-horizontal-${color}.png`)
-      rerender(<div />)
+      unmount()
     })
   })
 
   it('should render with different sizes', () => {
     const sizes = [
-      { size: 'sm', expectedClass: 'h-6' },
-      { size: 'md', expectedClass: 'h-8' },
-      { size: 'lg', expectedClass: 'h-10' },
-      { size: 'xl', expectedClass: 'h-12' },
-    ] as const
+      { size: 'sm' as const, expectedHeight: 24 },
+      { size: 'md' as const, expectedHeight: 32 },
+      { size: 'lg' as const, expectedHeight: 40 },
+      { size: 'xl' as const, expectedHeight: 48 },
+    ]
 
-    sizes.forEach(({ size, expectedClass }) => {
-      const { rerender } = render(<Logo size={size} />)
-      const image = screen.getByTestId('logo-image')
-      expect(image).toHaveClass(expectedClass)
-      rerender(<div />)
+    sizes.forEach(({ size, expectedHeight }) => {
+      const { unmount } = render(<Logo size={size} />)
+      const image = screen.getByAltText('HazardOS')
+      expect(image).toHaveStyle({ height: `${expectedHeight}px` })
+      unmount()
     })
   })
 
-  it('should render icon with correct size classes', () => {
+  it('should render icon with correct size heights', () => {
     const iconSizes = [
-      { size: 'sm', expectedClasses: ['h-6', 'w-6'] },
-      { size: 'md', expectedClasses: ['h-8', 'w-8'] },
-      { size: 'lg', expectedClasses: ['h-10', 'w-10'] },
-      { size: 'xl', expectedClasses: ['h-12', 'w-12'] },
-    ] as const
+      { size: 'sm' as const, expectedHeight: 24 },
+      { size: 'md' as const, expectedHeight: 32 },
+      { size: 'lg' as const, expectedHeight: 40 },
+      { size: 'xl' as const, expectedHeight: 48 },
+    ]
 
-    iconSizes.forEach(({ size, expectedClasses }) => {
-      const { rerender } = render(<Logo variant="icon" size={size} />)
-      const image = screen.getByTestId('logo-image')
-      expectedClasses.forEach((className) => {
-        expect(image).toHaveClass(className)
-      })
-      rerender(<div />)
+    iconSizes.forEach(({ size, expectedHeight }) => {
+      const { unmount } = render(<Logo variant="icon" size={size} />)
+      const image = screen.getByAltText('HazardOS')
+      expect(image).toHaveStyle({ height: `${expectedHeight}px` })
+      unmount()
     })
   })
 
   it('should apply custom className', () => {
     render(<Logo className="custom-logo-class" />)
 
-    const image = screen.getByTestId('logo-image')
+    const image = screen.getByAltText('HazardOS')
     expect(image).toHaveClass('custom-logo-class')
   })
 
-  it('should add w-auto class for non-icon variants', () => {
-    const { rerender, unmount } = render(<Logo variant="horizontal" />)
-    const horizontalImage = screen.getByTestId('logo-image')
-    expect(horizontalImage).toHaveClass('w-auto')
-    unmount()
+  it('should have auto width for all variants', () => {
+    const variants = ['horizontal', 'vertical', 'icon'] as const
 
-    const { rerender: _rerender2, unmount: unmount2 } = render(<Logo variant="vertical" />)
-    const verticalImage = screen.getByTestId('logo-image')
-    expect(verticalImage).toHaveClass('w-auto')
-    unmount2()
-
-    const { unmount: unmount3 } = render(<Logo variant="icon" />)
-    const iconImage = screen.getByTestId('logo-image')
-    expect(iconImage).not.toHaveClass('w-auto')
-    unmount3()
+    variants.forEach((variant) => {
+      const { unmount } = render(<Logo variant={variant} />)
+      const image = screen.getByAltText('HazardOS')
+      expect(image).toHaveStyle({ width: 'auto' })
+      unmount()
+    })
   })
 
   it('should have correct alt text', () => {
@@ -142,9 +114,10 @@ describe('Logo Component', () => {
       />
     )
 
-    const image = screen.getByTestId('logo-image')
+    const image = screen.getByAltText('HazardOS')
     expect(image).toHaveAttribute('src', '/logos/logo-vertical-bw.png')
-    expect(image).toHaveClass('h-16', 'w-auto', 'custom-class')
+    expect(image).toHaveStyle({ height: '64px', width: 'auto' })
+    expect(image).toHaveClass('custom-class')
   })
 })
 
@@ -152,43 +125,39 @@ describe('Logo Convenience Components', () => {
   it('should render LogoHorizontal correctly', () => {
     render(<LogoHorizontal color="white" size="lg" />)
 
-    const image = screen.getByTestId('logo-image')
+    const image = screen.getByAltText('HazardOS')
     expect(image).toHaveAttribute('src', '/logos/logo-horizontal-white.png')
-    expect(image).toHaveClass('h-10')
+    expect(image).toHaveStyle({ height: '40px' })
   })
 
   it('should render LogoVertical correctly', () => {
     render(<LogoVertical color="bw" size="sm" />)
 
-    const image = screen.getByTestId('logo-image')
+    const image = screen.getByAltText('HazardOS')
     expect(image).toHaveAttribute('src', '/logos/logo-vertical-bw.png')
-    expect(image).toHaveClass('h-8')
+    expect(image).toHaveStyle({ height: '32px' })
   })
 
   it('should render LogoIcon correctly', () => {
     render(<LogoIcon color="color" size="xl" />)
 
-    const image = screen.getByTestId('logo-image')
+    const image = screen.getByAltText('HazardOS')
     expect(image).toHaveAttribute('src', '/logos/icon-512-color.png')
-    expect(image).toHaveClass('h-12', 'w-12')
-    expect(image).toHaveAttribute('width', '32')
-    expect(image).toHaveAttribute('height', '32')
+    expect(image).toHaveStyle({ height: '48px' })
   })
 
   it('should pass through additional props to convenience components', () => {
     render(<LogoHorizontal className="convenience-class" />)
 
-    const image = screen.getByTestId('logo-image')
+    const image = screen.getByAltText('HazardOS')
     expect(image).toHaveClass('convenience-class')
   })
 
   it('should not allow variant override in convenience components', () => {
-    // TypeScript should prevent this, but test runtime behavior
     render(<LogoIcon />)
 
-    const image = screen.getByTestId('logo-image')
+    const image = screen.getByAltText('HazardOS')
     expect(image).toHaveAttribute('src', '/logos/icon-512-color.png')
-    // Should always be icon variant regardless of any other props
   })
 })
 
@@ -199,11 +168,11 @@ describe('Logo Edge Cases', () => {
 
     variants.forEach((variant) => {
       sizes.forEach((size) => {
-        const { rerender } = render(<Logo variant={variant} size={size} />)
-        const image = screen.getByTestId('logo-image')
+        const { unmount } = render(<Logo variant={variant} size={size} />)
+        const image = screen.getByAltText('HazardOS')
         expect(image).toBeInTheDocument()
         expect(image).toHaveAttribute('alt', 'HazardOS')
-        rerender(<div />)
+        unmount()
       })
     })
   })
@@ -214,38 +183,36 @@ describe('Logo Edge Cases', () => {
 
     variants.forEach((variant) => {
       colors.forEach((color) => {
-        const { rerender } = render(<Logo variant={variant} color={color} />)
-        const image = screen.getByTestId('logo-image')
-        
-        const expectedSrc = variant === 'icon' 
+        const { unmount } = render(<Logo variant={variant} color={color} />)
+        const image = screen.getByAltText('HazardOS')
+
+        const expectedSrc = variant === 'icon'
           ? `/logos/icon-512-${color}.png`
           : `/logos/logo-${variant}-${color}.png`
-        
+
         expect(image).toHaveAttribute('src', expectedSrc)
-        rerender(<div />)
+        unmount()
       })
     })
   })
 
-  it('should maintain consistent dimensions', () => {
-    // Icon variant should always have square dimensions
+  it('should maintain consistent dimensions via inline styles', () => {
+    // Icon variant
     const { unmount: unmount1 } = render(<Logo variant="icon" />)
-    const iconImage = screen.getByTestId('logo-image')
-    expect(iconImage).toHaveAttribute('width', '32')
-    expect(iconImage).toHaveAttribute('height', '32')
+    const iconImage = screen.getByAltText('HazardOS')
+    expect(iconImage).toHaveStyle({ height: '32px', width: 'auto' })
     unmount1()
 
-    // Non-icon variants should have consistent dimensions
+    // Horizontal variant
     const { unmount: unmount2 } = render(<Logo variant="horizontal" />)
-    const horizontalImage = screen.getByTestId('logo-image')
-    expect(horizontalImage).toHaveAttribute('width', '120')
-    expect(horizontalImage).toHaveAttribute('height', '40')
+    const horizontalImage = screen.getByAltText('HazardOS')
+    expect(horizontalImage).toHaveStyle({ height: '32px', width: 'auto' })
     unmount2()
 
+    // Vertical variant
     const { unmount: unmount3 } = render(<Logo variant="vertical" />)
-    const verticalImage = screen.getByTestId('logo-image')
-    expect(verticalImage).toHaveAttribute('width', '120')
-    expect(verticalImage).toHaveAttribute('height', '40')
+    const verticalImage = screen.getByAltText('HazardOS')
+    expect(verticalImage).toHaveStyle({ height: '48px', width: 'auto' })
     unmount3()
   })
 })

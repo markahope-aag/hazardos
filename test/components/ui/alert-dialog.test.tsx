@@ -36,8 +36,8 @@ describe('AlertDialog', () => {
   it('should render AlertDialogHeader with correct styling', () => {
     render(
       <AlertDialogHeader data-testid="alert-header">
-        <AlertDialogTitle>Header Title</AlertDialogTitle>
-        <AlertDialogDescription>Header Description</AlertDialogDescription>
+        <span>Header Title</span>
+        <span>Header Description</span>
       </AlertDialogHeader>
     )
 
@@ -54,8 +54,8 @@ describe('AlertDialog', () => {
   it('should render AlertDialogFooter with correct styling', () => {
     render(
       <AlertDialogFooter data-testid="alert-footer">
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
-        <AlertDialogAction>Confirm</AlertDialogAction>
+        <button>Cancel</button>
+        <button>Confirm</button>
       </AlertDialogFooter>
     )
 

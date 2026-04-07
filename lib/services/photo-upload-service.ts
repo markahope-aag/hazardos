@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { usePhotoQueueStore, QueuedPhoto } from '@/lib/stores/photo-queue-store'
 import { createServiceLogger } from '@/lib/utils/logger'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 
 const log = createServiceLogger('PhotoUploadService')
 const STORAGE_BUCKET = 'survey-photos'
@@ -35,7 +36,7 @@ export async function uploadPhotoToStorage(photo: QueuedPhoto): Promise<string> 
     })
 
   if (error) {
-    throw new Error(`Upload failed: ${error.message}`)
+    throw new SecureError('BAD_REQUEST', `Upload failed: ${error.message}`)
   }
 
   // Get public URL

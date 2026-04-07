@@ -76,7 +76,7 @@ describe('JobCompletionService', () => {
           error: null,
         })
 
-        await expect(JobCompletionService.getTimeEntries('job-1')).rejects.toThrow('Unauthorized')
+        await expect(JobCompletionService.getTimeEntries('job-1')).rejects.toThrow('Authentication is required')
       })
     })
 

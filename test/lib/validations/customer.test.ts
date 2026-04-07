@@ -9,7 +9,9 @@ import {
 
 describe('customerSchema', () => {
   const validCustomer = {
-    name: 'John Doe',
+    first_name: 'John',
+    last_name: 'Doe',
+    contact_type: 'residential' as const,
     status: 'lead' as const,
     marketing_consent: false,
   }
@@ -19,17 +21,19 @@ describe('customerSchema', () => {
     expect(result.success).toBe(true)
   })
 
-  it('requires name', () => {
+  it('requires first_name', () => {
     const result = customerSchema.safeParse({
+      contact_type: 'residential',
       status: 'lead',
       marketing_consent: false,
     })
     expect(result.success).toBe(false)
   })
 
-  it('rejects empty name', () => {
+  it('rejects empty first_name', () => {
     const result = customerSchema.safeParse({
-      name: '',
+      first_name: '',
+      contact_type: 'residential',
       status: 'lead',
       marketing_consent: false,
     })
@@ -38,7 +42,8 @@ describe('customerSchema', () => {
 
   it('requires status', () => {
     const result = customerSchema.safeParse({
-      name: 'John',
+      first_name: 'John',
+      contact_type: 'residential',
       marketing_consent: false,
     })
     expect(result.success).toBe(false)
@@ -65,7 +70,8 @@ describe('customerSchema', () => {
 
   it('requires marketing_consent', () => {
     const result = customerSchema.safeParse({
-      name: 'John',
+      first_name: 'John',
+      contact_type: 'residential',
       status: 'lead',
     })
     expect(result.success).toBe(false)
@@ -114,10 +120,10 @@ describe('customerSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('rejects name exceeding max length', () => {
+  it('rejects first_name exceeding max length', () => {
     const result = customerSchema.safeParse({
       ...validCustomer,
-      name: 'a'.repeat(256),
+      first_name: 'a'.repeat(101),
     })
     expect(result.success).toBe(false)
   })
@@ -132,7 +138,9 @@ describe('customerSchema', () => {
 
   it('accepts full customer data', () => {
     const result = customerSchema.safeParse({
-      name: 'John Doe',
+      first_name: 'John',
+      last_name: 'Doe',
+      contact_type: 'commercial' as const,
       company_name: 'Acme Corp',
       email: 'john@acme.com',
       phone: '555-123-4567',

@@ -90,7 +90,7 @@ describe('UserMenu Component', () => {
       await user.click(profileOption)
     })
 
-    expect(mockPush).toHaveBeenCalledWith('/dashboard/profile')
+    expect(mockPush).toHaveBeenCalledWith('/settings')
   })
 
   it('should navigate to settings when settings option is clicked', async () => {
@@ -105,7 +105,7 @@ describe('UserMenu Component', () => {
       await user.click(settingsOption)
     })
 
-    expect(mockPush).toHaveBeenCalledWith('/dashboard/settings')
+    expect(mockPush).toHaveBeenCalledWith('/settings')
   })
 
   it('should call logout when sign out is clicked', async () => {

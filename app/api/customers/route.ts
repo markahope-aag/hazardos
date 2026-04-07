@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { CustomersService } from '@/lib/supabase/customers'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { customerListQuerySchema, createCustomerSchema } from '@/lib/validations/customers'
-import type { CustomerInsert, CustomerStatus } from '@/types/database'
+import type { CustomerInsert } from '@/types/database'
 
 /**
  * GET /api/customers
@@ -15,7 +15,7 @@ export const GET = createApiHandler(
   },
   async (_request, context, _body, query) => {
     const customers = await CustomersService.getCustomers(context.profile.organization_id, {
-      status: query.status as CustomerStatus | undefined,
+      status: query.status,
       search: query.search,
       limit: query.limit,
       offset: query.offset,

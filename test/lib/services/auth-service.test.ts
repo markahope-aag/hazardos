@@ -18,6 +18,11 @@ interface AuthSession {
 class AuthService {
   private users: Map<string, User> = new Map()
   private sessions: Map<string, AuthSession> = new Map()
+  private idCounter = 0
+
+  private nextId(prefix: string): string {
+    return `${prefix}-${Date.now()}-${++this.idCounter}`
+  }
 
   async signUp(email: string, password: string): Promise<{ user: User; session: AuthSession }> {
     if (password.length < 8) {
@@ -25,7 +30,7 @@ class AuthService {
     }
 
     const user: User = {
-      id: `user-${Date.now()}`,
+      id: this.nextId('user'),
       email,
       role: 'user',
       created_at: new Date().toISOString()
@@ -33,8 +38,8 @@ class AuthService {
 
     const session: AuthSession = {
       user,
-      access_token: `token-${Date.now()}`,
-      refresh_token: `refresh-${Date.now()}`,
+      access_token: this.nextId('token'),
+      refresh_token: this.nextId('refresh'),
       expires_at: Date.now() + 3600000 // 1 hour
     }
 
@@ -58,8 +63,8 @@ class AuthService {
 
     const session: AuthSession = {
       user,
-      access_token: `token-${Date.now()}`,
-      refresh_token: `refresh-${Date.now()}`,
+      access_token: this.nextId('token'),
+      refresh_token: this.nextId('refresh'),
       expires_at: Date.now() + 3600000
     }
 
@@ -84,8 +89,8 @@ class AuthService {
 
     const newSession: AuthSession = {
       ...session,
-      access_token: `token-${Date.now()}`,
-      refresh_token: `refresh-${Date.now()}`,
+      access_token: this.nextId('token'),
+      refresh_token: this.nextId('refresh'),
       expires_at: Date.now() + 3600000
     }
 
@@ -140,9 +145,9 @@ describe('AuthService', () => {
 
       expect(result.user.email).toBe('test@example.com')
       expect(result.user.role).toBe('user')
-      expect(result.user.id).toMatch(/^user-\d+$/)
-      expect(result.session.access_token).toMatch(/^token-\d+$/)
-      expect(result.session.refresh_token).toMatch(/^refresh-\d+$/)
+      expect(result.user.id).toMatch(/^user-\d+-\d+$/)
+      expect(result.session.access_token).toMatch(/^token-\d+-\d+$/)
+      expect(result.session.refresh_token).toMatch(/^refresh-\d+-\d+$/)
     })
 
     it('should reject weak passwords', async () => {

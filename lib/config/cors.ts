@@ -91,7 +91,7 @@ export function getCorsConfig(policy: CorsPolicy): CorsConfig {
           ? ['*'] // More permissive in development
           : customOrigins.length > 0
             ? customOrigins
-            : ['*'], // API key auth protects the endpoint
+            : [appUrl],
         allowedMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         allowedHeaders: [...COMMON_API_HEADERS],
         exposedHeaders: EXPOSED_HEADERS,

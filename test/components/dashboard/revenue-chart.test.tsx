@@ -14,8 +14,33 @@ vi.mock('@/lib/utils', async (importOriginal) => {
   }
 })
 
-// Mock Recharts components
+// Mock Recharts components - factory inline to avoid hoisting issues
 vi.mock('recharts', () => ({
+  LineChart: ({ children, data }: { children: React.ReactNode, data: any[] }) => (
+    <div data-testid="line-chart" data-chart-data={JSON.stringify(data)}>
+      {children}
+    </div>
+  ),
+  Line: ({ dataKey, stroke }: { dataKey: string, stroke: string }) => (
+    <div data-testid="line" data-key={dataKey} style={{ stroke }} />
+  ),
+  XAxis: ({ dataKey }: { dataKey: string }) => (
+    <div data-testid="x-axis" data-key={dataKey} />
+  ),
+  YAxis: ({ tickFormatter }: { tickFormatter: (value: number) => string }) => (
+    <div data-testid="y-axis" data-formatter={tickFormatter ? 'custom' : 'default'} />
+  ),
+  CartesianGrid: ({ strokeDasharray }: { strokeDasharray: string }) => (
+    <div data-testid="grid" data-dash-array={strokeDasharray} />
+  ),
+  Tooltip: ({ formatter }: { formatter: any }) => (
+    <div data-testid="tooltip" data-has-formatter={!!formatter} />
+  ),
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="responsive-container">{children}</div>
+  ),
+}))
+vi.mock('@/components/charts/recharts-lazy', () => ({
   LineChart: ({ children, data }: { children: React.ReactNode, data: any[] }) => (
     <div data-testid="line-chart" data-chart-data={JSON.stringify(data)}>
       {children}
@@ -220,7 +245,7 @@ describe('RevenueChart', () => {
     })
 
     const chart = screen.getByTestId('line-chart')
-    expect(chart).toHaveAttribute('data-chart-data', 'null')
+    expect(chart).toHaveAttribute('data-chart-data', '[]')
   })
 
   it('should maintain loading state until data is loaded', async () => {

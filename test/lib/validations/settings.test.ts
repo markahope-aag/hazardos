@@ -321,8 +321,7 @@ describe('deleteEquipmentRateQuerySchema', () => {
 describe('updatePricingSettingsSchema', () => {
   it('accepts valid settings', () => {
     const result = updatePricingSettingsSchema.safeParse({
-      default_markup_percentage: 25,
-      default_tax_rate: 8.5,
+      default_markup_percent: 25,
     })
     expect(result.success).toBe(true)
   })
@@ -334,53 +333,61 @@ describe('updatePricingSettingsSchema', () => {
 
   it('validates markup range (0-100)', () => {
     const valid = updatePricingSettingsSchema.safeParse({
-      default_markup_percentage: 50,
+      default_markup_percent: 50,
     })
     expect(valid.success).toBe(true)
 
     const tooLow = updatePricingSettingsSchema.safeParse({
-      default_markup_percentage: -10,
+      default_markup_percent: -10,
     })
     expect(tooLow.success).toBe(false)
 
     const tooHigh = updatePricingSettingsSchema.safeParse({
-      default_markup_percentage: 150,
+      default_markup_percent: 150,
     })
     expect(tooHigh.success).toBe(false)
   })
 
-  it('validates tax rate range (0-100)', () => {
+  it('validates minimum_markup_percent range (0-100)', () => {
     const valid = updatePricingSettingsSchema.safeParse({
-      default_tax_rate: 10,
+      minimum_markup_percent: 10,
     })
     expect(valid.success).toBe(true)
 
     const tooHigh = updatePricingSettingsSchema.safeParse({
-      default_tax_rate: 150,
+      minimum_markup_percent: 150,
     })
     expect(tooHigh.success).toBe(false)
   })
 
-  it('accepts rounding_method', () => {
-    const methods = ['none', 'nearest', 'up', 'down'] as const
-    for (const method of methods) {
-      const result = updatePricingSettingsSchema.safeParse({
-        rounding_method: method,
-      })
-      expect(result.success).toBe(true)
-    }
-  })
-
-  it('rejects invalid rounding_method', () => {
-    const result = updatePricingSettingsSchema.safeParse({
-      rounding_method: 'invalid',
+  it('validates maximum_markup_percent range (0-100)', () => {
+    const valid = updatePricingSettingsSchema.safeParse({
+      maximum_markup_percent: 80,
     })
-    expect(result.success).toBe(false)
+    expect(valid.success).toBe(true)
+
+    const tooHigh = updatePricingSettingsSchema.safeParse({
+      maximum_markup_percent: 150,
+    })
+    expect(tooHigh.success).toBe(false)
   })
 
-  it('accepts currency', () => {
+  it('accepts office address fields', () => {
     const result = updatePricingSettingsSchema.safeParse({
-      currency: 'USD',
+      office_address_line1: '123 Main St',
+      office_city: 'Springfield',
+      office_state: 'IL',
+      office_zip: '62701',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts null office address fields', () => {
+    const result = updatePricingSettingsSchema.safeParse({
+      office_address_line1: null,
+      office_city: null,
+      office_state: null,
+      office_zip: null,
     })
     expect(result.success).toBe(true)
   })

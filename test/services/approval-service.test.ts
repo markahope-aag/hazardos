@@ -150,7 +150,7 @@ describe('ApprovalService', () => {
           threshold_amount: 10000,
           approval_level: 1,
         })
-      ).rejects.toThrow('Unauthorized')
+      ).rejects.toThrow('Authentication is required')
     })
 
     it('should throw error when organization not found', async () => {
@@ -162,7 +162,7 @@ describe('ApprovalService', () => {
           threshold_amount: 10000,
           approval_level: 1,
         })
-      ).rejects.toThrow('Organization not found')
+      ).rejects.toThrow('Authentication is required')
     })
 
     it('should default approver_role to null if not provided', async () => {

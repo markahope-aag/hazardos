@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import type { HubSpotConnectionStatus } from '@/types/integrations';
 import { createServiceLogger, formatError } from '@/lib/utils/logger';
+import { SecureError } from '@/lib/utils/secure-error-handler';
 
 const log = createServiceLogger('HubSpotService');
 const HUBSPOT_AUTH_URL = 'https://app.hubspot.com/oauth/authorize';
@@ -43,7 +44,7 @@ export class HubSpotService {
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`Token exchange failed: ${error}`);
+      throw new SecureError('BAD_REQUEST', `Token exchange failed: ${error}`);
     }
 
     return response.json();
@@ -68,7 +69,7 @@ export class HubSpotService {
     });
 
     if (!response.ok) {
-      throw new Error('Token refresh failed');
+      throw new SecureError('BAD_REQUEST', 'Token refresh failed');
     }
 
     return response.json();
@@ -203,7 +204,7 @@ export class HubSpotService {
     body?: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     const tokens = await this.getValidTokens(organizationId);
-    if (!tokens) throw new Error('HubSpot not connected');
+    if (!tokens) throw new SecureError('BAD_REQUEST', 'HubSpot not connected');
 
     const url = `${HUBSPOT_API_URL}${endpoint}`;
 
@@ -218,7 +219,7 @@ export class HubSpotService {
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`HubSpot API error: ${response.status} - ${error}`);
+      throw new SecureError('BAD_REQUEST', `HubSpot API error: ${response.status} - ${error}`);
     }
 
     // Handle 204 No Content
@@ -253,8 +254,8 @@ export class HubSpotService {
       .eq('id', customerId)
       .single();
 
-    if (!customer) throw new Error('Customer not found');
-    if (!customer.email) throw new Error('Customer has no email address');
+    if (!customer) throw new SecureError('NOT_FOUND', 'Customer not found');
+    if (!customer.email) throw new SecureError('VALIDATION_ERROR', 'Customer has no email address', 'email');
 
     const properties: Record<string, string> = {
       email: customer.email,

@@ -9,7 +9,9 @@ import {
 
 describe('Customer Validation Schema', () => {
   const validCustomerData = {
-    name: 'John Doe',
+    first_name: 'John',
+    last_name: 'Doe',
+    contact_type: 'residential' as const,
     company_name: 'Acme Corp',
     email: 'john@example.com',
     phone: '555-123-4567',
@@ -25,19 +27,19 @@ describe('Customer Validation Schema', () => {
   }
 
   describe('Required Fields', () => {
-    it('should validate name is required', () => {
-      const { name: _name, ...data } = validCustomerData
+    it('should validate first_name is required', () => {
+      const { first_name: _first_name, ...data } = validCustomerData
       const result = customerSchema.safeParse(data)
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error.issues.some(i => i.path.includes('name'))).toBe(true)
+        expect(result.error.issues.some(i => i.path.includes('first_name'))).toBe(true)
       }
     })
 
     it('should validate name cannot be empty', () => {
       const result = customerSchema.safeParse({
         ...validCustomerData,
-        name: ''
+        first_name: ''
       })
       expect(result.success).toBe(false)
     })
@@ -56,18 +58,18 @@ describe('Customer Validation Schema', () => {
   })
 
   describe('Field Length Validation', () => {
-    it('should accept name up to 255 characters', () => {
+    it('should accept first_name up to 100 characters', () => {
       const result = customerSchema.safeParse({
         ...validCustomerData,
-        name: 'x'.repeat(255)
+        first_name: 'x'.repeat(100)
       })
       expect(result.success).toBe(true)
     })
 
-    it('should reject name exceeding 255 characters', () => {
+    it('should reject first_name exceeding 100 characters', () => {
       const result = customerSchema.safeParse({
         ...validCustomerData,
-        name: 'x'.repeat(256)
+        first_name: 'x'.repeat(101)
       })
       expect(result.success).toBe(false)
     })
@@ -362,7 +364,7 @@ describe('Customer Validation Schema', () => {
       const result = customerSchema.safeParse(validCustomerData)
       expect(result.success).toBe(true)
       if (result.success) {
-        expect(result.data.name).toBe('John Doe')
+        expect(result.data.first_name).toBe('John')
         expect(result.data.email).toBe('john@example.com')
         expect(result.data.status).toBe('lead')
       }
@@ -370,8 +372,9 @@ describe('Customer Validation Schema', () => {
 
     it('should accept minimal valid customer data', () => {
       const minimalData = {
-        name: 'Jane',
-        status: 'prospect',
+        first_name: 'Jane',
+        contact_type: 'residential' as const,
+        status: 'prospect' as const,
         marketing_consent: true
       }
       const result = customerSchema.safeParse(minimalData)

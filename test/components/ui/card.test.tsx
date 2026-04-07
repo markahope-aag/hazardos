@@ -36,9 +36,8 @@ describe('Card', () => {
     expect(card).toHaveClass(
       'rounded-lg',
       'border',
-      'border-gray-200',
-      'bg-white',
-      'text-gray-900',
+      'bg-card',
+      'text-card-foreground',
       'shadow-sm'
     )
   })
@@ -67,7 +66,7 @@ describe('Card', () => {
     render(<CardDescription data-testid="card-description">Description Text</CardDescription>)
     
     const description = screen.getByTestId('card-description')
-    expect(description).toHaveClass('text-sm', 'text-gray-600')
+    expect(description).toHaveClass('text-sm', 'text-muted-foreground')
     expect(description.tagName).toBe('P')
   })
 

@@ -1,5 +1,7 @@
+import { nanoid } from 'nanoid'
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 import type {
   JobTimeEntry,
   JobMaterialUsage,
@@ -32,7 +34,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('job_time_entries')
@@ -57,7 +59,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('job_time_entries')
@@ -90,7 +92,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('job_time_entries')
@@ -113,7 +115,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     // Get job_id before deleting
     const { data: entry } = await supabase
@@ -142,7 +144,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('job_material_usage')
@@ -165,7 +167,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('job_material_usage')
@@ -198,7 +200,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('job_material_usage')
@@ -221,7 +223,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     // Get job_id before deleting
     const { data: usage } = await supabase
@@ -250,7 +252,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('job_completion_photos')
@@ -273,7 +275,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('job_completion_photos')
@@ -310,7 +312,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('job_completion_photos')
@@ -330,7 +332,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     // Get storage path before deleting from DB
     const { data: photo } = await supabase
@@ -362,7 +364,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('job_completion_checklists')
@@ -407,7 +409,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     // Check if checklist already exists
     const { count } = await supabase
@@ -440,7 +442,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('job_completion_checklists')
@@ -466,7 +468,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const updateData: Record<string, unknown> = {}
 
@@ -502,7 +504,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('job_completions')
@@ -529,7 +531,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     // Check if completion already exists
     const existing = await JobCompletionService.getCompletion(input.job_id)
@@ -582,7 +584,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const updateData: Record<string, unknown> = { ...input }
 
@@ -611,7 +613,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     // Update variance before submission
     await JobCompletionService.updateCompletionVariance(jobId)
@@ -647,7 +649,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('job_completions')
@@ -684,7 +686,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('job_completions')
@@ -750,7 +752,7 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     let query = supabase
       .from('job_completions')
@@ -907,10 +909,10 @@ export class JobCompletionService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const fileExt = file.name.split('.').pop()
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+    const fileName = `${Date.now()}-${nanoid()}.${fileExt}`
     const storagePath = `${organizationId}/${jobId}/${fileName}`
 
     const { error: uploadError } = await supabase.storage

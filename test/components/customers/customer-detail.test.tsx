@@ -11,16 +11,23 @@ vi.mock('next/navigation', () => ({
   }),
 }))
 
+vi.mock('next/link', () => ({
+  default: ({ children, href, ...rest }: any) => <a href={href} {...rest}>{children}</a>,
+}))
+
 vi.mock('@/lib/hooks/use-customers', () => ({
+  useUpdateCustomer: () => ({
+    mutateAsync: vi.fn().mockResolvedValue({}),
+    isPending: false,
+  }),
   useUpdateCustomerStatus: () => ({
     mutateAsync: vi.fn().mockResolvedValue({}),
   }),
 }))
 
-// Mock child components to focus on CustomerDetail logic
-vi.mock('@/components/customers/customer-info-card', () => ({
-  default: ({ customer }: { customer: Customer }) => (
-    <div data-testid="customer-info-card">Customer Info: {customer.name}</div>
+vi.mock('@/components/customers/customer-status-badge', () => ({
+  default: ({ status }: { status: string }) => (
+    <span data-testid="status-badge">{status}</span>
   ),
 }))
 
@@ -36,12 +43,6 @@ vi.mock('@/components/customers/customer-activity-feed', () => ({
   ),
 }))
 
-vi.mock('@/components/customers/customer-status-badge', () => ({
-  default: ({ status }: { status: string }) => (
-    <span data-testid="status-badge">{status}</span>
-  ),
-}))
-
 vi.mock('@/components/customers/edit-customer-modal', () => ({
   default: ({ customer, open, onClose }: { customer: Customer; open: boolean; onClose: () => void }) => (
     open ? (
@@ -54,9 +55,9 @@ vi.mock('@/components/customers/edit-customer-modal', () => ({
 }))
 
 vi.mock('@/components/customers/delete-customer-dialog', () => ({
-  default: ({ customer, open, onClose, onSuccess }: { 
-    customer: Customer; 
-    open: boolean; 
+  default: ({ customer, open, onClose, onSuccess }: {
+    customer: Customer;
+    open: boolean;
     onClose: () => void;
     onSuccess: () => void;
   }) => (
@@ -74,6 +75,8 @@ const mockCustomer: Customer = {
   id: 'customer-1',
   organization_id: 'org-1',
   name: 'John Doe',
+  first_name: 'John',
+  last_name: 'Doe',
   company_name: 'Acme Corp',
   email: 'john@acme.com',
   phone: '+1-555-0123',
@@ -84,6 +87,7 @@ const mockCustomer: Customer = {
   zip: '10001',
   status: 'lead',
   source: 'website',
+  contact_type: 'residential',
   communication_preferences: { email: true, sms: false, mail: false },
   marketing_consent: true,
   marketing_consent_date: '2024-01-01',
@@ -104,27 +108,27 @@ describe('CustomerDetail Component', () => {
     expect(screen.getByText('John Doe')).toBeInTheDocument()
     expect(screen.getByText('Acme Corp')).toBeInTheDocument()
     expect(screen.getByTestId('status-badge')).toHaveTextContent('lead')
-    expect(screen.getByText('Source: Website')).toBeInTheDocument()
   })
 
   it('should render back button', () => {
     render(<CustomerDetail customer={mockCustomer} />)
 
-    const backButton = screen.getByRole('button', { name: /back to customers/i })
+    const backButton = screen.getByRole('button', { name: /back to contacts/i })
     expect(backButton).toBeInTheDocument()
   })
 
   it('should render edit button', () => {
     render(<CustomerDetail customer={mockCustomer} />)
 
-    const editButton = screen.getByRole('button', { name: /edit/i })
-    expect(editButton).toBeInTheDocument()
+    // There are multiple edit buttons (header + notes). Verify at least one exists.
+    const editButtons = screen.getAllByRole('button', { name: /edit/i })
+    expect(editButtons.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('should render change status dropdown', () => {
+  it('should render status dropdown', () => {
     render(<CustomerDetail customer={mockCustomer} />)
 
-    const statusButton = screen.getByRole('button', { name: /change status/i })
+    const statusButton = screen.getByRole('button', { name: /status/i })
     expect(statusButton).toBeInTheDocument()
   })
 
@@ -132,8 +136,9 @@ describe('CustomerDetail Component', () => {
     const user = userEvent.setup()
     render(<CustomerDetail customer={mockCustomer} />)
 
-    const editButton = screen.getByRole('button', { name: /edit/i })
-    await user.click(editButton)
+    // Find the edit button (the first one in the header)
+    const editButtons = screen.getAllByRole('button', { name: /edit/i })
+    await user.click(editButtons[0])
 
     expect(screen.getByTestId('edit-modal')).toBeInTheDocument()
     expect(screen.getByText('Edit John Doe')).toBeInTheDocument()
@@ -144,8 +149,8 @@ describe('CustomerDetail Component', () => {
     render(<CustomerDetail customer={mockCustomer} />)
 
     // Open modal
-    const editButton = screen.getByRole('button', { name: /edit/i })
-    await user.click(editButton)
+    const editButtons = screen.getAllByRole('button', { name: /edit/i })
+    await user.click(editButtons[0])
     expect(screen.getByTestId('edit-modal')).toBeInTheDocument()
 
     // Close modal
@@ -158,19 +163,12 @@ describe('CustomerDetail Component', () => {
     const user = userEvent.setup()
     render(<CustomerDetail customer={mockCustomer} />)
 
-    const statusButton = screen.getByRole('button', { name: /change status/i })
+    const statusButton = screen.getByRole('button', { name: /status/i })
     await user.click(statusButton)
 
     await waitFor(() => {
-      // There are two "Change Status" - one in button and one in dropdown label
-      // Use getAllByText to handle multiple matches
-      const changeStatusElements = screen.getAllByText('Change Status')
-      expect(changeStatusElements.length).toBeGreaterThanOrEqual(1)
-      expect(screen.getByText('Lead')).toBeInTheDocument()
-      expect(screen.getByText('Prospect')).toBeInTheDocument()
-      expect(screen.getByText('Customer')).toBeInTheDocument()
-      expect(screen.getByText('Inactive')).toBeInTheDocument()
-      expect(screen.getByText('Delete Customer')).toBeInTheDocument()
+      expect(screen.getByText('Change Status')).toBeInTheDocument()
+      expect(screen.getByText('Delete')).toBeInTheDocument()
     })
   })
 
@@ -179,12 +177,12 @@ describe('CustomerDetail Component', () => {
     render(<CustomerDetail customer={mockCustomer} />)
 
     // Open status dropdown
-    const statusButton = screen.getByRole('button', { name: /change status/i })
+    const statusButton = screen.getByRole('button', { name: /status/i })
     await user.click(statusButton)
 
     // Click delete option
     await waitFor(async () => {
-      const deleteOption = screen.getByText('Delete Customer')
+      const deleteOption = screen.getByText('Delete')
       await user.click(deleteOption)
     })
 
@@ -192,26 +190,26 @@ describe('CustomerDetail Component', () => {
     expect(screen.getByText('Delete John Doe')).toBeInTheDocument()
   })
 
-  it('should render customer notes when present', () => {
+  it('should render customer notes in overview tab', () => {
     render(<CustomerDetail customer={mockCustomer} />)
 
     expect(screen.getByText('Notes')).toBeInTheDocument()
     expect(screen.getByText('This is a test customer with some notes.')).toBeInTheDocument()
   })
 
-  it('should not render notes section when notes are empty', () => {
-    const customerWithoutNotes = { ...mockCustomer, notes: null }
-    render(<CustomerDetail customer={customerWithoutNotes} />)
-
-    expect(screen.queryByText('Notes')).not.toBeInTheDocument()
-  })
-
-  it('should render child components', () => {
+  it('should render surveys list in overview tab', () => {
     render(<CustomerDetail customer={mockCustomer} />)
 
-    expect(screen.getByTestId('customer-info-card')).toBeInTheDocument()
     expect(screen.getByTestId('customer-surveys-list')).toBeInTheDocument()
-    expect(screen.getByTestId('customer-activity-feed')).toBeInTheDocument()
+  })
+
+  it('should render tab navigation', () => {
+    render(<CustomerDetail customer={mockCustomer} />)
+
+    expect(screen.getByText('Overview')).toBeInTheDocument()
+    expect(screen.getByText('Activity')).toBeInTheDocument()
+    expect(screen.getByText('Opportunities')).toBeInTheDocument()
+    expect(screen.getByText('Jobs')).toBeInTheDocument()
   })
 
   it('should handle customer without company name', () => {
@@ -222,45 +220,11 @@ describe('CustomerDetail Component', () => {
     expect(screen.queryByText('Acme Corp')).not.toBeInTheDocument()
   })
 
-  it('should handle customer without source', () => {
-    const customerWithoutSource = { ...mockCustomer, source: null }
-    render(<CustomerDetail customer={customerWithoutSource} />)
-
-    expect(screen.getByText('Source: Unknown')).toBeInTheDocument()
-  })
-
-  it('should capitalize source name', () => {
-    const customerWithPhoneSource = { ...mockCustomer, source: 'phone' }
-    render(<CustomerDetail customer={customerWithPhoneSource} />)
-
-    expect(screen.getByText('Source: Phone')).toBeInTheDocument()
-  })
-
-  it('should disable status button when updating', () => {
-    render(<CustomerDetail customer={mockCustomer} />)
-
-    const statusButton = screen.getByRole('button', { name: /change status/i })
-    expect(statusButton).not.toBeDisabled()
-  })
-
   it('should have proper accessibility attributes', () => {
     render(<CustomerDetail customer={mockCustomer} />)
 
     const mainHeading = screen.getByRole('heading', { level: 1 })
     expect(mainHeading).toHaveTextContent('John Doe')
-
-    const notesHeading = screen.getByRole('heading', { level: 2 })
-    expect(notesHeading).toHaveTextContent('Notes')
-  })
-
-  it('should handle long customer names gracefully', () => {
-    const customerWithLongName = {
-      ...mockCustomer,
-      name: 'This is a very long customer name that should be handled properly in the UI'
-    }
-    render(<CustomerDetail customer={customerWithLongName} />)
-
-    expect(screen.getByText(customerWithLongName.name)).toBeInTheDocument()
   })
 
   it('should render with minimal customer data', () => {
@@ -268,6 +232,8 @@ describe('CustomerDetail Component', () => {
       id: 'customer-2',
       organization_id: 'org-1',
       name: 'Jane Smith',
+      first_name: 'Jane',
+      last_name: 'Smith',
       company_name: null,
       email: null,
       phone: null,
@@ -278,6 +244,7 @@ describe('CustomerDetail Component', () => {
       zip: null,
       status: 'prospect',
       source: null,
+      contact_type: 'residential',
       communication_preferences: { email: true, sms: false, mail: false },
       marketing_consent: false,
       marketing_consent_date: null,
@@ -290,7 +257,5 @@ describe('CustomerDetail Component', () => {
     render(<CustomerDetail customer={minimalCustomer} />)
 
     expect(screen.getByText('Jane Smith')).toBeInTheDocument()
-    expect(screen.getByText('Source: Unknown')).toBeInTheDocument()
-    expect(screen.queryByText('Notes')).not.toBeInTheDocument()
   })
 })

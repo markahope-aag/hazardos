@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid'
 import { createClient } from './client'
 import type { Assessment, AssessmentInsert, Profile } from '@/types/database'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
@@ -314,7 +315,7 @@ export class DatabaseService {
 
     // Generate unique filename
     const fileExt = file.name.split('.').pop()
-    const fileName = `${organizationId}/${assessmentId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+    const fileName = `${organizationId}/${assessmentId}/${Date.now()}-${nanoid()}.${fileExt}`
     
     // Upload to Supabase Storage
     const { error: uploadError } = await supabase.storage

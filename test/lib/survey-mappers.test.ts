@@ -44,15 +44,11 @@ describe('Survey Mappers', () => {
       expect(result.hazard_type).toBe('other')
     })
 
-    it('should initialize hazard_assessments with empty types', () => {
+    it('should initialize hazard_assessments with empty areas', () => {
       const result = createInitialDbRecord('org-123')
 
       expect(result.hazard_assessments).toEqual({
-        types: [],
-        asbestos: null,
-        mold: null,
-        lead: null,
-        other: null
+        areas: [],
       })
     })
 
@@ -149,27 +145,22 @@ describe('Survey Mappers', () => {
           utilityShutoffsLocated: true
         },
         hazards: {
-          types: ['asbestos' as const],
-          asbestos: {
-            materials: [{
-              id: 'mat-1',
-              materialType: 'pipe_insulation' as const,
+          areas: [{
+            id: 'area-1',
+            area_name: 'Basement',
+            floor_level: 'B1',
+            hazards: [{
+              id: 'haz-1',
+              hazard_type: 'asbestos' as const,
+              material_type: 'pipe_insulation',
+              condition: 'damaged',
               quantity: 100,
               unit: 'linear_ft' as const,
-              location: 'Basement',
-              condition: 'minor_damage' as const,
-              friable: true,
-              pipeDiameter: 4,
-              pipeThickness: null,
+              containment_level: 'type_ii' as const,
               notes: 'Visible damage'
             }],
-            estimatedWasteVolume: 50,
-            containmentLevel: 2 as const,
-            epaNotificationRequired: true
-          },
-          mold: null,
-          lead: null,
-          other: null
+            photo_ids: []
+          }]
         },
         photos: {
           photos: []
@@ -234,10 +225,9 @@ describe('Survey Mappers', () => {
 
       expect(result.hazard_assessments).toBeDefined()
       const hazards = result.hazard_assessments as any
-      expect(hazards.types).toEqual(['asbestos'])
-      expect(hazards.asbestos).toBeDefined()
-      expect(hazards.asbestos.materials).toHaveLength(1)
-      expect(hazards.asbestos.containmentLevel).toBe(2)
+      expect(hazards.areas).toHaveLength(1)
+      expect(hazards.areas[0].hazards).toHaveLength(1)
+      expect(hazards.areas[0].hazards[0].hazard_type).toBe('asbestos')
     })
 
     it('should set primary hazard type for legacy field', () => {
@@ -349,27 +339,22 @@ describe('Survey Mappers', () => {
         utilityShutoffsLocated: true
       },
       hazard_assessments: {
-        types: ['asbestos'],
-        asbestos: {
-          materials: [{
-            id: 'mat-1',
-            materialType: 'pipe_insulation',
+        areas: [{
+          id: 'area-1',
+          area_name: 'Basement',
+          floor_level: 'B1',
+          hazards: [{
+            id: 'haz-1',
+            hazard_type: 'asbestos',
+            material_type: 'pipe_insulation',
+            condition: 'damaged',
             quantity: 100,
             unit: 'linear_ft',
-            location: 'Basement',
-            condition: 'minor_damage',
-            friable: true,
-            pipeDiameter: 4,
-            pipeThickness: null,
+            containment_level: 'type_ii',
             notes: 'Visible damage'
           }],
-          estimatedWasteVolume: 50,
-          containmentLevel: 2,
-          epaNotificationRequired: true
-        },
-        mold: null,
-        lead: null,
-        other: null
+          photo_ids: []
+        }]
       },
       photo_metadata: [],
       technician_notes: 'Test notes',
@@ -447,9 +432,9 @@ describe('Survey Mappers', () => {
     it('should map hazards data correctly', () => {
       const result = mapDbToStore(baseDbRecord)
 
-      expect(result.formData?.hazards.types).toEqual(['asbestos'])
-      expect(result.formData?.hazards.asbestos).toBeDefined()
-      expect(result.formData?.hazards.asbestos?.materials).toHaveLength(1)
+      expect(result.formData?.hazards.areas).toHaveLength(1)
+      expect(result.formData?.hazards.areas[0].hazards).toHaveLength(1)
+      expect(result.formData?.hazards.areas[0].hazards[0].hazard_type).toBe('asbestos')
     })
 
     it('should map notes from technician_notes', () => {
@@ -478,13 +463,13 @@ describe('Survey Mappers', () => {
     it('should handle empty arrays', () => {
       const dbWithEmpty = {
         ...baseDbRecord,
-        hazard_assessments: { types: [] },
+        hazard_assessments: { areas: [] },
         photo_metadata: []
       }
 
       const result = mapDbToStore(dbWithEmpty as any)
 
-      expect(result.formData?.hazards.types).toEqual([])
+      expect(result.formData?.hazards.areas).toEqual([])
       expect(result.formData?.photos.photos).toEqual([])
     })
   })

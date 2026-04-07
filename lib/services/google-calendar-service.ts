@@ -2,6 +2,7 @@ import { google, calendar_v3 } from 'googleapis';
 import { createClient } from '@/lib/supabase/server';
 import type { GoogleCalendarConnectionStatus } from '@/types/integrations';
 import { createServiceLogger, formatError } from '@/lib/utils/logger';
+import { SecureError } from '@/lib/utils/secure-error-handler';
 
 const log = createServiceLogger('GoogleCalendarService');
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
@@ -53,7 +54,7 @@ export class GoogleCalendarService {
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`Token exchange failed: ${error}`);
+      throw new SecureError('BAD_REQUEST', `Token exchange failed: ${error}`);
     }
 
     return response.json();
@@ -77,7 +78,7 @@ export class GoogleCalendarService {
     });
 
     if (!response.ok) {
-      throw new Error('Token refresh failed');
+      throw new SecureError('BAD_REQUEST', 'Token refresh failed');
     }
 
     return response.json();
@@ -204,7 +205,7 @@ export class GoogleCalendarService {
 
   private static async getCalendarClient(organizationId: string): Promise<calendar_v3.Calendar> {
     const tokens = await this.getValidTokens(organizationId);
-    if (!tokens) throw new Error('Google Calendar not connected');
+    if (!tokens) throw new SecureError('BAD_REQUEST', 'Google Calendar not connected');
 
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
@@ -259,7 +260,7 @@ export class GoogleCalendarService {
       .eq('id', jobId)
       .single();
 
-    if (!job) throw new Error('Job not found');
+    if (!job) throw new SecureError('NOT_FOUND', 'Job not found');
 
     const customer = job.customer as {
       first_name?: string;

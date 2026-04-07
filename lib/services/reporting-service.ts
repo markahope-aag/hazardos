@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 import type {
   SavedReport,
   ReportConfig,
@@ -64,7 +65,7 @@ export class ReportingService {
     const { start, end } = this.getDateRange(config.date_range)
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -72,7 +73,7 @@ export class ReportingService {
       .eq('id', user.id)
       .single()
 
-    if (!profile?.organization_id) throw new Error('Organization not found')
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('mv_sales_performance')
@@ -91,7 +92,7 @@ export class ReportingService {
     const { start, end } = this.getDateRange(config.date_range)
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -99,7 +100,7 @@ export class ReportingService {
       .eq('id', user.id)
       .single()
 
-    if (!profile?.organization_id) throw new Error('Organization not found')
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('mv_job_costs')
@@ -118,7 +119,7 @@ export class ReportingService {
     const { start, end } = this.getDateRange(config.date_range)
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -126,7 +127,7 @@ export class ReportingService {
       .eq('id', user.id)
       .single()
 
-    if (!profile?.organization_id) throw new Error('Organization not found')
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('mv_lead_source_roi')
@@ -171,7 +172,7 @@ export class ReportingService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -179,7 +180,7 @@ export class ReportingService {
       .eq('id', user.id)
       .single()
 
-    if (!profile?.organization_id) throw new Error('Organization not found')
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('saved_reports')
@@ -248,7 +249,7 @@ export class ReportingService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -256,7 +257,7 @@ export class ReportingService {
       .eq('id', user.id)
       .single()
 
-    if (!profile?.organization_id) throw new Error('Organization not found')
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
 
     await supabase.from('report_exports').insert({
       organization_id: profile.organization_id,

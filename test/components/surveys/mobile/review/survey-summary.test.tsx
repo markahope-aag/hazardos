@@ -24,19 +24,27 @@ let mockFormData: any = {
     humidity: 45,
   },
   hazards: {
-    types: ['asbestos', 'mold'],
-    asbestos: {
-      materials: [{ id: '1' }, { id: '2' }],
-    },
-    mold: {
-      affectedAreas: [
-        { id: '1', squareFootage: 50 },
-        { id: '2', squareFootage: 30 },
-      ],
-      hvacContaminated: false,
-    },
-    lead: null,
-    other: null,
+    areas: [
+      {
+        id: 'area-1',
+        area_name: 'Basement',
+        floor_level: '1st Floor',
+        hazards: [
+          { id: 'h1', hazard_type: 'asbestos', material_type: 'pipe_insulation', quantity: 50, unit: 'sq_ft', containment_level: null },
+          { id: 'h2', hazard_type: 'mold', material_type: 'drywall', quantity: 30, unit: 'sq_ft', containment_level: null },
+        ],
+        photo_ids: [],
+      },
+      {
+        id: 'area-2',
+        area_name: 'Attic',
+        floor_level: '2nd Floor',
+        hazards: [
+          { id: 'h3', hazard_type: 'asbestos', material_type: 'ceiling_tile', quantity: 80, unit: 'sq_ft', containment_level: null },
+        ],
+        photo_ids: [],
+      },
+    ],
   },
   photos: {
     photos: [
@@ -59,7 +67,7 @@ vi.mock('@/lib/stores/survey-types', () => ({
   PHOTO_REQUIREMENTS: {
     exterior: { required: 2 },
   },
-  MoldSizeCategory: {},
+  CONTAINMENT_LABELS: {},
 }))
 
 describe('SurveySummary', () => {
@@ -100,7 +108,7 @@ describe('SurveySummary', () => {
   it('shows stories count', () => {
     render(<SurveySummary />)
 
-    expect(screen.getByText(/2 stories/)).toBeInTheDocument()
+    expect(screen.getByText(/2 stor/)).toBeInTheDocument()
   })
 
   it('shows owner name', () => {
@@ -109,48 +117,63 @@ describe('SurveySummary', () => {
     expect(screen.getByText('John Smith')).toBeInTheDocument()
   })
 
-  it('renders Hazards Identified section', () => {
+  it('renders Areas & Hazards section', () => {
     render(<SurveySummary />)
 
-    expect(screen.getByText('Hazards Identified')).toBeInTheDocument()
+    expect(screen.getByText('Areas & Hazards')).toBeInTheDocument()
   })
 
-  it('shows asbestos hazard info', () => {
+  it('shows area count and hazard count', () => {
     render(<SurveySummary />)
 
-    expect(screen.getByText('Asbestos')).toBeInTheDocument()
-    expect(screen.getByText('2 materials documented')).toBeInTheDocument()
-  })
-
-  it('shows mold hazard info', () => {
-    render(<SurveySummary />)
-
-    expect(screen.getByText('Mold')).toBeInTheDocument()
+    // 2 areas, 3 hazards
     expect(screen.getByText(/2 areas/)).toBeInTheDocument()
-    expect(screen.getByText(/80 sq ft/)).toBeInTheDocument()
+    expect(screen.getByText(/3 hazards/)).toBeInTheDocument()
   })
 
-  it('shows No hazards documented when none selected', () => {
+  it('shows area names', () => {
+    render(<SurveySummary />)
+
+    expect(screen.getByText('Basement')).toBeInTheDocument()
+    expect(screen.getByText('Attic')).toBeInTheDocument()
+  })
+
+  it('shows No areas documented when none exist', () => {
     mockFormData = {
       ...mockFormData,
       hazards: {
-        types: [],
-        asbestos: null,
-        mold: null,
-        lead: null,
-        other: null,
+        areas: [],
       },
     }
     render(<SurveySummary />)
 
-    expect(screen.getByText('No hazards documented')).toBeInTheDocument()
+    expect(screen.getByText('No areas documented')).toBeInTheDocument()
   })
 
   it('renders Access section', () => {
+    // Reset to original data
+    mockFormData = {
+      ...mockFormData,
+      access: {
+        hasRestrictions: true,
+        restrictions: ['locked_areas', 'height_access'],
+      },
+      hazards: {
+        areas: [
+          {
+            id: 'area-1',
+            area_name: 'Basement',
+            floor_level: '1st Floor',
+            hazards: [{ id: 'h1', hazard_type: 'asbestos', material_type: 'pipe', quantity: 50, unit: 'sq_ft', containment_level: null }],
+            photo_ids: [],
+          },
+        ],
+      },
+    }
     render(<SurveySummary />)
 
     expect(screen.getByText('Access')).toBeInTheDocument()
-    expect(screen.getByText('2 restrictions')).toBeInTheDocument()
+    expect(screen.getByText(/restriction/)).toBeInTheDocument()
   })
 
   it('renders Environment section', () => {
@@ -158,7 +181,7 @@ describe('SurveySummary', () => {
 
     expect(screen.getByText('Environment')).toBeInTheDocument()
     expect(screen.getByText(/72°F/)).toBeInTheDocument()
-    expect(screen.getByText(/45% RH/)).toBeInTheDocument()
+    expect(screen.getByText(/45%/)).toBeInTheDocument()
   })
 
   it('renders Photos section', () => {

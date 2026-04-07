@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceLogger } from '@/lib/utils/logger';
 import { redactPII } from '@/lib/utils/pii-redaction';
+import { SecureError } from '@/lib/utils/secure-error-handler';
 import type { EstimateSuggestion, SuggestedLineItem } from '@/types/integrations';
 
 const log = createServiceLogger('AIEstimateService');
@@ -44,7 +45,7 @@ export class AIEstimateService {
   private static getClient(): Anthropic {
     if (!this.client) {
       if (!process.env.ANTHROPIC_API_KEY) {
-        throw new Error('ANTHROPIC_API_KEY is not configured');
+        throw new SecureError('BAD_REQUEST', 'ANTHROPIC_API_KEY is not configured');
       }
       this.client = new Anthropic({
         apiKey: process.env.ANTHROPIC_API_KEY,
@@ -150,7 +151,8 @@ export class AIEstimateService {
     // Check if AI features are enabled for this organization
     const aiSettings = await this.checkAIEnabled(supabase, organizationId);
     if (!aiSettings.enabled) {
-      throw new Error(
+      throw new SecureError(
+        'BAD_REQUEST',
         'AI estimate suggestions are not enabled for this organization. ' +
         'Please enable AI features in Settings → AI & Automation to use this feature.'
       );
@@ -200,7 +202,7 @@ Include all necessary line items: labor, materials, equipment, disposal, permits
     // Parse the response
     const textContent = response.content.find(c => c.type === 'text');
     if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text response from AI');
+      throw new SecureError('BAD_REQUEST', 'No text response from AI');
     }
 
     const parsedResponse = this.parseEstimateResponse(textContent.text);
@@ -264,7 +266,8 @@ Include all necessary line items: labor, materials, equipment, disposal, permits
     // Check if AI features are enabled
     const aiSettings = await this.checkAIEnabled(supabase, organizationId);
     if (!aiSettings.enabled) {
-      throw new Error(
+      throw new SecureError(
+        'BAD_REQUEST',
         'AI estimate suggestions are not enabled for this organization. ' +
         'Please enable AI features in Settings → AI & Automation.'
       );
@@ -284,7 +287,7 @@ Include all necessary line items: labor, materials, equipment, disposal, permits
       .eq('organization_id', organizationId)
       .single();
 
-    if (!job) throw new Error('Job not found');
+    if (!job) throw new SecureError('NOT_FOUND', 'Job not found');
 
     // Calculate estimated vs actual
     const estimate = job.estimate as { total_amount: number } | null;

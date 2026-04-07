@@ -2,6 +2,7 @@ import { Client } from '@microsoft/microsoft-graph-client';
 import { createClient } from '@/lib/supabase/server';
 import type { OutlookCalendarConnectionStatus } from '@/types/integrations';
 import { createServiceLogger, formatError } from '@/lib/utils/logger';
+import { SecureError } from '@/lib/utils/secure-error-handler';
 
 const log = createServiceLogger('OutlookCalendarService');
 const AZURE_AUTH_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize';
@@ -54,7 +55,7 @@ export class OutlookCalendarService {
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`Token exchange failed: ${error}`);
+      throw new SecureError('BAD_REQUEST', `Token exchange failed: ${error}`);
     }
 
     return response.json();
@@ -80,7 +81,7 @@ export class OutlookCalendarService {
     });
 
     if (!response.ok) {
-      throw new Error('Token refresh failed');
+      throw new SecureError('BAD_REQUEST', 'Token refresh failed');
     }
 
     return response.json();
@@ -208,7 +209,7 @@ export class OutlookCalendarService {
 
   private static async getGraphClient(organizationId: string): Promise<Client> {
     const tokens = await this.getValidTokens(organizationId);
-    if (!tokens) throw new Error('Outlook Calendar not connected');
+    if (!tokens) throw new SecureError('BAD_REQUEST', 'Outlook Calendar not connected');
 
     return Client.init({
       authProvider: (done) => {
@@ -267,7 +268,7 @@ export class OutlookCalendarService {
       .eq('id', jobId)
       .single();
 
-    if (!job) throw new Error('Job not found');
+    if (!job) throw new SecureError('NOT_FOUND', 'Job not found');
 
     const customer = job.customer as {
       first_name?: string;

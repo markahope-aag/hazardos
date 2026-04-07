@@ -1,5 +1,6 @@
 'use client'
 
+import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import {
@@ -92,7 +93,7 @@ interface SurveyState {
   validateAll: () => boolean
 }
 
-const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+const generateId = () => `${Date.now()}-${nanoid(9)}`
 
 const initialSectionValidation: Record<SurveySection, { isValid: boolean; errors: string[] }> = {
   property: { isValid: false, errors: [] },

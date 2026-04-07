@@ -220,7 +220,7 @@ describe('CommissionService', () => {
           name: 'Test Plan',
           commission_type: 'percentage',
         })
-      ).rejects.toThrow('Unauthorized')
+      ).rejects.toThrow('Authentication is required')
     })
   })
 
@@ -627,7 +627,7 @@ describe('CommissionService', () => {
 
       await expect(
         CommissionService.assignPlanToUser('user-1', 'plan-1')
-      ).rejects.toThrow('Unauthorized')
+      ).rejects.toThrow('Authentication is required')
     })
   })
 })

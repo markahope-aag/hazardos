@@ -31,6 +31,8 @@ export default function LoginForm() {
 
   const supabase = createClient()
 
+  const LOGIN_TIMEOUT_MS = 30_000
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setIsLoading(true)
@@ -59,7 +61,7 @@ export default function LoginForm() {
         description: 'Login is taking too long. Please try again or check your connection.',
         variant: 'destructive',
       })
-    }, 30000) // 30 second timeout
+    }, LOGIN_TIMEOUT_MS)
 
     try {
       // Login attempt
@@ -72,7 +74,7 @@ export default function LoginForm() {
       clearTimeout(timeoutId)
 
       if (error) {
-        console.error('Login error:', error)
+        if (process.env.NODE_ENV === 'development') console.warn('Login error:', error)
         toast({
           title: 'Login Failed',
           description: error.message,
@@ -92,7 +94,7 @@ export default function LoginForm() {
       }
     } catch (error) {
       clearTimeout(timeoutId)
-      console.error('Login exception:', error)
+      if (process.env.NODE_ENV === 'development') console.warn('Login exception:', error)
       toast({
         title: 'Login Error',
         description: 'An unexpected error occurred. Please try again.',

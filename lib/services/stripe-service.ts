@@ -1,6 +1,7 @@
 import Stripe from 'stripe'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 import type {
   SubscriptionPlan,
   OrganizationSubscription,
@@ -16,7 +17,7 @@ let _stripe: Stripe | null = null
 function getStripe(): Stripe {
   if (!_stripe) {
     if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error('STRIPE_SECRET_KEY environment variable is not set')
+      throw new SecureError('BAD_REQUEST', 'STRIPE_SECRET_KEY environment variable is not set')
     }
     _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2026-01-28.clover',
@@ -87,13 +88,13 @@ export class StripeService {
       .eq('slug', planSlug)
       .single()
 
-    if (!plan) throw new Error('Plan not found')
+    if (!plan) throw new SecureError('NOT_FOUND', 'Plan not found')
 
     const priceId = billingCycle === 'yearly'
       ? plan.stripe_price_id_yearly
       : plan.stripe_price_id_monthly
 
-    if (!priceId) throw new Error('Plan not configured in Stripe')
+    if (!priceId) throw new SecureError('BAD_REQUEST', 'Plan not configured in Stripe')
 
     const session = await getStripe().checkout.sessions.create({
       customer: customerId,
@@ -132,7 +133,7 @@ export class StripeService {
       .single()
 
     if (!org?.stripe_customer_id) {
-      throw new Error('No billing account found')
+      throw new SecureError('NOT_FOUND', 'No billing account found')
     }
 
     const session = await getStripe().billingPortal.sessions.create({
@@ -175,7 +176,7 @@ export class StripeService {
       .single()
 
     if (!sub?.stripe_subscription_id) {
-      throw new Error('No active subscription')
+      throw new SecureError('NOT_FOUND', 'No active subscription')
     }
 
     if (cancelImmediately) {
@@ -208,7 +209,7 @@ export class StripeService {
       .single()
 
     if (!sub?.stripe_subscription_id) {
-      throw new Error('No subscription found')
+      throw new SecureError('NOT_FOUND', 'No subscription found')
     }
 
     await getStripe().subscriptions.update(sub.stripe_subscription_id, {

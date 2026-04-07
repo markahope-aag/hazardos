@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 import type {
   ApprovalThreshold,
   ApprovalRequest,
@@ -39,7 +40,7 @@ export class ApprovalService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -47,7 +48,7 @@ export class ApprovalService {
       .eq('id', user.id)
       .single()
 
-    if (!profile?.organization_id) throw new Error('Organization not found')
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('approval_thresholds')
@@ -171,7 +172,7 @@ export class ApprovalService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -179,7 +180,7 @@ export class ApprovalService {
       .eq('id', user.id)
       .single()
 
-    if (!profile?.organization_id) throw new Error('Organization not found')
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
 
     // Check thresholds to determine if level 2 is needed
     const thresholds = await this.getThresholds(input.entity_type)
@@ -218,10 +219,10 @@ export class ApprovalService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const request = await this.getRequest(id)
-    if (!request) throw new Error('Approval request not found')
+    if (!request) throw new SecureError('NOT_FOUND', 'Approval request not found')
 
     const newStatus: ApprovalStatus = decision.approved ? 'approved' : 'rejected'
 
@@ -261,12 +262,12 @@ export class ApprovalService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const request = await this.getRequest(id)
-    if (!request) throw new Error('Approval request not found')
+    if (!request) throw new SecureError('NOT_FOUND', 'Approval request not found')
     if (request.level1_status !== 'approved') {
-      throw new Error('Level 1 must be approved before level 2')
+      throw new SecureError('BAD_REQUEST', 'Level 1 must be approved before level 2')
     }
 
     const newStatus: ApprovalStatus = decision.approved ? 'approved' : 'rejected'
@@ -315,7 +316,7 @@ export class ApprovalService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     // Get user's role to determine what they can approve
     const { data: profile } = await supabase

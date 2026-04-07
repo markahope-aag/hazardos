@@ -267,8 +267,8 @@ describe('Onboard Complete API', () => {
         'org-456',
         'pro',
         'yearly',
-        expect.stringContaining('/dashboard'),
-        expect.stringContaining('/onboard')
+        expect.stringContaining('subscription=success'),
+        expect.stringContaining('subscription=canceled')
       )
     })
 

@@ -31,6 +31,18 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => Promise.resolve(mockSupabase)),
 }))
 
+const mockLogger = vi.hoisted(() => ({
+  error: vi.fn(),
+  warn: vi.fn(),
+  info: vi.fn(),
+  debug: vi.fn(),
+}))
+
+vi.mock('@/lib/utils/logger', () => ({
+  logger: mockLogger,
+  formatError: vi.fn((err: unknown, type: string) => ({ type, message: String(err) })),
+}))
+
 // Mock global fetch
 global.fetch = vi.fn()
 
@@ -302,12 +314,9 @@ describe('WebhookService', () => {
         error: { message: 'Insert failed' },
       })
 
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-
       await WebhookService.trigger('org-1', 'customer.created', {})
 
-      expect(consoleSpy).toHaveBeenCalled()
-      consoleSpy.mockRestore()
+      expect(mockLogger.error).toHaveBeenCalled()
     })
   })
 

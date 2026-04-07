@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid'
 import type { Organization, EquipmentNeeded, MaterialNeeded } from './database'
 import { formatCurrency, formatDateLong } from '@/lib/utils'
 // Updated to use SiteSurvey terminology
@@ -74,7 +75,7 @@ export function generateProposalNumber(): string {
   const date = new Date()
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase()
+  const random = nanoid(4).toUpperCase()
   return `PROP-${year}${month}-${random}`
 }
 

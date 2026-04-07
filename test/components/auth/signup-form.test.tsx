@@ -5,6 +5,7 @@ import { SignupForm } from '@/components/auth/signup-form'
 const mockPush = vi.fn()
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
+  useSearchParams: () => new URLSearchParams(),
 }))
 
 // Mock toast
@@ -20,6 +21,11 @@ const mockSupabaseClient = {
   },
   from: vi.fn(() => ({
     insert: vi.fn().mockResolvedValue({ error: null }),
+    select: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      }),
+    }),
   })),
 }
 
@@ -132,7 +138,7 @@ describe('SignupForm', () => {
             first_name: 'John',
             last_name: 'Doe',
           },
-          emailRedirectTo: expect.stringContaining('/auth/callback?next=/onboard'),
+          emailRedirectTo: expect.stringContaining('/auth/callback'),
         },
       })
     })
@@ -276,7 +282,7 @@ describe('SignupForm', () => {
             first_name: '  John  ',
             last_name: '  Doe  ',
           },
-          emailRedirectTo: expect.stringContaining('/auth/callback?next=/onboard'),
+          emailRedirectTo: expect.stringContaining('/auth/callback'),
         },
       })
     })

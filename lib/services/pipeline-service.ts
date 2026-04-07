@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 import type {
   PipelineStage,
   Opportunity,
@@ -34,7 +35,7 @@ export class PipelineService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -42,7 +43,7 @@ export class PipelineService {
       .eq('id', user.id)
       .single()
 
-    if (!profile?.organization_id) throw new Error('Organization not found')
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
 
     // Get max sort order
     const { data: maxOrder } = await supabase
@@ -142,7 +143,7 @@ export class PipelineService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -150,7 +151,7 @@ export class PipelineService {
       .eq('id', user.id)
       .single()
 
-    if (!profile?.organization_id) throw new Error('Organization not found')
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
 
     // Get stage probability
     const { data: stage } = await supabase
@@ -225,10 +226,10 @@ export class PipelineService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const current = await this.getOpportunity(id)
-    if (!current) throw new Error('Opportunity not found')
+    if (!current) throw new SecureError('NOT_FOUND', 'Opportunity not found')
 
     // Get new stage details
     const { data: newStage } = await supabase
@@ -237,7 +238,7 @@ export class PipelineService {
       .eq('id', stageId)
       .single()
 
-    if (!newStage) throw new Error('Stage not found')
+    if (!newStage) throw new SecureError('NOT_FOUND', 'Stage not found')
 
     // Calculate weighted value
     const weighted = current.estimated_value

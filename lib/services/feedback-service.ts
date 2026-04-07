@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type {
   FeedbackSurvey,
@@ -21,7 +22,7 @@ export class FeedbackService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -29,7 +30,7 @@ export class FeedbackService {
       .eq('id', user.id)
       .single()
 
-    if (!profile) throw new Error('Profile not found')
+    if (!profile) throw new SecureError('UNAUTHORIZED')
 
     // Get job and customer info
     const { data: job } = await supabase
@@ -38,7 +39,7 @@ export class FeedbackService {
       .eq('id', input.job_id)
       .single()
 
-    if (!job) throw new Error('Job not found')
+    if (!job) throw new SecureError('NOT_FOUND', 'Job not found')
 
     const customer = Array.isArray(job.customer) ? job.customer[0] : job.customer
 
@@ -83,7 +84,7 @@ export class FeedbackService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('feedback_surveys')
@@ -208,7 +209,7 @@ export class FeedbackService {
     }
 
     if (!response.success) {
-      throw new Error(response.error || 'Failed to submit feedback')
+      throw new SecureError('BAD_REQUEST', response.error || 'Failed to submit feedback')
     }
 
     // Return minimal survey data (caller doesn't need full details)
@@ -222,7 +223,7 @@ export class FeedbackService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     // Get survey with job and org info
     const { data: survey } = await supabase
@@ -236,14 +237,14 @@ export class FeedbackService {
       .eq('id', surveyId)
       .single()
 
-    if (!survey) throw new Error('Survey not found')
+    if (!survey) throw new SecureError('NOT_FOUND', 'Survey not found')
 
     const customer = Array.isArray(survey.customer) ? survey.customer[0] : survey.customer
     const job = Array.isArray(survey.job) ? survey.job[0] : survey.job
     const organization = Array.isArray(survey.organization) ? survey.organization[0] : survey.organization
 
     const email = recipientEmail || customer?.email
-    if (!email) throw new Error('No recipient email')
+    if (!email) throw new SecureError('VALIDATION_ERROR', 'No recipient email', 'email')
 
     // Send email via Resend (if configured)
     const resendApiKey = process.env.RESEND_API_KEY
@@ -303,7 +304,7 @@ export class FeedbackService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const limit = filters?.limit || 50
     const offset = filters?.offset || 0
@@ -348,7 +349,7 @@ export class FeedbackService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('feedback_surveys')
@@ -372,7 +373,7 @@ export class FeedbackService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('feedback_surveys')
@@ -394,7 +395,7 @@ export class FeedbackService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('feedback_surveys')
@@ -433,7 +434,7 @@ export class FeedbackService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -441,7 +442,7 @@ export class FeedbackService {
       .eq('id', user.id)
       .single()
 
-    if (!profile) throw new Error('Profile not found')
+    if (!profile) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .rpc('get_feedback_stats', { org_id: profile.organization_id })
@@ -480,7 +481,7 @@ export class FeedbackService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -488,7 +489,7 @@ export class FeedbackService {
       .eq('id', user.id)
       .single()
 
-    if (!profile) throw new Error('Profile not found')
+    if (!profile) throw new SecureError('UNAUTHORIZED')
 
     // Generate click token
     const clickToken = crypto.randomUUID().replace(/-/g, '')

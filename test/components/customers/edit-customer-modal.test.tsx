@@ -10,7 +10,7 @@ vi.mock('@/components/customers/customer-form', () => ({
     <div data-testid="customer-form">
       <span>Editing: {customer.name}</span>
       <span>{submitLabel}</span>
-      <button onClick={() => onSubmit({ name: 'Updated' })}>Submit</button>
+      <button onClick={() => onSubmit({ first_name: 'Updated' })}>Submit</button>
       <button onClick={onCancel}>Cancel</button>
     </div>
   ),
@@ -36,6 +36,8 @@ const mockCustomer: Customer = {
   id: 'cust-1',
   organization_id: 'org-1',
   name: 'John Doe',
+  first_name: 'John',
+  last_name: 'Doe',
   company_name: 'Acme Inc',
   email: 'john@example.com',
   phone: '555-1234',
@@ -61,7 +63,7 @@ describe('EditCustomerModal', () => {
       />
     )
 
-    expect(screen.getByText('Edit Customer')).toBeInTheDocument()
+    expect(screen.getByText('Edit Contact')).toBeInTheDocument()
   })
 
   it('renders CustomerForm with customer data', () => {
@@ -77,7 +79,7 @@ describe('EditCustomerModal', () => {
     expect(screen.getByText('Editing: John Doe')).toBeInTheDocument()
   })
 
-  it('shows Update Customer button label', () => {
+  it('shows Update Contact button label', () => {
     render(
       <EditCustomerModal
         customer={mockCustomer}
@@ -86,7 +88,7 @@ describe('EditCustomerModal', () => {
       />
     )
 
-    expect(screen.getByText('Update Customer')).toBeInTheDocument()
+    expect(screen.getByText('Update Contact')).toBeInTheDocument()
   })
 
   it('renders Delete button', () => {
@@ -125,6 +127,6 @@ describe('EditCustomerModal', () => {
       />
     )
 
-    expect(screen.queryByText('Edit Customer')).not.toBeInTheDocument()
+    expect(screen.queryByText('Edit Contact')).not.toBeInTheDocument()
   })
 })

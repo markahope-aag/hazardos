@@ -5,7 +5,9 @@ describe('Customer Validation Schema', () => {
   describe('customerSchema', () => {
     it('should validate a complete valid customer', () => {
       const validCustomer = {
-        name: 'John Doe',
+        first_name: 'John',
+        last_name: 'Doe',
+        contact_type: 'residential' as const,
         company_name: 'Doe Industries',
         email: 'john@example.com',
         phone: '(555) 123-4567',
@@ -23,13 +25,15 @@ describe('Customer Validation Schema', () => {
       const result = customerSchema.safeParse(validCustomer)
       expect(result.success).toBe(true)
       if (result.success) {
-        expect(result.data).toEqual(validCustomer)
+        expect(result.data.first_name).toBe('John')
+        expect(result.data.last_name).toBe('Doe')
       }
     })
 
     it('should validate minimal customer with required fields', () => {
       const minimalCustomer = {
-        name: 'Jane Smith',
+        first_name: 'Jane',
+        contact_type: 'residential' as const,
         status: 'lead' as const,
         marketing_consent: false
       }
@@ -38,22 +42,28 @@ describe('Customer Validation Schema', () => {
       expect(result.success).toBe(true)
     })
 
-    it('should reject customer without name', () => {
+    it('should reject customer without first_name', () => {
       const invalidCustomer = {
-        email: 'test@example.com'
+        email: 'test@example.com',
+        contact_type: 'residential' as const,
+        status: 'lead' as const,
+        marketing_consent: false,
       }
 
       const result = customerSchema.safeParse(invalidCustomer)
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error.issues.some(issue => issue.path.includes('name'))).toBe(true)
+        expect(result.error.issues.some(issue => issue.path.includes('first_name'))).toBe(true)
       }
     })
 
     it('should reject invalid email format', () => {
       const invalidCustomer = {
-        name: 'John Doe',
-        email: 'invalid-email'
+        first_name: 'John',
+        contact_type: 'residential' as const,
+        email: 'invalid-email',
+        status: 'lead' as const,
+        marketing_consent: false,
       }
 
       const result = customerSchema.safeParse(invalidCustomer)
@@ -65,7 +75,8 @@ describe('Customer Validation Schema', () => {
 
     it('should accept empty string for optional email', () => {
       const customer = {
-        name: 'John Doe',
+        first_name: 'John',
+        contact_type: 'residential' as const,
         email: '',
         status: 'lead' as const,
         marketing_consent: false
@@ -80,7 +91,8 @@ describe('Customer Validation Schema', () => {
 
       statuses.forEach(status => {
         const customer = {
-          name: 'Test Customer',
+          first_name: 'Test',
+          contact_type: 'residential' as const,
           status,
           marketing_consent: false
         }
@@ -92,8 +104,10 @@ describe('Customer Validation Schema', () => {
 
     it('should reject invalid customer status', () => {
       const customer = {
-        name: 'Test Customer',
-        status: 'invalid-status'
+        first_name: 'Test',
+        contact_type: 'residential' as const,
+        status: 'invalid-status',
+        marketing_consent: false,
       }
 
       const result = customerSchema.safeParse(customer)
@@ -105,7 +119,8 @@ describe('Customer Validation Schema', () => {
 
       sources.forEach(source => {
         const customer = {
-          name: 'Test Customer',
+          first_name: 'Test',
+          contact_type: 'residential' as const,
           status: 'lead' as const,
           marketing_consent: false,
           source
@@ -118,8 +133,11 @@ describe('Customer Validation Schema', () => {
 
     it('should reject invalid customer source', () => {
       const customer = {
-        name: 'Test Customer',
-        source: 'invalid-source'
+        first_name: 'Test',
+        contact_type: 'residential' as const,
+        source: 'invalid-source',
+        status: 'lead' as const,
+        marketing_consent: false,
       }
 
       const result = customerSchema.safeParse(customer)
@@ -128,13 +146,15 @@ describe('Customer Validation Schema', () => {
 
     it('should validate boolean marketing consent', () => {
       const customerTrue = {
-        name: 'Test Customer',
+        first_name: 'Test',
+        contact_type: 'residential' as const,
         status: 'lead' as const,
         marketing_consent: true
       }
 
       const customerFalse = {
-        name: 'Test Customer',
+        first_name: 'Test',
+        contact_type: 'residential' as const,
         status: 'lead' as const,
         marketing_consent: false
       }
@@ -145,7 +165,8 @@ describe('Customer Validation Schema', () => {
 
     it('should handle long notes field', () => {
       const customer = {
-        name: 'Test Customer',
+        first_name: 'Test',
+        contact_type: 'residential' as const,
         status: 'lead' as const,
         marketing_consent: false,
         notes: 'A'.repeat(1000) // Very long notes
@@ -157,8 +178,9 @@ describe('Customer Validation Schema', () => {
 
     it('should handle whitespace in string fields', () => {
       const customer = {
-        name: '  John Doe  ',
-        email: 'john@example.com', // Email validation doesn't allow spaces
+        first_name: '  John  ',
+        contact_type: 'residential' as const,
+        email: 'john@example.com',
         city: '  Anytown  ',
         status: 'lead' as const,
         marketing_consent: false
@@ -167,7 +189,7 @@ describe('Customer Validation Schema', () => {
       const result = customerSchema.safeParse(customer)
       expect(result.success).toBe(true)
       if (result.success) {
-        expect(result.data.name).toBe('  John Doe  ')
+        expect(result.data.first_name).toBe('  John  ')
         expect(result.data.email).toBe('john@example.com')
         expect(result.data.city).toBe('  Anytown  ')
       }
@@ -189,7 +211,8 @@ describe('Customer Validation Schema', () => {
     it('should validate against schema when combined with required fields', () => {
       const completeCustomer = {
         ...defaultCustomerValues,
-        name: 'Test Customer'
+        first_name: 'Test',
+        contact_type: 'residential' as const,
       }
       const result = customerSchema.safeParse(completeCustomer)
       expect(result.success).toBe(true)
@@ -223,7 +246,7 @@ describe('Customer Validation Schema', () => {
     it('should contain all valid status options', () => {
       const expectedStatuses = ['lead', 'prospect', 'customer', 'inactive']
       expect(CUSTOMER_STATUS_OPTIONS).toHaveLength(expectedStatuses.length)
-      
+
       expectedStatuses.forEach(status => {
         expect(CUSTOMER_STATUS_OPTIONS.some(option => option.value === status)).toBe(true)
       })
@@ -243,7 +266,7 @@ describe('Customer Validation Schema', () => {
     it('should contain all valid source options', () => {
       const expectedSources = ['phone', 'website', 'mail', 'referral', 'other']
       expect(CUSTOMER_SOURCE_OPTIONS).toHaveLength(expectedSources.length)
-      
+
       expectedSources.forEach(source => {
         expect(CUSTOMER_SOURCE_OPTIONS.some(option => option.value === source)).toBe(true)
       })

@@ -574,7 +574,7 @@ describe('AISuggestionsPanel', () => {
 
       await waitFor(() => {
         const confidenceText = screen.getByText('(45% confidence)')
-        expect(confidenceText).toHaveClass('text-red-600')
+        expect(confidenceText).toHaveClass('text-destructive')
       })
     })
   })

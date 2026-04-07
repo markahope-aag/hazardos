@@ -128,13 +128,13 @@ describe('JobsService', () => {
     it('should throw error when user is not authenticated', async () => {
       mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null }, error: null })
 
-      await expect(JobsService.create(mockInput)).rejects.toThrow('Unauthorized')
+      await expect(JobsService.create(mockInput)).rejects.toThrow('Authentication is required')
     })
 
     it('should throw error when profile is not found', async () => {
       mockSupabase.single.mockResolvedValueOnce({ data: null, error: null })
 
-      await expect(JobsService.create(mockInput)).rejects.toThrow('Profile not found')
+      await expect(JobsService.create(mockInput)).rejects.toThrow('Authentication is required')
     })
 
     it('should include proposal_id when provided', async () => {

@@ -7,6 +7,7 @@
  * This is used in addition to localStorage for larger data like photos.
  */
 
+import { nanoid } from 'nanoid'
 import { createServiceLogger } from '@/lib/utils/logger';
 
 const log = createServiceLogger('OfflineStorageService');
@@ -364,7 +365,7 @@ export async function addToSyncQueue(
 ): Promise<string> {
   const database = await getDb()
 
-  const id = `sync-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  const id = `sync-${Date.now()}-${nanoid(9)}`
   const queueItem: SyncQueueItem = {
     ...item,
     id,

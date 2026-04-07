@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 import type {
   Notification,
   NotificationPreference,
@@ -18,7 +19,7 @@ export class NotificationService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -26,7 +27,7 @@ export class NotificationService {
       .eq('id', user.id)
       .single()
 
-    if (!profile) throw new Error('Profile not found')
+    if (!profile) throw new SecureError('UNAUTHORIZED')
 
     // Check user preferences before creating
     const { data: preference } = await supabase
@@ -74,7 +75,7 @@ export class NotificationService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -82,7 +83,7 @@ export class NotificationService {
       .eq('id', user.id)
       .single()
 
-    if (!profile) throw new Error('Profile not found')
+    if (!profile) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase.rpc('create_notification_for_role', {
       p_organization_id: profile.organization_id,
@@ -109,7 +110,7 @@ export class NotificationService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const targetUserId = options?.userId || user.id
     const limit = options?.limit || 50
@@ -137,7 +138,7 @@ export class NotificationService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const targetUserId = options?.userId || user.id
     const limit = options?.limit || 50
@@ -160,7 +161,7 @@ export class NotificationService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const targetUserId = userId || user.id
 
@@ -176,7 +177,7 @@ export class NotificationService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { error } = await supabase
       .from('notifications')
@@ -194,7 +195,7 @@ export class NotificationService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { error } = await supabase
       .from('notifications')
@@ -212,7 +213,7 @@ export class NotificationService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { error } = await supabase
       .from('notifications')
@@ -229,7 +230,7 @@ export class NotificationService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     // Initialize preferences if not exists
     const { data: profile } = await supabase
@@ -260,7 +261,7 @@ export class NotificationService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const updateData: Record<string, unknown> = {}
     if (input.in_app !== undefined) updateData.in_app = input.in_app

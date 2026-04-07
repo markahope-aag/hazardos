@@ -13,7 +13,7 @@ vi.mock('@/lib/hooks/use-customers', () => ({
 vi.mock('@/components/customers/customer-form', () => ({
   default: ({ onSubmit, onCancel, isSubmitting, submitLabel }: any) => (
     <div data-testid="customer-form">
-      <button onClick={() => onSubmit({ name: 'Test Customer', email: 'test@example.com' })}>
+      <button onClick={() => onSubmit({ first_name: 'Test', last_name: 'Contact', email: 'test@example.com' })}>
         {submitLabel}
       </button>
       <button onClick={onCancel}>Cancel</button>
@@ -37,20 +37,20 @@ describe('CreateCustomerModal', () => {
   it('should not render when open is false', () => {
     render(<CreateCustomerModal open={false} onClose={mockOnClose} />)
 
-    expect(screen.queryByText('Add New Customer')).not.toBeInTheDocument()
+    expect(screen.queryByText('Add New Contact')).not.toBeInTheDocument()
   })
 
   it('should render modal when open is true', () => {
     render(<CreateCustomerModal open={true} onClose={mockOnClose} />)
 
-    expect(screen.getByText('Add New Customer')).toBeInTheDocument()
+    expect(screen.getByText('Add New Contact')).toBeInTheDocument()
     expect(screen.getByTestId('customer-form')).toBeInTheDocument()
   })
 
-  it('should show Create Customer submit label', () => {
+  it('should show Create Contact submit label', () => {
     render(<CreateCustomerModal open={true} onClose={mockOnClose} />)
 
-    expect(screen.getByText('Create Customer')).toBeInTheDocument()
+    expect(screen.getByText('Create Contact')).toBeInTheDocument()
   })
 
   it('should handle form submission successfully', async () => {
@@ -58,14 +58,17 @@ describe('CreateCustomerModal', () => {
 
     render(<CreateCustomerModal open={true} onClose={mockOnClose} />)
 
-    const submitButton = screen.getByText('Create Customer')
+    const submitButton = screen.getByText('Create Contact')
     await userEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(mockMutateAsync).toHaveBeenCalledWith({
-        name: 'Test Customer',
-        email: 'test@example.com',
-      })
+      expect(mockMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          first_name: 'Test',
+          last_name: 'Contact',
+          email: 'test@example.com',
+        })
+      )
       expect(mockOnClose).toHaveBeenCalled()
     })
   })
@@ -88,19 +91,6 @@ describe('CreateCustomerModal', () => {
     await userEvent.click(cancelButton)
 
     expect(mockOnClose).toHaveBeenCalled()
-  })
-
-  it('should call mutateAsync on form submission', async () => {
-    mockMutateAsync.mockResolvedValue({ id: '456' })
-
-    render(<CreateCustomerModal open={true} onClose={mockOnClose} />)
-
-    const submitButton = screen.getByText('Create Customer')
-    await userEvent.click(submitButton)
-
-    await waitFor(() => {
-      expect(mockMutateAsync).toHaveBeenCalledTimes(1)
-    })
   })
 
   it('should pass isSubmitting prop to CustomerForm', () => {

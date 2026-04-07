@@ -15,11 +15,11 @@ export const POST = createApiHandler(
   async (_request, _context, body) => {
     const { type, entity_type, entity_id, entity_name, content, call_direction, call_duration } = body
 
-    if (type === 'note') {
-      await Activity.note(entity_type, entity_id, entity_name, content!)
-    } else if (type === 'call') {
+    if (type === 'note' && content) {
+      await Activity.note(entity_type, entity_id, entity_name, content)
+    } else if (type === 'call' && call_direction) {
       await Activity.call(entity_type, entity_id, entity_name, {
-        direction: call_direction!,
+        direction: call_direction,
         duration: call_duration,
         notes: content,
       })

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 import { SmsService } from '@/lib/services/sms-service'
 import { formatCurrency } from '@/lib/utils'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
@@ -20,7 +21,7 @@ export class InvoicesService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -28,7 +29,7 @@ export class InvoicesService {
       .eq('id', user.id)
       .single()
 
-    if (!profile) throw new Error('Profile not found')
+    if (!profile) throw new SecureError('UNAUTHORIZED')
 
     const orgId = profile.organization_id
 
@@ -75,7 +76,7 @@ export class InvoicesService {
       .eq('id', input.job_id)
       .single()
 
-    if (jobError || !job) throw new Error('Job not found')
+    if (jobError || !job) throw new SecureError('NOT_FOUND', 'Job not found')
 
     // Calculate due date
     const dueDate = new Date()
@@ -252,10 +253,10 @@ export class InvoicesService {
 
     // Get the full invoice with customer data
     const invoice = await this.getById(id)
-    if (!invoice) throw new Error('Invoice not found')
+    if (!invoice) throw new SecureError('NOT_FOUND', 'Invoice not found')
 
     const customer = invoice.customer
-    if (!customer) throw new Error('Invoice has no customer')
+    if (!customer) throw new SecureError('BAD_REQUEST', 'Invoice has no customer')
 
     // Get organization info for branding
     const { data: profile } = await supabase
@@ -263,7 +264,7 @@ export class InvoicesService {
       .select('organization_id')
       .single()
 
-    if (!profile?.organization_id) throw new Error('Organization not found')
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
 
     const { data: organization } = await supabase
       .from('organizations')
@@ -307,11 +308,11 @@ export class InvoicesService {
   ): Promise<void> {
     const resendApiKey = process.env.RESEND_API_KEY
     if (!resendApiKey) {
-      throw new Error('Email service not configured (RESEND_API_KEY missing)')
+      throw new SecureError('BAD_REQUEST', 'Email service not configured (RESEND_API_KEY missing)')
     }
 
     if (!customer.email) {
-      throw new Error('Customer has no email address')
+      throw new SecureError('VALIDATION_ERROR', 'Customer has no email address', 'email')
     }
 
     const { Resend } = await import('resend')
@@ -399,7 +400,7 @@ export class InvoicesService {
     organizationId: string
   ): Promise<void> {
     if (!customer.phone) {
-      throw new Error('Customer has no phone number')
+      throw new SecureError('VALIDATION_ERROR', 'Customer has no phone number', 'phone')
     }
 
     const paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/pay/${invoice.id}`
@@ -421,7 +422,7 @@ export class InvoicesService {
 
   static async markViewed(id: string): Promise<Invoice> {
     const invoice = await this.getById(id)
-    if (!invoice) throw new Error('Invoice not found')
+    if (!invoice) throw new SecureError('NOT_FOUND', 'Invoice not found')
 
     if (invoice.status === 'sent') {
       return this.update(id, {
@@ -552,7 +553,7 @@ export class InvoicesService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -560,7 +561,7 @@ export class InvoicesService {
       .eq('id', user.id)
       .single()
 
-    if (!profile) throw new Error('Profile not found')
+    if (!profile) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('payments')
@@ -614,7 +615,7 @@ export class InvoicesService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -622,7 +623,7 @@ export class InvoicesService {
       .eq('id', user.id)
       .single()
 
-    if (!profile?.organization_id) throw new Error('Organization not found')
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
 
     const today = new Date().toISOString().split('T')[0]
     const monthStart = new Date()

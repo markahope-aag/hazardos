@@ -5,12 +5,31 @@ import { JobsByStatus } from '@/components/dashboard/jobs-by-status'
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
-// Mock Recharts components
+// Mock Recharts components - factory inline to avoid hoisting issues
 vi.mock('recharts', () => ({
   PieChart: ({ children }: { children: React.ReactNode }) => <div data-testid="pie-chart">{children}</div>,
   Pie: ({ data, label, children }: { data: any[], label: any, children?: React.ReactNode }) => (
     <div data-testid="pie">
-      {data.map((entry, index) => (
+      {data.map((entry: any, index: number) => (
+        <div key={index} data-testid={`pie-segment-${entry.status}`}>
+          {label && label(entry)}
+        </div>
+      ))}
+      {children}
+    </div>
+  ),
+  Cell: ({ fill }: { fill: string }) => <div data-testid="pie-cell" style={{ fill }} />,
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="responsive-container">{children}</div>
+  ),
+  Legend: () => <div data-testid="legend" />,
+  Tooltip: () => <div data-testid="tooltip" />,
+}))
+vi.mock('@/components/charts/recharts-lazy', () => ({
+  PieChart: ({ children }: { children: React.ReactNode }) => <div data-testid="pie-chart">{children}</div>,
+  Pie: ({ data, label, children }: { data: any[], label: any, children?: React.ReactNode }) => (
+    <div data-testid="pie">
+      {data.map((entry: any, index: number) => (
         <div key={index} data-testid={`pie-segment-${entry.status}`}>
           {label && label(entry)}
         </div>

@@ -5,7 +5,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 describe('Collapsible', () => {
   it('should render collapsible with trigger and content', () => {
     render(
-      <Collapsible>
+      <Collapsible defaultOpen>
         <CollapsibleTrigger>Toggle Content</CollapsibleTrigger>
         <CollapsibleContent>
           <p>Collapsible content</p>
@@ -152,7 +152,7 @@ describe('Collapsible', () => {
 
   it('should render complex content structure', () => {
     render(
-      <Collapsible>
+      <Collapsible defaultOpen>
         <CollapsibleTrigger>
           <span>Complex Trigger</span>
           <span>with multiple elements</span>
@@ -223,11 +223,11 @@ describe('Collapsible', () => {
   it('should handle multiple collapsibles independently', () => {
     render(
       <div>
-        <Collapsible data-testid="first-collapsible">
+        <Collapsible defaultOpen data-testid="first-collapsible">
           <CollapsibleTrigger>First Toggle</CollapsibleTrigger>
           <CollapsibleContent>First Content</CollapsibleContent>
         </Collapsible>
-        <Collapsible data-testid="second-collapsible">
+        <Collapsible defaultOpen data-testid="second-collapsible">
           <CollapsibleTrigger>Second Toggle</CollapsibleTrigger>
           <CollapsibleContent>Second Content</CollapsibleContent>
         </Collapsible>
@@ -242,7 +242,7 @@ describe('Collapsible', () => {
 
   it('should support accessibility attributes', () => {
     render(
-      <Collapsible>
+      <Collapsible defaultOpen>
         <CollapsibleTrigger aria-label="Toggle content visibility">
           Toggle
         </CollapsibleTrigger>

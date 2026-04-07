@@ -13,6 +13,20 @@ vi.mock('@/components/ui/use-toast', () => ({
   })
 }))
 
+// Mock analytics hook
+vi.mock('@/lib/hooks/use-analytics', () => ({
+  useFormAnalytics: () => ({
+    startTracking: vi.fn(),
+    trackSuccess: vi.fn(),
+    trackFailure: vi.fn(),
+  }),
+}))
+
+// Mock companies hook
+vi.mock('@/lib/hooks/use-companies', () => ({
+  useSearchCompanies: () => ({ data: [] }),
+}))
+
 const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -45,18 +59,16 @@ describe('CustomerForm Component', () => {
       </Wrapper>
     )
 
-    expect(screen.getByLabelText(/^name/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/first name/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/last name/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/^phone$/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/address line 1/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/street address/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/^city$/i)).toBeInTheDocument()
-    // State is a Select component, so we check for the label text and trigger
-    expect(screen.getByText(/^state$/i)).toBeInTheDocument()
-    expect(screen.getByText('Select state')).toBeInTheDocument()
-    expect(screen.getByLabelText(/zip code/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^state$/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^zip$/i)).toBeInTheDocument()
   })
 
-  it('should show validation error for empty name', async () => {
+  it('should show validation error for empty first name', async () => {
     const Wrapper = createWrapper()
 
     render(
@@ -65,13 +77,13 @@ describe('CustomerForm Component', () => {
       </Wrapper>
     )
 
-    const submitButton = screen.getByRole('button', { name: /save customer/i })
+    const submitButton = screen.getByRole('button', { name: /save contact/i })
     await act(async () => {
       await userEvent.click(submitButton, { delay: null })
     })
 
     await waitFor(() => {
-      expect(screen.getByText(/name is required/i)).toBeInTheDocument()
+      expect(screen.getByText(/first name is required/i)).toBeInTheDocument()
     })
   })
 
@@ -88,32 +100,30 @@ describe('CustomerForm Component', () => {
     const emailInput = screen.getByLabelText(/^email$/i)
     expect(emailInput).toBeInTheDocument()
     expect(emailInput).toHaveAttribute('type', 'email')
-
-    // Test that the email field is optional (no error when empty and submitted)
-    // The email validation uses zod's .email() which validates format
-    // This is a rendering test - detailed validation is tested at the schema level
   })
 
   it('should populate form with customer data', () => {
     const customer = createMockCustomer({
-      name: 'John Doe',
+      first_name: 'John',
+      last_name: 'Doe',
       email: 'john@example.com',
-      phone: '(555) 123-4567',
+      mobile_phone: '(555) 123-4567',
       status: 'prospect'
     })
-    
+
     const Wrapper = createWrapper()
     render(
       <Wrapper>
-        <CustomerForm 
+        <CustomerForm
           customer={customer}
-          onSubmit={vi.fn()} 
-          onCancel={vi.fn()} 
+          onSubmit={vi.fn()}
+          onCancel={vi.fn()}
         />
       </Wrapper>
     )
-    
-    expect(screen.getByDisplayValue('John Doe')).toBeInTheDocument()
+
+    expect(screen.getByDisplayValue('John')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Doe')).toBeInTheDocument()
     expect(screen.getByDisplayValue('john@example.com')).toBeInTheDocument()
     expect(screen.getByDisplayValue('(555) 123-4567')).toBeInTheDocument()
   })
@@ -129,13 +139,13 @@ describe('CustomerForm Component', () => {
     )
 
     await act(async () => {
-      await userEvent.type(screen.getByLabelText(/^name/i), 'Test Customer', { delay: null })
+      await userEvent.type(screen.getByLabelText(/first name/i), 'Test', { delay: null })
     })
     await act(async () => {
       await userEvent.type(screen.getByLabelText(/^email$/i), 'test@example.com', { delay: null })
     })
 
-    const submitButton = screen.getByRole('button', { name: /save customer/i })
+    const submitButton = screen.getByRole('button', { name: /save contact/i })
     await act(async () => {
       await userEvent.click(submitButton, { delay: null })
     })
@@ -143,7 +153,7 @@ describe('CustomerForm Component', () => {
     await waitFor(() => {
       expect(handleSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: 'Test Customer',
+          first_name: 'Test',
           email: 'test@example.com'
         })
       )
@@ -193,7 +203,7 @@ describe('CustomerForm Component', () => {
     )
 
     // Fill form
-    const nameInput = screen.getByLabelText(/^name/i) as HTMLInputElement
+    const nameInput = screen.getByLabelText(/first name/i) as HTMLInputElement
     await act(async () => {
       await userEvent.type(nameInput, 'Test Name', { delay: null })
     })
@@ -205,10 +215,10 @@ describe('CustomerForm Component', () => {
       </Wrapper>
     )
 
-    expect(screen.getByLabelText(/^name/i)).toHaveValue('')
+    expect(screen.getByLabelText(/first name/i)).toHaveValue('')
   })
 
-  it('should handle state selection', async () => {
+  it('should handle state input', async () => {
     const Wrapper = createWrapper()
 
     render(
@@ -217,14 +227,13 @@ describe('CustomerForm Component', () => {
       </Wrapper>
     )
 
-    // Find the state select trigger by its placeholder text
-    const stateSelect = screen.getByText('Select state')
-    expect(stateSelect).toBeInTheDocument()
-    // Note: clicking the select to open dropdown causes pointer capture issues in test environment
-    // so we just verify it renders correctly
+    // State is now an Input field with placeholder "CO" and maxLength 2
+    const stateInput = screen.getByLabelText(/^state$/i)
+    expect(stateInput).toBeInTheDocument()
+    expect(stateInput).toHaveAttribute('maxlength', '2')
   })
 
-  it('should handle status selection', async () => {
+  it('should render contact type selection', () => {
     const Wrapper = createWrapper()
 
     render(
@@ -233,14 +242,8 @@ describe('CustomerForm Component', () => {
       </Wrapper>
     )
 
-    // The status select has a default value of 'lead', so look for the Lead text in a trigger
-    const allComboboxes = screen.getAllByRole('combobox')
-    // Status is the first combobox in the Customer Details section
-    const statusSelect = allComboboxes.find(cb =>
-      cb.textContent?.includes('Lead') || cb.textContent?.includes('Select status')
-    )
-    expect(statusSelect).toBeDefined()
-    // Note: clicking the select to open dropdown causes pointer capture issues in test environment
-    // so we just verify it renders correctly with the default value
+    // Contact type buttons are rendered
+    expect(screen.getByText('Residential')).toBeInTheDocument()
+    expect(screen.getByText('Commercial')).toBeInTheDocument()
   })
 })

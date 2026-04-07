@@ -96,7 +96,7 @@ describe('OpportunityActions', () => {
   it('renders more options dropdown', () => {
     render(<OpportunityActions opportunity={mockOpenOpportunity} stages={mockStages} />)
 
-    expect(screen.getByRole('button', { name: '' })).toBeInTheDocument() // IconButton
+    expect(screen.getByRole('button', { name: /more actions/i })).toBeInTheDocument()
   })
 
   it('opens move dialog when Move Stage is clicked', async () => {

@@ -42,7 +42,9 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
       )
 
       if (!profileResp.ok) {
-        console.error('[AUTH] Profile fetch failed:', profileResp.status)
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[AUTH] Profile fetch failed:', profileResp.status)
+        }
         return
       }
 
@@ -71,9 +73,15 @@ export function useMultiTenantAuth(): MultiTenantAuthState {
           last_login_at: new Date().toISOString(),
           login_count: (userProfile.login_count || 0) + 1
         })
-      }).catch(() => {})
+      }).catch((err) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[AUTH] Failed to update last login:', err)
+        }
+      })
     } catch (error) {
-      console.error('[AUTH] fetchProfileAndOrg error:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[AUTH] fetchProfileAndOrg error:', error)
+      }
     }
   }, [])
 

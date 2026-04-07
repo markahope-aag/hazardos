@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
 import { createHash } from 'crypto';
 import { createServiceLogger } from '@/lib/utils/logger';
+import { SecureError } from '@/lib/utils/secure-error-handler';
 import type { PhotoAnalysis, DetectedHazard } from '@/types/integrations';
 
 const log = createServiceLogger('PhotoAnalysisService');
@@ -34,7 +35,7 @@ export class PhotoAnalysisService {
   private static getClient(): Anthropic {
     if (!this.client) {
       if (!process.env.ANTHROPIC_API_KEY) {
-        throw new Error('ANTHROPIC_API_KEY is not configured');
+        throw new SecureError('BAD_REQUEST', 'ANTHROPIC_API_KEY is not configured');
       }
       this.client = new Anthropic({
         apiKey: process.env.ANTHROPIC_API_KEY,
@@ -105,7 +106,8 @@ export class PhotoAnalysisService {
     // Check if AI features are enabled for this organization
     const aiEnabled = await this.checkAIEnabled(supabase, organizationId);
     if (!aiEnabled) {
-      throw new Error(
+      throw new SecureError(
+        'BAD_REQUEST',
         'AI photo analysis is not enabled for this organization. ' +
         'Please enable AI features in Settings → AI & Automation to use this feature.'
       );
@@ -165,7 +167,7 @@ Always respond with valid JSON matching the requested schema.`,
     // Parse response
     const textContent = response.content.find(c => c.type === 'text');
     if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text response from AI');
+      throw new SecureError('BAD_REQUEST', 'No text response from AI');
     }
 
     const result = this.parseAnalysisResponse(textContent.text);

@@ -1,5 +1,6 @@
 'use client'
 
+import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 
@@ -60,7 +61,7 @@ interface PhotoQueueState {
 }
 
 // Generate unique IDs
-const generateId = () => `photo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+const generateId = () => `photo-${Date.now()}-${nanoid(9)}`
 
 export const usePhotoQueueStore = create<PhotoQueueState>()(
   persist(

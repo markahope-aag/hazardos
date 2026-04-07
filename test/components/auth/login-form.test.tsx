@@ -118,7 +118,7 @@ describe('LoginForm', () => {
     })
   })
 
-  it('redirects to dashboard on successful login', async () => {
+  it('shows success toast on successful login', async () => {
     mockSignInWithPassword.mockResolvedValue({ error: null })
     const user = userEvent.setup()
 
@@ -128,8 +128,11 @@ describe('LoginForm', () => {
     await user.type(screen.getByLabelText(/password/i), 'password123')
     await user.click(screen.getByRole('button', { name: /sign in/i }))
 
-    expect(mockPush).toHaveBeenCalledWith('/dashboard')
-    expect(mockRefresh).toHaveBeenCalled()
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Login Successful',
+      })
+    )
   })
 
   it('shows error toast on login failure', async () => {
@@ -145,7 +148,7 @@ describe('LoginForm', () => {
     await user.click(screen.getByRole('button', { name: /sign in/i }))
 
     expect(mockToast).toHaveBeenCalledWith({
-      title: 'Error',
+      title: 'Login Failed',
       description: 'Invalid credentials',
       variant: 'destructive',
     })

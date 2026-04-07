@@ -199,7 +199,7 @@ describe('ReportingService', () => {
         ReportingService.runSalesReport({
           date_range: { type: 'this_month' },
         })
-      ).rejects.toThrow('Unauthorized')
+      ).rejects.toThrow('Authentication is required')
     })
 
     it('should filter by organization', async () => {

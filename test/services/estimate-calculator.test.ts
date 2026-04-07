@@ -2,27 +2,58 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { EstimateCalculator } from '@/lib/services/estimate-calculator'
 import type { SiteSurvey } from '@/types/database'
 
-// Mock the Supabase client
-vi.mock('@/lib/supabase/client', () => ({
-  createClient: () => ({
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: null, error: null })
-    }))
-  })
-}))
+// Create a chainable mock supabase client
+function createMockSupabase() {
+  const chain = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    then: vi.fn((resolve: (value: { data: never[]; error: null }) => void) =>
+      resolve({ data: [], error: null })
+    ),
+  }
+
+  // Make the chain thenable (Promise-like) so await works
+  const thenable = {
+    ...chain,
+    then(
+      onFulfilled?: (value: { data: never[]; error: null }) => unknown,
+      onRejected?: (reason: unknown) => unknown
+    ) {
+      try {
+        const result = onFulfilled
+          ? onFulfilled({ data: [], error: null })
+          : { data: [], error: null }
+        return Promise.resolve(result)
+      } catch (err) {
+        if (onRejected) return Promise.resolve(onRejected(err))
+        return Promise.reject(err)
+      }
+    },
+  }
+
+  // Override each method to return thenable
+  thenable.select = vi.fn(() => thenable)
+  thenable.eq = vi.fn(() => thenable)
+  thenable.single = vi.fn().mockResolvedValue({ data: null, error: null })
+
+  return {
+    from: vi.fn(() => thenable),
+  } as unknown as import('@supabase/supabase-js').SupabaseClient
+}
 
 describe('EstimateCalculator', () => {
   let calculator: EstimateCalculator
+  let mockSupabase: ReturnType<typeof createMockSupabase>
 
   beforeEach(() => {
-    calculator = new EstimateCalculator('org-123')
+    mockSupabase = createMockSupabase()
+    calculator = new EstimateCalculator('org-123', mockSupabase)
   })
 
   describe('constructor', () => {
     it('should create instance with organization id', () => {
-      const calc = new EstimateCalculator('org-456')
+      const calc = new EstimateCalculator('org-456', mockSupabase)
       expect(calc).toBeInstanceOf(EstimateCalculator)
     })
   })

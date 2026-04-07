@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
+import { SecureError } from '@/lib/utils/secure-error-handler';
 import type { VoiceTranscription } from '@/types/integrations';
 
 const WHISPER_MODEL = 'whisper-1';
@@ -25,7 +26,7 @@ export class VoiceService {
   private static getOpenAIClient(): OpenAI {
     if (!this.openaiClient) {
       if (!process.env.OPENAI_API_KEY) {
-        throw new Error('OPENAI_API_KEY is not configured');
+        throw new SecureError('BAD_REQUEST', 'OPENAI_API_KEY is not configured');
       }
       this.openaiClient = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
@@ -37,7 +38,7 @@ export class VoiceService {
   private static getAnthropicClient(): Anthropic {
     if (!this.anthropicClient) {
       if (!process.env.ANTHROPIC_API_KEY) {
-        throw new Error('ANTHROPIC_API_KEY is not configured');
+        throw new SecureError('BAD_REQUEST', 'ANTHROPIC_API_KEY is not configured');
       }
       this.anthropicClient = new Anthropic({
         apiKey: process.env.ANTHROPIC_API_KEY,

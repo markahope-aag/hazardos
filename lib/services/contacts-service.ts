@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 import type {
   CustomerContact,
   CreateContactInput,
@@ -14,7 +15,7 @@ export class ContactsService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('customer_contacts')
@@ -35,7 +36,7 @@ export class ContactsService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('customer_contacts')
@@ -55,7 +56,7 @@ export class ContactsService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -63,7 +64,7 @@ export class ContactsService {
       .eq('id', user.id)
       .single()
 
-    if (!profile) throw new Error('Profile not found')
+    if (!profile) throw new SecureError('UNAUTHORIZED')
 
     // Check if this will be the first contact (make it primary)
     const { count } = await supabase
@@ -112,7 +113,7 @@ export class ContactsService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     // Get current contact for activity log
     const { data: current } = await supabase
@@ -121,7 +122,7 @@ export class ContactsService {
       .eq('id', contactId)
       .single()
 
-    if (!current) throw new Error('Contact not found')
+    if (!current) throw new SecureError('NOT_FOUND', 'Contact not found')
 
     const { data, error } = await supabase
       .from('customer_contacts')
@@ -156,7 +157,7 @@ export class ContactsService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     // Get contact for activity log
     const { data: contact } = await supabase
@@ -185,7 +186,7 @@ export class ContactsService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('customer_contacts')
@@ -212,7 +213,7 @@ export class ContactsService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('customer_contacts')
@@ -233,7 +234,7 @@ export class ContactsService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('customer_contacts')

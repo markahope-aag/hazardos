@@ -1,57 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CustomerList from '@/components/customers/customer-list'
 import type { Customer } from '@/types/database'
-
-// Mock child components
-vi.mock('@/components/customers/customer-list-item', () => ({
-  default: ({ customer, onEdit, onDelete }: any) => (
-    <tr data-testid={`customer-row-${customer.id}`}>
-      <td>{customer.name}</td>
-      <td>{customer.email}</td>
-      <td>
-        <button onClick={() => onEdit(customer)}>Edit</button>
-        <button onClick={() => onDelete(customer)}>Delete</button>
-      </td>
-    </tr>
-  ),
-}))
-
-vi.mock('@/components/customers/customer-search', () => ({
-  default: ({ value, onChange }: any) => (
-    <input
-      data-testid="customer-search"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder="Search..."
-    />
-  ),
-}))
-
-vi.mock('@/components/customers/customer-filters', () => ({
-  default: ({ status, source, onStatusChange, onSourceChange, onClearFilters }: any) => (
-    <div data-testid="customer-filters">
-      <select
-        data-testid="status-filter"
-        value={status}
-        onChange={(e) => onStatusChange(e.target.value)}
-      >
-        <option value="all">All</option>
-        <option value="active">Active</option>
-      </select>
-      <select
-        data-testid="source-filter"
-        value={source}
-        onChange={(e) => onSourceChange(e.target.value)}
-      >
-        <option value="all">All</option>
-        <option value="referral">Referral</option>
-      </select>
-      <button onClick={onClearFilters}>Clear filters</button>
-    </div>
-  ),
-}))
 
 // Mock hooks
 let mockCustomers: Customer[] = []
@@ -70,15 +21,23 @@ vi.mock('@/lib/hooks/use-debounced-value', () => ({
   useDebouncedValue: (value: string) => value,
 }))
 
+// Mock next/link
+vi.mock('next/link', () => ({
+  default: ({ children, href, ...rest }: any) => <a href={href} {...rest}>{children}</a>,
+}))
+
 const mockCustomer: Customer = {
   id: 'cust-1',
   organization_id: 'org-1',
   name: 'John Doe',
+  first_name: 'John',
+  last_name: 'Doe',
   company_name: 'Acme Inc',
   email: 'john@example.com',
   phone: '555-1234',
   status: 'active',
   source: 'referral',
+  contact_type: 'residential',
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 }
@@ -94,17 +53,6 @@ describe('CustomerList', () => {
     mockError = null
   })
 
-  it('renders Customers title', async () => {
-    render(
-      <CustomerList
-        onEditCustomer={mockOnEditCustomer}
-        onDeleteCustomer={mockOnDeleteCustomer}
-      />
-    )
-
-    expect(screen.getByText('Customers')).toBeInTheDocument()
-  })
-
   it('renders search input', () => {
     render(
       <CustomerList
@@ -113,29 +61,7 @@ describe('CustomerList', () => {
       />
     )
 
-    expect(screen.getByTestId('customer-search')).toBeInTheDocument()
-  })
-
-  it('renders filters', () => {
-    render(
-      <CustomerList
-        onEditCustomer={mockOnEditCustomer}
-        onDeleteCustomer={mockOnDeleteCustomer}
-      />
-    )
-
-    expect(screen.getByTestId('customer-filters')).toBeInTheDocument()
-  })
-
-  it('renders customer rows', () => {
-    render(
-      <CustomerList
-        onEditCustomer={mockOnEditCustomer}
-        onDeleteCustomer={mockOnDeleteCustomer}
-      />
-    )
-
-    expect(screen.getByTestId('customer-row-cust-1')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/search name/i)).toBeInTheDocument()
   })
 
   it('renders table headers', () => {
@@ -147,11 +73,10 @@ describe('CustomerList', () => {
     )
 
     expect(screen.getByText('Name')).toBeInTheDocument()
+    expect(screen.getByText('Company')).toBeInTheDocument()
     expect(screen.getByText('Contact')).toBeInTheDocument()
+    expect(screen.getByText('Type')).toBeInTheDocument()
     expect(screen.getByText('Status')).toBeInTheDocument()
-    expect(screen.getByText('Source')).toBeInTheDocument()
-    expect(screen.getByText('Created')).toBeInTheDocument()
-    expect(screen.getByText('Actions')).toBeInTheDocument()
   })
 
   it('shows loading state', () => {
@@ -165,7 +90,7 @@ describe('CustomerList', () => {
       />
     )
 
-    // Should show skeletons
+    // Should show skeletons (Skeleton component uses animate-pulse)
     expect(document.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0)
   })
 
@@ -179,7 +104,7 @@ describe('CustomerList', () => {
       />
     )
 
-    expect(screen.getByText('No customers yet')).toBeInTheDocument()
+    expect(screen.getByText('No contacts yet')).toBeInTheDocument()
     expect(screen.getByText(/get started by adding/i)).toBeInTheDocument()
   })
 
@@ -194,11 +119,11 @@ describe('CustomerList', () => {
       />
     )
 
-    expect(screen.getByText('Error loading customers')).toBeInTheDocument()
+    expect(screen.getByText('Error loading contacts')).toBeInTheDocument()
     expect(screen.getByText('Network error')).toBeInTheDocument()
   })
 
-  it('shows customer count', () => {
+  it('renders customer data in rows', () => {
     render(
       <CustomerList
         onEditCustomer={mockOnEditCustomer}
@@ -206,53 +131,12 @@ describe('CustomerList', () => {
       />
     )
 
-    expect(screen.getByText('(1 total)')).toBeInTheDocument()
-  })
-
-  it('calls onEditCustomer when edit is clicked', async () => {
-    const user = userEvent.setup()
-    render(
-      <CustomerList
-        onEditCustomer={mockOnEditCustomer}
-        onDeleteCustomer={mockOnDeleteCustomer}
-      />
-    )
-
-    await user.click(screen.getByText('Edit'))
-
-    expect(mockOnEditCustomer).toHaveBeenCalledWith(mockCustomer)
-  })
-
-  it('calls onDeleteCustomer when delete is clicked', async () => {
-    const user = userEvent.setup()
-    render(
-      <CustomerList
-        onEditCustomer={mockOnEditCustomer}
-        onDeleteCustomer={mockOnDeleteCustomer}
-      />
-    )
-
-    await user.click(screen.getByText('Delete'))
-
-    expect(mockOnDeleteCustomer).toHaveBeenCalledWith(mockCustomer)
-  })
-
-  it('clears filters when clear button clicked', async () => {
-    const user = userEvent.setup()
-    render(
-      <CustomerList
-        onEditCustomer={mockOnEditCustomer}
-        onDeleteCustomer={mockOnDeleteCustomer}
-      />
-    )
-
-    await user.click(screen.getByText('Clear filters'))
-
-    // Filters should be reset (state changes internally)
+    expect(screen.getByText('John Doe')).toBeInTheDocument()
+    expect(screen.getByText('Acme Inc')).toBeInTheDocument()
+    expect(screen.getByText('john@example.com')).toBeInTheDocument()
   })
 
   it('shows pagination when more items available', () => {
-    // Simulate having a full page
     mockCustomers = Array(25).fill(null).map((_, i) => ({
       ...mockCustomer,
       id: `cust-${i}`,

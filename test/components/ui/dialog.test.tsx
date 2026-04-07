@@ -51,8 +51,8 @@ describe('Dialog', () => {
   it('should render DialogHeader with correct styling', () => {
     render(
       <DialogHeader data-testid="dialog-header">
-        <DialogTitle>Header Title</DialogTitle>
-        <DialogDescription>Header Description</DialogDescription>
+        <span>Header Title</span>
+        <span>Header Description</span>
       </DialogHeader>
     )
 
@@ -131,7 +131,7 @@ describe('Dialog', () => {
   it('should apply custom className to DialogHeader', () => {
     render(
       <DialogHeader className="custom-header-class" data-testid="custom-header">
-        <DialogTitle>Custom Header</DialogTitle>
+        <span>Custom Header</span>
       </DialogHeader>
     )
 

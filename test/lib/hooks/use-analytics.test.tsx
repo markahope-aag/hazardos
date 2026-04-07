@@ -22,10 +22,11 @@ vi.mock('@/lib/analytics', () => ({
 }))
 
 // Mock performance.now
-const mockPerformanceNow = vi.fn()
+const mockPerformanceNow = vi.fn(() => 1000)
 Object.defineProperty(global, 'performance', {
   value: { now: mockPerformanceNow },
   writable: true,
+  configurable: true,
 })
 
 describe('useAnalytics', () => {
@@ -326,6 +327,7 @@ describe('useWidgetAnalytics', () => {
 describe('useRenderPerformance', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockPerformanceNow.mockReset()
     mockPerformanceNow.mockReturnValue(1000)
   })
 
@@ -339,14 +341,24 @@ describe('useRenderPerformance', () => {
 
   it('should track slow renders after first render', async () => {
     const { track } = await import('@/lib/analytics')
-    mockPerformanceNow
-      .mockReturnValueOnce(1000) // first render
-      .mockReturnValueOnce(1020) // second render (20ms duration > 16ms threshold)
-    
+
+    // The hook calls performance.now() in:
+    // 1. useRef(performance.now()) on initial mount
+    // 2. useEffect body: const currentTime = performance.now() (mount)
+    // 3. useEffect body: const currentTime = performance.now() (rerender)
+    // Plus potentially: lastRenderTime.current = currentTime at end of each effect
+    let callCount = 0
+    mockPerformanceNow.mockImplementation(() => {
+      callCount++
+      // First two calls (ref init + mount effect): return 1000
+      // Third call (rerender effect): return 1020
+      return callCount <= 2 ? 1000 : 1020
+    })
+
     const { rerender } = renderHook(() => useRenderPerformance('SlowComponent'))
-    
+
     rerender()
-    
+
     expect(track).toHaveBeenCalledWith('component_render', {
       component: 'SlowComponent',
       render_count: 2,
@@ -357,13 +369,14 @@ describe('useRenderPerformance', () => {
   it('should not track fast renders', async () => {
     const { track } = await import('@/lib/analytics')
     mockPerformanceNow
-      .mockReturnValueOnce(1000) // first render
-      .mockReturnValueOnce(1010) // second render (10ms duration < 16ms threshold)
-    
+      .mockReturnValueOnce(1000) // useRef(performance.now()) - initial render
+      .mockReturnValueOnce(1000) // useEffect on mount: currentTime
+      .mockReturnValueOnce(1010) // useEffect on rerender: currentTime (10ms < 16ms threshold)
+
     const { rerender } = renderHook(() => useRenderPerformance('FastComponent'))
-    
+
     rerender()
-    
+
     expect(track).not.toHaveBeenCalled()
   })
 })

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 import type {
   Job,
   JobCrew,
@@ -14,7 +15,7 @@ export class JobsService {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -22,7 +23,7 @@ export class JobsService {
       .eq('id', user.id)
       .single()
 
-    if (!profile) throw new Error('Profile not found')
+    if (!profile) throw new SecureError('UNAUTHORIZED')
 
     const organizationId = profile.organization_id
 
@@ -84,7 +85,7 @@ export class JobsService {
       .single()
 
     if (propError || !proposal) {
-      throw new Error('Proposal not found')
+      throw new SecureError('NOT_FOUND', 'Proposal not found')
     }
 
     // Handle nested arrays from Supabase

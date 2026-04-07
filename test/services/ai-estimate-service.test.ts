@@ -18,6 +18,7 @@ vi.mock('@anthropic-ai/sdk', () => {
 // Mock createClient from supabase
 const mockSupabaseClient = {
   from: vi.fn(),
+  rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
   auth: {
     getUser: vi.fn()
   }
@@ -25,6 +26,21 @@ const mockSupabaseClient = {
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => Promise.resolve(mockSupabaseClient))
+}))
+
+vi.mock('@/lib/utils/logger', () => ({
+  createServiceLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  })),
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+  formatError: vi.fn(),
+}))
+
+vi.mock('@/lib/utils/pii-redaction', () => ({
+  redactPII: vi.fn((text: string) => ({ text, wasRedacted: false })),
 }))
 
 describe('AIEstimateService', () => {
@@ -47,6 +63,20 @@ describe('AIEstimateService', () => {
     beforeEach(() => {
       // Mock pricing data queries
       mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'organization_ai_settings') {
+          const chain = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({
+              data: {
+                ai_enabled: true,
+                estimate_suggestions_enabled: true,
+                anonymize_customer_data: false,
+              }
+            })
+          }
+          return chain
+        }
         if (table === 'labor_rates') {
           return {
             select: vi.fn().mockReturnThis(),
@@ -88,7 +118,8 @@ describe('AIEstimateService', () => {
         }
         return {
           select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis()
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: null, error: null })
         }
       })
 
@@ -291,10 +322,25 @@ describe('AIEstimateService', () => {
     }
 
     beforeEach(() => {
-      mockSupabaseClient.from.mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockJobData })
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'organization_ai_settings') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({
+              data: {
+                ai_enabled: true,
+                estimate_suggestions_enabled: true,
+                anonymize_customer_data: false,
+              }
+            })
+          }
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: mockJobData })
+        }
       })
 
       mockMessagesCreate.mockResolvedValue({
@@ -367,15 +413,23 @@ describe('AIEstimateService', () => {
     })
 
     it('should handle jobs with no estimate gracefully', async () => {
-      mockSupabaseClient.from.mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: {
-            ...mockJobData,
-            estimate: null
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'organization_ai_settings') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({
+              data: { ai_enabled: true, estimate_suggestions_enabled: true, anonymize_customer_data: false }
+            })
           }
-        })
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({
+            data: { ...mockJobData, estimate: null }
+          })
+        }
       })
 
       const result = await AIEstimateService.analyzeVariance('org-123', 'job-1')
@@ -384,15 +438,23 @@ describe('AIEstimateService', () => {
     })
 
     it('should handle jobs with no time entries', async () => {
-      mockSupabaseClient.from.mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: {
-            ...mockJobData,
-            time_entries: []
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'organization_ai_settings') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({
+              data: { ai_enabled: true, estimate_suggestions_enabled: true, anonymize_customer_data: false }
+            })
           }
-        })
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({
+            data: { ...mockJobData, time_entries: [] }
+          })
+        }
       })
 
       const result = await AIEstimateService.analyzeVariance('org-123', 'job-1')
@@ -416,10 +478,25 @@ describe('AIEstimateService', () => {
     })
 
     it('should throw error when job not found', async () => {
-      mockSupabaseClient.from.mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: null })
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'organization_ai_settings') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({
+              data: {
+                ai_enabled: true,
+                estimate_suggestions_enabled: true,
+                anonymize_customer_data: false,
+              }
+            })
+          }
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: null })
+        }
       })
 
       await expect(
@@ -442,15 +519,23 @@ describe('AIEstimateService', () => {
     })
 
     it('should handle zero estimated total', async () => {
-      mockSupabaseClient.from.mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: {
-            ...mockJobData,
-            estimate: { total_amount: 0 }
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'organization_ai_settings') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({
+              data: { ai_enabled: true, estimate_suggestions_enabled: true, anonymize_customer_data: false }
+            })
           }
-        })
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({
+            data: { ...mockJobData, estimate: { total_amount: 0 } }
+          })
+        }
       })
 
       const result = await AIEstimateService.analyzeVariance('org-123', 'job-1')
@@ -473,17 +558,32 @@ describe('AIEstimateService', () => {
     })
 
     it('should handle empty arrays in job data', async () => {
-      mockSupabaseClient.from.mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: {
-            ...mockJobData,
-            time_entries: [],
-            material_usage: [],
-            disposal: []
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'organization_ai_settings') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({
+              data: {
+                ai_enabled: true,
+                estimate_suggestions_enabled: true,
+                anonymize_customer_data: false,
+              }
+            })
           }
-        })
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({
+            data: {
+              ...mockJobData,
+              time_entries: [],
+              material_usage: [],
+              disposal: []
+            }
+          })
+        }
       })
 
       const result = await AIEstimateService.analyzeVariance('org-123', 'job-1')
@@ -505,6 +605,15 @@ describe('AIEstimateService', () => {
   describe('error handling', () => {
     it('should throw error when no text content in AI response', async () => {
       mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'organization_ai_settings') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({
+              data: { ai_enabled: true, estimate_suggestions_enabled: true, anonymize_customer_data: false }
+            })
+          }
+        }
         if (table === 'labor_rates') {
           return {
             select: vi.fn().mockReturnThis(),
@@ -523,9 +632,17 @@ describe('AIEstimateService', () => {
             eq: vi.fn().mockResolvedValue({ data: [] })
           }
         }
+        if (table === 'estimate_suggestions') {
+          return {
+            insert: vi.fn().mockReturnThis(),
+            select: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({ data: null })
+          }
+        }
         return {
           select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis()
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: null, error: null })
         }
       })
 

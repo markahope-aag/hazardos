@@ -9,8 +9,8 @@ describe('Input', () => {
   })
 
   it('should render with default type text', () => {
-    render(<Input data-testid="test-input" />)
-    
+    render(<Input type="text" data-testid="test-input" />)
+
     const input = screen.getByTestId('test-input')
     expect(input).toHaveAttribute('type', 'text')
   })

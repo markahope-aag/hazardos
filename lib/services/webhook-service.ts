@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createHmac, randomBytes } from 'crypto';
 import type { Webhook, WebhookDelivery, WebhookEventType } from '@/types/integrations';
 import { logger, formatError } from '@/lib/utils/logger';
+import { SecureError } from '@/lib/utils/secure-error-handler';
 
 const MAX_RETRY_ATTEMPTS = 5;
 const RETRY_DELAYS = [60, 300, 900, 3600, 7200]; // Seconds: 1m, 5m, 15m, 1h, 2h
@@ -312,7 +313,7 @@ export class WebhookService {
       .eq('id', deliveryId)
       .single();
 
-    if (!delivery) throw new Error('Delivery not found');
+    if (!delivery) throw new SecureError('NOT_FOUND', 'Delivery not found');
 
     const { data: webhook } = await supabase
       .from('webhooks')
@@ -320,7 +321,7 @@ export class WebhookService {
       .eq('id', delivery.webhook_id)
       .single();
 
-    if (!webhook) throw new Error('Webhook not found');
+    if (!webhook) throw new SecureError('NOT_FOUND', 'Webhook not found');
 
     return this.attemptDelivery(delivery as WebhookDelivery, webhook as Webhook);
   }

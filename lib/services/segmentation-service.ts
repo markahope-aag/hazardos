@@ -3,6 +3,7 @@ import type { CustomerSegment, SegmentRule } from '@/types/integrations';
 import { MailchimpService } from './mailchimp-service';
 import { HubSpotService } from './hubspot-service';
 import { createServiceLogger, formatError } from '@/lib/utils/logger';
+import { SecureError } from '@/lib/utils/secure-error-handler';
 
 const log = createServiceLogger('SegmentationService');
 
@@ -195,7 +196,7 @@ export class SegmentationService {
       .eq('id', segmentId)
       .single();
 
-    if (!segment) throw new Error('Segment not found');
+    if (!segment) throw new SecureError('NOT_FOUND', 'Segment not found');
 
     if (segment.segment_type === 'static') {
       // Return static members
@@ -222,7 +223,7 @@ export class SegmentationService {
       .eq('id', segmentId)
       .single();
 
-    if (!segment) throw new Error('Segment not found');
+    if (!segment) throw new SecureError('NOT_FOUND', 'Segment not found');
 
     let memberCount: number;
 
@@ -464,7 +465,7 @@ export class SegmentationService {
       .eq('id', segmentId)
       .single();
 
-    if (!segment) throw new Error('Segment not found');
+    if (!segment) throw new SecureError('NOT_FOUND', 'Segment not found');
 
     // Get members
     const members = await this.getMembers(segmentId);
@@ -519,7 +520,7 @@ export class SegmentationService {
       .eq('id', segmentId)
       .single();
 
-    if (!segment) throw new Error('Segment not found');
+    if (!segment) throw new SecureError('NOT_FOUND', 'Segment not found');
 
     // Get members
     const members = await this.getMembers(segmentId);

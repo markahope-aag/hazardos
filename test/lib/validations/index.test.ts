@@ -4,13 +4,13 @@ describe('validations index', () => {
   it('should export common validations', async () => {
     const commonModule = await import('@/lib/validations/common')
     expect(commonModule).toBeDefined()
-    expect(typeof commonModule.paginationSchema).toBe('object')
+    expect(typeof commonModule.paginationQuerySchema).toBe('object')
   })
 
   it('should export customer validations', async () => {
     const customerModule = await import('@/lib/validations/customer')
     expect(customerModule).toBeDefined()
-    expect(typeof customerModule.createCustomerSchema).toBe('object')
+    expect(typeof customerModule.customerSchema).toBe('object')
   })
 
   it('should export jobs validations', async () => {
@@ -39,10 +39,10 @@ describe('validations index', () => {
 
   it('should re-export all schemas from main index', async () => {
     const indexModule = await import('@/lib/validations/index')
-    
+
     // Check that schemas from different modules are available
-    expect(indexModule.paginationSchema).toBeDefined()
-    expect(indexModule.createCustomerSchema).toBeDefined()
+    expect(indexModule.paginationQuerySchema).toBeDefined()
+    expect(indexModule.customerSchema).toBeDefined()
     expect(indexModule.createJobSchema).toBeDefined()
     expect(indexModule.createEstimateSchema).toBeDefined()
     expect(indexModule.createInvoiceSchema).toBeDefined()
@@ -51,53 +51,51 @@ describe('validations index', () => {
 
   it('should have consistent schema structure', async () => {
     const indexModule = await import('@/lib/validations/index')
-    
+
     // Test that schemas are Zod objects with safeParse method
-    expect(typeof indexModule.paginationSchema.safeParse).toBe('function')
-    expect(typeof indexModule.createCustomerSchema.safeParse).toBe('function')
+    expect(typeof indexModule.paginationQuerySchema.safeParse).toBe('function')
+    expect(typeof indexModule.customerSchema.safeParse).toBe('function')
     expect(typeof indexModule.createJobSchema.safeParse).toBe('function')
   })
 
   it('should validate schemas work correctly when imported from index', async () => {
-    const { paginationSchema, createCustomerSchema } = await import('@/lib/validations/index')
-    
+    const { paginationQuerySchema, customerSchema } = await import('@/lib/validations/index')
+
     // Test pagination schema
-    const paginationResult = paginationSchema.safeParse({
-      page: '1',
-      limit: '10'
+    const paginationResult = paginationQuerySchema.safeParse({
+      limit: '10',
+      offset: '0'
     })
     expect(paginationResult.success).toBe(true)
-    
+
     // Test customer schema
-    const customerResult = createCustomerSchema.safeParse({
-      name: 'Test Customer',
-      email: 'test@example.com'
+    const customerResult = customerSchema.safeParse({
+      first_name: 'Test',
+      contact_type: 'residential',
+      status: 'lead',
+      marketing_consent: false,
     })
     expect(customerResult.success).toBe(true)
   })
 
   it('should maintain type exports', async () => {
-    // This test ensures TypeScript types are properly exported
-    // The actual type checking happens at compile time
     const indexModule = await import('@/lib/validations/index')
-    
-    // We can't directly test types at runtime, but we can test that
-    // the schemas exist and can be used for type inference
-    expect(indexModule.createCustomerSchema).toBeDefined()
+
+    expect(indexModule.customerSchema).toBeDefined()
     expect(indexModule.createJobSchema).toBeDefined()
     expect(indexModule.createEstimateSchema).toBeDefined()
   })
 
   it('should handle schema validation errors consistently', async () => {
-    const { createCustomerSchema, createJobSchema } = await import('@/lib/validations/index')
-    
+    const { customerSchema, createJobSchema } = await import('@/lib/validations/index')
+
     // Test that all schemas handle validation errors consistently
-    const customerResult = createCustomerSchema.safeParse({
-      name: '', // Invalid empty name
+    const customerResult = customerSchema.safeParse({
+      first_name: '', // Invalid empty first_name
       email: 'invalid-email'
     })
     expect(customerResult.success).toBe(false)
-    
+
     const jobResult = createJobSchema.safeParse({
       title: '', // Invalid empty title
       customer_id: 'not-a-uuid'
@@ -107,54 +105,45 @@ describe('validations index', () => {
 
   it('should provide access to all validation utilities', async () => {
     const indexModule = await import('@/lib/validations/index')
-    
+
     // Check that common utilities are available
-    expect(indexModule.paginationSchema).toBeDefined()
-    expect(indexModule.sortOrderSchema).toBeDefined()
-    
+    expect(indexModule.paginationQuerySchema).toBeDefined()
+    expect(indexModule.idParamSchema).toBeDefined()
+
     // Check that entity-specific schemas are available
-    expect(indexModule.createCustomerSchema).toBeDefined()
-    expect(indexModule.updateCustomerSchema).toBeDefined()
+    expect(indexModule.customerSchema).toBeDefined()
     expect(indexModule.createJobSchema).toBeDefined()
-    expect(indexModule.updateJobSchema).toBeDefined()
   })
 
   it('should support schema composition', async () => {
-    const { paginationSchema, sortOrderSchema } = await import('@/lib/validations/index')
-    
+    const { paginationQuerySchema } = await import('@/lib/validations/index')
+
     // Test that schemas can be used together
-    const combinedResult = paginationSchema.safeParse({
-      page: '1',
+    const combinedResult = paginationQuerySchema.safeParse({
       limit: '20',
-      sort: 'name',
-      order: 'asc'
+      offset: '0',
     })
-    
+
     expect(combinedResult.success).toBe(true)
-    
-    const sortResult = sortOrderSchema.safeParse('desc')
-    expect(sortResult.success).toBe(true)
   })
 
   it('should maintain backward compatibility', async () => {
     // Test that the index exports maintain the same interface
     const indexModule = await import('@/lib/validations/index')
-    
+
     // These should all be available and functional
     const requiredExports = [
-      'paginationSchema',
-      'createCustomerSchema',
-      'updateCustomerSchema',
+      'paginationQuerySchema',
+      'customerSchema',
       'createJobSchema',
-      'updateJobSchema',
       'createEstimateSchema',
       'createInvoiceSchema',
       'createProposalSchema'
     ]
-    
+
     for (const exportName of requiredExports) {
-      expect(indexModule[exportName]).toBeDefined()
-      expect(typeof indexModule[exportName].safeParse).toBe('function')
+      expect((indexModule as Record<string, any>)[exportName]).toBeDefined()
+      expect(typeof (indexModule as Record<string, any>)[exportName].safeParse).toBe('function')
     }
   })
 })

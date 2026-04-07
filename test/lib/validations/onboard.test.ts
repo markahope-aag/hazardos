@@ -279,7 +279,7 @@ describe('onboard validations', () => {
           email: 'business@example.com',
           licenseNumber: 'BUS-LIC-123456'
         },
-        plan_id: '456e7890-e12b-34c5-d678-901234567890',
+        plan_id: '456e7890-e12b-44c5-a678-901234567890',
         billing_cycle: 'yearly',
         start_trial: false
       }

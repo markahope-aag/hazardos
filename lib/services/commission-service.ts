@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
+import { SecureError } from '@/lib/utils/secure-error-handler'
 import type {
   CommissionPlan,
   CommissionEarning,
@@ -41,7 +42,7 @@ export class CommissionService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -49,7 +50,7 @@ export class CommissionService {
       .eq('id', user.id)
       .single()
 
-    if (!profile?.organization_id) throw new Error('Organization not found')
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('commission_plans')
@@ -166,7 +167,7 @@ export class CommissionService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -174,11 +175,11 @@ export class CommissionService {
       .eq('id', user.id)
       .single()
 
-    if (!profile?.organization_id) throw new Error('Organization not found')
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
 
     // Get the plan to calculate commission
     const plan = await this.getPlan(input.plan_id)
-    if (!plan) throw new Error('Commission plan not found')
+    if (!plan) throw new SecureError('NOT_FOUND', 'Commission plan not found')
 
     // Calculate commission based on plan type
     let commissionRate = 0
@@ -227,7 +228,7 @@ export class CommissionService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data, error } = await supabase
       .from('commission_earnings')
@@ -341,7 +342,7 @@ export class CommissionService {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Unauthorized')
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -349,7 +350,7 @@ export class CommissionService {
       .eq('id', user.id)
       .single()
 
-    if (!profile?.organization_id) throw new Error('Organization not found')
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
 
     // Check if user_commission_plans table exists, if not use profile update
     const { error } = await supabase

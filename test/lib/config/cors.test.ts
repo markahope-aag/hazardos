@@ -22,8 +22,8 @@ describe('cors config', () => {
   describe('getCorsConfig', () => {
     it('should return public-api config', () => {
       const config = getCorsConfig('public-api')
-      
-      expect(config.allowedOrigins).toContain('*')
+
+      expect(config.allowedOrigins).not.toContain('*')
       expect(config.allowedMethods).toContain('GET')
       expect(config.allowedMethods).toContain('POST')
       expect(config.allowedMethods).toContain('PUT')
@@ -95,9 +95,10 @@ describe('cors config', () => {
   })
 
   describe('isOriginAllowed', () => {
-    it('should allow any origin for public-api with wildcard', () => {
-      expect(isOriginAllowed('https://example.com', 'public-api')).toBe(true)
-      expect(isOriginAllowed('https://malicious.com', 'public-api')).toBe(true)
+    it('should allow app URL and reject unknown origins for public-api', () => {
+      process.env.NEXT_PUBLIC_APP_URL = 'https://hazardos.app'
+      expect(isOriginAllowed('https://hazardos.app', 'public-api')).toBe(true)
+      expect(isOriginAllowed('https://malicious.com', 'public-api')).toBe(false)
     })
 
     it('should allow webhook requests without origin', () => {
@@ -124,11 +125,10 @@ describe('cors config', () => {
   })
 
   describe('getCorsHeaders', () => {
-    it('should return wildcard origin for public-api', () => {
+    it('should not return wildcard origin for public-api in production', () => {
       const headers = getCorsHeaders('https://example.com', 'public-api')
-      
-      expect(headers['Access-Control-Allow-Origin']).toBe('*')
-      expect(headers['Access-Control-Allow-Credentials']).toBeUndefined()
+
+      expect(headers['Access-Control-Allow-Origin']).not.toBe('*')
     })
 
     it('should return specific origin for internal with credentials', () => {
@@ -164,8 +164,8 @@ describe('cors config', () => {
     })
 
     it('should not include Vary header for wildcard origins', () => {
-      const headers = getCorsHeaders('https://example.com', 'public-api')
-      
+      const headers = getCorsHeaders('https://example.com', 'webhook')
+
       expect(headers['Vary']).toBeUndefined()
     })
 
@@ -235,8 +235,7 @@ describe('cors config', () => {
   describe('security considerations', () => {
     it('should not allow credentials with wildcard origin', () => {
       const headers = getCorsHeaders('https://example.com', 'public-api')
-      
-      expect(headers['Access-Control-Allow-Origin']).toBe('*')
+
       expect(headers['Access-Control-Allow-Credentials']).toBeUndefined()
     })
 

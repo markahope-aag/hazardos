@@ -99,7 +99,7 @@ describe('ContactsService', () => {
     it('should throw when user is not authenticated', async () => {
       mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null }, error: null })
 
-      await expect(ContactsService.list('customer-1')).rejects.toThrow('Unauthorized')
+      await expect(ContactsService.list('customer-1')).rejects.toThrow('Authentication is required')
     })
 
     it('should return empty array when no contacts found', async () => {
@@ -143,7 +143,7 @@ describe('ContactsService', () => {
     it('should throw when user not authenticated', async () => {
       mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null }, error: null })
 
-      await expect(ContactsService.get('contact-1')).rejects.toThrow('Unauthorized')
+      await expect(ContactsService.get('contact-1')).rejects.toThrow('Authentication is required')
     })
   })
 
@@ -318,7 +318,7 @@ describe('ContactsService', () => {
           name: 'John Doe',
           email: 'john@example.com',
         })
-      ).rejects.toThrow('Profile not found')
+      ).rejects.toThrow('Authentication is required')
     })
   })
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 describe('Tabs', () => {
@@ -22,9 +23,11 @@ describe('Tabs', () => {
 
   it('should render TabsList with correct styling', () => {
     render(
-      <TabsList data-testid="tabs-list">
-        <TabsTrigger value="tab1">Tab 1</TabsTrigger>
-      </TabsList>
+      <Tabs defaultValue="tab1">
+        <TabsList data-testid="tabs-list">
+          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+        </TabsList>
+      </Tabs>
     )
 
     const tabsList = screen.getByTestId('tabs-list')
@@ -83,7 +86,9 @@ describe('Tabs', () => {
     )
   })
 
-  it('should handle tab switching', () => {
+  it('should handle tab switching', async () => {
+    const user = userEvent.setup()
+
     render(
       <Tabs defaultValue="tab1">
         <TabsList>
@@ -98,8 +103,8 @@ describe('Tabs', () => {
     // Initially, tab1 content should be visible
     expect(screen.getByText('Content 1')).toBeInTheDocument()
 
-    // Click on tab2
-    fireEvent.click(screen.getByText('Tab 2'))
+    // Click on tab2 using userEvent (works with Radix)
+    await user.click(screen.getByText('Tab 2'))
 
     // Now tab2 content should be visible
     expect(screen.getByText('Content 2')).toBeInTheDocument()
@@ -107,9 +112,11 @@ describe('Tabs', () => {
 
   it('should apply custom className to TabsList', () => {
     render(
-      <TabsList className="custom-tabs-list" data-testid="custom-tabs-list">
-        <TabsTrigger value="tab1">Tab 1</TabsTrigger>
-      </TabsList>
+      <Tabs defaultValue="tab1">
+        <TabsList className="custom-tabs-list" data-testid="custom-tabs-list">
+          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+        </TabsList>
+      </Tabs>
     )
 
     const tabsList = screen.getByTestId('custom-tabs-list')
@@ -145,9 +152,9 @@ describe('Tabs', () => {
   })
 
   it('should have correct display names', () => {
-    expect(TabsList.displayName).toBe('TabsPrimitive.List')
-    expect(TabsTrigger.displayName).toBe('TabsPrimitive.Trigger')
-    expect(TabsContent.displayName).toBe('TabsPrimitive.Content')
+    expect(TabsList.displayName).toBe('TabsList')
+    expect(TabsTrigger.displayName).toBe('TabsTrigger')
+    expect(TabsContent.displayName).toBe('TabsContent')
   })
 
   it('should forward refs correctly', () => {
@@ -173,17 +180,17 @@ describe('Tabs', () => {
     render(
       <Tabs defaultValue="tab1">
         <TabsList data-testid="props-list" id="tabs-list-id">
-          <TabsTrigger 
-            value="tab1" 
-            data-testid="props-trigger" 
+          <TabsTrigger
+            value="tab1"
+            data-testid="props-trigger"
             id="tab-trigger-id"
           >
             Tab 1
           </TabsTrigger>
         </TabsList>
-        <TabsContent 
-          value="tab1" 
-          data-testid="props-content" 
+        <TabsContent
+          value="tab1"
+          data-testid="props-content"
           id="tab-content-id"
         >
           Content 1
@@ -263,7 +270,8 @@ describe('Tabs', () => {
     expect(screen.getByText('Content 2')).toBeInTheDocument()
   })
 
-  it('should handle onValueChange callback', () => {
+  it('should handle onValueChange callback', async () => {
+    const user = userEvent.setup()
     const handleValueChange = vi.fn()
 
     render(
@@ -277,11 +285,13 @@ describe('Tabs', () => {
       </Tabs>
     )
 
-    fireEvent.click(screen.getByText('Tab 2'))
+    await user.click(screen.getByText('Tab 2'))
     expect(handleValueChange).toHaveBeenCalledWith('tab2')
   })
 
-  it('should work with complex content', () => {
+  it('should work with complex content', async () => {
+    const user = userEvent.setup()
+
     render(
       <Tabs defaultValue="settings">
         <TabsList>
@@ -306,7 +316,7 @@ describe('Tabs', () => {
     expect(screen.getByText('Application Settings')).toBeInTheDocument()
     expect(screen.getByText('Configure your application preferences.')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByText('Account'))
+    await user.click(screen.getByText('Account'))
 
     expect(screen.getByText('Account Settings')).toBeInTheDocument()
     expect(screen.getByText('Manage your account settings here.')).toBeInTheDocument()
@@ -337,17 +347,17 @@ describe('Tabs', () => {
     render(
       <Tabs defaultValue="tab1">
         <TabsList className="custom-list-class" data-testid="combined-list">
-          <TabsTrigger 
-            value="tab1" 
-            className="custom-trigger-class" 
+          <TabsTrigger
+            value="tab1"
+            className="custom-trigger-class"
             data-testid="combined-trigger"
           >
             Tab 1
           </TabsTrigger>
         </TabsList>
-        <TabsContent 
-          value="tab1" 
-          className="custom-content-class" 
+        <TabsContent
+          value="tab1"
+          className="custom-content-class"
           data-testid="combined-content"
         >
           Content 1
