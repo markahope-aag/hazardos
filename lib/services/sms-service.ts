@@ -536,15 +536,15 @@ export class SmsService {
 
       if (!customersAlt?.length) return;
 
-      for (const customer of customersAlt) {
-        await this.processKeyword(customer.id, normalizedKeyword);
-      }
+      await Promise.all(customersAlt.map((customer) =>
+        this.processKeyword(customer.id, normalizedKeyword)
+      ));
       return;
     }
 
-    for (const customer of customers) {
-      await this.processKeyword(customer.id, normalizedKeyword);
-    }
+    await Promise.all(customers.map((customer) =>
+      this.processKeyword(customer.id, normalizedKeyword)
+    ));
   }
 
   private static async processKeyword(customerId: string, keyword: string): Promise<void> {

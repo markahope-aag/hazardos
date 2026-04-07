@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { withApiKeyAuth, ApiKeyAuthContext } from '@/lib/middleware/api-key-auth';
+import { sanitizeSearchQuery } from '@/lib/utils/sanitize';
 import { ApiKeyService } from '@/lib/services/api-key-service';
 import { handlePreflight } from '@/lib/middleware/cors';
 import { v1CustomerListQuerySchema, v1CreateCustomerSchema, formatZodError } from '@/lib/validations/v1-api';
@@ -47,7 +48,8 @@ async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Prom
   }
 
   if (search) {
-    query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%,company_name.ilike.%${search}%`);
+    const safe = sanitizeSearchQuery(search);
+    query = query.or(`first_name.ilike.%${safe}%,last_name.ilike.%${safe}%,email.ilike.%${safe}%,company_name.ilike.%${safe}%`);
   }
 
   const { data, count, error } = await query;

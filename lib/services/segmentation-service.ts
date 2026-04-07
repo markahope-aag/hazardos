@@ -370,58 +370,86 @@ export class SegmentationService {
     customerIds: string[],
     rule: SegmentRule
   ): Promise<string[]> {
+    if (customerIds.length === 0) return [];
+
     const supabase = await createClient();
-    const filtered: string[] = [];
 
-    for (const customerId of customerIds) {
-      let value: number | string | null = null;
+    // Build a lookup map with a single aggregated query instead of N per-customer queries
+    const valueMap = new Map<string, number | string | null>();
 
-      switch (rule.field) {
-        case 'total_revenue': {
-          const { data } = await supabase
-            .from('invoices')
-            .select('amount')
-            .eq('customer_id', customerId);
-          value = (data || []).reduce((sum, inv) => sum + (inv.amount || 0), 0);
-          break;
+    switch (rule.field) {
+      case 'total_revenue': {
+        const { data } = await supabase
+          .from('invoices')
+          .select('customer_id, amount')
+          .in('customer_id', customerIds);
+        // Sum amounts per customer
+        for (const inv of data || []) {
+          const prev = (valueMap.get(inv.customer_id) as number) || 0;
+          valueMap.set(inv.customer_id, prev + (inv.amount || 0));
         }
-        case 'job_count': {
-          const { count } = await supabase
-            .from('jobs')
-            .select('*', { count: 'exact', head: true })
-            .eq('customer_id', customerId);
-          value = count || 0;
-          break;
+        // Customers with no invoices get 0
+        for (const id of customerIds) {
+          if (!valueMap.has(id)) valueMap.set(id, 0);
         }
-        case 'last_job_date': {
-          const { data } = await supabase
-            .from('jobs')
-            .select('scheduled_date')
-            .eq('customer_id', customerId)
-            .order('scheduled_date', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          value = data?.scheduled_date || null;
-          break;
-        }
-        case 'avg_job_value': {
-          const { data } = await supabase
-            .from('invoices')
-            .select('amount')
-            .eq('customer_id', customerId);
-          const amounts = (data || []).map(inv => inv.amount || 0);
-          value = amounts.length ? amounts.reduce((a, b) => a + b, 0) / amounts.length : 0;
-          break;
-        }
+        break;
       }
-
-      // Evaluate the rule
-      if (this.evaluateCondition(value, rule.operator, rule.value)) {
-        filtered.push(customerId);
+      case 'job_count': {
+        const { data } = await supabase
+          .from('jobs')
+          .select('customer_id')
+          .in('customer_id', customerIds);
+        // Count jobs per customer
+        for (const job of data || []) {
+          const prev = (valueMap.get(job.customer_id) as number) || 0;
+          valueMap.set(job.customer_id, prev + 1);
+        }
+        for (const id of customerIds) {
+          if (!valueMap.has(id)) valueMap.set(id, 0);
+        }
+        break;
+      }
+      case 'last_job_date': {
+        const { data } = await supabase
+          .from('jobs')
+          .select('customer_id, scheduled_date')
+          .in('customer_id', customerIds)
+          .not('scheduled_date', 'is', null)
+          .order('scheduled_date', { ascending: false });
+        // Keep only the latest date per customer (results are sorted desc)
+        for (const job of data || []) {
+          if (!valueMap.has(job.customer_id)) {
+            valueMap.set(job.customer_id, job.scheduled_date);
+          }
+        }
+        for (const id of customerIds) {
+          if (!valueMap.has(id)) valueMap.set(id, null);
+        }
+        break;
+      }
+      case 'avg_job_value': {
+        const { data } = await supabase
+          .from('invoices')
+          .select('customer_id, amount')
+          .in('customer_id', customerIds);
+        // Accumulate sum and count per customer
+        const sums = new Map<string, { total: number; count: number }>();
+        for (const inv of data || []) {
+          const prev = sums.get(inv.customer_id) || { total: 0, count: 0 };
+          sums.set(inv.customer_id, { total: prev.total + (inv.amount || 0), count: prev.count + 1 });
+        }
+        for (const id of customerIds) {
+          const s = sums.get(id);
+          valueMap.set(id, s ? s.total / s.count : 0);
+        }
+        break;
       }
     }
 
-    return filtered;
+    // Evaluate the rule against the pre-fetched values
+    return customerIds.filter((id) =>
+      this.evaluateCondition(valueMap.get(id) ?? null, rule.operator, rule.value)
+    );
   }
 
   private static evaluateCondition(

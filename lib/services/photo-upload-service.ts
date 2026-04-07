@@ -24,8 +24,9 @@ export async function uploadPhotoToStorage(photo: QueuedPhoto): Promise<string> 
   const mimeType = blob.type || 'image/jpeg'
   const extension = mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg'
 
-  // Generate storage path: surveys/{surveyId}/{category}/{photoId}.{ext}
-  const path = `surveys/${photo.surveyId}/${photo.category}/${photo.id}.${extension}`
+  // Generate storage path: {orgId}/surveys/{surveyId}/{category}/{photoId}.{ext}
+  // Org ID as first folder segment enables org-scoped RLS on storage.objects
+  const path = `${photo.organizationId}/surveys/${photo.surveyId}/${photo.category}/${photo.id}.${extension}`
 
   // Upload to Supabase Storage
   const { error } = await supabase.storage

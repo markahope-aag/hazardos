@@ -167,7 +167,7 @@ export function PhotoCapture({
   variant = 'default',
   className,
 }: PhotoCaptureProps) {
-  const { addPhoto, currentSurveyId } = useSurveyStore()
+  const { addPhoto, currentSurveyId, organizationId } = useSurveyStore()
   const { addPhoto: addToQueue } = usePhotoQueueStore()
   const inputRef = useRef<HTMLInputElement>(null)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -214,6 +214,7 @@ export function PhotoCapture({
         if (currentSurveyId) {
           addToQueue({
             surveyId: currentSurveyId,
+            organizationId: organizationId || '',
             localUri: dataUrl,
             category,
             location: '',
@@ -256,7 +257,7 @@ export function PhotoCapture({
         }
       }
     },
-    [addPhoto, addToQueue, category, currentSurveyId, onCapture]
+    [addPhoto, addToQueue, category, currentSurveyId, organizationId, onCapture]
   )
 
   // Render based on variant

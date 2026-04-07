@@ -423,8 +423,8 @@ export const NotificationHelpers = {
     jobNumber: string,
     adminUserIds: string[]
   ): Promise<void> {
-    for (const userId of adminUserIds) {
-      await notify('job_completion_review', userId, {
+    await Promise.all(adminUserIds.map((userId) =>
+      notify('job_completion_review', userId, {
         title: 'Job completion needs review',
         message: `Job ${jobNumber} has been completed and needs your review`,
         entityType: 'job',
@@ -433,7 +433,7 @@ export const NotificationHelpers = {
         actionLabel: 'Review Completion',
         priority: 'high',
       })
-    }
+    ))
   },
 
   async proposalSigned(
@@ -475,8 +475,8 @@ export const NotificationHelpers = {
     rating: number,
     adminUserIds: string[]
   ): Promise<void> {
-    for (const userId of adminUserIds) {
-      await notify('feedback_received', userId, {
+    await Promise.all(adminUserIds.map((userId) =>
+      notify('feedback_received', userId, {
         title: 'New customer feedback received',
         message: `Customer feedback for job ${jobNumber} - ${rating}/5 stars`,
         entityType: 'feedback_survey',
@@ -484,6 +484,6 @@ export const NotificationHelpers = {
         actionUrl: `/feedback/${surveyId}`,
         actionLabel: 'View Feedback',
       })
-    }
+    ))
   },
 }

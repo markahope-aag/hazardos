@@ -9,6 +9,7 @@ export type PhotoUploadStatus = 'pending' | 'uploading' | 'uploaded' | 'failed'
 export interface QueuedPhoto {
   id: string
   surveyId: string
+  organizationId: string
   localUri: string // blob: or data: URL
   category: string
   location: string

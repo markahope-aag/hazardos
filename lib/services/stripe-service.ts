@@ -492,10 +492,8 @@ export class StripeService {
         const { Resend } = await import('resend')
         const resend = new Resend(resendApiKey)
 
-        for (const owner of owners) {
-          if (!owner.email) continue
-
-          await resend.emails.send({
+        await Promise.all(owners.filter((o) => o.email).map((owner) =>
+          resend.emails.send({
             from: `HazardOS Billing <billing@${process.env.RESEND_DOMAIN || 'resend.dev'}>`,
             to: owner.email,
             subject: `Action Required: Payment Failed for ${org?.name || 'your organization'}`,
@@ -534,13 +532,13 @@ export class StripeService {
                 </div>
               </div>
             `,
+          }).then(() => {
+            log.info(
+              { operation: 'sendPaymentFailedNotification', organizationId, userEmail: owner.email },
+              'Payment failed notification sent'
+            )
           })
-
-          log.info(
-            { operation: 'sendPaymentFailedNotification', organizationId, userEmail: owner.email },
-            'Payment failed notification sent'
-          )
-        }
+        ))
       } catch (error) {
         log.error(
           { operation: 'sendPaymentFailedNotification', error: formatError(error), organizationId },
@@ -553,8 +551,8 @@ export class StripeService {
     try {
       const { NotificationService } = await import('@/lib/services/notification-service')
 
-      for (const owner of owners) {
-        await NotificationService.create({
+      await Promise.all(owners.map((owner) =>
+        NotificationService.create({
           user_id: owner.id,
           type: 'payment_failed',
           title: 'Payment Failed',
@@ -565,7 +563,7 @@ export class StripeService {
           action_label: 'Update Payment',
           priority: 'urgent',
         })
-      }
+      ))
     } catch (error) {
       log.error(
         { operation: 'sendPaymentFailedNotification', error: formatError(error), organizationId },

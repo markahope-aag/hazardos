@@ -95,6 +95,23 @@ interface SurveyState {
 
 const generateId = () => `${Date.now()}-${nanoid(9)}`
 
+// O(1) index helpers — build a map once, mutate by key, convert back to array
+function updateInArray<T extends { id: string }>(items: T[], id: string, updater: (item: T) => T): T[] {
+  const idx = items.findIndex((item) => item.id === id)
+  if (idx === -1) return items
+  const result = items.slice()
+  result[idx] = updater(items[idx])
+  return result
+}
+
+function removeFromArray<T extends { id: string }>(items: T[], id: string): T[] {
+  const idx = items.findIndex((item) => item.id === id)
+  if (idx === -1) return items
+  const result = items.slice()
+  result.splice(idx, 1)
+  return result
+}
+
 const initialSectionValidation: Record<SurveySection, { isValid: boolean; errors: string[] }> = {
   property: { isValid: false, errors: [] },
   access: { isValid: false, errors: [] },
@@ -186,9 +203,7 @@ export const useSurveyStore = create<SurveyState>()(
             ...state.formData,
             hazards: {
               ...state.formData.hazards,
-              areas: state.formData.hazards.areas.map((a) =>
-                a.id === id ? { ...a, ...data } : a
-              ),
+              areas: updateInArray(state.formData.hazards.areas, id, (a) => ({ ...a, ...data })),
             },
           },
           isDirty: true,
@@ -200,7 +215,7 @@ export const useSurveyStore = create<SurveyState>()(
             ...state.formData,
             hazards: {
               ...state.formData.hazards,
-              areas: state.formData.hazards.areas.filter((a) => a.id !== id),
+              areas: removeFromArray(state.formData.hazards.areas, id),
             },
           },
           isDirty: true,
@@ -216,11 +231,10 @@ export const useSurveyStore = create<SurveyState>()(
             ...state.formData,
             hazards: {
               ...state.formData.hazards,
-              areas: state.formData.hazards.areas.map((a) =>
-                a.id === areaId
-                  ? { ...a, hazards: [...a.hazards, { ...DEFAULT_AREA_HAZARD, id }] }
-                  : a
-              ),
+              areas: updateInArray(state.formData.hazards.areas, areaId, (a) => ({
+                ...a,
+                hazards: [...a.hazards, { ...DEFAULT_AREA_HAZARD, id }],
+              })),
             },
           },
           isDirty: true,
@@ -234,16 +248,10 @@ export const useSurveyStore = create<SurveyState>()(
             ...state.formData,
             hazards: {
               ...state.formData.hazards,
-              areas: state.formData.hazards.areas.map((a) =>
-                a.id === areaId
-                  ? {
-                      ...a,
-                      hazards: a.hazards.map((h) =>
-                        h.id === hazardId ? { ...h, ...data } : h
-                      ),
-                    }
-                  : a
-              ),
+              areas: updateInArray(state.formData.hazards.areas, areaId, (a) => ({
+                ...a,
+                hazards: updateInArray(a.hazards, hazardId, (h) => ({ ...h, ...data })),
+              })),
             },
           },
           isDirty: true,
@@ -255,11 +263,10 @@ export const useSurveyStore = create<SurveyState>()(
             ...state.formData,
             hazards: {
               ...state.formData.hazards,
-              areas: state.formData.hazards.areas.map((a) =>
-                a.id === areaId
-                  ? { ...a, hazards: a.hazards.filter((h) => h.id !== hazardId) }
-                  : a
-              ),
+              areas: updateInArray(state.formData.hazards.areas, areaId, (a) => ({
+                ...a,
+                hazards: removeFromArray(a.hazards, hazardId),
+              })),
             },
           },
           isDirty: true,
@@ -274,17 +281,12 @@ export const useSurveyStore = create<SurveyState>()(
             ...state.formData,
             hazards: {
               ...state.formData.hazards,
-              areas: state.formData.hazards.areas.map((a) =>
-                a.id === areaId && !a.photo_ids.includes(photoId)
-                  ? { ...a, photo_ids: [...a.photo_ids, photoId] }
-                  : a
+              areas: updateInArray(state.formData.hazards.areas, areaId, (a) =>
+                a.photo_ids.includes(photoId) ? a : { ...a, photo_ids: [...a.photo_ids, photoId] }
               ),
             },
-            // Also update the photo's area_id
             photos: {
-              photos: state.formData.photos.photos.map((p) =>
-                p.id === photoId ? { ...p, area_id: areaId } : p
-              ),
+              photos: updateInArray(state.formData.photos.photos, photoId, (p) => ({ ...p, area_id: areaId })),
             },
           },
           isDirty: true,
@@ -296,16 +298,13 @@ export const useSurveyStore = create<SurveyState>()(
             ...state.formData,
             hazards: {
               ...state.formData.hazards,
-              areas: state.formData.hazards.areas.map((a) =>
-                a.id === areaId
-                  ? { ...a, photo_ids: a.photo_ids.filter((pid) => pid !== photoId) }
-                  : a
-              ),
+              areas: updateInArray(state.formData.hazards.areas, areaId, (a) => ({
+                ...a,
+                photo_ids: a.photo_ids.filter((pid) => pid !== photoId),
+              })),
             },
             photos: {
-              photos: state.formData.photos.photos.map((p) =>
-                p.id === photoId ? { ...p, area_id: null } : p
-              ),
+              photos: updateInArray(state.formData.photos.photos, photoId, (p) => ({ ...p, area_id: null })),
             },
           },
           isDirty: true,
@@ -331,9 +330,7 @@ export const useSurveyStore = create<SurveyState>()(
           formData: {
             ...state.formData,
             photos: {
-              photos: state.formData.photos.photos.map((p) =>
-                p.id === id ? { ...p, ...data } : p
-              ),
+              photos: updateInArray(state.formData.photos.photos, id, (p) => ({ ...p, ...data })),
             },
           },
           isDirty: true,
@@ -344,15 +341,16 @@ export const useSurveyStore = create<SurveyState>()(
           formData: {
             ...state.formData,
             photos: {
-              photos: state.formData.photos.photos.filter((p) => p.id !== id),
+              photos: removeFromArray(state.formData.photos.photos, id),
             },
-            // Also remove from any area photo_ids
+            // Also remove from any area photo_ids — only touches areas that reference this photo
             hazards: {
               ...state.formData.hazards,
-              areas: state.formData.hazards.areas.map((a) => ({
-                ...a,
-                photo_ids: a.photo_ids.filter((pid) => pid !== id),
-              })),
+              areas: state.formData.hazards.areas.map((a) =>
+                a.photo_ids.includes(id)
+                  ? { ...a, photo_ids: a.photo_ids.filter((pid) => pid !== id) }
+                  : a
+              ),
             },
           },
           isDirty: true,
@@ -604,14 +602,14 @@ export const useSurveyStore = create<SurveyState>()(
             if (areas.length === 0) {
               errors.push('At least one area must be documented')
             } else {
-              const invalidAreas = areas.filter((a) => a.hazards.length === 0)
-              if (invalidAreas.length > 0) {
-                errors.push(`${invalidAreas.length} area(s) have no hazards documented`)
+              let noHazards = 0
+              let unnamed = 0
+              for (const a of areas) {
+                if (a.hazards.length === 0) noHazards++
+                if (!a.area_name.trim()) unnamed++
               }
-              const unnamedAreas = areas.filter((a) => !a.area_name.trim())
-              if (unnamedAreas.length > 0) {
-                errors.push(`${unnamedAreas.length} area(s) are missing a name`)
-              }
+              if (noHazards > 0) errors.push(`${noHazards} area(s) have no hazards documented`)
+              if (unnamed > 0) errors.push(`${unnamed} area(s) are missing a name`)
             }
             break
           }

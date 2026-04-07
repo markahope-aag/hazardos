@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { sanitizeSearchQuery } from '@/lib/utils/sanitize'
 
 const companyQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(100).optional().default(50),
@@ -39,7 +40,8 @@ export const GET = createApiHandler(
     }
 
     if (query.search) {
-      dbQuery = dbQuery.or(`name.ilike.%${query.search}%,email.ilike.%${query.search}%,industry.ilike.%${query.search}%`)
+      const safe = sanitizeSearchQuery(query.search)
+      dbQuery = dbQuery.or(`name.ilike.%${safe}%,email.ilike.%${safe}%,industry.ilike.%${safe}%`)
     }
 
     const { data, error, count } = await dbQuery
