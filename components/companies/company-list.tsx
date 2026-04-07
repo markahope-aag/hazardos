@@ -13,11 +13,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { Building2, ChevronLeft, ChevronRight, Search } from 'lucide-react'
-import { useCompanies } from '@/lib/hooks/use-companies'
+import { Building2, ChevronLeft, ChevronRight, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { useCompanies, useCompanyStats } from '@/lib/hooks/use-companies'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import { formatCurrency } from '@/lib/utils'
-import type { AccountStatus } from '@/types/database'
+import type { AccountStatus, CompanyType } from '@/types/database'
 
 const STATUS_COLORS: Record<string, string> = {
   prospect: 'bg-blue-100 text-blue-700',
@@ -26,7 +26,7 @@ const STATUS_COLORS: Record<string, string> = {
   churned: 'bg-red-100 text-red-700',
 }
 
-const TYPE_LABELS: Record<string, string> = {
+const COMPANY_TYPE_LABELS: Record<string, string> = {
   residential_property_mgr: 'Residential PM',
   commercial_property_mgr: 'Commercial PM',
   general_contractor: 'General Contractor',
@@ -40,29 +40,63 @@ const TYPE_LABELS: Record<string, string> = {
 export default function CompanyList() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<AccountStatus | 'all'>('all')
+  const [companyType, setCompanyType] = useState<CompanyType | 'all'>('all')
+  const [activityFilter, setActivityFilter] = useState<'no_activity_30' | 'no_activity_90' | 'no_activity_365' | 'all'>('all')
+  const [industry, setIndustry] = useState('')
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const [page, setPage] = useState(1)
+  const [sortBy, setSortBy] = useState<string>('name')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const pageSize = 25
 
   const debouncedSearch = useDebouncedValue(search, 300)
+  const debouncedIndustry = useDebouncedValue(industry, 300)
 
   const queryOptions = useMemo(() => ({
     search: debouncedSearch,
-    status: status === 'all' ? undefined : status,
+    status,
+    companyType,
+    activityFilter,
+    industry: debouncedIndustry || undefined,
     page,
     pageSize,
-  }), [debouncedSearch, status, page, pageSize])
+    sortBy,
+    sortOrder,
+  }), [debouncedSearch, status, companyType, activityFilter, debouncedIndustry, page, pageSize, sortBy, sortOrder])
 
   const { data: companies = [], isLoading, error } = useCompanies(queryOptions)
+  const { data: stats } = useCompanyStats()
 
   const handleClearFilters = useCallback(() => {
     setStatus('all')
+    setCompanyType('all')
+    setActivityFilter('all')
+    setIndustry('')
     setSearch('')
+    setShowAdvanced(false)
     setPage(1)
   }, [])
 
   const hasNextPage = companies.length === pageSize
   const hasPrevPage = page > 1
-  const hasFilters = status !== 'all' || search !== ''
+  const hasFilters = status !== 'all' || companyType !== 'all' || search !== '' || activityFilter !== 'all' || industry !== ''
+
+  const toggleSort = useCallback((column: string) => {
+    if (sortBy === column) {
+      setSortOrder((o) => o === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(column)
+      setSortOrder('asc')
+    }
+    setPage(1)
+  }, [sortBy])
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortBy !== column) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />
+    return sortOrder === 'asc'
+      ? <ArrowUp className="h-3 w-3 ml-1" />
+      : <ArrowDown className="h-3 w-3 ml-1" />
+  }
 
   if (error) {
     return (
@@ -101,11 +135,54 @@ export default function CompanyList() {
               <SelectItem value="churned">Churned</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={companyType} onValueChange={(v) => { setCompanyType(v as CompanyType | 'all'); setPage(1) }}>
+            <SelectTrigger className="w-[170px]"><SelectValue placeholder="Company Type" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              {Object.entries(COMPANY_TYPE_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="ghost" size="sm" onClick={() => setShowAdvanced((v) => !v)}>
+            {showAdvanced ? 'Less' : 'More'}
+          </Button>
           {hasFilters && (
             <Button variant="ghost" size="sm" onClick={handleClearFilters}>Clear</Button>
           )}
         </div>
       </div>
+
+      {/* Advanced Filters Row */}
+      {showAdvanced && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Select value={activityFilter} onValueChange={(v) => { setActivityFilter(v as typeof activityFilter); setPage(1) }}>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Activity" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Any Activity</SelectItem>
+              <SelectItem value="no_activity_30">No activity 30d</SelectItem>
+              <SelectItem value="no_activity_90">No activity 90d</SelectItem>
+              <SelectItem value="no_activity_365">No activity 1yr+</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="relative max-w-[200px]">
+            <Input
+              value={industry}
+              onChange={(e) => { setIndustry(e.target.value); setPage(1) }}
+              placeholder="Filter by industry..."
+              className="text-sm"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Total count */}
+      {stats && (
+        <div className="text-sm text-muted-foreground">
+          {stats.total} total companies
+          {hasFilters && ` \u00b7 ${companies.length} matching`}
+        </div>
+      )}
 
       {/* Table */}
       <Card>
@@ -140,19 +217,42 @@ export default function CompanyList() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Phone</TableHead>
+                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('name')}>
+                      <span className="flex items-center">Company<SortIcon column="name" /></span>
+                    </TableHead>
+                    <TableHead>Primary Contact</TableHead>
+                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('industry')}>
+                      <span className="flex items-center">Industry<SortIcon column="industry" /></span>
+                    </TableHead>
                     <TableHead>Location</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Jobs</TableHead>
-                    <TableHead className="text-right">Lifetime Value</TableHead>
+                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('account_status')}>
+                      <span className="flex items-center">Status<SortIcon column="account_status" /></span>
+                    </TableHead>
+                    <TableHead className="cursor-pointer select-none text-right" onClick={() => toggleSort('total_jobs_completed')}>
+                      <span className="flex items-center justify-end">Jobs<SortIcon column="total_jobs_completed" /></span>
+                    </TableHead>
+                    <TableHead className="cursor-pointer select-none text-right" onClick={() => toggleSort('lifetime_value')}>
+                      <span className="flex items-center justify-end">Lifetime Value<SortIcon column="lifetime_value" /></span>
+                    </TableHead>
+                    <TableHead>Insurance</TableHead>
+                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('updated_at')}>
+                      <span className="flex items-center">Last Activity<SortIcon column="updated_at" /></span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {companies.map((company) => {
                     const statusColor = STATUS_COLORS[company.account_status] || STATUS_COLORS[company.status] || ''
                     const displayStatus = company.account_status || company.status
+                    const location = [
+                      company.service_city || company.billing_city,
+                      company.service_state || company.billing_state,
+                    ].filter(Boolean).join(', ')
+                    const contactName = company.primary_contact
+                      ? [company.primary_contact.first_name, company.primary_contact.last_name].filter(Boolean).join(' ') || company.primary_contact.name || null
+                      : null
+                    const contactPhone = company.primary_contact?.mobile_phone ?? null
+                    const insuranceCarrier = company.primary_contact?.insurance_carrier ?? null
 
                     return (
                       <TableRow key={company.id} className="group">
@@ -160,22 +260,24 @@ export default function CompanyList() {
                           <Link href={`/crm/companies/${company.id}`} className="font-medium text-primary hover:underline">
                             {company.name}
                           </Link>
-                          {company.industry && (
-                            <div className="text-xs text-muted-foreground">{company.industry}</div>
-                          )}
                         </TableCell>
                         <TableCell>
-                          {company.company_type ? (
-                            <span className="text-sm">{TYPE_LABELS[company.company_type] || company.company_type}</span>
+                          {contactName ? (
+                            <div>
+                              <div className="text-sm">{contactName}</div>
+                              {contactPhone && (
+                                <div className="text-xs text-muted-foreground">{contactPhone}</div>
+                              )}
+                            </div>
                           ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
+                            <span className="text-xs text-muted-foreground">&mdash;</span>
                           )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {company.primary_phone || company.phone || '—'}
+                          {company.industry || '\u2014'}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {[company.billing_city, company.billing_state].filter(Boolean).join(', ') || '—'}
+                          {location || '\u2014'}
                         </TableCell>
                         <TableCell>
                           <Badge className={`text-xs border-0 ${statusColor}`}>
@@ -186,7 +288,20 @@ export default function CompanyList() {
                           {company.total_jobs_completed || 0}
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {company.lifetime_value ? formatCurrency(company.lifetime_value, false) : '—'}
+                          {company.lifetime_value ? formatCurrency(company.lifetime_value, false) : '\u2014'}
+                        </TableCell>
+                        <TableCell className="text-sm truncate max-w-[120px]">
+                          {insuranceCarrier || <span className="text-muted-foreground">&mdash;</span>}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {company.updated_at ? (
+                            <span className={
+                              new Date(company.updated_at) < new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+                                ? 'text-amber-600 font-medium' : ''
+                            }>
+                              {new Date(company.updated_at).toLocaleDateString()}
+                            </span>
+                          ) : '\u2014'}
                         </TableCell>
                       </TableRow>
                     )

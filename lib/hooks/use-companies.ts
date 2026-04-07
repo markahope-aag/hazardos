@@ -2,27 +2,48 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { CompaniesService } from '@/lib/supabase/companies'
 import { useMultiTenantAuth } from './use-multi-tenant-auth'
 import { useToast } from '@/components/ui/use-toast'
-import type { CompanyInsert, CompanyUpdate, AccountStatus } from '@/types/database'
+import type { CompanyInsert, CompanyUpdate, AccountStatus, CompanyType } from '@/types/database'
 
 interface UseCompaniesOptions {
   search?: string
   status?: AccountStatus | 'all'
+  companyType?: CompanyType | 'all'
+  activityFilter?: 'no_activity_30' | 'no_activity_90' | 'no_activity_365' | 'all'
+  minRevenue?: number
+  maxRevenue?: number
+  industry?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
   page?: number
   pageSize?: number
 }
 
 export function useCompanies(options: UseCompaniesOptions = {}) {
   const { organization } = useMultiTenantAuth()
-  const { search, status, page = 1, pageSize = 25 } = options
+  const {
+    search, status, companyType, activityFilter,
+    minRevenue, maxRevenue, industry,
+    sortBy, sortOrder,
+    page = 1, pageSize = 25,
+  } = options
 
   return useQuery({
-    queryKey: ['companies', organization?.id, search, status, page, pageSize],
+    queryKey: ['companies', organization?.id, search, status, companyType,
+      activityFilter, minRevenue, maxRevenue, industry,
+      sortBy, sortOrder, page, pageSize],
     queryFn: async () => {
       if (!organization?.id) throw new Error('No organization found')
       const offset = (page - 1) * pageSize
       return CompaniesService.getCompanies(organization.id, {
         search: search || undefined,
         status: status === 'all' ? undefined : status,
+        companyType: companyType === 'all' ? undefined : companyType,
+        activityFilter: activityFilter === 'all' ? undefined : activityFilter,
+        minRevenue,
+        maxRevenue,
+        industry: industry || undefined,
+        sortBy,
+        sortOrder,
         limit: pageSize,
         offset,
       })

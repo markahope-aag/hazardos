@@ -7,10 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useToast } from '@/components/ui/use-toast'
 import {
   ArrowLeft, Edit, Mail, Phone, Building2, MapPin,
   MessageSquare, Briefcase, Target, ChevronDown, Trash2,
-  PhoneCall, CalendarPlus, User,
+  PhoneCall, CalendarPlus, User, Shield, Plus,
 } from 'lucide-react'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -52,12 +56,20 @@ interface CustomerDetailProps {
 
 export default function CustomerDetail({ customer }: CustomerDetailProps) {
   const router = useRouter()
+  const { toast } = useToast()
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showLogCallDialog, setShowLogCallDialog] = useState(false)
+  const [showFollowUpDialog, setShowFollowUpDialog] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'activity' | 'opportunities' | 'jobs'>('overview')
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
-  const [editingNotes, setEditingNotes] = useState(false)
-  const [notesValue, setNotesValue] = useState(customer.notes || '')
+  const [addingNote, setAddingNote] = useState(false)
+  const [newNoteValue, setNewNoteValue] = useState('')
+  const [callDirection, setCallDirection] = useState<'inbound' | 'outbound'>('outbound')
+  const [callDuration, setCallDuration] = useState('')
+  const [callNotes, setCallNotes] = useState('')
+  const [followUpDate, setFollowUpDate] = useState('')
+  const [followUpNote, setFollowUpNote] = useState('')
   const updateStatusMutation = useUpdateCustomerStatus()
   const updateCustomerMutation = useUpdateCustomer()
 
@@ -73,19 +85,71 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
     }
   }
 
-  const handleSaveNotes = async () => {
+  const handleAddNote = async () => {
+    if (!newNoteValue.trim()) return
+    const timestamp = new Date().toISOString().slice(0, 16).replace('T', ' ')
+    const newEntry = `[${timestamp}] ${newNoteValue.trim()}`
+    const updatedNotes = customer.notes
+      ? `${newEntry}\n\n${customer.notes}`
+      : newEntry
     await updateCustomerMutation.mutateAsync({
       id: customer.id,
-      updates: { notes: notesValue }
+      updates: { notes: updatedNotes },
     })
-    setEditingNotes(false)
+    setNewNoteValue('')
+    setAddingNote(false)
+  }
+
+  const handleLogCall = async () => {
+    try {
+      const res = await fetch('/api/activity/manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'call',
+          entity_type: 'customer',
+          entity_id: customer.id,
+          entity_name: displayName,
+          call_direction: callDirection,
+          call_duration: callDuration ? Number(callDuration) : undefined,
+          content: callNotes,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to log call')
+      toast({ title: 'Call logged', description: `${callDirection === 'inbound' ? 'Inbound' : 'Outbound'} call recorded.` })
+      setShowLogCallDialog(false)
+      setCallDirection('outbound')
+      setCallDuration('')
+      setCallNotes('')
+    } catch {
+      toast({ title: 'Error', description: 'Failed to log call. Please try again.', variant: 'destructive' })
+    }
+  }
+
+  const handleFollowUp = async () => {
+    if (!followUpDate) return
+    try {
+      await updateCustomerMutation.mutateAsync({
+        id: customer.id,
+        updates: {
+          next_followup_date: followUpDate,
+          next_followup_note: followUpNote || null,
+        },
+      })
+      toast({ title: 'Follow-up set', description: `Follow-up scheduled for ${new Date(followUpDate).toLocaleDateString()}.` })
+      setShowFollowUpDialog(false)
+      setFollowUpDate('')
+      setFollowUpNote('')
+    } catch {
+      toast({ title: 'Error', description: 'Failed to set follow-up. Please try again.', variant: 'destructive' })
+    }
   }
 
   const tabs = [
-    { id: 'overview' as const, label: 'Overview' },
-    { id: 'activity' as const, label: 'Activity' },
-    { id: 'opportunities' as const, label: 'Opportunities' },
-    { id: 'jobs' as const, label: 'Jobs' },
+    { id: 'overview' as const, label: 'Overview', count: undefined as number | undefined },
+    { id: 'activity' as const, label: 'Activity', count: undefined as number | undefined },
+    { id: 'opportunities' as const, label: 'Opportunities', count: undefined as number | undefined },
+    { id: 'jobs' as const, label: 'Jobs', count: (customer.total_jobs || 0) as number | undefined },
   ]
 
   return (
@@ -231,7 +295,7 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
 
           {/* Quick Actions */}
           <div className="grid grid-cols-3 gap-2">
-            <Button variant="outline" size="sm" className="flex flex-col items-center gap-1 h-auto py-3">
+            <Button variant="outline" size="sm" className="flex flex-col items-center gap-1 h-auto py-3" onClick={() => setShowLogCallDialog(true)}>
               <PhoneCall className="h-4 w-4" />
               <span className="text-xs">Log Call</span>
             </Button>
@@ -241,7 +305,7 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
                 <span className="text-xs">Send Email</span>
               </a>
             </Button>
-            <Button variant="outline" size="sm" className="flex flex-col items-center gap-1 h-auto py-3" onClick={() => setShowEditModal(true)}>
+            <Button variant="outline" size="sm" className="flex flex-col items-center gap-1 h-auto py-3" onClick={() => setShowFollowUpDialog(true)}>
               <CalendarPlus className="h-4 w-4" />
               <span className="text-xs">Follow-up</span>
             </Button>
@@ -262,7 +326,7 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {tab.label}
+                {tab.label}{tab.count !== undefined && tab.count > 0 ? ` (${tab.count})` : ''}
               </button>
             ))}
           </div>
@@ -345,36 +409,87 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
                 </CardContent>
               </Card>
 
-              {/* Notes — inline editable */}
+              {/* Insurance */}
+              {customer.insurance_carrier && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Shield className="h-4 w-4" />Insurance
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Insurance Carrier</p>
+                        <p className="font-medium">{customer.insurance_carrier}</p>
+                      </div>
+                      {customer.insurance_policy_number && (
+                        <div>
+                          <p className="text-muted-foreground">Policy Number</p>
+                          <p className="font-medium">{customer.insurance_policy_number}</p>
+                        </div>
+                      )}
+                      {customer.insurance_adjuster_name && (
+                        <div>
+                          <p className="text-muted-foreground">Adjuster Name</p>
+                          <p className="font-medium">{customer.insurance_adjuster_name}</p>
+                        </div>
+                      )}
+                      {customer.insurance_adjuster_phone && (
+                        <div>
+                          <p className="text-muted-foreground">Adjuster Phone</p>
+                          <a href={`tel:${customer.insurance_adjuster_phone}`} className="font-medium text-primary hover:underline">
+                            {customer.insurance_adjuster_phone}
+                          </a>
+                        </div>
+                      )}
+                      {customer.insurance_adjuster_email && (
+                        <div>
+                          <p className="text-muted-foreground">Adjuster Email</p>
+                          <a href={`mailto:${customer.insurance_adjuster_email}`} className="font-medium text-primary hover:underline">
+                            {customer.insurance_adjuster_email}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Notes — timestamped feed */}
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">Notes</CardTitle>
-                    {!editingNotes && (
-                      <Button variant="ghost" size="sm" onClick={() => { setNotesValue(customer.notes || ''); setEditingNotes(true) }}>
-                        <Edit className="h-3 w-3 mr-1" />Edit
+                    {!addingNote && (
+                      <Button variant="ghost" size="sm" onClick={() => setAddingNote(true)}>
+                        <Plus className="h-3 w-3 mr-1" />Add Note
                       </Button>
                     )}
                   </div>
                 </CardHeader>
-                <CardContent>
-                  {editingNotes ? (
-                    <div className="space-y-2">
+                <CardContent className="space-y-3">
+                  {addingNote && (
+                    <div className="space-y-2 border rounded-md p-3 bg-muted/30">
                       <Textarea
-                        value={notesValue}
-                        onChange={(e) => setNotesValue(e.target.value)}
-                        rows={4}
-                        placeholder="Add notes about this contact..."
+                        value={newNoteValue}
+                        onChange={(e) => setNewNoteValue(e.target.value)}
+                        rows={3}
+                        placeholder="Write a note..."
+                        autoFocus
                       />
                       <div className="flex gap-2 justify-end">
-                        <Button variant="outline" size="sm" onClick={() => setEditingNotes(false)}>Cancel</Button>
-                        <Button size="sm" onClick={handleSaveNotes} disabled={updateCustomerMutation.isPending}>
+                        <Button variant="outline" size="sm" onClick={() => { setAddingNote(false); setNewNoteValue('') }}>Cancel</Button>
+                        <Button size="sm" onClick={handleAddNote} disabled={updateCustomerMutation.isPending || !newNoteValue.trim()}>
                           {updateCustomerMutation.isPending ? 'Saving...' : 'Save'}
                         </Button>
                       </div>
                     </div>
+                  )}
+                  {customer.notes ? (
+                    <NotesFeed notes={customer.notes} createdAt={customer.created_at} />
                   ) : (
-                    <p className="text-sm whitespace-pre-wrap">{customer.notes || <span className="text-muted-foreground">No notes yet. Click Edit to add notes.</span>}</p>
+                    <p className="text-sm text-muted-foreground">No notes yet. Click Add Note to get started.</p>
                   )}
                 </CardContent>
               </Card>
@@ -428,6 +543,155 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
         onClose={() => setShowDeleteDialog(false)}
         onSuccess={() => { setShowDeleteDialog(false); router.push('/crm/contacts') }}
       />
+
+      {/* Log Call Dialog */}
+      <Dialog open={showLogCallDialog} onOpenChange={setShowLogCallDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Log Call</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Direction</Label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="radio"
+                    name="callDirection"
+                    checked={callDirection === 'outbound'}
+                    onChange={() => setCallDirection('outbound')}
+                    className="accent-primary"
+                  />
+                  Outbound
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="radio"
+                    name="callDirection"
+                    checked={callDirection === 'inbound'}
+                    onChange={() => setCallDirection('inbound')}
+                    className="accent-primary"
+                  />
+                  Inbound
+                </label>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="callDuration">Duration (minutes)</Label>
+              <Input
+                id="callDuration"
+                type="number"
+                min="0"
+                placeholder="e.g. 15"
+                value={callDuration}
+                onChange={(e) => setCallDuration(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="callNotes">Notes</Label>
+              <Textarea
+                id="callNotes"
+                rows={3}
+                placeholder="What was discussed..."
+                value={callNotes}
+                onChange={(e) => setCallNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLogCallDialog(false)}>Cancel</Button>
+            <Button onClick={handleLogCall}>Log Call</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Follow-up Dialog */}
+      <Dialog open={showFollowUpDialog} onOpenChange={setShowFollowUpDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set Follow-up</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="followUpDate">Date</Label>
+              <Input
+                id="followUpDate"
+                type="date"
+                value={followUpDate}
+                onChange={(e) => setFollowUpDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="followUpNote">Note (optional)</Label>
+              <Input
+                id="followUpNote"
+                placeholder="Reason for follow-up..."
+                value={followUpNote}
+                onChange={(e) => setFollowUpNote(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFollowUpDialog(false)}>Cancel</Button>
+            <Button onClick={handleFollowUp} disabled={!followUpDate}>Set Follow-up</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+/* ── Notes Feed ── */
+
+const TIMESTAMP_PATTERN = /^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\] /
+
+interface NoteEntry {
+  timestamp: string | null
+  text: string
+}
+
+function parseNotes(raw: string, createdAt: string): NoteEntry[] {
+  const blocks = raw.split('\n\n').filter((b) => b.trim())
+  const entries: NoteEntry[] = []
+
+  for (const block of blocks) {
+    const match = block.match(TIMESTAMP_PATTERN)
+    if (match) {
+      entries.push({ timestamp: match[1], text: block.replace(TIMESTAMP_PATTERN, '') })
+    } else {
+      entries.push({ timestamp: null, text: block })
+    }
+  }
+
+  // If there are no entries at all, treat the whole thing as a legacy note
+  if (entries.length === 0 && raw.trim()) {
+    entries.push({ timestamp: null, text: raw.trim() })
+  }
+
+  // Tag legacy entries with created_at date
+  return entries.map((entry) => ({
+    ...entry,
+    timestamp: entry.timestamp ?? new Date(createdAt).toISOString().slice(0, 16).replace('T', ' '),
+  }))
+}
+
+function NotesFeed({ notes, createdAt }: { notes: string; createdAt: string }) {
+  const entries = parseNotes(notes, createdAt)
+
+  if (entries.length === 0) {
+    return <p className="text-sm text-muted-foreground">No notes yet.</p>
+  }
+
+  return (
+    <div className="space-y-2">
+      {entries.map((entry, i) => (
+        <div key={i} className="border rounded-md p-3 text-sm">
+          <p className="text-xs text-muted-foreground mb-1">
+            {entry.timestamp ? new Date(entry.timestamp.replace(' ', 'T')).toLocaleString() : 'Original Note'}
+          </p>
+          <p className="whitespace-pre-wrap">{entry.text}</p>
+        </div>
+      ))}
     </div>
   )
 }

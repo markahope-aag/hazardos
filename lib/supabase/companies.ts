@@ -1,6 +1,18 @@
 import { createClient } from '@/lib/supabase/client'
 import { sanitizeSearchQuery } from '@/lib/utils/sanitize'
-import type { Company, CompanyInsert, CompanyUpdate, AccountStatus } from '@/types/database'
+import type { Company, CompanyInsert, CompanyUpdate, AccountStatus, CompanyType } from '@/types/database'
+
+export interface CompanyWithPrimaryContact extends Company {
+  primary_contact: {
+    id: string
+    first_name: string | null
+    last_name: string | null
+    name: string | null
+    email: string | null
+    mobile_phone: string | null
+    insurance_carrier: string | null
+  } | null
+}
 
 export class CompaniesService {
   private static supabase = createClient()
@@ -10,13 +22,20 @@ export class CompaniesService {
     options: {
       search?: string
       status?: AccountStatus
+      companyType?: CompanyType
+      activityFilter?: 'no_activity_30' | 'no_activity_90' | 'no_activity_365'
+      minRevenue?: number
+      maxRevenue?: number
+      industry?: string
+      sortBy?: string
+      sortOrder?: 'asc' | 'desc'
       limit?: number
       offset?: number
     } = {}
-  ): Promise<Company[]> {
+  ): Promise<CompanyWithPrimaryContact[]> {
     let query = this.supabase
       .from('companies')
-      .select('*')
+      .select('*, primary_contact:customers!company_id(id, first_name, last_name, name, email, mobile_phone, insurance_carrier)')
       .eq('organization_id', organizationId)
 
     if (options.search) {
@@ -28,6 +47,33 @@ export class CompaniesService {
       query = query.eq('account_status', options.status)
     }
 
+    if (options.companyType) {
+      query = query.eq('company_type', options.companyType)
+    }
+
+    // Activity-based filters (using updated_at as proxy)
+    if (options.activityFilter) {
+      const now = new Date()
+      const daysMap = { no_activity_30: 30, no_activity_90: 90, no_activity_365: 365 }
+      const days = daysMap[options.activityFilter]
+      const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString()
+      query = query.lt('updated_at', cutoff)
+    }
+
+    // Revenue filters
+    if (options.minRevenue !== undefined) {
+      query = query.gte('lifetime_value', options.minRevenue)
+    }
+    if (options.maxRevenue !== undefined) {
+      query = query.lte('lifetime_value', options.maxRevenue)
+    }
+
+    // Industry filter
+    if (options.industry) {
+      const safe = sanitizeSearchQuery(options.industry)
+      query = query.ilike('industry', `%${safe}%`)
+    }
+
     if (options.limit) {
       query = query.limit(options.limit)
     }
@@ -36,7 +82,10 @@ export class CompaniesService {
       query = query.range(options.offset, options.offset + (options.limit || 25) - 1)
     }
 
-    query = query.order('name', { ascending: true })
+    // Sorting
+    const sortCol = options.sortBy || 'name'
+    const sortAsc = (options.sortOrder || 'asc') === 'asc'
+    query = query.order(sortCol, { ascending: sortAsc })
 
     const { data, error } = await query
 
@@ -44,7 +93,14 @@ export class CompaniesService {
       throw new Error(`Failed to fetch companies: ${error.message}`)
     }
 
-    return data || []
+    // PostgREST returns the joined primary_contact as an array; pick the first
+    const results = (data || []).map((c) => {
+      const contacts = (c as Record<string, unknown>).primary_contact
+      const firstContact = Array.isArray(contacts) ? contacts[0] ?? null : contacts ?? null
+      return { ...c, primary_contact: firstContact } as CompanyWithPrimaryContact
+    })
+
+    return results
   }
 
   static async getCompany(id: string): Promise<Company | null> {
