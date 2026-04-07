@@ -1,6 +1,12 @@
+import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { useMultiTenantAuth, usePermissions } from '@/lib/hooks/use-multi-tenant-auth'
+import { AuthProvider } from '@/components/providers/auth-provider'
+
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <AuthProvider>{children}</AuthProvider>
+)
 
 // Mock Supabase client
 const mockSupabaseClient = {
@@ -125,7 +131,7 @@ describe('useMultiTenantAuth', () => {
 
       cleanupFetch = setupMocks({ user: mockUser, profile: mockProfile, org: mockOrg })
 
-      const { result } = renderHook(() => useMultiTenantAuth())
+      const { result } = renderHook(() => useMultiTenantAuth(), { wrapper })
 
       // Allow setTimeout(0) in the hook to execute
       await act(async () => {
@@ -145,7 +151,7 @@ describe('useMultiTenantAuth', () => {
     it('should handle unauthenticated state', async () => {
       cleanupFetch = setupMocks({ user: null })
 
-      const { result } = renderHook(() => useMultiTenantAuth())
+      const { result } = renderHook(() => useMultiTenantAuth(), { wrapper })
 
       await act(async () => {
         vi.advanceTimersByTime(10)
@@ -165,7 +171,7 @@ describe('useMultiTenantAuth', () => {
 
       cleanupFetch = setupMocks({ user: mockUser, profileError: true })
 
-      const { result } = renderHook(() => useMultiTenantAuth())
+      const { result } = renderHook(() => useMultiTenantAuth(), { wrapper })
 
       await act(async () => {
         vi.advanceTimersByTime(10)
@@ -180,7 +186,7 @@ describe('useMultiTenantAuth', () => {
       expect(result.current.profile).toBeNull()
     })
 
-    it('should update last login timestamp', async () => {
+    it('should update last login timestamp on SIGNED_IN event', async () => {
       const mockUser = { id: 'user-123', email: 'test@example.com' }
       const mockProfile = {
         id: 'user-123',
@@ -192,7 +198,14 @@ describe('useMultiTenantAuth', () => {
 
       cleanupFetch = setupMocks({ user: mockUser, profile: mockProfile })
 
-      const { result } = renderHook(() => useMultiTenantAuth())
+      // Capture the onAuthStateChange callback so we can trigger SIGNED_IN
+      let authCallback: (event: string, session: unknown) => void
+      mockSupabaseClient.auth.onAuthStateChange.mockImplementation((cb: (event: string, session: unknown) => void) => {
+        authCallback = cb
+        return { data: { subscription: { unsubscribe: vi.fn() } } }
+      })
+
+      const { result } = renderHook(() => useMultiTenantAuth(), { wrapper })
 
       await act(async () => {
         vi.advanceTimersByTime(10)
@@ -202,14 +215,25 @@ describe('useMultiTenantAuth', () => {
         expect(result.current.loading).toBe(false)
       })
 
-      // Verify the PATCH call was made for last login update
-      const fetchCalls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls
-      const patchCall = fetchCalls.find(
-        (call: unknown[]) =>
-          String(call[0]).includes('/rest/v1/profiles') &&
-          (call[1] as RequestInit)?.method === 'PATCH'
-      )
-      expect(patchCall).toBeDefined()
+      // Clear fetch calls from initial load, then trigger SIGNED_IN
+      ;(global.fetch as ReturnType<typeof vi.fn>).mockClear()
+      cleanupFetch = setupMocks({ user: mockUser, profile: mockProfile })
+
+      await act(async () => {
+        authCallback!('SIGNED_IN', { user: mockUser, access_token: 'test-token' })
+        vi.advanceTimersByTime(10)
+      })
+
+      await waitFor(() => {
+        const fetchCalls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls
+        const patchCall = fetchCalls.find(
+          (call: unknown[]) =>
+            String(call[0]).includes('/rest/v1/profiles') &&
+            (call[1] as RequestInit)?.method === 'PATCH'
+        )
+        expect(patchCall).toBeDefined()
+      })
+
       expect(result.current.profile).toEqual(mockProfile)
     })
   })
@@ -227,7 +251,7 @@ describe('useMultiTenantAuth', () => {
 
       cleanupFetch = setupMocks({ user: mockUser, profile: mockProfile })
 
-      const { result } = renderHook(() => useMultiTenantAuth())
+      const { result } = renderHook(() => useMultiTenantAuth(), { wrapper })
 
       await act(async () => {
         vi.advanceTimersByTime(10)
@@ -253,7 +277,7 @@ describe('useMultiTenantAuth', () => {
 
       cleanupFetch = setupMocks({ user: mockUser, profile: mockProfile })
 
-      const { result } = renderHook(() => useMultiTenantAuth())
+      const { result } = renderHook(() => useMultiTenantAuth(), { wrapper })
 
       await act(async () => {
         vi.advanceTimersByTime(10)
@@ -285,7 +309,7 @@ describe('useMultiTenantAuth', () => {
 
       const cleanup = setupMocks({ user: mockUser, profile: mockProfile })
 
-      const { result } = renderHook(() => useMultiTenantAuth())
+      const { result } = renderHook(() => useMultiTenantAuth(), { wrapper })
 
       await act(async () => {
         vi.advanceTimersByTime(10)
@@ -370,7 +394,7 @@ describe('useMultiTenantAuth', () => {
 
       cleanupFetch = setupMocks({ user: mockUser, profile: mockProfile })
 
-      const { result } = renderHook(() => useMultiTenantAuth())
+      const { result } = renderHook(() => useMultiTenantAuth(), { wrapper })
 
       await act(async () => {
         vi.advanceTimersByTime(10)
@@ -434,7 +458,7 @@ describe('usePermissions', () => {
 
     cleanupFetch = setupMocks({ user: mockUser, profile: mockProfile })
 
-    const { result } = renderHook(() => usePermissions())
+    const { result } = renderHook(() => usePermissions(), { wrapper })
 
     await act(async () => {
       vi.advanceTimersByTime(10)
