@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -29,7 +30,7 @@ import {
 } from 'lucide-react'
 import type { Notification, NotificationType } from '@/types/notifications'
 
-const POLL_INTERVAL = 30000 // 30 seconds
+const POLL_INTERVAL = 30_000 // 30 seconds
 
 const iconMap: Record<NotificationType, React.ReactNode> = {
   job_assigned: <Briefcase className="w-4 h-4" />,
@@ -78,54 +79,43 @@ function formatTimeAgo(dateString: string): string {
   return date.toLocaleDateString()
 }
 
+async function fetchNotifications(): Promise<Notification[]> {
+  const res = await fetch('/api/notifications?limit=20')
+  if (!res.ok) throw new Error('Failed to fetch notifications')
+  return res.json()
+}
+
+async function fetchUnreadCount(): Promise<number> {
+  const res = await fetch('/api/notifications/count')
+  if (!res.ok) throw new Error('Failed to fetch unread count')
+  const data = await res.json()
+  return data.count
+}
+
 export function NotificationBell() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
   const [markingRead, setMarkingRead] = useState<string | null>(null)
   const [markingAllRead, setMarkingAllRead] = useState(false)
 
-  // Fetch notifications
-  const fetchNotifications = useCallback(async () => {
-    try {
-      const [notifRes, countRes] = await Promise.all([
-        fetch('/api/notifications?limit=20'),
-        fetch('/api/notifications/count'),
-      ])
+  const { data: notifications = [], isLoading: loading } = useQuery({
+    queryKey: ['notifications', 'list'],
+    queryFn: fetchNotifications,
+    refetchInterval: POLL_INTERVAL,
+    refetchIntervalInBackground: false,
+  })
 
-      if (notifRes.ok) {
-        const data = await notifRes.json()
-        setNotifications(data)
-      }
-
-      if (countRes.ok) {
-        const data = await countRes.json()
-        setUnreadCount(data.count)
-      }
-    } catch (error) {
-      logger.error(
-        { error: formatError(error, 'NOTIFICATIONS_FETCH_ERROR') },
-        'Failed to fetch notifications'
-      )
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // Initial fetch and polling
-  useEffect(() => {
-    fetchNotifications()
-
-    const interval = setInterval(fetchNotifications, POLL_INTERVAL)
-    return () => clearInterval(interval)
-  }, [fetchNotifications])
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: fetchUnreadCount,
+    refetchInterval: POLL_INTERVAL,
+    refetchIntervalInBackground: false,
+  })
 
   // Mark single notification as read
   async function handleMarkAsRead(notification: Notification) {
     if (notification.is_read) {
-      // If already read, just navigate
       if (notification.action_url) {
         router.push(notification.action_url)
         setOpen(false)
@@ -141,14 +131,15 @@ export function NotificationBell() {
       })
 
       if (res.ok) {
-        setNotifications((prev) =>
-          prev.map((n) =>
+        queryClient.setQueryData<Notification[]>(['notifications', 'list'], (prev) =>
+          (prev ?? []).map((n) =>
             n.id === notification.id ? { ...n, is_read: true } : n
           )
         )
-        setUnreadCount((prev) => Math.max(0, prev - 1))
+        queryClient.setQueryData<number>(['notifications', 'unread-count'], (prev) =>
+          Math.max(0, (prev ?? 1) - 1)
+        )
 
-        // Navigate if has action URL
         if (notification.action_url) {
           router.push(notification.action_url)
           setOpen(false)
@@ -156,7 +147,7 @@ export function NotificationBell() {
       }
     } catch (error) {
       logger.error(
-        { 
+        {
           error: formatError(error, 'NOTIFICATION_MARK_READ_ERROR'),
           notificationId: notification.id
         },
@@ -177,10 +168,10 @@ export function NotificationBell() {
       })
 
       if (res.ok) {
-        setNotifications((prev) =>
-          prev.map((n) => ({ ...n, is_read: true }))
+        queryClient.setQueryData<Notification[]>(['notifications', 'list'], (prev) =>
+          (prev ?? []).map((n) => ({ ...n, is_read: true }))
         )
-        setUnreadCount(0)
+        queryClient.setQueryData<number>(['notifications', 'unread-count'], 0)
       }
     } catch (error) {
       logger.error(

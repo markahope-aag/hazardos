@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 import { createClient } from '@/lib/supabase/server';
 import { SmsService } from '@/lib/services/sms-service';
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
@@ -27,9 +28,16 @@ export async function GET(request: NextRequest) {
       return rateLimitResponse;
     }
 
-    // Verify cron secret for security
+    // Verify cron secret for security (timing-safe comparison)
     const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) {
+      return NextResponse.json({ error: 'Cron not configured' }, { status: 500 });
+    }
+    const expected = Buffer.from(`Bearer ${cronSecret}`);
+    const provided = Buffer.from(authHeader || '');
+    const isAuthorized = expected.length === provided.length && timingSafeEqual(expected, provided);
+    if (!isAuthorized) {
       // Also allow Vercel cron requests
       const vercelCronHeader = request.headers.get('x-vercel-cron');
       if (!vercelCronHeader) {

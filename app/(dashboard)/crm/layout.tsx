@@ -18,7 +18,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="space-y-6">
       {/* CRM Sub-Navigation */}
-      <div className="border-b bg-white -mx-6 -mt-6 px-6">
+      <nav className="border-b bg-white -mx-6 -mt-6 px-6" aria-label="CRM navigation">
         <div className="flex items-center justify-between">
           <div className="flex space-x-6 overflow-x-auto">
             {crmTabs.map((tab) => {
@@ -28,6 +28,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
                 <Link
                   key={tab.href}
                   href={tab.href}
+                  aria-current={isActive ? 'page' : undefined}
                   className={`flex items-center space-x-2 py-3 px-1 border-b-2 text-sm font-medium whitespace-nowrap transition-colors ${
                     isActive
                       ? 'border-primary text-primary'
@@ -48,7 +49,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
             <span>Main Menu</span>
           </Link>
         </div>
-      </div>
+      </nav>
 
       {children}
     </div>

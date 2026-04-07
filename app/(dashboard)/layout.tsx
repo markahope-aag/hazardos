@@ -1,8 +1,9 @@
 'use client'
 
 import { LogoHorizontal } from '@/components/ui/logo'
+import { SkipLink } from '@/components/ui/skip-link'
 import { UserMenu } from '@/components/layout/user-menu'
-import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
+import { AuthProvider, useMultiTenantAuth } from '@/components/providers/auth-provider'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
@@ -40,6 +41,18 @@ function InlineLogin() {
 }
 
 export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <AuthProvider>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </AuthProvider>
+  )
+}
+
+function DashboardLayoutInner({
   children,
 }: {
   children: React.ReactNode
@@ -84,6 +97,7 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SkipLink />
       <header className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
         <div className="container flex h-14 items-center justify-between">
           <div className="flex items-center space-x-6">
@@ -119,11 +133,12 @@ export default function DashboardLayout({
       
       {/* Navigation - hidden when inside CRM */}
       {!pathname.startsWith('/crm') && (
-      <nav className="border-b bg-white">
+      <nav className="border-b bg-white" aria-label="Main navigation">
         <div className="container">
           <div className="flex space-x-8 overflow-x-auto">
             <Link
               href="/crm"
+              aria-current={pathname.startsWith('/crm') ? 'page' : undefined}
               className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
                 pathname.startsWith('/crm')
                   ? 'border-primary text-primary'
@@ -136,6 +151,7 @@ export default function DashboardLayout({
 
             <Link
               href="/"
+              aria-current={pathname === '/' ? 'page' : undefined}
               className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
                 pathname === '/'
                   ? 'border-primary text-primary'
@@ -148,6 +164,7 @@ export default function DashboardLayout({
 
             <Link
               href="/site-surveys"
+              aria-current={pathname.startsWith('/site-surveys') ? 'page' : undefined}
               className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
                 pathname.startsWith('/site-surveys')
                   ? 'border-primary text-primary'
@@ -160,6 +177,7 @@ export default function DashboardLayout({
 
             <Link
               href="/estimates"
+              aria-current={pathname.startsWith('/estimates') ? 'page' : undefined}
               className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
                 pathname.startsWith('/estimates')
                   ? 'border-primary text-primary'
@@ -172,6 +190,7 @@ export default function DashboardLayout({
 
             <Link
               href="/invoices"
+              aria-current={pathname.startsWith('/invoices') ? 'page' : undefined}
               className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
                 pathname.startsWith('/invoices')
                   ? 'border-primary text-primary'
@@ -184,6 +203,7 @@ export default function DashboardLayout({
 
             <Link
               href="/calendar"
+              aria-current={pathname.startsWith('/calendar') ? 'page' : undefined}
               className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
                 pathname.startsWith('/calendar')
                   ? 'border-primary text-primary'
@@ -196,6 +216,7 @@ export default function DashboardLayout({
 
             <Link
               href="/settings"
+              aria-current={pathname.startsWith('/settings') ? 'page' : undefined}
               className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
                 pathname.startsWith('/settings')
                   ? 'border-primary text-primary'
@@ -210,7 +231,7 @@ export default function DashboardLayout({
       </nav>
       )}
 
-      <main className="container py-6">
+      <main id="main-content" className="container py-6">
         {children}
       </main>
     </div>

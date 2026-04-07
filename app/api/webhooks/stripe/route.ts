@@ -27,7 +27,10 @@ export async function POST(request: NextRequest) {
       return rateLimitResponse
     }
 
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ''
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+    if (!webhookSecret) {
+      return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 })
+    }
 
     const body = await request.text()
     const signature = request.headers.get('stripe-signature')

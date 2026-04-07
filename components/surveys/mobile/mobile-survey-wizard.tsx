@@ -12,6 +12,16 @@ import { processPhotoQueue, waitForUploads } from '@/lib/services/photo-upload-s
 import { FormErrorBoundary, ErrorBoundary } from '@/components/error-boundaries'
 import { logger, formatError } from '@/lib/utils/logger'
 import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog'
+import {
   Save,
   X,
   ChevronLeft,
@@ -22,7 +32,6 @@ import {
   Cloud,
   CloudOff,
   Loader2,
-  AlertTriangle,
 } from 'lucide-react'
 
 // Section components
@@ -223,6 +232,17 @@ export default function MobileSurveyWizard({
       }
     }
   }, [isInitialized])
+
+  // Warn user before leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault()
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [isDirty])
 
   // Process photo queue when coming online
   useEffect(() => {
@@ -602,20 +622,37 @@ export default function MobileSurveyWizard({
         </footer>
 
         {/* Exit Confirmation Dialog */}
-        {showExitConfirm && (
-          <ExitConfirmDialog
-            onConfirm={handleSaveAndExit}
-            onCancel={() => setShowExitConfirm(false)}
-            onDiscard={() => {
-              resetSurvey()
-              if (onExit) {
-                onExit()
-              } else {
-                router.push('/site-surveys')
-              }
-            }}
-          />
-        )}
+        <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+              <AlertDialogDescription>
+                You have unsaved changes. Would you like to save before exiting?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setShowExitConfirm(false)}>
+                Continue Editing
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  resetSurvey()
+                  if (onExit) {
+                    onExit()
+                  } else {
+                    router.push('/site-surveys')
+                  }
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Discard Changes
+              </AlertDialogAction>
+              <AlertDialogAction onClick={handleSaveAndExit}>
+                Save & Exit
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </MobileSurveyWizardErrorBoundary>
   )
@@ -677,56 +714,3 @@ function ProgressNavigation({
   )
 }
 
-/**
- * Exit Confirmation Dialog
- * Shows when user tries to exit with unsaved changes
- */
-interface ExitConfirmDialogProps {
-  onConfirm: () => void
-  onCancel: () => void
-  onDiscard: () => void
-}
-
-function ExitConfirmDialog({ onConfirm, onCancel, onDiscard }: ExitConfirmDialogProps) {
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 safe-area-inset">
-      <div className="bg-background rounded-2xl p-6 mx-4 max-w-sm w-full shadow-2xl">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-yellow-100 rounded-full">
-            <AlertTriangle className="w-6 h-6 text-yellow-600" />
-          </div>
-          <h3 className="text-lg font-semibold">Unsaved Changes</h3>
-        </div>
-
-        <p className="text-muted-foreground mb-6">
-          You have unsaved changes. Would you like to save before exiting?
-        </p>
-
-        <div className="space-y-2">
-          <Button
-            onClick={onConfirm}
-            className="w-full min-h-[48px] touch-manipulation"
-          >
-            Save & Exit
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={onDiscard}
-            className="w-full min-h-[48px] touch-manipulation text-destructive hover:text-destructive/90 hover:bg-destructive/5"
-          >
-            Discard Changes
-          </Button>
-
-          <Button
-            variant="ghost"
-            onClick={onCancel}
-            className="w-full min-h-[48px] touch-manipulation"
-          >
-            Continue Editing
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
