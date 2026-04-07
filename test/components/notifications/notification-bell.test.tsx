@@ -1,5 +1,12 @@
+import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NotificationBell } from '@/components/notifications/notification-bell'
+
+function renderWithQuery(ui: React.ReactElement) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>)
+}
 
 // Mock next/navigation
 const mockPush = vi.fn()
@@ -73,7 +80,7 @@ describe('NotificationBell', () => {
         json: async () => ({ count: 2 }),
       })
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /notifications/i })).toBeInTheDocument()
@@ -91,7 +98,7 @@ describe('NotificationBell', () => {
         json: async () => ({ count: 2 }),
       })
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
     
     await waitFor(() => {
       expect(screen.getByText('2')).toBeInTheDocument()
@@ -109,7 +116,7 @@ describe('NotificationBell', () => {
         json: async () => ({ count: 2 }),
       })
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
     
     await waitFor(() => {
       const button = screen.getByRole('button', { name: /notifications.*2 unread/i })
@@ -128,7 +135,7 @@ describe('NotificationBell', () => {
         json: async () => ({ count: 0 }),
       })
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
     
     await waitFor(() => {
       const button = screen.getByRole('button', { name: 'Notifications' })
@@ -148,7 +155,7 @@ describe('NotificationBell', () => {
         json: async () => ({ count: 2 }),
       })
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
     
     await waitFor(() => {
       const button = screen.getByRole('button', { name: /notifications/i })
@@ -169,7 +176,7 @@ describe('NotificationBell', () => {
         json: async () => ({ count: 2 }),
       })
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
     
     await waitFor(() => {
       const button = screen.getByRole('button', { name: /notifications/i })
@@ -184,7 +191,7 @@ describe('NotificationBell', () => {
   it('should show loading state while fetching', () => {
     mockFetch.mockImplementation(() => new Promise(() => {})) // Never resolves
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
 
     const button = screen.getByRole('button', { name: /notifications/i })
     fireEvent.click(button)
@@ -206,7 +213,7 @@ describe('NotificationBell', () => {
         json: async () => ({ count: 0 }),
       })
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
     
     await waitFor(() => {
       const button = screen.getByRole('button', { name: /notifications/i })
@@ -227,7 +234,7 @@ describe('NotificationBell', () => {
         json: async () => ({ count: 2 }),
       })
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
     
     await waitFor(() => {
       const button = screen.getByRole('button', { name: /notifications/i })
@@ -252,7 +259,7 @@ describe('NotificationBell', () => {
         json: async () => ({}),
       })
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
     
     await waitFor(() => {
       const button = screen.getByRole('button', { name: /notifications/i })
@@ -284,7 +291,7 @@ describe('NotificationBell', () => {
         json: async () => ({}),
       })
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
     
     await waitFor(() => {
       const button = screen.getByRole('button', { name: /notifications/i })
@@ -314,7 +321,7 @@ describe('NotificationBell', () => {
         json: async () => ({}),
       })
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
     
     await waitFor(() => {
       const button = screen.getByRole('button', { name: /notifications/i })
@@ -343,7 +350,7 @@ describe('NotificationBell', () => {
       })
       .mockImplementationOnce(() => new Promise(() => {})) // Never resolves
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
 
     await waitFor(() => {
       const button = screen.getByRole('button', { name: /notifications/i })
@@ -373,7 +380,7 @@ describe('NotificationBell', () => {
       })
     })
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
 
     // Initial fetch (2 calls: notifications list + count)
     await waitFor(() => {
@@ -391,7 +398,7 @@ describe('NotificationBell', () => {
   it('should handle fetch errors gracefully', async () => {
     mockFetch.mockRejectedValue(new Error('Network error'))
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
     
     // Should not crash and should show empty state
     await waitFor(() => {
@@ -413,7 +420,7 @@ describe('NotificationBell', () => {
         json: async () => ({ count: 2 }),
       })
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
     
     await waitFor(() => {
       const button = screen.getByRole('button', { name: /notifications/i })
@@ -442,7 +449,7 @@ describe('NotificationBell', () => {
         json: async () => ({ count: 1 }),
       })
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
     
     await waitFor(() => {
       const button = screen.getByRole('button', { name: /notifications/i })
@@ -463,7 +470,7 @@ describe('NotificationBell', () => {
         json: async () => ({ count: 2 }),
       })
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
     
     await waitFor(() => {
       const button = screen.getByRole('button', { name: /notifications/i })
@@ -495,7 +502,7 @@ describe('NotificationBell', () => {
         json: async () => ({}),
       })
 
-    render(<NotificationBell />)
+    renderWithQuery(<NotificationBell />)
     
     await waitFor(() => {
       const button = screen.getByRole('button', { name: /notifications/i })
