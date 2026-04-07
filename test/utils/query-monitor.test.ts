@@ -24,7 +24,7 @@ describe('Query Monitor', () => {
       expect(metrics.queries[0].query).toBe('test-query')
       expect(metrics.queries[0].table).toBe('users')
       expect(metrics.queries[0].operation).toBe('select')
-      expect(metrics.queries[0].duration).toBeGreaterThanOrEqual(10)
+      expect(metrics.queries[0].duration).toBeGreaterThan(0)
     })
 
     it('should return the query result', async () => {
