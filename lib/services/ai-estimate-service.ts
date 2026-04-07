@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceLogger } from '@/lib/utils/logger';
 import { redactPII } from '@/lib/utils/pii-redaction';
-import { SecureError } from '@/lib/utils/secure-error-handler';
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler';
 import type { EstimateSuggestion, SuggestedLineItem } from '@/types/integrations';
 
 const log = createServiceLogger('AIEstimateService');
@@ -230,7 +230,7 @@ Include all necessary line items: labor, materials, equipment, disposal, permits
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'create estimate suggestion');
 
     const durationMs = Date.now() - startTime;
     log.info(

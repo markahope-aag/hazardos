@@ -1,6 +1,6 @@
 import twilio from 'twilio';
 import { createClient } from '@/lib/supabase/server';
-import { SecureError } from '@/lib/utils/secure-error-handler';
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler';
 import type {
   SmsMessage,
   SmsTemplate,
@@ -25,7 +25,7 @@ export class SmsService {
       .eq('organization_id', organizationId)
       .maybeSingle();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch SMS settings');
     return data;
   }
 
@@ -45,7 +45,7 @@ export class SmsService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'update SMS settings');
     return data;
   }
 
@@ -106,7 +106,7 @@ export class SmsService {
       .select()
       .single();
 
-    if (insertError) throw insertError;
+    if (insertError) throwDbError(insertError, 'create SMS message');
 
     // Send via Twilio
     try {
@@ -324,7 +324,7 @@ export class SmsService {
       .order('message_type')
       .order('is_system', { ascending: false });
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch SMS templates');
     return data || [];
   }
 
@@ -346,7 +346,7 @@ export class SmsService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'create SMS template');
     return data;
   }
 
@@ -367,7 +367,7 @@ export class SmsService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'update SMS template');
     return data;
   }
 
@@ -478,7 +478,7 @@ export class SmsService {
     if (filters?.limit) query = query.limit(filters.limit);
 
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch SMS messages');
     return data || [];
   }
 

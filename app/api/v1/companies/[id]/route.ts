@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 
 const updateCompanySchema = z.object({
   name: z.string().min(1).optional(),
@@ -51,7 +51,7 @@ export const PATCH = createApiHandlerWithParams(
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update company')
     if (!data) throw new SecureError('NOT_FOUND', 'Company not found')
 
     return NextResponse.json(data)
@@ -69,7 +69,7 @@ export const DELETE = createApiHandlerWithParams(
       .eq('id', id)
       .eq('organization_id', context.profile.organization_id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete company')
 
     return NextResponse.json({ success: true })
   }

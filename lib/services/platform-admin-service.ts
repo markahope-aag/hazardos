@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
   PlatformStats,
   OrganizationSummary,
@@ -151,7 +152,7 @@ export class PlatformAdminService {
 
     const { data, count, error } = await query
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch organizations')
 
     // Transform data
     const organizations: OrganizationSummary[] = (data || [])

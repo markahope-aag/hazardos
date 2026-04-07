@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
   CustomerContact,
   CreateContactInput,
@@ -24,7 +24,7 @@ export class ContactsService {
       .order('is_primary', { ascending: false })
       .order('created_at', { ascending: true })
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch contacts')
 
     return data || []
   }
@@ -92,7 +92,7 @@ export class ContactsService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create contact')
 
     // Get customer name for activity log
     const { data: customer } = await supabase
@@ -142,7 +142,7 @@ export class ContactsService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update contact')
 
     const customerData = Array.isArray(current.customer) ? current.customer[0] : current.customer
     await Activity.updated('contact', data.id, `${data.name} (${customerData?.name || 'Unknown'})`)
@@ -171,7 +171,7 @@ export class ContactsService {
       .delete()
       .eq('id', contactId)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete contact')
 
     if (contact) {
       const customerData = Array.isArray(contact.customer) ? contact.customer[0] : contact.customer
@@ -198,7 +198,7 @@ export class ContactsService {
       .select('*, customer:customers(name)')
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update contact')
 
     const customerData = Array.isArray(data.customer) ? data.customer[0] : data.customer
     await Activity.updated('contact', data.id, `${data.name} set as primary (${customerData?.name || 'Unknown'})`)
@@ -222,7 +222,7 @@ export class ContactsService {
       .eq('role', role)
       .order('is_primary', { ascending: false })
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch contacts')
 
     return data || []
   }

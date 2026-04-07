@@ -19,6 +19,7 @@ import {
 } from './survey-types'
 import { mapStoreToDb, mapDbToStore, createInitialDbRecord } from './survey-mappers'
 import { createClient } from '@/lib/supabase/client'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 
 const log = createServiceLogger('SurveyStore')
@@ -415,7 +416,7 @@ export const useSurveyStore = create<SurveyState>()(
             .select('id')
             .single()
 
-          if (error) throw error
+          if (error) throwDbError(error, 'create survey')
 
           set({
             currentSurveyId: data.id,
@@ -443,7 +444,7 @@ export const useSurveyStore = create<SurveyState>()(
             .eq('id', surveyId)
             .single()
 
-          if (error) throw error
+          if (error) throwDbError(error, 'fetch survey')
 
           const storeData = mapDbToStore(data)
 
@@ -506,7 +507,7 @@ export const useSurveyStore = create<SurveyState>()(
             .update(dbData)
             .eq('id', get().currentSurveyId)
 
-          if (error) throw error
+          if (error) throwDbError(error, 'update survey')
 
           set({ isDirty: false, isSyncing: false, lastSavedAt: new Date().toISOString() })
           return true
@@ -553,7 +554,7 @@ export const useSurveyStore = create<SurveyState>()(
             .update(dbData)
             .eq('id', currentSurveyId)
 
-          if (error) throw error
+          if (error) throwDbError(error, 'update survey')
 
           set({ isDirty: false, isSyncing: false, lastSavedAt: submittedAt })
           return true

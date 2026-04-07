@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
-import { SecureError } from '@/lib/utils/secure-error-handler';
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler';
 import type { VoiceTranscription } from '@/types/integrations';
 
 const WHISPER_MODEL = 'whisper-1';
@@ -265,7 +265,7 @@ Respond in JSON format:
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch transcriptions');
     return data || [];
   }
 }

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import type { JobChangeOrder, AddChangeOrderInput } from '@/types/jobs'
 
 export class JobChangeOrdersService {
@@ -40,7 +41,7 @@ export class JobChangeOrdersService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create change order')
     return data
   }
 
@@ -59,7 +60,7 @@ export class JobChangeOrdersService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update change order')
     return data
   }
 
@@ -73,7 +74,7 @@ export class JobChangeOrdersService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update change order')
     return data
   }
 }

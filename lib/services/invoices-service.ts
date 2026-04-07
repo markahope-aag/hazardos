@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { SmsService } from '@/lib/services/sms-service'
 import { formatCurrency } from '@/lib/utils'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
@@ -54,7 +54,7 @@ export class InvoicesService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create invoice')
 
     // Log activity
     await Activity.created('invoice', data.id, data.invoice_number)
@@ -216,7 +216,7 @@ export class InvoicesService {
 
     const { data, error } = await query
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch invoices')
 
     // Transform nested arrays
     return (data || []).map((inv) => ({
@@ -236,7 +236,7 @@ export class InvoicesService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update invoice')
     return data
   }
 
@@ -245,7 +245,7 @@ export class InvoicesService {
 
     const { error } = await supabase.from('invoices').delete().eq('id', id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete invoice')
   }
 
   static async send(id: string, method: 'email' | 'sms' = 'email'): Promise<Invoice> {
@@ -473,7 +473,7 @@ export class InvoicesService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create invoice line item')
     return data
   }
 
@@ -506,7 +506,7 @@ export class InvoicesService {
       .insert(lineItems)
       .select()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create invoice line items')
     return data || []
   }
 
@@ -536,7 +536,7 @@ export class InvoicesService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update invoice line item')
     return data
   }
 
@@ -545,7 +545,7 @@ export class InvoicesService {
 
     const { error } = await supabase.from('invoice_line_items').delete().eq('id', id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete invoice line item')
   }
 
   // Payments
@@ -578,7 +578,7 @@ export class InvoicesService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create payment')
 
     // Update job status to paid if invoice is now paid
     const invoice = await this.getById(invoiceId)
@@ -600,7 +600,7 @@ export class InvoicesService {
 
     const { error } = await supabase.from('payments').delete().eq('id', id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete payment')
   }
 
   // Stats

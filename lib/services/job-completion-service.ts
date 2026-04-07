@@ -1,7 +1,11 @@
-import { nanoid } from 'nanoid'
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
+import { JobTimeEntriesService } from '@/lib/services/job-time-entries-service'
+import { JobMaterialsService } from '@/lib/services/job-materials-service'
+import { JobCompletionPhotosService } from '@/lib/services/job-completion-photos-service'
+import { JobChecklistService } from '@/lib/services/job-checklist-service'
+import { JobVarianceService } from '@/lib/services/job-variance-service'
 import type {
   JobTimeEntry,
   JobMaterialUsage,
@@ -24,481 +28,129 @@ import type {
   VarianceFilters,
   VarianceSummary,
   GroupedChecklists,
-  ChecklistCategory,
 } from '@/types/job-completion'
 
+/**
+ * Facade that preserves the original static API while delegating to focused services.
+ *
+ * Extracted services:
+ *  - JobTimeEntriesService      (job-time-entries-service.ts)
+ *  - JobMaterialsService        (job-materials-service.ts)
+ *  - JobCompletionPhotosService (job-completion-photos-service.ts)
+ *  - JobChecklistService        (job-checklist-service.ts)
+ *  - JobVarianceService         (job-variance-service.ts)
+ */
 export class JobCompletionService {
-  // ========== TIME ENTRIES ==========
+  // ========== TIME ENTRIES (delegates to JobTimeEntriesService) ==========
 
-  static async getTimeEntries(jobId: string): Promise<JobTimeEntry[]> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { data, error } = await supabase
-      .from('job_time_entries')
-      .select(`
-        *,
-        profile:profiles!job_time_entries_profile_id_fkey(id, full_name, email, avatar_url),
-        creator:profiles!job_time_entries_created_by_fkey(id, full_name)
-      `)
-      .eq('job_id', jobId)
-      .order('work_date', { ascending: false })
-
-    if (error) throw error
-
-    return (data || []).map(entry => ({
-      ...entry,
-      profile: Array.isArray(entry.profile) ? entry.profile[0] : entry.profile,
-      creator: Array.isArray(entry.creator) ? entry.creator[0] : entry.creator,
-    }))
+  static getTimeEntries(jobId: string): Promise<JobTimeEntry[]> {
+    return JobTimeEntriesService.getTimeEntries(jobId)
   }
 
-  static async createTimeEntry(input: CreateTimeEntryInput): Promise<JobTimeEntry> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { data, error } = await supabase
-      .from('job_time_entries')
-      .insert({
-        job_id: input.job_id,
-        profile_id: input.profile_id || user.id,
-        work_date: input.work_date,
-        hours: input.hours,
-        work_type: input.work_type || 'regular',
-        hourly_rate: input.hourly_rate,
-        billable: input.billable ?? true,
-        description: input.description,
-        notes: input.notes,
-        created_by: user.id,
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-
-    // Update completion variance if exists
-    await JobCompletionService.updateCompletionVariance(input.job_id)
-
-    await Activity.created('time_entry', data.id, `${input.hours} hours`)
-
-    return data
+  static createTimeEntry(input: CreateTimeEntryInput): Promise<JobTimeEntry> {
+    return JobTimeEntriesService.createTimeEntry(input, JobVarianceService.updateCompletionVariance)
   }
 
-  static async updateTimeEntry(id: string, input: UpdateTimeEntryInput): Promise<JobTimeEntry> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { data, error } = await supabase
-      .from('job_time_entries')
-      .update(input)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    // Update completion variance
-    await JobCompletionService.updateCompletionVariance(data.job_id)
-
-    await Activity.updated('time_entry', data.id)
-
-    return data
+  static updateTimeEntry(id: string, input: UpdateTimeEntryInput): Promise<JobTimeEntry> {
+    return JobTimeEntriesService.updateTimeEntry(id, input, JobVarianceService.updateCompletionVariance)
   }
 
-  static async deleteTimeEntry(id: string): Promise<void> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    // Get job_id before deleting
-    const { data: entry } = await supabase
-      .from('job_time_entries')
-      .select('job_id')
-      .eq('id', id)
-      .single()
-
-    const { error } = await supabase
-      .from('job_time_entries')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-
-    if (entry) {
-      await JobCompletionService.updateCompletionVariance(entry.job_id)
-    }
-
-    await Activity.deleted('time_entry', id)
+  static deleteTimeEntry(id: string): Promise<void> {
+    return JobTimeEntriesService.deleteTimeEntry(id, JobVarianceService.updateCompletionVariance)
   }
 
-  // ========== MATERIAL USAGE ==========
+  // ========== MATERIAL USAGE (delegates to JobMaterialsService) ==========
 
-  static async getMaterialUsage(jobId: string): Promise<JobMaterialUsage[]> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { data, error } = await supabase
-      .from('job_material_usage')
-      .select(`
-        *,
-        creator:profiles!job_material_usage_created_by_fkey(id, full_name)
-      `)
-      .eq('job_id', jobId)
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-
-    return (data || []).map(usage => ({
-      ...usage,
-      creator: Array.isArray(usage.creator) ? usage.creator[0] : usage.creator,
-    }))
+  static getMaterialUsage(jobId: string): Promise<JobMaterialUsage[]> {
+    return JobMaterialsService.getMaterialUsage(jobId)
   }
 
-  static async createMaterialUsage(input: CreateMaterialUsageInput): Promise<JobMaterialUsage> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { data, error } = await supabase
-      .from('job_material_usage')
-      .insert({
-        job_id: input.job_id,
-        job_material_id: input.job_material_id,
-        material_name: input.material_name,
-        material_type: input.material_type,
-        quantity_estimated: input.quantity_estimated,
-        quantity_used: input.quantity_used,
-        unit: input.unit,
-        unit_cost: input.unit_cost,
-        notes: input.notes,
-        created_by: user.id,
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-
-    // Update completion variance
-    await JobCompletionService.updateCompletionVariance(input.job_id)
-
-    await Activity.created('material_usage', data.id, input.material_name)
-
-    return data
+  static createMaterialUsage(input: CreateMaterialUsageInput): Promise<JobMaterialUsage> {
+    return JobMaterialsService.createMaterialUsage(input, JobVarianceService.updateCompletionVariance)
   }
 
-  static async updateMaterialUsage(id: string, input: UpdateMaterialUsageInput): Promise<JobMaterialUsage> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { data, error } = await supabase
-      .from('job_material_usage')
-      .update(input)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    // Update completion variance
-    await JobCompletionService.updateCompletionVariance(data.job_id)
-
-    await Activity.updated('material_usage', data.id, data.material_name)
-
-    return data
+  static updateMaterialUsage(id: string, input: UpdateMaterialUsageInput): Promise<JobMaterialUsage> {
+    return JobMaterialsService.updateMaterialUsage(id, input, JobVarianceService.updateCompletionVariance)
   }
 
-  static async deleteMaterialUsage(id: string): Promise<void> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    // Get job_id before deleting
-    const { data: usage } = await supabase
-      .from('job_material_usage')
-      .select('job_id')
-      .eq('id', id)
-      .single()
-
-    const { error } = await supabase
-      .from('job_material_usage')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-
-    if (usage) {
-      await JobCompletionService.updateCompletionVariance(usage.job_id)
-    }
-
-    await Activity.deleted('material_usage', id)
+  static deleteMaterialUsage(id: string): Promise<void> {
+    return JobMaterialsService.deleteMaterialUsage(id, JobVarianceService.updateCompletionVariance)
   }
 
-  // ========== COMPLETION PHOTOS ==========
+  // ========== COMPLETION PHOTOS (delegates to JobCompletionPhotosService) ==========
 
-  static async getPhotos(jobId: string): Promise<JobCompletionPhoto[]> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { data, error } = await supabase
-      .from('job_completion_photos')
-      .select(`
-        *,
-        uploader:profiles!job_completion_photos_uploaded_by_fkey(id, full_name, avatar_url)
-      `)
-      .eq('job_id', jobId)
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-
-    return (data || []).map(photo => ({
-      ...photo,
-      uploader: Array.isArray(photo.uploader) ? photo.uploader[0] : photo.uploader,
-    }))
+  static getPhotos(jobId: string): Promise<JobCompletionPhoto[]> {
+    return JobCompletionPhotosService.getPhotos(jobId)
   }
 
-  static async createPhoto(input: CreateCompletionPhotoInput): Promise<JobCompletionPhoto> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { data, error } = await supabase
-      .from('job_completion_photos')
-      .insert({
-        job_id: input.job_id,
-        photo_url: input.photo_url,
-        thumbnail_url: input.thumbnail_url,
-        storage_path: input.storage_path,
-        photo_type: input.photo_type || 'during',
-        caption: input.caption,
-        taken_at: input.taken_at,
-        location_lat: input.location_lat,
-        location_lng: input.location_lng,
-        camera_make: input.camera_make,
-        camera_model: input.camera_model,
-        image_width: input.image_width,
-        image_height: input.image_height,
-        file_name: input.file_name,
-        file_size: input.file_size,
-        mime_type: input.mime_type,
-        uploaded_by: user.id,
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-
-    await Activity.created('completion_photo', data.id, input.photo_type || 'during')
-
-    return data
+  static createPhoto(input: CreateCompletionPhotoInput): Promise<JobCompletionPhoto> {
+    return JobCompletionPhotosService.createPhoto(input)
   }
 
-  static async updatePhoto(id: string, input: UpdateCompletionPhotoInput): Promise<JobCompletionPhoto> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { data, error } = await supabase
-      .from('job_completion_photos')
-      .update(input)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    await Activity.updated('completion_photo', data.id)
-
-    return data
+  static updatePhoto(id: string, input: UpdateCompletionPhotoInput): Promise<JobCompletionPhoto> {
+    return JobCompletionPhotosService.updatePhoto(id, input)
   }
 
-  static async deletePhoto(id: string): Promise<void> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    // Get storage path before deleting from DB
-    const { data: photo } = await supabase
-      .from('job_completion_photos')
-      .select('storage_path')
-      .eq('id', id)
-      .single()
-
-    const { error } = await supabase
-      .from('job_completion_photos')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-
-    // Delete from storage
-    if (photo?.storage_path) {
-      await supabase.storage
-        .from('job-completion-photos')
-        .remove([photo.storage_path])
-    }
-
-    await Activity.deleted('completion_photo', id)
+  static deletePhoto(id: string): Promise<void> {
+    return JobCompletionPhotosService.deletePhoto(id)
   }
 
-  // ========== CHECKLISTS ==========
-
-  static async getChecklist(jobId: string): Promise<JobCompletionChecklist[]> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { data, error } = await supabase
-      .from('job_completion_checklists')
-      .select(`
-        *,
-        completer:profiles!job_completion_checklists_completed_by_fkey(id, full_name)
-      `)
-      .eq('job_id', jobId)
-      .order('category')
-      .order('sort_order')
-
-    if (error) throw error
-
-    return (data || []).map(item => ({
-      ...item,
-      completer: Array.isArray(item.completer) ? item.completer[0] : item.completer,
-    }))
+  static uploadPhoto(
+    jobId: string,
+    organizationId: string,
+    file: File,
+  ): Promise<{ url: string; path: string }> {
+    return JobCompletionPhotosService.uploadPhoto(jobId, organizationId, file)
   }
 
-  static async getChecklistGrouped(jobId: string): Promise<GroupedChecklists> {
-    const items = await JobCompletionService.getChecklist(jobId)
+  // ========== CHECKLISTS (delegates to JobChecklistService) ==========
 
-    const grouped: GroupedChecklists = {
-      safety: [],
-      quality: [],
-      cleanup: [],
-      documentation: [],
-      custom: [],
-    }
-
-    items.forEach(item => {
-      const category = item.category as ChecklistCategory
-      if (grouped[category]) {
-        grouped[category].push(item)
-      }
-    })
-
-    return grouped
+  static getChecklist(jobId: string): Promise<JobCompletionChecklist[]> {
+    return JobChecklistService.getChecklist(jobId)
   }
 
-  static async initializeChecklist(jobId: string): Promise<JobCompletionChecklist[]> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    // Check if checklist already exists
-    const { count } = await supabase
-      .from('job_completion_checklists')
-      .select('id', { count: 'exact', head: true })
-      .eq('job_id', jobId)
-
-    if (count && count > 0) {
-      // Return existing checklist
-      return JobCompletionService.getChecklist(jobId)
-    }
-
-    // Initialize default checklist using RPC
-    const { error } = await supabase.rpc('initialize_job_checklist', {
-      p_job_id: jobId,
-    })
-
-    if (error) throw error
-
-    await Activity.created('checklist', jobId, 'Job checklist initialized')
-
-    return JobCompletionService.getChecklist(jobId)
+  static getChecklistGrouped(jobId: string): Promise<GroupedChecklists> {
+    return JobChecklistService.getChecklistGrouped(jobId)
   }
 
-  static async toggleChecklistItem(
+  static initializeChecklist(jobId: string): Promise<JobCompletionChecklist[]> {
+    return JobChecklistService.initializeChecklist(jobId)
+  }
+
+  static toggleChecklistItem(
     id: string,
     completed: boolean,
-    notes?: string
+    notes?: string,
   ): Promise<JobCompletionChecklist> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { data, error } = await supabase
-      .from('job_completion_checklists')
-      .update({
-        is_completed: completed,
-        completed_at: completed ? new Date().toISOString() : null,
-        completed_by: completed ? user.id : null,
-        completion_notes: notes,
-      })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    return data
+    return JobChecklistService.toggleChecklistItem(id, completed, notes)
   }
 
-  static async updateChecklistItem(
+  static updateChecklistItem(
     id: string,
-    input: UpdateChecklistItemInput
+    input: UpdateChecklistItemInput,
   ): Promise<JobCompletionChecklist> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const updateData: Record<string, unknown> = {}
-
-    if (input.is_completed !== undefined) {
-      updateData.is_completed = input.is_completed
-      updateData.completed_at = input.is_completed ? new Date().toISOString() : null
-      updateData.completed_by = input.is_completed ? user.id : null
-    }
-
-    if (input.completion_notes !== undefined) {
-      updateData.completion_notes = input.completion_notes
-    }
-
-    if (input.evidence_photo_ids !== undefined) {
-      updateData.evidence_photo_ids = input.evidence_photo_ids
-    }
-
-    const { data, error } = await supabase
-      .from('job_completion_checklists')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    return data
+    return JobChecklistService.updateChecklistItem(id, input)
   }
 
-  // ========== JOB COMPLETIONS ==========
+  // ========== VARIANCE ANALYSIS (delegates to JobVarianceService) ==========
+
+  static updateCompletionVariance(jobId: string): Promise<void> {
+    return JobVarianceService.updateCompletionVariance(jobId)
+  }
+
+  static updateCompletionVarianceBatch(jobIds: string[]): Promise<void> {
+    return JobVarianceService.updateCompletionVarianceBatch(jobIds)
+  }
+
+  static getVarianceAnalysis(filters?: VarianceFilters): Promise<VarianceAnalysis[]> {
+    return JobVarianceService.getVarianceAnalysis(filters)
+  }
+
+  static getVarianceSummary(filters?: VarianceFilters): Promise<VarianceSummary> {
+    return JobVarianceService.getVarianceSummary(filters)
+  }
+
+  // ========== JOB COMPLETIONS (core lifecycle — stays here) ==========
 
   static async getCompletion(jobId: string): Promise<JobCompletion | null> {
     const supabase = await createClient()
@@ -516,7 +168,7 @@ export class JobCompletionService {
       .eq('job_id', jobId)
       .single()
 
-    if (error && error.code !== 'PGRST116') throw error
+    if (error && error.code !== 'PGRST116') throwDbError(error, 'fetch job completion')
 
     if (!data) return null
 
@@ -533,13 +185,11 @@ export class JobCompletionService {
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
-    // Check if completion already exists
     const existing = await JobCompletionService.getCompletion(input.job_id)
     if (existing) {
       return existing
     }
 
-    // Get job data for estimated values
     const { data: job } = await supabase
       .from('jobs')
       .select('estimated_duration_hours, contract_amount, job_number')
@@ -561,16 +211,14 @@ export class JobCompletionService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create job completion')
 
-    // Link completion to job
     await supabase
       .from('jobs')
       .update({ completion_id: data.id })
       .eq('id', input.job_id)
 
-    // Calculate initial variance
-    await JobCompletionService.updateCompletionVariance(input.job_id)
+    await JobVarianceService.updateCompletionVariance(input.job_id)
 
     await Activity.created('job_completion', data.id, job?.job_number)
 
@@ -579,7 +227,7 @@ export class JobCompletionService {
 
   static async updateCompletion(
     jobId: string,
-    input: UpdateCompletionInput
+    input: UpdateCompletionInput,
   ): Promise<JobCompletion> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -599,7 +247,7 @@ export class JobCompletionService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update job completion')
 
     await Activity.updated('job_completion', data.id)
 
@@ -608,15 +256,14 @@ export class JobCompletionService {
 
   static async submitCompletion(
     jobId: string,
-    input?: SubmitCompletionInput
+    input?: SubmitCompletionInput,
   ): Promise<JobCompletion> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
-    // Update variance before submission
-    await JobCompletionService.updateCompletionVariance(jobId)
+    await JobVarianceService.updateCompletionVariance(jobId)
 
     const updateData: Record<string, unknown> = {
       status: 'submitted',
@@ -635,7 +282,7 @@ export class JobCompletionService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update job completion')
 
     await Activity.statusChanged('job_completion', data.id, undefined, 'draft', 'submitted')
 
@@ -644,7 +291,7 @@ export class JobCompletionService {
 
   static async approveCompletion(
     jobId: string,
-    input?: ApproveCompletionInput
+    input?: ApproveCompletionInput,
   ): Promise<JobCompletion> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -663,9 +310,8 @@ export class JobCompletionService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update job completion')
 
-    // Update job status to completed
     await supabase
       .from('jobs')
       .update({
@@ -681,7 +327,7 @@ export class JobCompletionService {
 
   static async rejectCompletion(
     jobId: string,
-    input: RejectCompletionInput
+    input: RejectCompletionInput,
   ): Promise<JobCompletion> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -701,234 +347,11 @@ export class JobCompletionService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update job completion')
 
     await Activity.statusChanged('job_completion', data.id, undefined, 'submitted', 'rejected')
 
     return data
-  }
-
-  // ========== VARIANCE ANALYSIS ==========
-
-  static async updateCompletionVariance(jobId: string): Promise<void> {
-    const supabase = await createClient()
-
-    // Use a single query that calculates variance via RPC if completion exists
-    // This avoids the N+1 pattern of fetching completion ID first
-    const { error } = await supabase.rpc('calculate_completion_variance_by_job', {
-      p_job_id: jobId,
-    })
-
-    // If the new RPC doesn't exist, fall back to the legacy 2-query pattern
-    // This allows gradual migration without breaking changes
-    if (error) {
-      const { data: completion } = await supabase
-        .from('job_completions')
-        .select('id')
-        .eq('job_id', jobId)
-        .single()
-
-      if (completion) {
-        await supabase.rpc('calculate_completion_variance', {
-          p_completion_id: completion.id,
-        })
-      }
-    }
-  }
-
-  /**
-   * Batch update variance for multiple jobs at once (avoids N+1 when bulk editing)
-   */
-  static async updateCompletionVarianceBatch(jobIds: string[]): Promise<void> {
-    if (jobIds.length === 0) return
-
-    // Use Promise.all for parallel execution when batch updating
-    await Promise.all(
-      jobIds.map(jobId => this.updateCompletionVariance(jobId))
-    )
-  }
-
-  static async getVarianceAnalysis(filters?: VarianceFilters): Promise<VarianceAnalysis[]> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    let query = supabase
-      .from('job_completions')
-      .select(`
-        *,
-        job:jobs!inner(
-          id,
-          job_number,
-          name,
-          customer:customers(name, company_name),
-          hazard_types,
-          contract_amount,
-          estimated_duration_hours
-        )
-      `)
-      .eq('status', 'approved')
-
-    if (filters?.start_date) {
-      query = query.gte('reviewed_at', filters.start_date)
-    }
-
-    if (filters?.end_date) {
-      query = query.lte('reviewed_at', filters.end_date)
-    }
-
-    const { data, error } = await query.order('reviewed_at', { ascending: false })
-
-    if (error) throw error
-
-    // Extract job IDs for batch material query
-    const jobIds = (data || [])
-      .map(c => {
-        const job = Array.isArray(c.job) ? c.job[0] : c.job
-        return job?.id
-      })
-      .filter((id): id is string => !!id)
-
-    // Fetch all materials for all jobs in a single query (avoids N+1)
-    const { data: allMaterials } = await supabase
-      .from('job_material_usage')
-      .select('job_id, material_name, quantity_estimated, quantity_used, variance_quantity, variance_percent, unit')
-      .in('job_id', jobIds.length > 0 ? jobIds : [''])
-
-    // Group materials by job_id for efficient lookup
-    const materialsByJobId = new Map<string, typeof allMaterials>()
-    for (const material of allMaterials || []) {
-      const existing = materialsByJobId.get(material.job_id) || []
-      existing.push(material)
-      materialsByJobId.set(material.job_id, existing)
-    }
-
-    // Transform data
-    const analyses: VarianceAnalysis[] = []
-
-    for (const completion of data || []) {
-      const job = Array.isArray(completion.job) ? completion.job[0] : completion.job
-      const customer = job?.customer
-        ? (Array.isArray(job.customer) ? job.customer[0] : job.customer)
-        : null
-
-      if (filters?.customer_id && job?.id !== filters.customer_id) continue
-
-      if (filters?.hazard_types?.length) {
-        const jobHazards = job?.hazard_types || []
-        const hasMatch = filters.hazard_types.some(h => jobHazards.includes(h))
-        if (!hasMatch) continue
-      }
-
-      if (filters?.variance_threshold !== undefined) {
-        const variance = Math.abs(completion.cost_variance_percent || 0)
-        if (variance < filters.variance_threshold) continue
-      }
-
-      // Get materials from pre-fetched map (O(1) lookup)
-      const materials = materialsByJobId.get(job?.id) || []
-
-      analyses.push({
-        job_id: job?.id,
-        job_number: job?.job_number,
-        job_name: job?.name,
-        customer_name: customer?.company_name || customer?.name || 'Unknown',
-        completion_date: completion.reviewed_at,
-        estimated_hours: completion.estimated_hours,
-        actual_hours: completion.actual_hours,
-        hours_variance: completion.hours_variance,
-        hours_variance_percent: completion.hours_variance_percent,
-        estimated_cost: completion.estimated_total,
-        actual_cost: completion.actual_total,
-        cost_variance: completion.cost_variance,
-        cost_variance_percent: completion.cost_variance_percent,
-        materials_summary: materials.map(m => ({
-          material_name: m.material_name,
-          estimated_qty: m.quantity_estimated,
-          actual_qty: m.quantity_used,
-          variance_qty: m.variance_quantity,
-          variance_percent: m.variance_percent,
-          unit: m.unit,
-        })),
-      })
-    }
-
-    return analyses
-  }
-
-  static async getVarianceSummary(filters?: VarianceFilters): Promise<VarianceSummary> {
-    const analyses = await JobCompletionService.getVarianceAnalysis(filters)
-
-    const summary: VarianceSummary = {
-      total_jobs: analyses.length,
-      over_budget_count: 0,
-      under_budget_count: 0,
-      on_target_count: 0,
-      avg_hours_variance: 0,
-      avg_cost_variance: 0,
-      total_hours_variance: 0,
-      total_cost_variance: 0,
-    }
-
-    if (analyses.length === 0) return summary
-
-    let hoursVarianceSum = 0
-    let costVarianceSum = 0
-
-    analyses.forEach(a => {
-      const costVariance = a.cost_variance_percent || 0
-
-      if (costVariance > 5) {
-        summary.over_budget_count++
-      } else if (costVariance < -5) {
-        summary.under_budget_count++
-      } else {
-        summary.on_target_count++
-      }
-
-      hoursVarianceSum += a.hours_variance || 0
-      costVarianceSum += a.cost_variance || 0
-      summary.total_hours_variance += a.hours_variance || 0
-      summary.total_cost_variance += a.cost_variance || 0
-    })
-
-    summary.avg_hours_variance = hoursVarianceSum / analyses.length
-    summary.avg_cost_variance = costVarianceSum / analyses.length
-
-    return summary
-  }
-
-  // ========== STORAGE HELPERS ==========
-
-  static async uploadPhoto(
-    jobId: string,
-    organizationId: string,
-    file: File
-  ): Promise<{ url: string; path: string }> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${Date.now()}-${nanoid()}.${fileExt}`
-    const storagePath = `${organizationId}/${jobId}/${fileName}`
-
-    const { error: uploadError } = await supabase.storage
-      .from('job-completion-photos')
-      .upload(storagePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-      })
-
-    if (uploadError) throw uploadError
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('job-completion-photos')
-      .getPublicUrl(storagePath)
-
-    return { url: publicUrl, path: storagePath }
   }
 
   // ========== COMPLETION SUMMARY ==========
@@ -942,14 +365,13 @@ export class JobCompletionService {
     checklistProgress: { completed: number; required: number; total: number }
   }> {
     const [timeEntries, materialUsage, photos, checklist, completion] = await Promise.all([
-      JobCompletionService.getTimeEntries(jobId),
-      JobCompletionService.getMaterialUsage(jobId),
-      JobCompletionService.getPhotos(jobId),
-      JobCompletionService.getChecklistGrouped(jobId),
+      JobTimeEntriesService.getTimeEntries(jobId),
+      JobMaterialsService.getMaterialUsage(jobId),
+      JobCompletionPhotosService.getPhotos(jobId),
+      JobChecklistService.getChecklistGrouped(jobId),
       JobCompletionService.getCompletion(jobId),
     ])
 
-    // Calculate checklist progress
     const allItems = Object.values(checklist).flat()
     const requiredItems = allItems.filter(i => i.is_required)
     const completedItems = allItems.filter(i => i.is_completed)
@@ -968,3 +390,10 @@ export class JobCompletionService {
     }
   }
 }
+
+// Re-export extracted services for direct usage
+export { JobTimeEntriesService } from '@/lib/services/job-time-entries-service'
+export { JobMaterialsService } from '@/lib/services/job-materials-service'
+export { JobCompletionPhotosService } from '@/lib/services/job-completion-photos-service'
+export { JobChecklistService } from '@/lib/services/job-checklist-service'
+export { JobVarianceService } from '@/lib/services/job-variance-service'

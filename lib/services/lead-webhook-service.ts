@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import { throwDbError } from '@/lib/utils/secure-error-handler';
 import type { LeadWebhookEndpoint, LeadProvider } from '@/types/integrations';
 import { logger, formatError } from '@/lib/utils/logger';
 
@@ -84,7 +85,7 @@ export class LeadWebhookService {
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch webhook endpoints');
     return data || [];
   }
 
@@ -97,7 +98,7 @@ export class LeadWebhookService {
       .eq('id', endpointId)
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch webhook endpoint');
     return data;
   }
 
@@ -111,7 +112,7 @@ export class LeadWebhookService {
       .eq('is_active', true)
       .single();
 
-    if (error && error.code !== 'PGRST116') throw error;
+    if (error && error.code !== 'PGRST116') throwDbError(error, 'fetch webhook endpoint');
     return data;
   }
 
@@ -139,7 +140,7 @@ export class LeadWebhookService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'create webhook endpoint');
     return data;
   }
 
@@ -166,7 +167,7 @@ export class LeadWebhookService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'update webhook endpoint');
     return data;
   }
 
@@ -178,7 +179,7 @@ export class LeadWebhookService {
       .delete()
       .eq('id', endpointId);
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'delete webhook endpoint');
   }
 
   // ========== LEAD PROCESSING ==========

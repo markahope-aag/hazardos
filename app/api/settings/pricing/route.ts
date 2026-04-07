@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import { updatePricingSettingsSchema } from '@/lib/validations/settings'
 
 /**
@@ -58,7 +59,7 @@ export const PATCH = createApiHandler(
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update pricing settings')
 
     return NextResponse.json(settings)
   }

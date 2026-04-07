@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import type { JobCrew, AssignCrewInput, ClockInOutInput } from '@/types/jobs'
 
 export class JobCrewService {
@@ -21,7 +22,7 @@ export class JobCrewService {
       `)
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create crew assignment')
     return data
   }
 
@@ -34,7 +35,7 @@ export class JobCrewService {
       .eq('job_id', jobId)
       .eq('profile_id', profileId)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete crew assignment')
   }
 
   static async update(crewId: string, updates: Partial<JobCrew>): Promise<JobCrew> {
@@ -50,7 +51,7 @@ export class JobCrewService {
       `)
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update crew assignment')
     return data
   }
 
@@ -73,7 +74,7 @@ export class JobCrewService {
       `)
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update crew assignment')
     return data
   }
 

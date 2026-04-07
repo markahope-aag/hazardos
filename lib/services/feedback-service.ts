@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type {
   FeedbackSurvey,
@@ -65,7 +65,7 @@ export class FeedbackService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create feedback survey')
 
     await Activity.created('feedback_survey', data.id, `Survey for ${job.job_number}`)
 
@@ -199,7 +199,7 @@ export class FeedbackService {
         p_user_agent: userAgent ?? null,
       })
 
-    if (error) throw error
+    if (error) throwDbError(error, 'submit feedback')
 
     const response = result as {
       success: boolean
@@ -332,7 +332,7 @@ export class FeedbackService {
 
     const { data, error, count } = await query
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch feedback surveys')
 
     const surveys = (data || []).map(survey => ({
       ...survey,
@@ -362,7 +362,7 @@ export class FeedbackService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update feedback survey')
 
     await Activity.updated('feedback_survey', surveyId, 'Testimonial approved')
 
@@ -386,7 +386,7 @@ export class FeedbackService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update feedback survey')
 
     return data
   }
@@ -412,7 +412,7 @@ export class FeedbackService {
       .not('testimonial_text', 'is', null)
       .order('completed_at', { ascending: false })
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch testimonials')
 
     return (data || []).map(survey => {
       const job = Array.isArray(survey.job) ? survey.job[0] : survey.job
@@ -448,7 +448,7 @@ export class FeedbackService {
       .rpc('get_feedback_stats', { org_id: profile.organization_id })
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch feedback stats')
 
     const stats = data as {
       total_surveys?: number
@@ -507,7 +507,7 @@ export class FeedbackService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create review request')
 
     return data
   }

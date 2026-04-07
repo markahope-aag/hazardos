@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createApiHandler } from '@/lib/utils/api-handler'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 
 const createInvitationSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -22,7 +22,7 @@ export const GET = createApiHandler(
       .is('accepted_at', null)
       .order('created_at', { ascending: false })
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch invitations')
 
     return NextResponse.json({ invitations: data })
   }
@@ -80,7 +80,7 @@ export const POST = createApiHandler(
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create invitation')
 
     // Send invitation email via Resend
     const resendApiKey = process.env.RESEND_API_KEY

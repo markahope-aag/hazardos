@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { throwDbError } from '@/lib/utils/secure-error-handler';
 import { randomBytes } from 'crypto';
 import type { WhiteLabelConfig, CustomDomain } from '@/types/integrations';
 
@@ -22,7 +23,7 @@ export class WhiteLabelService {
       .eq('id', organizationId)
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch white-label config');
 
     return {
       enabled: data?.white_label_enabled || false,
@@ -61,7 +62,7 @@ export class WhiteLabelService {
       .update(updateData)
       .eq('id', organizationId);
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'update white-label config');
   }
 
   // ========== CUSTOM DOMAINS ==========
@@ -75,7 +76,7 @@ export class WhiteLabelService {
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch custom domains');
     return data || [];
   }
 
@@ -110,7 +111,7 @@ export class WhiteLabelService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'create custom domain');
     return data;
   }
 
@@ -171,7 +172,7 @@ export class WhiteLabelService {
       .delete()
       .eq('id', domainId);
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'delete custom domain');
   }
 
   // ========== BRANDING HELPERS ==========

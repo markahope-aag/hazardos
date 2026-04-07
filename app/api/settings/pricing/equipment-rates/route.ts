@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import {
   createEquipmentRateSchema,
   updateEquipmentRateSchema,
@@ -18,7 +19,7 @@ export const GET = createApiHandler(
       .select('id, organization_id, name, rate_per_day, description, created_at, updated_at')
       .order('name')
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch equipment rates')
 
     return NextResponse.json({ equipment_rates: data })
   }
@@ -46,7 +47,7 @@ export const POST = createApiHandler(
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create equipment rate')
 
     return NextResponse.json(data, { status: 201 })
   }
@@ -72,7 +73,7 @@ export const PATCH = createApiHandler(
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update equipment rate')
 
     return NextResponse.json(data)
   }
@@ -94,7 +95,7 @@ export const DELETE = createApiHandler(
       .delete()
       .eq('id', query.id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete equipment rate')
 
     return NextResponse.json({ success: true })
   }

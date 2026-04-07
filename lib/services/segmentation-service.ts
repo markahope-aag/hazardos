@@ -3,7 +3,7 @@ import type { CustomerSegment, SegmentRule } from '@/types/integrations';
 import { MailchimpService } from './mailchimp-service';
 import { HubSpotService } from './hubspot-service';
 import { createServiceLogger, formatError } from '@/lib/utils/logger';
-import { SecureError } from '@/lib/utils/secure-error-handler';
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler';
 
 const log = createServiceLogger('SegmentationService');
 
@@ -55,7 +55,7 @@ export class SegmentationService {
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch segments');
     return data || [];
   }
 
@@ -68,7 +68,7 @@ export class SegmentationService {
       .eq('id', segmentId)
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch segment');
     return data;
   }
 
@@ -92,7 +92,7 @@ export class SegmentationService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'create segment');
 
     // For static segments, add initial members
     if (input.segment_type === 'static' && input.customer_ids?.length) {
@@ -130,7 +130,7 @@ export class SegmentationService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'update segment');
 
     // Recalculate members if rules changed
     if (input.rules) {
@@ -149,7 +149,7 @@ export class SegmentationService {
       .delete()
       .eq('id', segmentId);
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'delete segment');
   }
 
   // ========== MEMBER MANAGEMENT ==========

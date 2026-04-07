@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
   Notification,
   NotificationPreference,
@@ -63,7 +63,7 @@ export class NotificationService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create notification')
 
     // Try to send email notification
     await NotificationService.sendEmailNotification(input, profile.organization_id)
@@ -97,7 +97,7 @@ export class NotificationService {
       p_priority: input.priority || 'normal',
     })
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create notification for role')
 
     return data || []
   }
@@ -125,7 +125,7 @@ export class NotificationService {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch unread notifications')
 
     return { notifications: data || [], total: count || 0, limit, offset }
   }
@@ -152,7 +152,7 @@ export class NotificationService {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch notifications')
 
     return { notifications: data || [], total: count || 0, limit, offset }
   }
@@ -168,7 +168,7 @@ export class NotificationService {
     const { data, error } = await supabase
       .rpc('get_unread_notification_count', { p_user_id: targetUserId })
 
-    if (error) throw error
+    if (error) throwDbError(error, 'count unread notifications')
 
     return data || 0
   }
@@ -188,7 +188,7 @@ export class NotificationService {
       .eq('id', id)
       .eq('user_id', user.id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update notification')
   }
 
   static async markAllAsRead(): Promise<void> {
@@ -206,7 +206,7 @@ export class NotificationService {
       .eq('user_id', user.id)
       .eq('is_read', false)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update notifications')
   }
 
   static async delete(id: string): Promise<void> {
@@ -221,7 +221,7 @@ export class NotificationService {
       .eq('id', id)
       .eq('user_id', user.id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete notification')
   }
 
   // ========== PREFERENCES ==========
@@ -252,7 +252,7 @@ export class NotificationService {
       .eq('user_id', user.id)
       .order('notification_type')
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch notification preferences')
 
     return data || []
   }
@@ -276,7 +276,7 @@ export class NotificationService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update notification preference')
 
     return data
   }

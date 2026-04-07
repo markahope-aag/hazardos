@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import type { JobNote, AddJobNoteInput } from '@/types/jobs'
 
 export class JobNotesService {
@@ -22,7 +23,7 @@ export class JobNotesService {
       `)
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create job note')
     return {
       ...data,
       author: Array.isArray(data.author) ? data.author[0] : data.author,
@@ -37,6 +38,6 @@ export class JobNotesService {
       .delete()
       .eq('id', id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete job note')
   }
 }

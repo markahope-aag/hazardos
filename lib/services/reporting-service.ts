@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
   SavedReport,
   ReportConfig,
@@ -83,7 +83,7 @@ export class ReportingService {
       .lte('month', end)
       .order('month', { ascending: false })
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch sales report')
     return (data || []) as unknown as SalesPerformanceRow[]
   }
 
@@ -110,7 +110,7 @@ export class ReportingService {
       .lte('month', end)
       .order('month', { ascending: false })
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch job cost report')
     return (data || []) as unknown as JobCostRow[]
   }
 
@@ -137,7 +137,7 @@ export class ReportingService {
       .lte('month', end)
       .order('source')
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch lead source report')
     return (data || []) as unknown as LeadSourceRow[]
   }
 
@@ -151,7 +151,7 @@ export class ReportingService {
       .select('id, organization_id, name, description, report_type, config, is_shared, schedule_enabled, schedule_frequency, schedule_recipients, created_by, created_at, updated_at')
       .order('updated_at', { ascending: false })
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch saved reports')
     return (data || []) as SavedReport[]
   }
 
@@ -164,7 +164,7 @@ export class ReportingService {
       .eq('id', id)
       .single()
 
-    if (error && error.code !== 'PGRST116') throw error
+    if (error && error.code !== 'PGRST116') throwDbError(error, 'fetch report')
     return data as SavedReport | null
   }
 
@@ -196,7 +196,7 @@ export class ReportingService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create report')
     return data as SavedReport
   }
 
@@ -222,7 +222,7 @@ export class ReportingService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update report')
     return data as SavedReport
   }
 
@@ -234,7 +234,7 @@ export class ReportingService {
       .delete()
       .eq('id', id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete report')
   }
 
   // ========== EXPORT TRACKING ==========
@@ -275,6 +275,6 @@ export class ReportingService {
   static async refreshViews(): Promise<void> {
     const supabase = await createClient()
     const { error } = await supabase.rpc('refresh_report_views')
-    if (error) throw error
+    if (error) throwDbError(error, 'refresh report views')
   }
 }

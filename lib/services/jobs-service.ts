@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
   Job,
   JobCrew,
@@ -56,7 +56,7 @@ export class JobsService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create job')
 
     // Schedule customer reminders
     await JobsService.scheduleReminders(data.id)
@@ -125,7 +125,7 @@ export class JobsService {
       })
       .eq('id', job.id)
 
-    if (updateError) throw updateError
+    if (updateError) throwDbError(updateError, 'update job')
 
     // Update proposal status to converted
     await supabase
@@ -228,7 +228,7 @@ export class JobsService {
     }
 
     const { data, error, count } = await query
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch jobs')
 
     // Transform and filter
     let jobs = (data || []).map(job => ({
@@ -269,7 +269,7 @@ export class JobsService {
       .neq('status', 'cancelled')
       .order('scheduled_start_date', { ascending: true })
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch jobs')
 
     return (data || []).map(job => ({
       ...job,
@@ -287,7 +287,7 @@ export class JobsService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update job')
     return data
   }
 
@@ -325,7 +325,7 @@ export class JobsService {
       .delete()
       .eq('id', id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete job')
   }
 
   // ========== REMINDERS ==========

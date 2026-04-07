@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
   PipelineStage,
   Opportunity,
@@ -22,7 +22,7 @@ export class PipelineService {
       .eq('is_active', true)
       .order('sort_order')
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch pipeline stages')
     return (data || []) as PipelineStage[]
   }
 
@@ -67,7 +67,7 @@ export class PipelineService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create pipeline stage')
     return data as PipelineStage
   }
 
@@ -102,7 +102,7 @@ export class PipelineService {
 
     const { data, error, count } = await query
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch opportunities')
 
     const opportunities = (data || []).map(opp => ({
       ...opp,
@@ -128,7 +128,7 @@ export class PipelineService {
       .eq('id', id)
       .single()
 
-    if (error && error.code !== 'PGRST116') throw error
+    if (error && error.code !== 'PGRST116') throwDbError(error, 'fetch opportunity')
     if (!data) return null
 
     return {
@@ -180,7 +180,7 @@ export class PipelineService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create opportunity')
 
     await Activity.created('opportunity', data.id, input.name)
 
@@ -215,7 +215,7 @@ export class PipelineService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update opportunity')
 
     await Activity.updated('opportunity', id, data.name)
 
@@ -262,7 +262,7 @@ export class PipelineService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update opportunity')
 
     // Record history
     await supabase.from('opportunity_history').insert({
@@ -292,7 +292,7 @@ export class PipelineService {
       .delete()
       .eq('id', id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete opportunity')
   }
 
   // ========== HISTORY ==========
@@ -311,7 +311,7 @@ export class PipelineService {
       .eq('opportunity_id', opportunityId)
       .order('created_at', { ascending: false })
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch opportunity history')
 
     return (data || []).map(h => ({
       ...h,
@@ -373,7 +373,7 @@ export class PipelineService {
 
     const { data, error } = await query
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch won opportunities')
 
     return (data || []).map(opp => ({
       ...opp,
@@ -405,7 +405,7 @@ export class PipelineService {
 
     const { data, error } = await query
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch lost opportunities')
 
     return (data || []).map(opp => ({
       ...opp,
@@ -424,7 +424,7 @@ export class PipelineService {
       .eq('outcome', 'lost')
       .not('loss_reason', 'is', null)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch loss reasons')
 
     // Group by loss reason
     const counts: Record<string, number> = {}

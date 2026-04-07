@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
   ApprovalThreshold,
   ApprovalRequest,
@@ -27,7 +27,7 @@ export class ApprovalService {
 
     const { data, error } = await query
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch approval thresholds')
     return (data || []) as ApprovalThreshold[]
   }
 
@@ -62,7 +62,7 @@ export class ApprovalService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create approval threshold')
     return data as ApprovalThreshold
   }
 
@@ -81,7 +81,7 @@ export class ApprovalService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update approval threshold')
     return data as ApprovalThreshold
   }
 
@@ -127,7 +127,7 @@ export class ApprovalService {
 
     const { data, error, count } = await query
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch approval requests')
 
     const requests = (data || []).map(r => ({
       ...r,
@@ -153,7 +153,7 @@ export class ApprovalService {
       .eq('id', id)
       .single()
 
-    if (error && error.code !== 'PGRST116') throw error
+    if (error && error.code !== 'PGRST116') throwDbError(error, 'fetch approval request')
     if (!data) return null
 
     return {
@@ -208,7 +208,7 @@ export class ApprovalService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create approval request')
 
     await Activity.created('approval_request', data.id, `${input.entity_type} approval`)
 
@@ -245,7 +245,7 @@ export class ApprovalService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update approval request')
 
     await Activity.statusChanged(
       'approval_request',
@@ -285,7 +285,7 @@ export class ApprovalService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update approval request')
 
     await Activity.statusChanged(
       'approval_request',
@@ -308,7 +308,7 @@ export class ApprovalService {
       .select('*', { count: 'exact', head: true })
       .eq('final_status', 'pending')
 
-    if (error) throw error
+    if (error) throwDbError(error, 'count approval requests')
     return count || 0
   }
 
@@ -339,7 +339,7 @@ export class ApprovalService {
 
     const { data, error } = await query
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch approval requests')
 
     // Filter to requests this user can approve
     const requests = (data || []).filter(r => {

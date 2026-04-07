@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import { sanitizeSearchQuery } from '@/lib/utils/sanitize'
 
 const companyQuerySchema = z.object({
@@ -46,7 +47,7 @@ export const GET = createApiHandler(
 
     const { data, error, count } = await dbQuery
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch companies')
 
     return NextResponse.json({
       companies: data,
@@ -70,7 +71,7 @@ export const POST = createApiHandler(
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create company')
 
     return NextResponse.json(data, { status: 201 })
   }

@@ -184,3 +184,31 @@ export function validateLength(value: string, min: number, max: number, field: s
     throw new SecureError('VALIDATION_ERROR', `${field} must be between ${min} and ${max} characters`, field)
   }
 }
+
+/**
+ * Convert a raw Supabase/Postgrest error into a SecureError.
+ * Logs the full error detail server-side, throws a safe message to the client.
+ *
+ * Usage: replace `if (error) throw error` with `if (error) throwDbError(error)`
+ */
+export function throwDbError(error: { code?: string; message?: string; details?: string; hint?: string }, context?: string): never {
+  // Map common Postgres error codes to appropriate SecureError types
+  const code = error.code || ''
+
+  if (code === '23505') {
+    throw new SecureError('CONFLICT', context ? `${context} already exists` : 'Resource already exists')
+  }
+  if (code === '23503') {
+    throw new SecureError('NOT_FOUND', context ? `Related ${context} not found` : 'Related resource not found')
+  }
+  if (code === '42501' || code === '42000') {
+    throw new SecureError('FORBIDDEN', 'Insufficient permissions')
+  }
+  if (code === 'PGRST116') {
+    throw new SecureError('NOT_FOUND', context ? `${context} not found` : 'Resource not found')
+  }
+
+  // Log the raw error for debugging, throw a safe generic message
+  logger.error({ dbError: { code, message: error.message, details: error.details, hint: error.hint }, context }, 'Database operation failed')
+  throw new SecureError('BAD_REQUEST', context ? `Failed to ${context}` : 'Operation failed')
+}

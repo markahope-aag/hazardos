@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
 import { createHash } from 'crypto';
 import { createServiceLogger } from '@/lib/utils/logger';
-import { SecureError } from '@/lib/utils/secure-error-handler';
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler';
 import type { PhotoAnalysis, DetectedHazard } from '@/types/integrations';
 
 const log = createServiceLogger('PhotoAnalysisService');
@@ -191,7 +191,7 @@ Always respond with valid JSON matching the requested schema.`,
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'create photo analysis');
 
     // Log successful AI usage
     await this.logUsage(supabase, organizationId, 'analyze', {

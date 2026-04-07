@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
   CommissionPlan,
   CommissionEarning,
@@ -21,7 +21,7 @@ export class CommissionService {
       .eq('is_active', true)
       .order('name')
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch commission plans')
     return (data || []) as CommissionPlan[]
   }
 
@@ -34,7 +34,7 @@ export class CommissionService {
       .eq('id', id)
       .single()
 
-    if (error && error.code !== 'PGRST116') throw error
+    if (error && error.code !== 'PGRST116') throwDbError(error, 'fetch commission plan')
     return data as CommissionPlan | null
   }
 
@@ -65,7 +65,7 @@ export class CommissionService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create commission plan')
 
     await Activity.created('commission_plan', data.id, input.name)
 
@@ -85,7 +85,7 @@ export class CommissionService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update commission plan')
     return data as CommissionPlan
   }
 
@@ -97,7 +97,7 @@ export class CommissionService {
       .update({ is_active: false })
       .eq('id', id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update commission plan')
   }
 
   // ========== EARNINGS ==========
@@ -145,7 +145,7 @@ export class CommissionService {
 
     const { data, error, count } = await query
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch commission earnings')
 
     const earnings = (data || []).map(e => ({
       ...e,
@@ -220,7 +220,7 @@ export class CommissionService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create commission earning')
     return data as CommissionEarning
   }
 
@@ -241,7 +241,7 @@ export class CommissionService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update commission earning')
     return data as CommissionEarning
   }
 
@@ -258,7 +258,7 @@ export class CommissionService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update commission earning')
     return data as CommissionEarning
   }
 
@@ -274,7 +274,7 @@ export class CommissionService {
       .in('id', ids)
       .eq('status', 'approved')
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update commission earnings')
   }
 
   // ========== SUMMARY ==========
@@ -358,6 +358,6 @@ export class CommissionService {
       .update({ commission_plan_id: planId })
       .eq('id', userId)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update profile')
   }
 }

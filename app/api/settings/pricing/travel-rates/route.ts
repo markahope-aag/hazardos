@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import {
   createTravelRateSchema,
   updateTravelRateSchema,
@@ -18,7 +19,7 @@ export const GET = createApiHandler(
       .select('id, organization_id, min_miles, max_miles, flat_fee, per_mile_rate, created_at, updated_at')
       .order('min_miles')
 
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch travel rates')
 
     return NextResponse.json({ travel_rates: data })
   }
@@ -47,7 +48,7 @@ export const POST = createApiHandler(
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create travel rate')
 
     return NextResponse.json(data, { status: 201 })
   }
@@ -73,7 +74,7 @@ export const PATCH = createApiHandler(
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update travel rate')
 
     return NextResponse.json(data)
   }
@@ -95,7 +96,7 @@ export const DELETE = createApiHandler(
       .delete()
       .eq('id', query.id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete travel rate')
 
     return NextResponse.json({ success: true })
   }

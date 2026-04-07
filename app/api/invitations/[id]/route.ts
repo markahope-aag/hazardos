@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 
 export const DELETE = createApiHandlerWithParams(
   {
@@ -26,7 +26,7 @@ export const DELETE = createApiHandlerWithParams(
       .delete()
       .eq('id', id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete invitation')
 
     return NextResponse.json({ success: true })
   }

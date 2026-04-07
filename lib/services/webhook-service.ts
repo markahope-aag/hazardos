@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createHmac, randomBytes } from 'crypto';
 import type { Webhook, WebhookDelivery, WebhookEventType } from '@/types/integrations';
 import { logger, formatError } from '@/lib/utils/logger';
-import { SecureError } from '@/lib/utils/secure-error-handler';
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler';
 
 const MAX_RETRY_ATTEMPTS = 5;
 const RETRY_DELAYS = [60, 300, 900, 3600, 7200]; // Seconds: 1m, 5m, 15m, 1h, 2h
@@ -36,7 +36,7 @@ export class WebhookService {
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch webhooks');
     return data || [];
   }
 
@@ -49,7 +49,7 @@ export class WebhookService {
       .eq('id', webhookId)
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch webhook');
     return data;
   }
 
@@ -72,7 +72,7 @@ export class WebhookService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'create webhook');
     return data;
   }
 
@@ -100,7 +100,7 @@ export class WebhookService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'update webhook');
     return data;
   }
 
@@ -112,7 +112,7 @@ export class WebhookService {
       .delete()
       .eq('id', webhookId);
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'delete webhook');
   }
 
   // ========== EVENT TRIGGERING ==========
@@ -169,7 +169,7 @@ export class WebhookService {
       .select()
       .single();
 
-    if (insertError) throw insertError;
+    if (insertError) throwDbError(insertError, 'create webhook delivery');
 
     // Attempt delivery
     return this.attemptDelivery(delivery as WebhookDelivery, webhook);
@@ -299,7 +299,7 @@ export class WebhookService {
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch webhook deliveries');
     return data || [];
   }
 

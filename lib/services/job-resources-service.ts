@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
   JobEquipment,
   JobMaterial,
@@ -43,7 +44,7 @@ export class JobResourcesService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create job equipment')
     return data
   }
 
@@ -57,7 +58,7 @@ export class JobResourcesService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update job equipment')
     return data
   }
 
@@ -69,7 +70,7 @@ export class JobResourcesService {
       .delete()
       .eq('id', id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete job equipment')
   }
 
   // ========== MATERIALS ==========
@@ -94,7 +95,7 @@ export class JobResourcesService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create job material')
     return data
   }
 
@@ -117,7 +118,7 @@ export class JobResourcesService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update job material')
     return data
   }
 
@@ -129,7 +130,7 @@ export class JobResourcesService {
       .delete()
       .eq('id', id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete job material')
   }
 
   // ========== DISPOSAL ==========
@@ -154,7 +155,7 @@ export class JobResourcesService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'create job disposal')
     return data
   }
 
@@ -168,7 +169,7 @@ export class JobResourcesService {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'update job disposal')
     return data
   }
 
@@ -180,6 +181,6 @@ export class JobResourcesService {
       .delete()
       .eq('id', id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'delete job disposal')
   }
 }

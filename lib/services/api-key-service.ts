@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { createHash, randomBytes } from 'crypto';
+import { throwDbError } from '@/lib/utils/secure-error-handler';
 import type { ApiKey, ApiKeyScope } from '@/types/integrations';
 
 export interface CreateApiKeyInput {
@@ -36,7 +37,7 @@ export class ApiKeyService {
       .is('revoked_at', null)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch api keys');
     return data || [];
   }
 
@@ -49,7 +50,7 @@ export class ApiKeyService {
       .eq('id', keyId)
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch api key');
     return data;
   }
 
@@ -83,7 +84,7 @@ export class ApiKeyService {
       .select('id')
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'create api key');
 
     // Return the full key (this is the only time it's available)
     return { key: fullKey, id: data.id };
@@ -109,7 +110,7 @@ export class ApiKeyService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'update api key');
     return data;
   }
 
@@ -124,7 +125,7 @@ export class ApiKeyService {
       })
       .eq('id', keyId);
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'update api key');
   }
 
   // ========== VALIDATION ==========
@@ -287,7 +288,7 @@ export class ApiKeyService {
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch api request logs');
     return data || [];
   }
 

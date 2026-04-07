@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { throwDbError } from '@/lib/utils/secure-error-handler';
 import type { Location, LocationUser } from '@/types/integrations';
 
 export interface CreateLocationInput {
@@ -45,7 +46,7 @@ export class LocationService {
       .order('is_headquarters', { ascending: false })
       .order('name');
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch locations');
     return data || [];
   }
 
@@ -58,7 +59,7 @@ export class LocationService {
       .eq('id', locationId)
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch location');
     return data;
   }
 
@@ -97,7 +98,7 @@ export class LocationService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'create location');
     return data;
   }
 
@@ -150,7 +151,7 @@ export class LocationService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'update location');
     return data;
   }
 
@@ -162,7 +163,7 @@ export class LocationService {
       .delete()
       .eq('id', locationId);
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'delete location');
   }
 
   // ========== USER ASSIGNMENTS ==========
@@ -178,7 +179,7 @@ export class LocationService {
       `)
       .eq('location_id', locationId);
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch location users');
     return data || [];
   }
 
@@ -221,7 +222,7 @@ export class LocationService {
       .eq('location_id', locationId)
       .eq('user_id', userId);
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'delete location user');
   }
 
   static async getUserLocations(userId: string): Promise<Array<Location & { is_primary: boolean; can_manage: boolean }>> {
@@ -236,7 +237,7 @@ export class LocationService {
       `)
       .eq('user_id', userId);
 
-    if (error) throw error;
+    if (error) throwDbError(error, 'fetch user locations');
 
     return (data || []).map(item => {
       const location = item.location as unknown as Location;
