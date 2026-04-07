@@ -55,7 +55,7 @@ global.fetch = mockFetch
 const mockSubscription: OrganizationSubscription = {
   id: 'sub_123',
   status: 'active',
-  current_period_end: '2024-03-01T00:00:00Z',
+  current_period_end: '2024-02-29T12:00:00Z',
   trial_end: null,
   cancel_at_period_end: false,
   billing_cycle: 'monthly',
@@ -75,7 +75,7 @@ const mockSubscription: OrganizationSubscription = {
 const mockTrialSubscription: OrganizationSubscription = {
   ...mockSubscription,
   status: 'trialing',
-  trial_end: '2024-02-15T00:00:00Z',
+  trial_end: '2024-02-14T12:00:00Z',
 }
 
 describe('SubscriptionCard', () => {

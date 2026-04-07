@@ -28,7 +28,7 @@ const mockCustomer: Customer = {
   company_name: 'Test Company',
   status: 'active',
   source: 'website',
-  created_at: '2024-01-01T00:00:00Z',
+  created_at: '2023-12-31T12:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
   address: null,
   notes: null,
