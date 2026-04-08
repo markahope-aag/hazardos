@@ -184,9 +184,10 @@ export interface EstimateWithRelations extends Estimate {
   } | null
   customer?: {
     id: string
+    name: string | null
     company_name: string | null
-    first_name: string
-    last_name: string
+    first_name: string | null
+    last_name: string | null
     email: string | null
     phone: string | null
   } | null
@@ -204,6 +205,11 @@ export interface EstimateWithRelations extends Estimate {
   } | null
   line_items?: EstimateLineItem[]
   proposals?: Proposal[]
+  jobs?: {
+    id: string
+    job_number: string
+    status: string
+  }[]
 }
 
 export interface ProposalWithRelations extends Proposal {

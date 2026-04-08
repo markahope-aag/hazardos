@@ -100,9 +100,19 @@ export type StructuralConcern =
   | 'roof_damage'
   | 'compromised_envelope'
 
+export type HvacSystemType =
+  | 'central_air'
+  | 'window_units'
+  | 'heat_pump'
+  | 'radiant_baseboard'
+  | 'forced_air_furnace'
+  | 'no_hvac'
+  | 'other'
+
 export interface EnvironmentData {
   temperature: number | null
   humidity: number | null
+  hvacType: HvacSystemType | null
   moistureIssues: MoistureIssue[]
   moistureNotes: string
   hasStructuralConcerns: boolean | null
@@ -386,6 +396,7 @@ export const DEFAULT_ACCESS_DATA: AccessData = {
 export const DEFAULT_ENVIRONMENT_DATA: EnvironmentData = {
   temperature: null,
   humidity: null,
+  hvacType: null,
   moistureIssues: [],
   moistureNotes: '',
   hasStructuralConcerns: null,

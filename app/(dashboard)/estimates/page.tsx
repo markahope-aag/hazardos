@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -14,8 +14,10 @@ import {
   Trash2,
   Send,
   CheckCircle,
-  Clock,
   DollarSign,
+  AlertTriangle,
+  TrendingUp,
+  Briefcase,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -68,6 +70,45 @@ function EstimateStatusBadge({ status }: { status: EstimateStatus }) {
   )
 }
 
+function getNextAction(estimate: EstimateWithRelations): { text: string; className: string } {
+  const sentAt = estimate.proposals?.find(p => p.sent_at)?.sent_at
+  switch (estimate.status) {
+    case 'draft':
+      return { text: 'Send to customer', className: 'text-muted-foreground' }
+    case 'pending_approval':
+      return { text: 'Awaiting approval', className: 'text-yellow-600' }
+    case 'approved':
+      return { text: 'Send to customer', className: 'text-blue-600' }
+    case 'sent': {
+      if (sentAt) {
+        const daysSince = Math.floor(
+          (Date.now() - new Date(sentAt).getTime()) / (1000 * 60 * 60 * 24)
+        )
+        return {
+          text: `Awaiting response (${daysSince}d)`,
+          className: daysSince > 14 ? 'text-amber-600 font-medium' : 'text-muted-foreground',
+        }
+      }
+      return { text: 'Awaiting response', className: 'text-muted-foreground' }
+    }
+    case 'accepted':
+      return { text: 'Create job', className: 'text-green-600 font-medium' }
+    case 'rejected':
+      return { text: 'Follow up', className: 'text-red-600' }
+    case 'expired':
+      return { text: 'Resend or close', className: 'text-gray-500' }
+    case 'converted':
+      return { text: 'Converted', className: 'text-emerald-600' }
+    default:
+      return { text: '', className: '' }
+  }
+}
+
+function daysSinceOrUntil(dateStr: string | null | undefined): number | null {
+  if (!dateStr) return null
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24))
+}
+
 export default function EstimatesPage() {
   const router = useRouter()
   const { toast } = useToast()
@@ -76,13 +117,6 @@ export default function EstimatesPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [stats, setStats] = useState({
-    total: 0,
-    draft: 0,
-    pending: 0,
-    approved: 0,
-    totalValue: 0,
-  })
 
   const loadEstimates = useCallback(async () => {
     if (!organization?.id) return
@@ -99,18 +133,6 @@ export default function EstimatesPage() {
 
       const data = await response.json()
       setEstimates(data.estimates || [])
-
-      // Calculate stats
-      const allEstimates = data.estimates || []
-      setStats({
-        total: allEstimates.length,
-        draft: allEstimates.filter((e: EstimateWithRelations) => e.status === 'draft').length,
-        pending: allEstimates.filter((e: EstimateWithRelations) => e.status === 'pending_approval').length,
-        approved: allEstimates.filter((e: EstimateWithRelations) =>
-          ['approved', 'sent', 'accepted', 'converted'].includes(e.status)
-        ).length,
-        totalValue: allEstimates.reduce((sum: number, e: EstimateWithRelations) => sum + (e.total || 0), 0),
-      })
     } catch {
       toast({
         title: 'Error',
@@ -144,17 +166,47 @@ export default function EstimatesPage() {
     }
   }
 
-  const filteredEstimates = estimates.filter(estimate => {
-    if (!searchQuery) return true
-    const query = searchQuery.toLowerCase()
-    return (
-      estimate.estimate_number?.toLowerCase().includes(query) ||
-      estimate.project_name?.toLowerCase().includes(query) ||
-      estimate.customer?.company_name?.toLowerCase().includes(query) ||
-      estimate.customer?.first_name?.toLowerCase().includes(query) ||
-      estimate.customer?.last_name?.toLowerCase().includes(query)
+  const filteredEstimates = useMemo(() => {
+    return estimates.filter(estimate => {
+      if (!searchQuery) return true
+      const query = searchQuery.toLowerCase()
+      return (
+        estimate.estimate_number?.toLowerCase().includes(query) ||
+        estimate.project_name?.toLowerCase().includes(query) ||
+        estimate.customer?.company_name?.toLowerCase().includes(query) ||
+        estimate.customer?.first_name?.toLowerCase().includes(query) ||
+        estimate.customer?.last_name?.toLowerCase().includes(query)
+      )
+    })
+  }, [estimates, searchQuery])
+
+  const stats = useMemo(() => {
+    const total = estimates.length
+    const sentEstimates = estimates.filter(e =>
+      ['sent', 'accepted', 'rejected', 'expired', 'converted'].includes(e.status)
     )
-  })
+    const sentCount = sentEstimates.length
+    const withJobs = estimates.filter(e =>
+      (e.jobs?.length ?? 0) > 0 &&
+      !e.jobs?.every(j => j.status === 'cancelled')
+    ).length
+    const winRate = sentCount > 0 ? Math.round((withJobs / sentCount) * 100) : 0
+
+    const today = new Date().toISOString().split('T')[0]
+    const overdue = estimates.filter(e =>
+      e.status === 'sent' && e.valid_until && e.valid_until < today
+    ).length
+
+    const estimatesWithValue = estimates.filter(e => e.total > 0)
+    const avgValue = estimatesWithValue.length > 0
+      ? estimatesWithValue.reduce((sum, e) => sum + e.total, 0) / estimatesWithValue.length
+      : 0
+
+    const totalValue = estimates.reduce((sum, e) => sum + (e.total || 0), 0)
+    const draft = estimates.filter(e => e.status === 'draft').length
+
+    return { total, draft, winRate, overdue, avgValue, totalValue }
+  }, [estimates])
 
   return (
     <div className="space-y-6">
@@ -175,7 +227,7 @@ export default function EstimatesPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Estimates</CardTitle>
@@ -183,24 +235,39 @@ export default function EstimatesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">{stats.draft} drafts</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Drafts</CardTitle>
-            <FileEdit className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.draft}</div>
+            <div className="text-2xl font-bold">{stats.winRate}%</div>
+            <p className="text-xs text-muted-foreground">of sent estimates</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Pending Approval</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.pending}</div>
+            <div className={`text-2xl font-bold ${stats.overdue > 0 ? 'text-amber-600' : ''}`}>
+              {stats.overdue}
+            </div>
+            <p className="text-xs text-muted-foreground">past expiration</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Avg Value</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(stats.avgValue)}</div>
+            <p className="text-xs text-muted-foreground">per estimate</p>
           </CardContent>
         </Card>
         <Card>
@@ -210,6 +277,7 @@ export default function EstimatesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(stats.totalValue)}</div>
+            <p className="text-xs text-muted-foreground">all estimates</p>
           </CardContent>
         </Card>
       </div>
@@ -239,6 +307,7 @@ export default function EstimatesPage() {
             <SelectItem value="sent">Sent</SelectItem>
             <SelectItem value="accepted">Accepted</SelectItem>
             <SelectItem value="rejected">Rejected</SelectItem>
+            <SelectItem value="expired">Expired</SelectItem>
             <SelectItem value="converted">Converted</SelectItem>
           </SelectContent>
         </Select>
@@ -252,8 +321,12 @@ export default function EstimatesPage() {
               <TableHead>Estimate #</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Project</TableHead>
+              <TableHead>Hazard</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Total</TableHead>
+              <TableHead>Sent</TableHead>
+              <TableHead>Expires</TableHead>
+              <TableHead>Linked Job</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
@@ -261,13 +334,13 @@ export default function EstimatesPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
+                <TableCell colSpan={11} className="text-center py-8">
                   Loading estimates...
                 </TableCell>
               </TableRow>
             ) : filteredEstimates.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
+                <TableCell colSpan={11} className="text-center py-8">
                   <p className="text-muted-foreground">No estimates found</p>
                   <Button asChild variant="link" className="mt-2">
                     <Link href="/site-surveys?action=estimate">Create your first estimate</Link>
@@ -278,8 +351,20 @@ export default function EstimatesPage() {
               filteredEstimates.map(estimate => {
                 const customerName = estimate.customer
                   ? estimate.customer.company_name ||
-                    `${estimate.customer.first_name} ${estimate.customer.last_name}`
+                    [estimate.customer.first_name, estimate.customer.last_name].filter(Boolean).join(' ') ||
+                    estimate.customer.name ||
+                    'No name'
                   : 'No customer'
+
+                const sentAt = estimate.proposals?.find(p => p.sent_at)?.sent_at ?? null
+                const hazardType = estimate.site_survey?.hazard_type ?? null
+                const validUntil = estimate.valid_until
+                const today = new Date().toISOString().split('T')[0]
+                const isExpiredButSent = estimate.status === 'sent' && validUntil && validUntil < today
+                const nextAction = getNextAction(estimate)
+                const linkedJob = (estimate.jobs && estimate.jobs.length > 0)
+                  ? estimate.jobs[0]
+                  : null
 
                 return (
                   <TableRow key={estimate.id}>
@@ -291,17 +376,67 @@ export default function EstimatesPage() {
                         {estimate.estimate_number}
                       </Link>
                     </TableCell>
-                    <TableCell>{customerName}</TableCell>
                     <TableCell>
-                      <div className="max-w-[200px] truncate">
+                      <div className="max-w-[150px] truncate">{customerName}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-[180px] truncate">
                         {estimate.project_name || estimate.site_survey?.job_name || '-'}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <EstimateStatusBadge status={estimate.status} />
+                      {hazardType ? (
+                        <Badge variant="outline" className="capitalize text-xs">
+                          {hazardType}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <EstimateStatusBadge status={estimate.status} />
+                        {nextAction.text && (
+                          <div className={`text-xs ${nextAction.className}`}>
+                            {nextAction.text}
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {formatCurrency(estimate.total)}
+                    </TableCell>
+                    <TableCell>
+                      {sentAt
+                        ? new Date(sentAt).toLocaleDateString()
+                        : <span className="text-muted-foreground">-</span>}
+                    </TableCell>
+                    <TableCell>
+                      {validUntil ? (
+                        <span className={isExpiredButSent ? 'text-amber-600 font-medium' : ''}>
+                          {new Date(validUntil).toLocaleDateString()}
+                          {isExpiredButSent && (
+                            <span className="block text-xs text-amber-600">
+                              Overdue {daysSinceOrUntil(validUntil)}d
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {linkedJob ? (
+                        <Link
+                          href={`/crm/jobs/${linkedJob.id}`}
+                          className="text-primary hover:underline text-sm flex items-center gap-1"
+                        >
+                          <Briefcase className="h-3 w-3" />
+                          {linkedJob.job_number}
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {new Date(estimate.created_at).toLocaleDateString()}

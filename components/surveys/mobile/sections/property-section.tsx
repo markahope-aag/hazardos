@@ -18,7 +18,6 @@ import {
   OccupancyStatus,
 } from '@/lib/stores/survey-types'
 import {
-  NumericStepper,
   SegmentedControl,
   RadioCardGroup,
 } from '../inputs'
@@ -292,13 +291,15 @@ export function PropertySection() {
       {/* Year Built */}
       <section className="space-y-3">
         <Label>Year Built</Label>
-        <NumericStepper
-          value={property.yearBuilt}
-          onChange={(value) => updateProperty({ yearBuilt: value })}
+        <Input
+          type="number"
+          inputMode="numeric"
           min={1800}
-          max={new Date().getFullYear()}
-          step={1}
-          placeholder="Enter year"
+          max={2030}
+          placeholder="e.g., 1985"
+          value={property.yearBuilt || ''}
+          onChange={(e) => updateProperty({ yearBuilt: e.target.value ? parseInt(e.target.value) : null })}
+          className="min-h-[52px] text-base"
         />
         {isPre1978 && (
           <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -313,14 +314,15 @@ export function PropertySection() {
       {/* Square Footage */}
       <section className="space-y-3">
         <Label>Square Footage</Label>
-        <NumericStepper
-          value={property.squareFootage}
-          onChange={(value) => updateProperty({ squareFootage: value })}
+        <Input
+          type="number"
+          inputMode="numeric"
           min={0}
-          max={1000000}
-          step={100}
-          suffix="sq ft"
-          placeholder="Enter size"
+          max={999999}
+          placeholder="e.g., 2500"
+          value={property.squareFootage || ''}
+          onChange={(e) => updateProperty({ squareFootage: e.target.value ? parseInt(e.target.value) : null })}
+          className="min-h-[52px] text-base"
         />
       </section>
 

@@ -136,6 +136,7 @@ export function mapDbToStore(db: Record<string, unknown>): Partial<SurveyStoreSt
   const environment: EnvironmentData = {
     temperature: environmentInfo.temperature ?? null,
     humidity: environmentInfo.humidity ?? null,
+    hvacType: (environmentInfo.hvacType as EnvironmentData['hvacType']) ?? null,
     moistureIssues: (environmentInfo.moistureIssues || []) as EnvironmentData['moistureIssues'],
     moistureNotes: environmentInfo.moistureNotes || '',
     hasStructuralConcerns: environmentInfo.hasStructuralConcerns ?? null,
@@ -210,6 +211,7 @@ export function createInitialDbRecord(
     environment_info: {
       temperature: null,
       humidity: null,
+      hvacType: null,
       moistureIssues: [],
       moistureNotes: '',
       hasStructuralConcerns: null,

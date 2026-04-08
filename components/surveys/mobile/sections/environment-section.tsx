@@ -2,10 +2,18 @@
 
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useSurveyStore } from '@/lib/stores/survey-store'
 import {
   MoistureIssue,
   StructuralConcern,
+  HvacSystemType,
 } from '@/lib/stores/survey-types'
 import {
   YesNoToggle,
@@ -13,7 +21,17 @@ import {
   NumericStepper,
   VoiceNoteIconButton,
 } from '../inputs'
-import { AlertTriangle, Droplets, Thermometer } from 'lucide-react'
+import { AlertTriangle, Droplets, Thermometer, Fan } from 'lucide-react'
+
+const HVAC_TYPE_OPTIONS: Array<{ value: HvacSystemType; label: string }> = [
+  { value: 'central_air', label: 'Central Air' },
+  { value: 'window_units', label: 'Window Units' },
+  { value: 'heat_pump', label: 'Heat Pump' },
+  { value: 'radiant_baseboard', label: 'Radiant/Baseboard' },
+  { value: 'forced_air_furnace', label: 'Forced Air Furnace' },
+  { value: 'no_hvac', label: 'No HVAC' },
+  { value: 'other', label: 'Other' },
+]
 
 const MOISTURE_ISSUE_OPTIONS: Array<{ value: MoistureIssue; label: string }> = [
   { value: 'none_observed', label: 'None observed' },
@@ -102,6 +120,32 @@ export function EnvironmentSection() {
             </p>
           </div>
         )}
+      </section>
+
+      {/* HVAC System Type */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Fan className="w-5 h-5 text-muted-foreground" />
+          <Label className="text-base">HVAC System Type</Label>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Primary heating/cooling system in the building
+        </p>
+        <Select
+          value={environment.hvacType || ''}
+          onValueChange={(value) => updateEnvironment({ hvacType: value as HvacSystemType })}
+        >
+          <SelectTrigger className="min-h-[52px] text-base">
+            <SelectValue placeholder="Select HVAC type" />
+          </SelectTrigger>
+          <SelectContent>
+            {HVAC_TYPE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </section>
 
       {/* Moisture Issues */}

@@ -23,8 +23,10 @@ export const GET = createApiHandler(
       .select(`
         *,
         site_survey:site_surveys(id, job_name, site_address, site_city, site_state, site_zip, hazard_type, status),
-        customer:customers(id, company_name, name, email, phone),
-        created_by_user:profiles!created_by(id, first_name, last_name, email)
+        customer:customers(id, company_name, name, first_name, last_name, email, phone),
+        created_by_user:profiles!created_by(id, first_name, last_name, email),
+        jobs:jobs!estimate_id(id, job_number, status),
+        proposals(id, sent_at, status)
       `, { count: 'exact' })
       .eq('organization_id', context.profile.organization_id)
       .order('created_at', { ascending: false })
@@ -52,6 +54,8 @@ export const GET = createApiHandler(
       site_survey: Array.isArray(estimate.site_survey) ? estimate.site_survey[0] : estimate.site_survey,
       customer: Array.isArray(estimate.customer) ? estimate.customer[0] : estimate.customer,
       created_by_user: Array.isArray(estimate.created_by_user) ? estimate.created_by_user[0] : estimate.created_by_user,
+      jobs: Array.isArray(estimate.jobs) ? estimate.jobs : [],
+      proposals: Array.isArray(estimate.proposals) ? estimate.proposals : [],
     }))
 
     return NextResponse.json({
