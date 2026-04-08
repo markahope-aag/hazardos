@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,7 +21,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { ArrowLeft, CalendarIcon, Loader2 } from 'lucide-react'
+import { ArrowLeft, CalendarIcon, Loader2, Search, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 import { logger, formatError } from '@/lib/utils/logger'
@@ -30,6 +30,8 @@ import Link from 'next/link'
 interface Customer {
   id: string
   name: string
+  first_name: string | null
+  last_name: string | null
   company_name: string | null
   email: string | null
   address_line1: string | null
@@ -50,11 +52,13 @@ export default function NewJobPage() {
   const [loading, setLoading] = useState(false)
   const [loadingCustomers, setLoadingCustomers] = useState(true)
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [contactSearch, setContactSearch] = useState('')
 
   const [formData, setFormData] = useState({
     customer_id: customerId || '',
     proposal_id: proposalId || '',
     scheduled_start_date: defaultDate ? new Date(defaultDate) : new Date(),
+    scheduled_end_date: undefined as Date | undefined,
     scheduled_start_time: '',
     estimated_duration_hours: '',
     job_address: '',
@@ -69,10 +73,12 @@ export default function NewJobPage() {
   useEffect(() => {
     async function fetchCustomers() {
       try {
-        const response = await fetch('/api/customers')
+        const response = await fetch('/api/customers?limit=500')
         const data = await response.json()
         if (data.customers) {
           setCustomers(data.customers)
+        } else if (Array.isArray(data)) {
+          setCustomers(data)
         }
       } catch (error) {
         logger.error(
@@ -86,20 +92,35 @@ export default function NewJobPage() {
     fetchCustomers()
   }, [])
 
-  useEffect(() => {
-    if (formData.customer_id) {
-      const customer = customers.find(c => c.id === formData.customer_id)
-      if (customer && !formData.job_address) {
-        setFormData(prev => ({
-          ...prev,
-          job_address: customer.address_line1 || '',
-          job_city: customer.city || '',
-          job_state: customer.state || '',
-          job_zip: customer.zip || '',
-        }))
-      }
-    }
-  }, [formData.customer_id, customers, formData.job_address])
+  const selectedCustomer = customers.find(c => c.id === formData.customer_id)
+
+  const filteredCustomers = useMemo(() => {
+    if (!contactSearch) return customers
+    const q = contactSearch.toLowerCase()
+    return customers.filter(c =>
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.first_name || '').toLowerCase().includes(q) ||
+      (c.last_name || '').toLowerCase().includes(q) ||
+      (c.company_name || '').toLowerCase().includes(q) ||
+      (c.email || '').toLowerCase().includes(q)
+    )
+  }, [customers, contactSearch])
+
+  const handleSelectCustomer = (value: string) => {
+    const customer = customers.find(c => c.id === value)
+    setFormData(prev => ({
+      ...prev,
+      customer_id: value,
+      job_address: prev.job_address || customer?.address_line1 || '',
+      job_city: prev.job_city || customer?.city || '',
+      job_state: prev.job_state || customer?.state || '',
+      job_zip: prev.job_zip || customer?.zip || '',
+    }))
+  }
+
+  const scheduleDurationDays = formData.scheduled_start_date && formData.scheduled_end_date
+    ? Math.round((formData.scheduled_end_date.getTime() - formData.scheduled_start_date.getTime()) / (1000 * 60 * 60 * 24))
+    : null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -129,6 +150,9 @@ export default function NewJobPage() {
         : {
             customer_id: formData.customer_id,
             scheduled_start_date: format(formData.scheduled_start_date, 'yyyy-MM-dd'),
+            scheduled_end_date: formData.scheduled_end_date
+              ? format(formData.scheduled_end_date, 'yyyy-MM-dd')
+              : undefined,
             scheduled_start_time: formData.scheduled_start_time || undefined,
             estimated_duration_hours: formData.estimated_duration_hours
               ? parseFloat(formData.estimated_duration_hours)
@@ -195,23 +219,61 @@ export default function NewJobPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Select Customer *</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={contactSearch}
+                      onChange={(e) => setContactSearch(e.target.value)}
+                      placeholder={loadingCustomers ? 'Loading contacts...' : 'Search by name, company, or email...'}
+                      className="pl-9"
+                      disabled={loadingCustomers}
+                    />
+                  </div>
                   <Select
                     value={formData.customer_id}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, customer_id: value }))}
+                    onValueChange={handleSelectCustomer}
                     disabled={loadingCustomers}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={loadingCustomers ? 'Loading...' : 'Select a customer'} />
+                      <SelectValue placeholder="Select a contact" />
                     </SelectTrigger>
                     <SelectContent>
-                      {customers.map(customer => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.company_name || customer.name}
-                        </SelectItem>
-                      ))}
+                      {filteredCustomers.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">No contacts found</div>
+                      ) : (
+                        filteredCustomers.map(customer => {
+                          const displayName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.name
+                          return (
+                            <SelectItem key={customer.id} value={customer.id}>
+                              <div className="flex items-center gap-2">
+                                <span>{displayName}</span>
+                                {customer.company_name && (
+                                  <span className="text-xs text-muted-foreground">· {customer.company_name}</span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          )
+                        })
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
+
+                {selectedCustomer && (
+                  <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
+                    <div className="font-medium">
+                      {[selectedCustomer.first_name, selectedCustomer.last_name].filter(Boolean).join(' ') || selectedCustomer.name}
+                    </div>
+                    {selectedCustomer.company_name && (
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Building2 className="h-3 w-3" />{selectedCustomer.company_name}
+                      </div>
+                    )}
+                    {selectedCustomer.email && (
+                      <div className="text-muted-foreground">{selectedCustomer.email}</div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -249,6 +311,33 @@ export default function NewJobPage() {
                     value={formData.scheduled_start_time}
                     onChange={(e) => setFormData(prev => ({ ...prev, scheduled_start_time: e.target.value }))}
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>End Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn('w-full justify-start text-left font-normal', !formData.scheduled_end_date && 'text-muted-foreground')}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.scheduled_end_date ? format(formData.scheduled_end_date, 'PPP') : 'Pick end date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={formData.scheduled_end_date}
+                        onSelect={(date) => setFormData(prev => ({ ...prev, scheduled_end_date: date }))}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="flex items-end pb-2">
+                  {scheduleDurationDays !== null && scheduleDurationDays >= 0 && (
+                    <span className="text-sm text-muted-foreground">{scheduleDurationDays} day{scheduleDurationDays !== 1 ? 's' : ''}</span>
+                  )}
                 </div>
               </div>
 

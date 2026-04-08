@@ -32,9 +32,17 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 
 function getPaymentStatus(job: Record<string, unknown>): { label: string; color: string } {
   if (job.status === 'paid' || job.final_payment_date) return { label: 'Paid', color: 'bg-emerald-100 text-emerald-700' }
-  if (job.deposit_received_date) return { label: 'Deposit', color: 'bg-blue-100 text-blue-700' }
+  if (job.status === 'cancelled') return { label: '—', color: '' }
+  // Check if overdue (invoice sent but not paid, past due date)
+  if ((job.final_invoice_date || job.status === 'invoiced') && job.invoice_due_date) {
+    const dueDate = new Date(job.invoice_due_date as string)
+    if (dueDate < new Date()) return { label: 'Overdue', color: 'bg-red-100 text-red-700' }
+  }
   if (job.final_invoice_date || job.status === 'invoiced') return { label: 'Invoiced', color: 'bg-purple-100 text-purple-700' }
-  return { label: 'Unpaid', color: 'bg-gray-100 text-gray-500' }
+  if (job.deposit_received_date) return { label: 'Deposit Received', color: 'bg-blue-100 text-blue-700' }
+  if (job.status === 'completed') return { label: 'Pending Invoice', color: 'bg-amber-100 text-amber-700' }
+  if (job.status === 'in_progress' || job.status === 'scheduled') return { label: 'Not Yet Billed', color: 'bg-gray-100 text-gray-400' }
+  return { label: '—', color: '' }
 }
 
 export default function CrmJobsPage() {
@@ -57,7 +65,8 @@ export default function CrmJobsPage() {
         .select(`
           *,
           customer:customers!customer_id(id, name, first_name, last_name, company_name, company_id),
-          company:companies!company_id(id, name)
+          company:companies!company_id(id, name),
+          crew:job_crew!job_id(id, profile:profiles!profile_id(id, first_name, last_name))
         `, { count: 'exact' })
         .order('scheduled_start_date', { ascending: false })
         .range((page - 1) * pageSize, page * pageSize - 1)
@@ -85,6 +94,7 @@ export default function CrmJobsPage() {
           ...j,
           customer: Array.isArray(j.customer) ? j.customer[0] : j.customer,
           company: Array.isArray(j.company) ? j.company[0] : j.company,
+          crew: Array.isArray(j.crew) ? j.crew : [],
         })),
         total: count || 0,
       }
@@ -144,7 +154,7 @@ export default function CrmJobsPage() {
           <Select value={hazardFilter} onValueChange={(v) => { setHazardFilter(v); setPage(1) }}>
             <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Hazards</SelectItem>
+              <SelectItem value="all">Job Type</SelectItem>
               <SelectItem value="asbestos_friable">Asbestos (Friable)</SelectItem>
               <SelectItem value="asbestos_non_friable">Asbestos (Non-Friable)</SelectItem>
               <SelectItem value="lead">Lead</SelectItem>
@@ -176,7 +186,8 @@ export default function CrmJobsPage() {
                     <TableHead>Job</TableHead>
                     <TableHead>Company / Contact</TableHead>
                     <TableHead>Address</TableHead>
-                    <TableHead>Hazards</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Assigned Tech</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Scheduled</TableHead>
                     <TableHead className="text-right">Revenue</TableHead>
@@ -188,6 +199,9 @@ export default function CrmJobsPage() {
                     const contactName = job.customer ? [job.customer.first_name, job.customer.last_name].filter(Boolean).join(' ') || job.customer.name : null
                     const companyName = job.company?.name || job.customer?.company_name
                     const sc = STATUS_CONFIG[job.status] || { label: job.status, color: '' }
+                    const firstCrew = job.crew?.[0]?.profile
+                    const techName = firstCrew ? [firstCrew.first_name, firstCrew.last_name].filter(Boolean).join(' ') : null
+                    const primaryHazard = job.hazard_types?.[0]
 
                     return (
                       <TableRow key={job.id}>
@@ -205,11 +219,13 @@ export default function CrmJobsPage() {
                           {[job.job_city, job.job_state].filter(Boolean).join(', ') || job.job_address?.substring(0, 30) || '—'}
                         </TableCell>
                         <TableCell>
-                          {job.hazard_types?.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {job.hazard_types.map((h: string) => <Badge key={h} variant="outline" className="text-xs">{h.replace(/_/g, ' ')}</Badge>)}
-                            </div>
+                          {primaryHazard ? (
+                            <Badge variant="outline" className="text-xs capitalize">{primaryHazard.replace(/_/g, ' ')}</Badge>
                           ) : '—'}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {/* TODO: also search by tech name */}
+                          {techName || '—'}
                         </TableCell>
                         <TableCell><Badge className={`text-xs border-0 ${sc.color}`}>{sc.label}</Badge></TableCell>
                         <TableCell className="text-sm">

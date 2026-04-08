@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,7 +21,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { ArrowLeft, CalendarIcon, Loader2 } from 'lucide-react'
+import { ArrowLeft, CalendarIcon, Loader2, Search, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 import Link from 'next/link'
@@ -30,8 +30,13 @@ interface Customer {
   id: string
   name: string
   company_name: string | null
-  first_name: string
-  last_name: string
+  first_name: string | null
+  last_name: string | null
+  email: string | null
+  address_line1: string | null
+  city: string | null
+  state: string | null
+  zip: string | null
 }
 
 interface PipelineStage {
@@ -49,6 +54,7 @@ export default function NewOpportunityPage() {
   const [loadingData, setLoadingData] = useState(true)
   const [customers, setCustomers] = useState<Customer[]>([])
   const [stages, setStages] = useState<PipelineStage[]>([])
+  const [contactSearch, setContactSearch] = useState('')
 
   const [formData, setFormData] = useState({
     customer_id: '',
@@ -57,13 +63,17 @@ export default function NewOpportunityPage() {
     stage_id: '',
     estimated_value: '',
     expected_close_date: undefined as Date | undefined,
+    site_address: '',
+    site_city: '',
+    site_state: '',
+    site_zip: '',
   })
 
   useEffect(() => {
     async function fetchData() {
       try {
         const [customersRes, stagesRes] = await Promise.all([
-          fetch('/api/customers'),
+          fetch('/api/customers?limit=500'),
           fetch('/api/pipeline/stages'),
         ])
 
@@ -72,6 +82,8 @@ export default function NewOpportunityPage() {
 
         if (customersData.customers) {
           setCustomers(customersData.customers)
+        } else if (Array.isArray(customersData)) {
+          setCustomers(customersData)
         }
         if (Array.isArray(stagesData)) {
           setStages(stagesData)
@@ -128,6 +140,10 @@ export default function NewOpportunityPage() {
           expected_close_date: formData.expected_close_date
             ? format(formData.expected_close_date, 'yyyy-MM-dd')
             : undefined,
+          site_address: formData.site_address || undefined,
+          site_city: formData.site_city || undefined,
+          site_state: formData.site_state || undefined,
+          site_zip: formData.site_zip || undefined,
         }),
       })
 
@@ -153,6 +169,33 @@ export default function NewOpportunityPage() {
     }
   }
 
+  const selectedCustomer = customers.find(c => c.id === formData.customer_id)
+
+  const filteredCustomers = useMemo(() => {
+    if (!contactSearch) return customers
+    const q = contactSearch.toLowerCase()
+    return customers.filter(c =>
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.first_name || '').toLowerCase().includes(q) ||
+      (c.last_name || '').toLowerCase().includes(q) ||
+      (c.company_name || '').toLowerCase().includes(q) ||
+      (c.email || '').toLowerCase().includes(q)
+    )
+  }, [customers, contactSearch])
+
+  const handleSelectCustomer = (customerId: string) => {
+    const customer = customers.find(c => c.id === customerId)
+    setFormData(prev => ({
+      ...prev,
+      customer_id: customerId,
+      // Auto-fill address from customer if empty
+      site_address: prev.site_address || customer?.address_line1 || '',
+      site_city: prev.site_city || customer?.city || '',
+      site_state: prev.site_state || customer?.state || '',
+      site_zip: prev.site_zip || customer?.zip || '',
+    }))
+  }
+
   const selectedStage = stages.find(s => s.id === formData.stage_id)
   const weightedValue = formData.estimated_value && selectedStage
     ? parseFloat(formData.estimated_value) * (selectedStage.probability / 100)
@@ -175,25 +218,94 @@ export default function NewOpportunityPage() {
       <form onSubmit={handleSubmit}>
         <div className="space-y-6">
           <Card>
-            <CardHeader><CardTitle>Contact</CardTitle></CardHeader>
-            <CardContent>
-              <Label>Select Contact *</Label>
-              <Select
-                value={formData.customer_id}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, customer_id: value }))}
-                disabled={loadingData}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingData ? 'Loading...' : 'Select a contact'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map(customer => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.company_name || `${customer.first_name} ${customer.last_name}`.trim() || customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <CardHeader><CardTitle>Contact & Location</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Select Contact *</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={contactSearch}
+                    onChange={(e) => setContactSearch(e.target.value)}
+                    placeholder={loadingData ? 'Loading contacts...' : 'Search by name, company, or email...'}
+                    className="pl-9"
+                    disabled={loadingData}
+                  />
+                </div>
+                <Select
+                  value={formData.customer_id}
+                  onValueChange={handleSelectCustomer}
+                  disabled={loadingData}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a contact" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredCustomers.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">No contacts found</div>
+                    ) : (
+                      filteredCustomers.map(customer => {
+                        const displayName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.name
+                        return (
+                          <SelectItem key={customer.id} value={customer.id}>
+                            <div className="flex items-center gap-2">
+                              <span>{displayName}</span>
+                              {customer.company_name && (
+                                <span className="text-xs text-muted-foreground">· {customer.company_name}</span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        )
+                      })
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Selected contact info */}
+              {selectedCustomer && (
+                <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
+                  <div className="font-medium">
+                    {[selectedCustomer.first_name, selectedCustomer.last_name].filter(Boolean).join(' ') || selectedCustomer.name}
+                  </div>
+                  {selectedCustomer.company_name && (
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Building2 className="h-3 w-3" />{selectedCustomer.company_name}
+                    </div>
+                  )}
+                  {selectedCustomer.email && (
+                    <div className="text-muted-foreground">{selectedCustomer.email}</div>
+                  )}
+                </div>
+              )}
+
+              {/* Site Address */}
+              <div className="space-y-2 pt-2">
+                <Label>Site / Property Address</Label>
+                <Input
+                  value={formData.site_address}
+                  onChange={(e) => setFormData(prev => ({ ...prev, site_address: e.target.value }))}
+                  placeholder="Street address"
+                />
+                <div className="grid grid-cols-3 gap-2">
+                  <Input
+                    value={formData.site_city}
+                    onChange={(e) => setFormData(prev => ({ ...prev, site_city: e.target.value }))}
+                    placeholder="City"
+                  />
+                  <Input
+                    value={formData.site_state}
+                    onChange={(e) => setFormData(prev => ({ ...prev, site_state: e.target.value }))}
+                    placeholder="State"
+                    maxLength={2}
+                  />
+                  <Input
+                    value={formData.site_zip}
+                    onChange={(e) => setFormData(prev => ({ ...prev, site_zip: e.target.value }))}
+                    placeholder="ZIP"
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
 

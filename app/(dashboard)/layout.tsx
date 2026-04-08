@@ -7,7 +7,7 @@ import { AuthProvider, useMultiTenantAuth } from '@/components/providers/auth-pr
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { Home, FileText, Calculator, Calendar, Settings, DollarSign, LayoutGrid } from 'lucide-react'
+import { Home, FileText, Calculator, Calendar, Settings, DollarSign, LayoutGrid, Briefcase } from 'lucide-react'
 import LoginForm from '@/components/auth/login-form'
 
 function InlineLogin() {
@@ -199,6 +199,19 @@ function DashboardLayoutInner({
             >
               <DollarSign className="h-4 w-4" />
               <span>Invoices</span>
+            </Link>
+
+            <Link
+              href="/crm/jobs"
+              aria-current={pathname === '/crm/jobs' ? 'page' : undefined}
+              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
+                pathname === '/crm/jobs'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Briefcase className="h-4 w-4" />
+              <span>Jobs</span>
             </Link>
 
             <Link
