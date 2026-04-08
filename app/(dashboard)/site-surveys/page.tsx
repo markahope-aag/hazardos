@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Plus, MapPin, Calendar, User, Eye, MoreHorizontal, Smartphone } from 'lucide-react'
+import { Plus, MapPin, Calendar, User, Eye, MoreHorizontal, Smartphone, TrendingUp, AlertTriangle, DollarSign } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
@@ -42,6 +43,7 @@ interface SurveyWithRelations {
   scheduled_time_start: string | null
   assigned_to: string | null
   created_at: string
+  submitted_at: string | null
   customer?: {
     id: string
     company_name: string | null
@@ -52,6 +54,15 @@ interface SurveyWithRelations {
     first_name: string | null
     last_name: string | null
   } | null
+  job?: {
+    id: string
+    job_number: string
+    status: string
+  }[] | null
+  estimate?: {
+    id: string
+    total_price: number
+  }[] | null
 }
 
 export default function SiteSurveysPage() {
@@ -92,8 +103,11 @@ export default function SiteSurveysPage() {
           scheduled_time_start,
           assigned_to,
           created_at,
-          customer:customers(id, company_name, name),
-          technician:profiles!assigned_to(id, first_name, last_name)
+          submitted_at,
+          customer:customers!customer_id(id, company_name, name),
+          technician:profiles!assigned_to(id, first_name, last_name),
+          job:jobs!site_survey_id(id, job_number, status),
+          estimate:estimates!site_survey_id(id, total_price)
         `)
         .eq('organization_id', organization.id)
         .order('created_at', { ascending: false })
@@ -121,6 +135,8 @@ export default function SiteSurveysPage() {
         ...survey,
         customer: Array.isArray(survey.customer) ? survey.customer[0] || null : survey.customer,
         technician: Array.isArray(survey.technician) ? survey.technician[0] || null : survey.technician,
+        job: Array.isArray(survey.job) ? survey.job : survey.job ? [survey.job] : null,
+        estimate: Array.isArray(survey.estimate) ? survey.estimate : survey.estimate ? [survey.estimate] : null,
       })) as SurveyWithRelations[]
 
       // Client-side search filter
@@ -159,6 +175,33 @@ export default function SiteSurveysPage() {
       return acc
     }, {} as Record<string, number>)
   }, [surveys])
+
+  const surveyStats = useMemo(() => {
+    const total = surveys.length
+    const withJob = surveys.filter(s => {
+      const linkedJob = s.job?.[0]
+      return linkedJob && linkedJob.status !== 'cancelled'
+    })
+    const conversionRate = total > 0 ? Math.round((withJob.length / total) * 100) : 0
+
+    const today = new Date().toISOString().split('T')[0]
+    const overdue = surveys.filter(
+      s => s.status === 'scheduled' && s.scheduled_date && s.scheduled_date < today
+    ).length
+
+    const totalEstimateValue = surveys.reduce((sum, s) => {
+      const linkedJob = s.job?.[0]
+      if (!linkedJob || linkedJob.status === 'cancelled') return sum
+      const est = s.estimate?.[0]
+      return sum + (est?.total_price || 0)
+    }, 0)
+
+    return { conversionRate, overdue, totalEstimateValue }
+  }, [surveys])
+
+  const getLinkedJob = (survey: SurveyWithRelations) => {
+    return survey.job?.[0] || null
+  }
 
   const getCustomerDisplayName = (survey: SurveyWithRelations) => {
     if (survey.customer) {
@@ -222,7 +265,7 @@ export default function SiteSurveysPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-8">
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-gray-900">
@@ -263,6 +306,39 @@ export default function SiteSurveysPage() {
             <p className="text-sm text-muted-foreground">Reviewed</p>
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-1.5">
+              <TrendingUp className="h-4 w-4 text-emerald-600" />
+              <div className="text-2xl font-bold text-emerald-600">
+                {surveyStats.conversionRate}%
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">Conversion</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-1.5">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <div className="text-2xl font-bold text-red-600">
+                {surveyStats.overdue}
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">Overdue</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-1.5">
+              <DollarSign className="h-4 w-4 text-teal-600" />
+              <div className="text-2xl font-bold text-teal-600">
+                ${surveyStats.totalEstimateValue.toLocaleString()}
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">Est. Revenue</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -297,10 +373,14 @@ export default function SiteSurveysPage() {
                 <TableHead>Survey</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Address</TableHead>
+                <TableHead>Created</TableHead>
                 <TableHead>Scheduled</TableHead>
+                <TableHead>Completed</TableHead>
                 <TableHead>Technician</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Type</TableHead>
+                <TableHead>Linked Job</TableHead>
+                <TableHead>Converted</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -335,11 +415,19 @@ export default function SiteSurveysPage() {
                       </span>
                     </div>
                   </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {format(new Date(survey.created_at), 'MMM d, yyyy')}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1 text-muted-foreground">
                       <Calendar className="h-3 w-3" />
                       {formatScheduledDate(survey)}
                     </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {survey.submitted_at
+                      ? format(new Date(survey.submitted_at), 'MMM d, yyyy')
+                      : '—'}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1 text-muted-foreground">
@@ -352,6 +440,30 @@ export default function SiteSurveysPage() {
                   </TableCell>
                   <TableCell>
                     <HazardTypeBadge hazardType={survey.hazard_type} />
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const linkedJob = getLinkedJob(survey)
+                      if (!linkedJob) return <span className="text-muted-foreground">—</span>
+                      return (
+                        <Link
+                          href={`/crm/jobs/${linkedJob.id}`}
+                          className="text-primary hover:underline font-medium text-sm"
+                        >
+                          {linkedJob.job_number}
+                        </Link>
+                      )
+                    })()}
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const linkedJob = getLinkedJob(survey)
+                      if (!linkedJob) return <span className="text-muted-foreground">—</span>
+                      if (linkedJob.status === 'cancelled') {
+                        return <Badge variant="secondary">Cancelled</Badge>
+                      }
+                      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Converted</Badge>
+                    })()}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

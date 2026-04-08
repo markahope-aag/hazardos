@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Calculator, ArrowRight, FileText } from 'lucide-react'
+import { ArrowLeft, Loader2, Calculator, ArrowRight, FileText, Building2, Phone, Thermometer, FlaskConical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase/client'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
@@ -14,11 +15,29 @@ import { SurveyDetailTabs } from './survey-detail-tabs'
 import { SurveyActions } from './survey-actions'
 import type { SiteSurvey } from '@/types/database'
 
+function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium text-right max-w-[60%]">{value || '—'}</span>
+    </div>
+  )
+}
+
+function formatLabel(value: string | null | undefined): string | null {
+  if (!value) return null
+  return value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase())
+}
+
 type SurveyWithRelations = SiteSurvey & {
   customer?: {
     id: string
     company_name: string | null
     name: string
+    first_name: string | null
+    last_name: string | null
     email: string | null
     phone: string | null
   } | null
@@ -53,7 +72,7 @@ export default function SurveyDetailPage() {
         .from('site_surveys')
         .select(`
           *,
-          customer:customers(id, company_name, name, email, phone),
+          customer:customers!customer_id(id, company_name, name, first_name, last_name, email, phone),
           technician:profiles!assigned_to(id, first_name, last_name, email)
         `)
         .eq('id', surveyId)
@@ -139,9 +158,13 @@ export default function SurveyDetailPage() {
     )
   }
 
-  const customerName = survey.customer
-    ? survey.customer.company_name || survey.customer.name
+  const companyName = survey.customer?.company_name || null
+  const contactName = survey.customer
+    ? `${survey.customer.first_name || ''} ${survey.customer.last_name || ''}`.trim() || survey.customer.name
     : survey.customer_name
+  const displayName = companyName || contactName
+
+  const envInfo = survey.environment_info as import('@/types/database').SurveyEnvironmentInfo | null
 
   return (
     <div className="space-y-6">
@@ -158,18 +181,32 @@ export default function SurveyDetailPage() {
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-bold">{customerName}</h1>
+            <h1 className="text-2xl font-bold">{displayName}</h1>
             <SurveyStatusBadge status={survey.status} />
             <HazardTypeBadge hazardType={survey.hazard_type} />
           </div>
+          {companyName && contactName && companyName !== contactName && (
+            <p className="text-sm text-muted-foreground">
+              Contact: {contactName}
+              {survey.customer?.email && <> &middot; {survey.customer.email}</>}
+              {survey.customer?.phone && <> &middot; {survey.customer.phone}</>}
+            </p>
+          )}
           <p className="text-muted-foreground">
             {survey.site_address}, {survey.site_city}, {survey.site_state} {survey.site_zip}
           </p>
+          {(survey.owner_name || survey.owner_phone) && (
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <Phone className="h-3 w-3" />
+              On-site contact: {survey.owner_name || '—'}
+              {survey.owner_phone && <> &middot; {survey.owner_phone}</>}
+            </p>
+          )}
           {survey.technician && (
             <p className="text-sm text-muted-foreground">
               Assigned to {survey.technician.first_name} {survey.technician.last_name}
               {survey.scheduled_date && (
-                <> • Scheduled for {new Date(survey.scheduled_date).toLocaleDateString()}</>
+                <> &middot; Scheduled for {new Date(survey.scheduled_date).toLocaleDateString()}</>
               )}
             </p>
           )}
@@ -247,6 +284,113 @@ export default function SurveyDetailPage() {
           </Link>
         </div>
       ) : null}
+
+      {/* Property Details, Environment & Lab Results */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Property Details */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              Property Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <DetailRow label="Square Footage" value={
+              survey.building_sqft ?? survey.area_sqft
+                ? `${(survey.building_sqft ?? survey.area_sqft)?.toLocaleString()} sq ft`
+                : null
+            } />
+            <DetailRow label="Stories" value={survey.stories?.toString()} />
+            <DetailRow label="Year Built" value={survey.year_built?.toString()} />
+            <DetailRow label="Building Type" value={formatLabel(survey.building_type)} />
+            <DetailRow label="Construction Type" value={formatLabel(survey.construction_type)} />
+            <DetailRow label="Occupancy Status" value={formatLabel(survey.occupancy_status)} />
+          </CardContent>
+        </Card>
+
+        {/* Environment / Conditions */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Thermometer className="h-4 w-4" />
+              Environment &amp; Conditions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {envInfo ? (
+              <>
+                <DetailRow
+                  label="Temperature"
+                  value={envInfo.temperature != null ? `${envInfo.temperature}°F` : null}
+                />
+                <DetailRow
+                  label="Humidity"
+                  value={envInfo.humidity != null ? `${envInfo.humidity}%` : null}
+                />
+                {envInfo.moistureIssues?.length > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Moisture Issues</span>
+                    <span className="text-right max-w-[60%]">
+                      {envInfo.moistureIssues.join(', ')}
+                    </span>
+                  </div>
+                )}
+                {envInfo.moistureNotes && (
+                  <DetailRow label="Moisture Notes" value={envInfo.moistureNotes} />
+                )}
+                <DetailRow
+                  label="Structural Concerns"
+                  value={
+                    envInfo.hasStructuralConcerns === true
+                      ? envInfo.structuralConcerns?.length
+                        ? envInfo.structuralConcerns.join(', ')
+                        : 'Yes'
+                      : envInfo.hasStructuralConcerns === false
+                        ? 'None'
+                        : null
+                  }
+                />
+                {envInfo.structuralNotes && (
+                  <DetailRow label="Structural Notes" value={envInfo.structuralNotes} />
+                )}
+                <DetailRow
+                  label="Utility Shutoffs"
+                  value={
+                    envInfo.utilityShutoffsLocated === true
+                      ? 'Located'
+                      : envInfo.utilityShutoffsLocated === false
+                        ? 'Not located'
+                        : null
+                  }
+                />
+              </>
+            ) : (
+              <p className="text-muted-foreground italic">No environment data recorded</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Lab Results */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FlaskConical className="h-4 w-4" />
+              Lab Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <DetailRow
+              label="Clearance Required"
+              value={survey.clearance_required ? 'Yes' : 'No'}
+            />
+            <DetailRow label="Clearance Lab" value={survey.clearance_lab} />
+            <p className="text-xs text-muted-foreground italic pt-2 border-t">
+              Lab result attachments coming soon
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Content Tabs */}
       <SurveyDetailTabs survey={survey} />
