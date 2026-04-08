@@ -19,11 +19,13 @@ import {
 import {
   ArrowLeft, Building2, User, MapPin, AlertCircle, DollarSign,
   Shield, Calendar, Users, FileText, Clock, Loader2,
+  CheckCircle2, Circle, MinusCircle, Phone,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import { formatCurrency } from '@/lib/utils'
+import { eachDayOfInterval, format } from 'date-fns'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   scheduled: { label: 'Scheduled', color: 'bg-blue-100 text-blue-700' },
@@ -112,9 +114,6 @@ export default function JobDetailPage({ params }: Props) {
   const sc = STATUS_CONFIG[job.status] || { label: job.status, color: '' }
   const ps = getPaymentStatus(job)
   const address = [job.job_address, job.job_city, job.job_state, job.job_zip].filter(Boolean).join(', ')
-  const calcMargin = (job.actual_revenue || job.estimated_revenue) && job.actual_cost
-    ? (((job.actual_revenue || job.estimated_revenue) - job.actual_cost) / (job.actual_revenue || job.estimated_revenue) * 100).toFixed(1)
-    : job.gross_margin_pct
 
   const tabs = [
     { id: 'overview' as const, label: 'Overview' },
@@ -195,6 +194,41 @@ export default function JobDetailPage({ params }: Props) {
                   <p className="font-medium flex items-center gap-1"><Shield className="h-3 w-3" />{CONTAINMENT_LABELS[job.containment_level] || job.containment_level}</p>
                 </div>
               )}
+
+              <Separator />
+
+              {/* Project Info */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Project Info</p>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Permit #</span>
+                  <span className="font-medium font-mono text-xs">{job.permit_numbers?.[0] || '—'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Insurance Claim #</span>
+                  <span className="font-medium font-mono text-xs">{job.insurance_claim_number ?? '—'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">PO Number</span>
+                  <span className="font-medium font-mono text-xs">{job.po_number ?? '—'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Sq. Footage</span>
+                  <span className="font-medium">{job.square_footage || job.property_sqft || '—'}</span>
+                </div>
+                {(job.contact_onsite_name || job.contact_onsite_phone) && (
+                  <div className="text-sm">
+                    <p className="text-muted-foreground mb-0.5">Site Contact</p>
+                    <div className="flex items-center gap-1">
+                      <Phone className="h-3 w-3 text-muted-foreground" />
+                      <span className="font-medium">{job.contact_onsite_name || '—'}</span>
+                      {job.contact_onsite_phone && (
+                        <span className="text-muted-foreground ml-1">{job.contact_onsite_phone}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <Separator />
 
@@ -298,103 +332,236 @@ export default function JobDetailPage({ params }: Props) {
             </div>
           )}
 
-          {activeTab === 'financials' && (
-            <Card>
-              <CardHeader><CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-5 w-5" />Financials</CardTitle></CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-6 text-sm">
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-muted-foreground">Revenue</h4>
-                    <div className="flex justify-between"><span>Estimated</span><span className="font-medium">{formatCurrency(job.estimated_revenue || job.contract_amount || 0, false)}</span></div>
-                    <div className="flex justify-between"><span>Actual</span><span className="font-medium">{job.actual_revenue ? formatCurrency(job.actual_revenue, false) : '—'}</span></div>
-                  </div>
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-muted-foreground">Cost</h4>
-                    <div className="flex justify-between"><span>Estimated</span><span className="font-medium">{job.estimated_cost ? formatCurrency(job.estimated_cost, false) : '—'}</span></div>
-                    <div className="flex justify-between"><span>Actual</span><span className="font-medium">{job.actual_cost ? formatCurrency(job.actual_cost, false) : '—'}</span></div>
-                  </div>
+          {activeTab === 'financials' && (() => {
+            const lineItems = [
+              { label: 'Revenue', estimated: job.estimated_revenue ?? job.contract_amount ?? null, actual: job.actual_revenue ?? null },
+              { label: 'Labor Cost', estimated: job.estimated_labor_cost ?? null, actual: job.actual_labor_cost ?? null },
+              { label: 'Materials Cost', estimated: job.estimated_material_cost ?? null, actual: job.actual_material_cost ?? null },
+              { label: 'Equipment Cost', estimated: job.estimated_equipment_cost ?? null, actual: job.actual_equipment_cost ?? null },
+              { label: 'Disposal Cost', estimated: job.estimated_disposal_cost ?? null, actual: job.actual_disposal_cost ?? null },
+            ]
+            const totalEstCost = [job.estimated_labor_cost, job.estimated_material_cost, job.estimated_equipment_cost, job.estimated_disposal_cost]
+              .reduce((sum: number, v: number | null | undefined) => sum + (v ?? 0), 0) || (job.estimated_cost ?? null)
+            const totalActCost = [job.actual_labor_cost, job.actual_material_cost, job.actual_equipment_cost, job.actual_disposal_cost]
+              .reduce((sum: number, v: number | null | undefined) => sum + (v ?? 0), 0) || (job.actual_cost ?? null)
+            const estRev = job.estimated_revenue ?? job.contract_amount ?? 0
+            const actRev = job.actual_revenue ?? null
+            const estMarginPct = estRev && totalEstCost != null ? ((estRev - (totalEstCost as number)) / estRev * 100) : null
+            const actMarginPct = actRev && totalActCost != null ? ((actRev - (totalActCost as number)) / actRev * 100) : null
 
-                  {/* Gross Margin */}
-                  {calcMargin != null && (
-                    <div className="col-span-2">
-                      <div className="flex justify-between border-t pt-3">
-                        <span className="font-medium">Gross Margin</span>
-                        <span className={`font-bold text-lg ${Number(calcMargin) < 0 ? 'text-destructive' : ''}`}>{calcMargin}%</span>
+            const fmtVariance = (est: number | null, act: number | null) => {
+              if (est == null || act == null) return '—'
+              const diff = act - est
+              return (
+                <span className={diff > 0 ? 'text-red-600' : diff < 0 ? 'text-green-600' : ''}>
+                  {diff > 0 ? '+' : ''}{formatCurrency(diff, false)}
+                </span>
+              )
+            }
+            const fmtMarginVariance = (est: number | null, act: number | null) => {
+              if (est == null || act == null) return '—'
+              const diff = act - est
+              return (
+                <span className={diff < 0 ? 'text-red-600' : diff > 0 ? 'text-green-600' : ''}>
+                  {diff > 0 ? '+' : ''}{diff.toFixed(1)}%
+                </span>
+              )
+            }
+
+            return (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader><CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-5 w-5" />Estimate vs Actual</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b text-muted-foreground">
+                            <th className="text-left py-2 pr-4 font-medium"></th>
+                            <th className="text-right py-2 px-4 font-medium">Estimated</th>
+                            <th className="text-right py-2 px-4 font-medium">Actual</th>
+                            <th className="text-right py-2 pl-4 font-medium">Variance</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {lineItems.map(({ label, estimated, actual }) => (
+                            <tr key={label} className="border-b last:border-0">
+                              <td className="py-2 pr-4 font-medium">{label}</td>
+                              <td className="py-2 px-4 text-right tabular-nums">{estimated != null ? formatCurrency(estimated, false) : '—'}</td>
+                              <td className="py-2 px-4 text-right tabular-nums">{actual != null ? formatCurrency(actual, false) : '—'}</td>
+                              <td className="py-2 pl-4 text-right tabular-nums">
+                                {label === 'Revenue' ? fmtVariance(estimated, actual) : fmtVariance(estimated, actual)}
+                              </td>
+                            </tr>
+                          ))}
+                          <tr className="border-t-2 font-semibold">
+                            <td className="py-2 pr-4">Total Cost</td>
+                            <td className="py-2 px-4 text-right tabular-nums">{totalEstCost != null ? formatCurrency(totalEstCost as number, false) : '—'}</td>
+                            <td className="py-2 px-4 text-right tabular-nums">{totalActCost != null ? formatCurrency(totalActCost as number, false) : '—'}</td>
+                            <td className="py-2 pl-4 text-right tabular-nums">{fmtVariance(totalEstCost as number | null, totalActCost as number | null)}</td>
+                          </tr>
+                          <tr className="font-semibold">
+                            <td className="py-2 pr-4">Gross Margin</td>
+                            <td className="py-2 px-4 text-right tabular-nums">{estMarginPct != null ? `${estMarginPct.toFixed(1)}%` : '—'}</td>
+                            <td className="py-2 px-4 text-right tabular-nums">{actMarginPct != null ? `${actMarginPct.toFixed(1)}%` : '—'}</td>
+                            <td className="py-2 pl-4 text-right tabular-nums">{fmtMarginVariance(estMarginPct, actMarginPct)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Deposit & Invoice */}
+                <Card>
+                  <CardHeader><CardTitle className="text-base">Deposit & Invoice</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-6 text-sm">
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-muted-foreground">Deposit</h4>
+                        <div className="flex justify-between"><span>Amount</span><span>{job.deposit_amount ? formatCurrency(job.deposit_amount, false) : '—'}</span></div>
+                        <div className="flex justify-between"><span>Received</span><span>{job.deposit_received_date ? new Date(job.deposit_received_date).toLocaleDateString() : '—'}</span></div>
+                      </div>
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-muted-foreground">Invoice</h4>
+                        <div className="flex justify-between"><span>Invoice Date</span><span>{job.final_invoice_date ? new Date(job.final_invoice_date).toLocaleDateString() : '—'}</span></div>
+                        <div className="flex justify-between"><span>Payment Date</span><span>{job.final_payment_date ? new Date(job.final_payment_date).toLocaleDateString() : '—'}</span></div>
+                        {job.invoice_id && <div className="flex justify-between"><span>QB Invoice</span><span className="font-mono text-xs">{job.invoice_id}</span></div>}
+                      </div>
+                      <div className="col-span-2 border-t pt-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">QuickBooks Sync</span>
+                          {job.invoice_id ? (
+                            <Badge className="bg-green-100 text-green-700 border-0">Synced</Badge>
+                          ) : (
+                            <Badge className="bg-gray-100 text-gray-500 border-0">Not synced</Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  )}
+                  </CardContent>
+                </Card>
+              </div>
+            )
+          })()}
 
-                  <Separator className="col-span-2" />
+          {activeTab === 'crew' && (() => {
+            const startDate = job.scheduled_start_date ? new Date(job.scheduled_start_date) : null
+            const endDate = job.scheduled_end_date ? new Date(job.scheduled_end_date) : null
+            const scheduleDays = startDate && endDate
+              ? eachDayOfInterval({ start: startDate, end: endDate })
+              : startDate ? [startDate] : []
+            const startTime = job.scheduled_start_time || '8:00 AM'
+            const estHours = job.estimated_labor_hours || job.estimated_duration_hours || 8
+            const dailyHours = scheduleDays.length > 0 ? Math.round((estHours as number) / scheduleDays.length * 10) / 10 : estHours
 
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-muted-foreground">Deposit</h4>
-                    <div className="flex justify-between"><span>Amount</span><span>{job.deposit_amount ? formatCurrency(job.deposit_amount, false) : '—'}</span></div>
-                    <div className="flex justify-between"><span>Received</span><span>{job.deposit_received_date ? new Date(job.deposit_received_date).toLocaleDateString() : '—'}</span></div>
-                  </div>
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-muted-foreground">Invoice</h4>
-                    <div className="flex justify-between"><span>Invoice Date</span><span>{job.final_invoice_date ? new Date(job.final_invoice_date).toLocaleDateString() : '—'}</span></div>
-                    <div className="flex justify-between"><span>Payment Date</span><span>{job.final_payment_date ? new Date(job.final_payment_date).toLocaleDateString() : '—'}</span></div>
-                    {job.invoice_id && <div className="flex justify-between"><span>QB Invoice</span><span className="font-mono text-xs">{job.invoice_id}</span></div>}
-                  </div>
-
-                  {/* QB Sync Status */}
-                  <div className="col-span-2 border-t pt-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">QuickBooks Sync</span>
-                      {job.invoice_id ? (
-                        <Badge className="bg-green-100 text-green-700 border-0">Synced</Badge>
-                      ) : (
-                        <Badge className="bg-gray-100 text-gray-500 border-0">Not synced</Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {activeTab === 'crew' && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2"><Users className="h-5 w-5" />Crew & Schedule</CardTitle>
-                  <Button size="sm" variant="outline" disabled>
-                    <Users className="h-4 w-4 mr-2" />Assign Crew
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4 text-sm mb-6">
-                  <div><p className="text-muted-foreground">Estimated Hours</p><p className="font-medium">{job.estimated_labor_hours || job.estimated_duration_hours || '—'}</p></div>
-                  <div><p className="text-muted-foreground">Actual Hours</p><p className="font-medium">{job.actual_labor_hours || '—'}</p></div>
-                  <div><p className="text-muted-foreground">Actual Start</p><p className="font-medium">{job.actual_start_at ? new Date(job.actual_start_at).toLocaleString() : '—'}</p></div>
-                  <div><p className="text-muted-foreground">Actual End</p><p className="font-medium">{job.actual_end_at ? new Date(job.actual_end_at).toLocaleString() : '—'}</p></div>
-                </div>
-
-                {crewLeadName && (
-                  <div className="border rounded-lg p-3 flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{crewLeadName}</p>
-                      <p className="text-xs text-muted-foreground">Crew Lead</p>
-                    </div>
-                    <Badge>Lead</Badge>
-                  </div>
+            return (
+              <div className="space-y-6">
+                {/* Daily Schedule */}
+                {scheduleDays.length > 0 && (
+                  <Card>
+                    <CardHeader><CardTitle className="text-base flex items-center gap-2"><Calendar className="h-5 w-5" />Daily Schedule</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="divide-y">
+                        {scheduleDays.map((day, i) => (
+                          <div key={day.toISOString()} className="flex items-center justify-between py-2 text-sm">
+                            <div className="flex items-center gap-4">
+                              <span className="font-medium w-24">{format(day, 'EEE MMM d')}</span>
+                              <span className="text-muted-foreground">Day {i + 1} of {scheduleDays.length}</span>
+                            </div>
+                            <span className="text-muted-foreground tabular-nums">{startTime} ({dailyHours}h)</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
 
-                {!crewLeadName && (
-                  <p className="text-sm text-muted-foreground text-center py-4">No crew assigned yet</p>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                {/* Crew & Hours */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base flex items-center gap-2"><Users className="h-5 w-5" />Crew</CardTitle>
+                      <Button size="sm" variant="outline" disabled>
+                        <Users className="h-4 w-4 mr-2" />Assign Crew
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+                      <div><p className="text-muted-foreground">Estimated Hours</p><p className="font-medium">{job.estimated_labor_hours || job.estimated_duration_hours || '—'}</p></div>
+                      <div><p className="text-muted-foreground">Actual Hours</p><p className="font-medium">{job.actual_labor_hours || '—'}</p></div>
+                      <div><p className="text-muted-foreground">Actual Start</p><p className="font-medium">{job.actual_start_at ? new Date(job.actual_start_at).toLocaleString() : '—'}</p></div>
+                      <div><p className="text-muted-foreground">Actual End</p><p className="font-medium">{job.actual_end_at ? new Date(job.actual_end_at).toLocaleString() : '—'}</p></div>
+                    </div>
 
-          {activeTab === 'documents' && (
-            <Card>
-              <CardHeader><CardTitle className="text-base flex items-center gap-2"><FileText className="h-5 w-5" />Documents</CardTitle></CardHeader>
-              <CardContent><p className="text-sm text-muted-foreground text-center py-8">Permits, manifests, clearance reports, and photos will appear here</p></CardContent>
-            </Card>
-          )}
+                    {crewLeadName && (
+                      <div className="border rounded-lg p-3 flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{crewLeadName}</p>
+                          <p className="text-xs text-muted-foreground">Crew Lead</p>
+                        </div>
+                        <Badge>Lead</Badge>
+                      </div>
+                    )}
+
+                    {!crewLeadName && (
+                      <p className="text-sm text-muted-foreground text-center py-4">No crew assigned yet</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )
+          })()}
+
+          {activeTab === 'documents' && (() => {
+            type DocStatus = 'present' | 'missing' | 'na'
+            const docChecklist: Array<{ label: string; status: DocStatus }> = [
+              { label: 'Site Survey Report', status: job.site_survey_id ? 'present' : 'missing' },
+              { label: 'Permits', status: job.permit_numbers?.length > 0 ? 'present' : 'missing' },
+              { label: 'Regulatory Notifications', status: job.regulatory_notifications_sent != null ? (job.regulatory_notifications_sent ? 'present' : 'missing') : 'missing' },
+              {
+                label: 'Air Monitoring Report',
+                status: job.air_monitoring_required === false ? 'na' : (job.air_monitoring_results ? 'present' : 'missing'),
+              },
+              { label: 'Waste Disposal Manifests', status: job.disposal_manifest_numbers?.length > 0 ? 'present' : 'missing' },
+              {
+                label: 'Clearance Report',
+                status: job.clearance_testing_required === false ? 'na' : (job.clearance_testing_passed ? 'present' : 'missing'),
+              },
+              { label: 'Customer Sign-off', status: job.customer_signed_off ? 'present' : 'missing' },
+              {
+                label: 'Completion Photos',
+                status: job.completion_photos?.length > 0 ? 'present' : 'missing',
+              },
+            ]
+
+            return (
+              <Card>
+                <CardHeader><CardTitle className="text-base flex items-center gap-2"><FileText className="h-5 w-5" />Required Documents</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="divide-y">
+                    {docChecklist.map(({ label, status }) => (
+                      <div key={label} className="flex items-center justify-between py-2">
+                        <div className="flex items-center gap-2">
+                          {status === 'present' ? <CheckCircle2 className="h-4 w-4 text-green-600" /> :
+                           status === 'na' ? <MinusCircle className="h-4 w-4 text-muted-foreground" /> :
+                           <Circle className="h-4 w-4 text-gray-300" />}
+                          <span className="text-sm">{label}</span>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {status === 'present' ? 'Complete' : status === 'na' ? 'N/A' : 'Missing'}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 pt-3 border-t text-xs text-muted-foreground">
+                    {docChecklist.filter(d => d.status === 'present').length} of {docChecklist.filter(d => d.status !== 'na').length} required documents complete
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })()}
 
           {activeTab === 'activity' && (
             <Card>
