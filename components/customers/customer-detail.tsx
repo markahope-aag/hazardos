@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -14,7 +15,7 @@ import { useToast } from '@/components/ui/use-toast'
 import {
   ArrowLeft, Edit, Mail, Phone, Building2, MapPin,
   MessageSquare, Briefcase, Target, ChevronDown, Trash2,
-  PhoneCall, CalendarPlus, User, Shield, Plus,
+  PhoneCall, CalendarPlus, User, Shield, Plus, ArrowRight,
 } from 'lucide-react'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -28,6 +29,8 @@ import CustomerSurveysList from './customer-surveys-list'
 import CustomerActivityFeed from './customer-activity-feed'
 import { useUpdateCustomer, useUpdateCustomerStatus } from '@/lib/hooks/use-customers'
 import { CUSTOMER_STATUS_OPTIONS } from '@/lib/validations/customer'
+import { createClient } from '@/lib/supabase/client'
+import { WorkflowProgress } from '@/components/workflow/workflow-progress'
 import type { Customer, CustomerStatus } from '@/types/database'
 
 const CONTACT_ROLE_LABELS: Record<string, string> = {
@@ -72,6 +75,46 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
   const [followUpNote, setFollowUpNote] = useState('')
   const updateStatusMutation = useUpdateCustomerStatus()
   const updateCustomerMutation = useUpdateCustomer()
+
+  const { data: workflow } = useQuery({
+    queryKey: ['customer-workflow', customer.id],
+    queryFn: async () => {
+      const supabase = createClient()
+
+      const { data: surveys } = await supabase
+        .from('site_surveys')
+        .select('id')
+        .eq('customer_id', customer.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+      const surveyId = surveys?.[0]?.id || null
+
+      let estimateId: string | null = null
+      if (surveyId) {
+        const { data: estimates } = await supabase
+          .from('estimates')
+          .select('id')
+          .eq('site_survey_id', surveyId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+        estimateId = estimates?.[0]?.id || null
+      }
+
+      let jobId: string | null = null
+      if (estimateId) {
+        const { data: jobs } = await supabase
+          .from('jobs')
+          .select('id')
+          .eq('estimate_id', estimateId)
+          .limit(1)
+        jobId = jobs?.[0]?.id || null
+      }
+
+      return { surveyId, estimateId, jobId }
+    },
+    enabled: !!customer.id,
+    staleTime: 60000,
+  })
 
   const displayName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.name
 
@@ -294,7 +337,7 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
           </Card>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <Button variant="outline" size="sm" className="flex flex-col items-center gap-1 h-auto py-3" onClick={() => setShowLogCallDialog(true)}>
               <PhoneCall className="h-4 w-4" />
               <span className="text-xs">Log Call</span>
@@ -309,6 +352,36 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
               <CalendarPlus className="h-4 w-4" />
               <span className="text-xs">Follow-up</span>
             </Button>
+            {/* Workflow Next Step CTA */}
+            {workflow?.jobId ? (
+              <Button variant="outline" size="sm" className="flex flex-col items-center gap-1 h-auto py-3" asChild>
+                <Link href={`/crm/jobs/${workflow.jobId}`}>
+                  <Briefcase className="h-4 w-4" />
+                  <span className="text-xs">View Job</span>
+                </Link>
+              </Button>
+            ) : workflow?.estimateId ? (
+              <Button variant="outline" size="sm" className="flex flex-col items-center gap-1 h-auto py-3 border-blue-200 text-blue-700 hover:bg-blue-50" asChild>
+                <Link href={`/jobs/new?estimate_id=${workflow.estimateId}&customer_id=${customer.id}`}>
+                  <ArrowRight className="h-4 w-4" />
+                  <span className="text-xs">Schedule Job</span>
+                </Link>
+              </Button>
+            ) : workflow?.surveyId ? (
+              <Button variant="outline" size="sm" className="flex flex-col items-center gap-1 h-auto py-3 border-blue-200 text-blue-700 hover:bg-blue-50" asChild>
+                <Link href={`/estimates/new?survey_id=${workflow.surveyId}`}>
+                  <ArrowRight className="h-4 w-4" />
+                  <span className="text-xs">Create Estimate</span>
+                </Link>
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" className="flex flex-col items-center gap-1 h-auto py-3 border-blue-200 text-blue-700 hover:bg-blue-50" asChild>
+                <Link href={`/site-surveys/new?customer_id=${customer.id}`}>
+                  <ArrowRight className="h-4 w-4" />
+                  <span className="text-xs">Schedule Survey</span>
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -334,6 +407,15 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
           {/* Tab Content */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
+              {/* Workflow Progress */}
+              <WorkflowProgress
+                customerId={customer.id}
+                customerName={displayName}
+                surveyId={workflow?.surveyId}
+                estimateId={workflow?.estimateId}
+                jobId={workflow?.jobId}
+              />
+
               {/* Key Dates */}
               <Card>
                 <CardHeader><CardTitle className="text-base">Key Dates</CardTitle></CardHeader>

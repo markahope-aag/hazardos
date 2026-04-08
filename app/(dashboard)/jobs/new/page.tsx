@@ -47,6 +47,7 @@ export default function NewJobPage() {
 
   const proposalId = searchParams.get('proposal_id')
   const customerId = searchParams.get('customer_id')
+  const estimateId = searchParams.get('estimate_id')
   const defaultDate = searchParams.get('date')
 
   const [loading, setLoading] = useState(false)
@@ -149,6 +150,7 @@ export default function NewJobPage() {
           }
         : {
             customer_id: formData.customer_id,
+            estimate_id: estimateId || undefined,
             scheduled_start_date: format(formData.scheduled_start_date, 'yyyy-MM-dd'),
             scheduled_end_date: formData.scheduled_end_date
               ? format(formData.scheduled_end_date, 'yyyy-MM-dd')

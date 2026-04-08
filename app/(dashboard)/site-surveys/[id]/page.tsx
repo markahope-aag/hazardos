@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Calculator } from 'lucide-react'
+import { ArrowLeft, Loader2, Calculator, ArrowRight, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase/client'
@@ -38,6 +38,7 @@ export default function SurveyDetailPage() {
   const [survey, setSurvey] = useState<SurveyWithRelations | null>(null)
   const [loading, setLoading] = useState(true)
   const [generatingEstimate, setGeneratingEstimate] = useState(false)
+  const [linkedEstimateId, setLinkedEstimateId] = useState<string | null>(null)
 
   const surveyId = params.id as string
 
@@ -101,6 +102,20 @@ export default function SurveyDetailPage() {
   useEffect(() => {
     loadSurvey()
   }, [loadSurvey])
+
+  useEffect(() => {
+    if (!survey?.id) return
+    const supabase = createClient()
+    supabase
+      .from('estimates')
+      .select('id')
+      .eq('site_survey_id', survey.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .then(({ data }) => {
+        setLinkedEstimateId(data?.[0]?.id || null)
+      })
+  }, [survey?.id])
 
   if (loading) {
     return (
@@ -205,6 +220,33 @@ export default function SurveyDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Next Step Banner */}
+      {linkedEstimateId ? (
+        <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm">
+          <FileText className="h-4 w-4 text-green-600 shrink-0" />
+          <span className="text-green-800">An estimate has been created from this survey.</span>
+          <Link
+            href={`/estimates/${linkedEstimateId}`}
+            className="ml-auto inline-flex items-center gap-1 font-medium text-green-700 hover:underline"
+          >
+            View Estimate
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      ) : survey.status === 'completed' || survey.status === 'reviewed' ? (
+        <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm">
+          <Calculator className="h-4 w-4 text-blue-600 shrink-0" />
+          <span className="text-blue-800">Ready to estimate? Create an estimate from this survey.</span>
+          <Link
+            href={`/estimates/new?survey_id=${survey.id}`}
+            className="ml-auto inline-flex items-center gap-1 font-medium text-blue-700 hover:underline"
+          >
+            Create Estimate
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      ) : null}
 
       {/* Content Tabs */}
       <SurveyDetailTabs survey={survey} />
