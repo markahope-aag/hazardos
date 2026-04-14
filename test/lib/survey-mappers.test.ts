@@ -74,6 +74,7 @@ describe('Survey Mappers', () => {
       expect(result.environment_info).toEqual({
         temperature: null,
         humidity: null,
+        hvacType: null,
         moistureIssues: [],
         moistureNotes: '',
         hasStructuralConcerns: null,

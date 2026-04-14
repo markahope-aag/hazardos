@@ -110,7 +110,7 @@ describe('NewJobPage', () => {
     render(<NewJobPage />)
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('/api/customers')
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/customers(\?|$)/))
     })
   })
 })

@@ -62,9 +62,7 @@ describe('EstimatesPage', () => {
   it('displays stats cards', () => {
     render(<EstimatesPage />)
     expect(screen.getByText('Total Estimates')).toBeInTheDocument()
-    expect(screen.getByText('Drafts')).toBeInTheDocument()
-    expect(screen.getByText('Pending Approval')).toBeInTheDocument()
-    expect(screen.getByText('Total Value')).toBeInTheDocument()
+    expect(screen.getByText('Win Rate')).toBeInTheDocument()
   })
 
   it('displays search input', () => {

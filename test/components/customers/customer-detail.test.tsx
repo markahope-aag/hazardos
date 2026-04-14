@@ -1,8 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render as rtlRender, screen, waitFor, type RenderResult } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import userEvent from '@testing-library/user-event'
 import CustomerDetail from '@/components/customers/customer-detail'
 import type { Customer } from '@/types/database'
+import type { ReactElement } from 'react'
+
+function render(ui: ReactElement): RenderResult {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  return rtlRender(
+    <QueryClientProvider client={client}>{ui}</QueryClientProvider>
+  )
+}
 
 // Mock the hooks and components
 vi.mock('next/navigation', () => ({
