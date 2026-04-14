@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
@@ -37,7 +38,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Log the error with structured logging
     logger.error(
       {
         error: {
@@ -55,37 +55,23 @@ export async function POST(request: NextRequest) {
       'Client-side error reported'
     );
 
-    // In a production environment, you might also:
-    // 1. Store in a database for trend analysis
-    // 2. Send to an external monitoring service (Sentry, LogRocket, etc.)
-    // 3. Trigger alerts for critical errors
+    const reconstructed = new Error(payload.message);
+    reconstructed.name = payload.name;
+    if (payload.stack) reconstructed.stack = payload.stack;
 
-    // Optional: Store in database for analysis
-    // Note: You would need to create an error_reports table
-    /*
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single();
-
-      if (profile?.organization_id) {
-        await supabase.from('error_reports').insert({
-          organization_id: profile.organization_id,
-          user_id: user.id,
-          error_name: payload.name,
-          error_message: payload.message,
-          error_stack: payload.stack,
-          component_stack: payload.componentStack,
-          context: payload.context,
-          user_agent: payload.userAgent,
-          page_url: payload.url,
-          reported_at: payload.timestamp,
-        });
-      }
-    }
-    */
+    Sentry.captureException(reconstructed, {
+      tags: { source: 'client-error-boundary' },
+      user: user ? { id: user.id } : undefined,
+      contexts: {
+        react: payload.componentStack ? { componentStack: payload.componentStack } : undefined,
+        client: {
+          userAgent: payload.userAgent,
+          url: payload.url,
+          timestamp: payload.timestamp,
+        },
+      },
+      extra: payload.context,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

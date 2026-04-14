@@ -461,16 +461,21 @@ describe('Estimate Validation Schemas', () => {
       expect(result.success).toBe(true)
     })
 
-    it('should accept pagination strings', () => {
+    it('should accept pagination strings and coerce to numbers', () => {
       const result = estimateListQuerySchema.safeParse({
         limit: '20',
         offset: '10'
       })
       expect(result.success).toBe(true)
       if (result.success) {
-        expect(result.data.limit).toBe('20')
-        expect(result.data.offset).toBe('10')
+        expect(result.data.limit).toBe(20)
+        expect(result.data.offset).toBe(10)
       }
+    })
+
+    it('should reject limit above the max cap', () => {
+      const result = estimateListQuerySchema.safeParse({ limit: '10000' })
+      expect(result.success).toBe(false)
     })
 
     it('should accept combined filters', () => {

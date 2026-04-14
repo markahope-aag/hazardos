@@ -61,8 +61,8 @@ export const proposalListQuerySchema = z.object({
   estimate_id: z.string().uuid().optional(),
   from_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   to_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  limit: z.string().transform(Number).optional(),
-  offset: z.string().transform(Number).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
 })
 
 // Export types

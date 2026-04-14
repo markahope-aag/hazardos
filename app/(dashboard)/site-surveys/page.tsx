@@ -468,8 +468,9 @@ export default function SiteSurveysPage() {
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label="Survey actions">
+                          <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                          <span className="sr-only">Survey actions</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">

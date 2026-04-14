@@ -6,17 +6,21 @@ export const idParamSchema = z.object({
   id: z.string().uuid('Invalid ID'),
 })
 
+// Pagination bounds — reused across list endpoints to prevent DoS via huge limits.
+const limitSchema = z.coerce.number().int().min(1).max(100).optional()
+const offsetSchema = z.coerce.number().int().min(0).optional()
+
 // Common pagination query
 export const paginationQuerySchema = z.object({
-  limit: z.string().transform(Number).optional(),
-  offset: z.string().transform(Number).optional(),
+  limit: limitSchema,
+  offset: offsetSchema,
 })
 
 // Common search query with sanitization for SQL LIKE wildcards
 export const searchQuerySchema = z.object({
   search: z.string().optional().transform(val => val ? createSearchSanitizeTransform()(val) : val),
-  limit: z.string().transform(Number).optional(),
-  offset: z.string().transform(Number).optional(),
+  limit: limitSchema,
+  offset: offsetSchema,
 })
 
 // Date range query

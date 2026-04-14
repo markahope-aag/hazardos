@@ -29,6 +29,9 @@
   ],
   "author": "Asymmetric Marketing LLC",
   "license": "PROPRIETARY",
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.72.1",
     "@dnd-kit/core": "^6.3.1",

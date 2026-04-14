@@ -14,8 +14,8 @@ export const GET = createApiHandler(
     querySchema: estimateListQuerySchema,
   },
   async (_request, context, _body, query) => {
-    const limit = parseInt(query.limit || '50')
-    const offset = parseInt(query.offset || '0')
+    const limit = query.limit ?? 50
+    const offset = query.offset ?? 0
 
     // Build query
     let dbQuery = context.supabase

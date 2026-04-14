@@ -6,7 +6,9 @@ export const customerStatusSchema = z.enum(['lead', 'prospect', 'customer', 'ina
 // Customer source - matches database type
 export const customerSourceSchema = z.enum(['phone', 'website', 'mail', 'referral', 'other'])
 
-// Contact role - matches database type
+// Contact role - matches ContactRole in types/contacts.ts (customer_contacts.role)
+// NOTE: This is a different enum from customers.contact_role in types/database.ts
+// because customer_contacts is a separate join table with its own role set.
 export const contactRoleSchema = z.enum(['primary', 'billing', 'site', 'scheduling', 'general'])
 
 // Communication preferences

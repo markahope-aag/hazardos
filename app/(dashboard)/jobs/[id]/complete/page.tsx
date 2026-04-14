@@ -52,7 +52,7 @@ export default function JobCompletionPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background pb-[calc(5rem+env(safe-area-inset-bottom))]">
       <header className="sticky top-0 z-50 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 py-3">
           <Button variant="ghost" size="sm" onClick={() => router.push(`/jobs/${jobId}`)} className="touch-manipulation min-h-[44px]">
@@ -106,7 +106,7 @@ export default function JobCompletionPage() {
         </TabsContent>
       </Tabs>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border">
+      <div className="fixed bottom-0 left-0 right-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-background border-t border-border">
         <Button onClick={onSubmit} disabled={submitting} className="w-full" size="lg">
           {submitting ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Submitting...</>) : (<><Send className="w-4 h-4 mr-2" />Submit for Review</>)}
         </Button>

@@ -238,6 +238,9 @@ export default function MobileSurveyWizard({
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirty) {
         e.preventDefault()
+        // Legacy browsers (Firefox, older Chrome) require this assignment
+        // to actually display the confirmation dialog.
+        e.returnValue = ''
       }
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
