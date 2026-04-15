@@ -85,7 +85,10 @@ describe('Estimates API', () => {
         },
       ]
 
-      // Setup mock for profile lookup first, then estimates query
+      // Setup mock for profile lookup first, then estimates query.
+      // After estimates returns rows, the route also queries activity_log
+      // (for last_activity_at) and follow_ups (for next_follow_up). Both
+      // are stubbed to return empty so the merge is a no-op.
       vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
         if (table === 'profiles') {
           return {
@@ -108,6 +111,30 @@ describe('Estimates API', () => {
                     data: mockEstimates,
                     error: null,
                     count: 1,
+                  }),
+                }),
+              }),
+            }),
+          } as any
+        }
+        if (table === 'activity_log') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                in: vi.fn().mockReturnValue({
+                  order: vi.fn().mockResolvedValue({ data: [], error: null }),
+                }),
+              }),
+            }),
+          } as any
+        }
+        if (table === 'follow_ups') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                in: vi.fn().mockReturnValue({
+                  is: vi.fn().mockReturnValue({
+                    order: vi.fn().mockResolvedValue({ data: [], error: null }),
                   }),
                 }),
               }),
