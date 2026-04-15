@@ -4,7 +4,9 @@ import { StatsCards, StatsCardsErrorBoundary } from '@/components/dashboard/stat
 import { UpcomingJobs, UpcomingJobsErrorBoundary } from '@/components/dashboard/upcoming-jobs';
 import { OverdueInvoices, OverdueInvoicesErrorBoundary } from '@/components/dashboard/overdue-invoices';
 import { RecentActivity, RecentActivityErrorBoundary } from '@/components/dashboard/recent-activity';
-import { RevenueChart, JobsByStatus } from '@/components/dashboard/charts-lazy';
+import { RevenueChart, JobsByStatus, LeadSourceChart } from '@/components/dashboard/charts-lazy';
+import { DashboardFiltersBar } from '@/components/dashboard/dashboard-filters';
+import { parseDashboardFilters } from '@/lib/dashboard/filters';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, FileText, Calendar, Users } from 'lucide-react';
@@ -45,8 +47,14 @@ function WidgetSkeleton() {
   );
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const supabase = await createClient();
+  const resolvedSearchParams = await searchParams;
+  const filters = parseDashboardFilters(resolvedSearchParams);
 
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -103,18 +111,25 @@ export default async function DashboardPage() {
         )}
       </div>
 
+      {/* Filters */}
+      <DashboardFiltersBar filters={filters} />
+
       {/* Key Metrics */}
       <StatsCardsErrorBoundary>
-        <Suspense fallback={<StatsCardsSkeleton />}>
-          <StatsCards />
+        <Suspense fallback={<StatsCardsSkeleton />} key={`${filters.period}-${filters.hazardType}`}>
+          <StatsCards filters={filters} />
         </Suspense>
       </StatsCardsErrorBoundary>
 
       {/* Charts Row - Lazy loaded (error boundaries built into chart components) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RevenueChart />
-        <JobsByStatus />
+        <JobsByStatus filters={filters} />
       </div>
+
+      {/* Lead source widget */}
+      <LeadSourceChart filters={filters} />
+
 
       {/* Details Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

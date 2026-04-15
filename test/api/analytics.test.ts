@@ -49,6 +49,27 @@ describe('Analytics API', () => {
     } as any)
   }
 
+  // The jobs-by-status endpoint chains .select().eq().gte().lte() (and
+  // optionally .in() when a hazard filter is active). A flat
+  // mockReturnValue chain breaks at .gte. This proxy makes any depth of
+  // chain resolve to the supplied payload.
+  function makeChainableResult(payload: { data?: unknown; count?: number | null; error?: unknown }) {
+    type Proxied = ((...args: unknown[]) => Proxied) & { then?: unknown }
+    const proxy: Proxied = new Proxy((() => proxy) as Proxied, {
+      get(_target, prop) {
+        if (prop === 'then') {
+          return (onFulfilled: (value: unknown) => unknown) =>
+            Promise.resolve({ data: [], count: 0, error: null, ...payload }).then(onFulfilled)
+        }
+        return proxy
+      },
+      apply() {
+        return proxy
+      },
+    }) as Proxied
+    return proxy
+  }
+
   describe('GET /api/analytics/jobs-by-status', () => {
     it('should return jobs by status for authenticated user', async () => {
       vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
@@ -56,7 +77,6 @@ describe('Analytics API', () => {
         error: null
       })
 
-      // Mock jobs data
       const mockJobs = [
         { status: 'scheduled' },
         { status: 'scheduled' },
@@ -66,31 +86,20 @@ describe('Analytics API', () => {
         { status: 'completed' }
       ]
 
-      let callCount = 0
-      vi.mocked(mockSupabaseClient.from).mockImplementation(() => {
-        callCount++
-        if (callCount === 1) {
-          // First call is for profile
+      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
+        if (table === 'profiles') {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: mockProfile,
-                  error: null
-                })
+                single: vi.fn().mockResolvedValue({ data: mockProfile, error: null })
               })
             })
-          } as any
+          } as unknown as ReturnType<typeof mockSupabaseClient.from>
         }
-        // Second call is for jobs
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({
-              data: mockJobs,
-              error: null
-            })
-          })
-        } as any
+        if (table === 'jobs') {
+          return makeChainableResult({ data: mockJobs, error: null })
+        }
+        return makeChainableResult({ data: [], error: null })
       })
 
       const request = new NextRequest('http://localhost:3000/api/analytics/jobs-by-status')
@@ -98,8 +107,12 @@ describe('Analytics API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(Array.isArray(data)).toBe(true)
-      expect(data.length).toBeGreaterThan(0)
+      // New shape: { total, buckets }
+      expect(data).toHaveProperty('total')
+      expect(data).toHaveProperty('buckets')
+      expect(data.total).toBe(6)
+      expect(Array.isArray(data.buckets)).toBe(true)
+      expect(data.buckets.length).toBeGreaterThan(0)
     })
 
     it('should return 401 for unauthenticated user', async () => {
@@ -123,29 +136,17 @@ describe('Analytics API', () => {
         error: null
       })
 
-      let callCount = 0
-      vi.mocked(mockSupabaseClient.from).mockImplementation(() => {
-        callCount++
-        if (callCount === 1) {
+      vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
+        if (table === 'profiles') {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: mockProfile,
-                  error: null
-                })
+                single: vi.fn().mockResolvedValue({ data: mockProfile, error: null })
               })
             })
-          } as any
+          } as unknown as ReturnType<typeof mockSupabaseClient.from>
         }
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({
-              data: [],
-              error: null
-            })
-          })
-        } as any
+        return makeChainableResult({ data: [], error: null })
       })
 
       const request = new NextRequest('http://localhost:3000/api/analytics/jobs-by-status')
@@ -153,8 +154,8 @@ describe('Analytics API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(Array.isArray(data)).toBe(true)
-      expect(data.length).toBe(0)
+      expect(data.total).toBe(0)
+      expect(data.buckets).toEqual([])
     })
 
     it('should handle database errors securely', async () => {

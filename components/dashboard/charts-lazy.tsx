@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { ChartErrorBoundary } from '@/components/error-boundaries'
+import type { DashboardFilters } from '@/lib/dashboard/filters'
 
 // Loading component for charts
 function ChartLoadingState({ title: _title }: { title: string }) {
@@ -37,6 +38,14 @@ const JobsByStatusInner = dynamic(
   }
 )
 
+const LeadSourceChartInner = dynamic(
+  () => import('@/components/dashboard/lead-source-chart').then(mod => ({ default: mod.LeadSourceChart })),
+  {
+    ssr: false,
+    loading: () => <ChartLoadingState title="Lead Sources" />,
+  }
+)
+
 // Wrapped versions with error boundaries
 export function RevenueChart() {
   return (
@@ -46,10 +55,18 @@ export function RevenueChart() {
   )
 }
 
-export function JobsByStatus() {
+export function JobsByStatus({ filters }: { filters: DashboardFilters }) {
   return (
     <ChartErrorBoundary title="Jobs by Status" height="300px">
-      <JobsByStatusInner />
+      <JobsByStatusInner filters={filters} />
+    </ChartErrorBoundary>
+  )
+}
+
+export function LeadSourceChart({ filters }: { filters: DashboardFilters }) {
+  return (
+    <ChartErrorBoundary title="Lead Sources" height="200px">
+      <LeadSourceChartInner filters={filters} />
     </ChartErrorBoundary>
   )
 }
