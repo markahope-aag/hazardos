@@ -18,9 +18,12 @@ import {
   AlertTriangle,
   TrendingUp,
   Briefcase,
+  Clock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -35,6 +38,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Table,
   TableBody,
@@ -109,6 +120,33 @@ function daysSinceOrUntil(dateStr: string | null | undefined): number | null {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24))
 }
 
+function formatRelative(dateStr: string | null | undefined): string {
+  if (!dateStr) return '-'
+  const diffMs = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diffMs / 60_000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  const weeks = Math.floor(days / 7)
+  if (weeks < 5) return `${weeks}w ago`
+  const months = Math.floor(days / 30)
+  if (months < 12) return `${months}mo ago`
+  const years = Math.floor(days / 365)
+  return `${years}y ago`
+}
+
+function getDefaultFollowUpDate(): string {
+  // Default to 3 business days out at 9am, formatted for datetime-local.
+  const d = new Date()
+  d.setDate(d.getDate() + 3)
+  d.setHours(9, 0, 0, 0)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 export default function EstimatesPage() {
   const router = useRouter()
   const { toast } = useToast()
@@ -117,6 +155,12 @@ export default function EstimatesPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+
+  // Follow-up scheduling dialog state
+  const [followUpEstimate, setFollowUpEstimate] = useState<EstimateWithRelations | null>(null)
+  const [followUpDate, setFollowUpDate] = useState<string>('')
+  const [followUpNote, setFollowUpNote] = useState<string>('')
+  const [followUpSubmitting, setFollowUpSubmitting] = useState(false)
 
   const loadEstimates = useCallback(async () => {
     if (!organization?.id) return
@@ -163,6 +207,54 @@ export default function EstimatesPage() {
         description: 'Failed to delete estimate.',
         variant: 'destructive',
       })
+    }
+  }
+
+  const openFollowUpDialog = (estimate: EstimateWithRelations) => {
+    setFollowUpEstimate(estimate)
+    setFollowUpDate(getDefaultFollowUpDate())
+    setFollowUpNote('')
+  }
+
+  const closeFollowUpDialog = () => {
+    if (followUpSubmitting) return
+    setFollowUpEstimate(null)
+    setFollowUpDate('')
+    setFollowUpNote('')
+  }
+
+  const handleScheduleFollowUp = async () => {
+    if (!followUpEstimate || !followUpDate) return
+    setFollowUpSubmitting(true)
+    try {
+      const response = await fetch('/api/follow-ups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entity_type: 'estimate',
+          entity_id: followUpEstimate.id,
+          due_date: new Date(followUpDate).toISOString(),
+          note: followUpNote.trim() || null,
+        }),
+      })
+      if (!response.ok) throw new Error('Failed to schedule follow-up')
+
+      toast({
+        title: 'Follow-up scheduled',
+        description: `Reminder set for ${new Date(followUpDate).toLocaleString()}.`,
+      })
+      setFollowUpEstimate(null)
+      setFollowUpDate('')
+      setFollowUpNote('')
+      loadEstimates()
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Could not schedule follow-up.',
+        variant: 'destructive',
+      })
+    } finally {
+      setFollowUpSubmitting(false)
     }
   }
 
@@ -313,6 +405,56 @@ export default function EstimatesPage() {
         </Select>
       </div>
 
+      {/* Follow-up scheduling dialog */}
+      <Dialog open={!!followUpEstimate} onOpenChange={(open) => !open && closeFollowUpDialog()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schedule follow-up</DialogTitle>
+            <DialogDescription>
+              {followUpEstimate
+                ? `Set a reminder for ${followUpEstimate.estimate_number}${
+                    followUpEstimate.project_name ? ` — ${followUpEstimate.project_name}` : ''
+                  }.`
+                : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="follow-up-date">Due date</Label>
+              <Input
+                id="follow-up-date"
+                type="datetime-local"
+                value={followUpDate}
+                onChange={(e) => setFollowUpDate(e.target.value)}
+                disabled={followUpSubmitting}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="follow-up-note">Note (optional)</Label>
+              <Textarea
+                id="follow-up-note"
+                rows={3}
+                placeholder="What's this follow-up for?"
+                value={followUpNote}
+                onChange={(e) => setFollowUpNote(e.target.value)}
+                disabled={followUpSubmitting}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeFollowUpDialog} disabled={followUpSubmitting}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleScheduleFollowUp}
+              disabled={followUpSubmitting || !followUpDate}
+            >
+              {followUpSubmitting ? 'Scheduling...' : 'Schedule'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Table */}
       <Card>
         <Table>
@@ -328,19 +470,21 @@ export default function EstimatesPage() {
               <TableHead>Expires</TableHead>
               <TableHead>Linked Job</TableHead>
               <TableHead>Created</TableHead>
+              <TableHead>Last Activity</TableHead>
+              <TableHead>Follow-up</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center py-8">
+                <TableCell colSpan={13} className="text-center py-8">
                   Loading estimates...
                 </TableCell>
               </TableRow>
             ) : filteredEstimates.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center py-8">
+                <TableCell colSpan={13} className="text-center py-8">
                   <p className="text-muted-foreground">No estimates found</p>
                   <Button asChild variant="link" className="mt-2">
                     <Link href="/site-surveys?action=estimate">Create your first estimate</Link>
@@ -442,6 +586,53 @@ export default function EstimatesPage() {
                       {new Date(estimate.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
+                      <span
+                        className="text-sm text-muted-foreground"
+                        title={
+                          estimate.last_activity_at
+                            ? new Date(estimate.last_activity_at).toLocaleString()
+                            : undefined
+                        }
+                      >
+                        {formatRelative(estimate.last_activity_at)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const fu = estimate.next_follow_up
+                        if (!fu) {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => openFollowUpDialog(estimate)}
+                              className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                            >
+                              Schedule
+                            </button>
+                          )
+                        }
+                        const dueMs = new Date(fu.due_date).getTime()
+                        const isOverdue = dueMs < Date.now()
+                        const dueLabel = new Date(fu.due_date).toLocaleDateString()
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => openFollowUpDialog(estimate)}
+                            className={`text-left text-xs ${isOverdue ? 'text-amber-600 font-medium' : 'text-foreground'} hover:underline`}
+                            title={fu.note || undefined}
+                          >
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {dueLabel}
+                            </div>
+                            {isOverdue && (
+                              <div className="text-[10px] text-amber-600">Overdue</div>
+                            )}
+                          </button>
+                        )
+                      })()}
+                    </TableCell>
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" aria-label="Estimate actions">
@@ -456,6 +647,10 @@ export default function EstimatesPage() {
                           <DropdownMenuItem onClick={() => router.push(`/estimates/${estimate.id}/edit`)}>
                             <FileEdit className="h-4 w-4 mr-2" />
                             Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openFollowUpDialog(estimate)}>
+                            <Clock className="h-4 w-4 mr-2" />
+                            Schedule follow-up
                           </DropdownMenuItem>
                           {estimate.status === 'approved' && (
                             <DropdownMenuItem onClick={() => router.push(`/proposals/new?estimate=${estimate.id}`)}>

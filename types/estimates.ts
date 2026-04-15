@@ -210,6 +210,15 @@ export interface EstimateWithRelations extends Estimate {
     job_number: string
     status: string
   }[]
+  // Most recent activity_log entry for this estimate (fallback: updated_at).
+  last_activity_at?: string | null
+  // Next pending follow-up for this estimate, from the polymorphic follow_ups table.
+  next_follow_up?: {
+    id: string
+    due_date: string
+    note: string | null
+    assigned_to: string | null
+  } | null
 }
 
 export interface ProposalWithRelations extends Proposal {

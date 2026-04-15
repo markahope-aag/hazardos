@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { calculateEstimateFromSurvey } from '@/lib/services/estimate-calculator'
+import { FollowUpsService } from '@/lib/services/follow-ups-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { estimateListQuerySchema, createEstimateFromSurveySchema } from '@/lib/validations/estimates'
 import { SecureError } from '@/lib/utils/secure-error-handler'
@@ -48,15 +49,52 @@ export const GET = createApiHandler(
       throw error
     }
 
+    // Fetch most recent activity per estimate in one round-trip. We grab all
+    // activity_log rows for the visible estimates and take the first per id;
+    // the query is ordered DESC so the first hit is the most recent.
+    const estimateIds = (data || []).map(e => e.id)
+    const lastActivityById = new Map<string, string>()
+    if (estimateIds.length > 0) {
+      const { data: activityRows } = await context.supabase
+        .from('activity_log')
+        .select('entity_id, created_at')
+        .eq('entity_type', 'estimate')
+        .in('entity_id', estimateIds)
+        .order('created_at', { ascending: false })
+
+      for (const row of activityRows || []) {
+        if (!lastActivityById.has(row.entity_id)) {
+          lastActivityById.set(row.entity_id, row.created_at)
+        }
+      }
+    }
+
+    // Batch-load the next pending follow-up for each estimate.
+    const nextFollowUpById = await FollowUpsService.getNextPendingForEntities(
+      'estimate',
+      estimateIds
+    )
+
     // Transform relations
-    const estimates = (data || []).map(estimate => ({
-      ...estimate,
-      site_survey: Array.isArray(estimate.site_survey) ? estimate.site_survey[0] : estimate.site_survey,
-      customer: Array.isArray(estimate.customer) ? estimate.customer[0] : estimate.customer,
-      created_by_user: Array.isArray(estimate.created_by_user) ? estimate.created_by_user[0] : estimate.created_by_user,
-      jobs: Array.isArray(estimate.jobs) ? estimate.jobs : [],
-      proposals: Array.isArray(estimate.proposals) ? estimate.proposals : [],
-    }))
+    const estimates = (data || []).map(estimate => {
+      const loggedActivity = lastActivityById.get(estimate.id) ?? null
+      const updatedAt = estimate.updated_at ?? null
+      const lastActivityAt =
+        loggedActivity && updatedAt
+          ? loggedActivity > updatedAt ? loggedActivity : updatedAt
+          : loggedActivity ?? updatedAt
+
+      return {
+        ...estimate,
+        site_survey: Array.isArray(estimate.site_survey) ? estimate.site_survey[0] : estimate.site_survey,
+        customer: Array.isArray(estimate.customer) ? estimate.customer[0] : estimate.customer,
+        created_by_user: Array.isArray(estimate.created_by_user) ? estimate.created_by_user[0] : estimate.created_by_user,
+        jobs: Array.isArray(estimate.jobs) ? estimate.jobs : [],
+        proposals: Array.isArray(estimate.proposals) ? estimate.proposals : [],
+        last_activity_at: lastActivityAt,
+        next_follow_up: nextFollowUpById.get(estimate.id) ?? null,
+      }
+    })
 
     return NextResponse.json({
       estimates,
