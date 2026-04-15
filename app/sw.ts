@@ -8,6 +8,23 @@ import {
   ExpirationPlugin,
 } from 'serwist'
 
+// Bump this string whenever a deploy needs to force all PWA clients off their
+// stale runtime caches. The value is compiled into the service worker binary,
+// so the browser detects a new SW version and activates it. The activate
+// handler below also wipes named runtime caches so clients re-fetch against
+// the new deployment instead of serving stale JS/CSS/API responses.
+const SW_VERSION = '2026-04-14-force-refresh'
+
+// Runtime cache names that the activate handler clears on each version bump.
+// Kept in sync with the runtimeCaching entries below (fonts are intentionally
+// excluded — they rarely change and the entries are small).
+const RUNTIME_CACHES_TO_CLEAR = [
+  'supabase-api',
+  'supabase-storage',
+  'images',
+  'static-resources',
+]
+
 // This declares the value of `injectionPoint` to TypeScript.
 // At build time, `self.__SW_MANIFEST` is replaced with the actual precache manifest.
 declare global {
@@ -17,6 +34,23 @@ declare global {
 }
 
 declare const self: ServiceWorkerGlobalScope
+
+// Runs on every SW version swap. Drop stale runtime caches so the new build
+// isn't serving resources from the previous deploy.
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    (async () => {
+      const names = await caches.keys()
+      await Promise.all(
+        names
+          .filter((name) => RUNTIME_CACHES_TO_CLEAR.includes(name))
+          .map((name) => caches.delete(name))
+      )
+      // eslint-disable-next-line no-console
+      console.info(`[sw] activated ${SW_VERSION} — cleared runtime caches`)
+    })()
+  )
+})
 
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,

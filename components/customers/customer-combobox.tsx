@@ -22,23 +22,33 @@ import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 
 interface Customer {
   id: string
+  name: string | null
   company_name: string | null
-  first_name: string
-  last_name: string
-  address: string | null
+  first_name: string | null
+  last_name: string | null
+  email: string | null
+  phone: string | null
+  address_line1: string | null
   city: string | null
+  state: string | null
+  zip: string | null
 }
 
 interface CustomerComboboxProps {
   value: string
   onValueChange: (value: string) => void
+  onCustomerSelect?: (customer: Customer) => void
   placeholder?: string
   disabled?: boolean
 }
 
+const SELECT_COLUMNS =
+  'id, name, company_name, first_name, last_name, email, phone, address_line1, city, state, zip'
+
 export function CustomerCombobox({
   value,
   onValueChange,
+  onCustomerSelect,
   placeholder = 'Select customer...',
   disabled = false
 }: CustomerComboboxProps) {
@@ -56,7 +66,7 @@ export function CustomerCombobox({
         const supabase = createClient()
         const { data } = await supabase
           .from('customers')
-          .select('id, company_name, first_name, last_name, address, city')
+          .select(SELECT_COLUMNS)
           .eq('id', value)
           .single()
 
@@ -78,15 +88,16 @@ export function CustomerCombobox({
 
       let query = supabase
         .from('customers')
-        .select('id, company_name, first_name, last_name, address, city')
+        .select(SELECT_COLUMNS)
         .eq('organization_id', organization.id)
         .neq('status', 'inactive')
         .order('updated_at', { ascending: false })
         .limit(20)
 
       if (search) {
+        const escaped = search.replace(/[%,]/g, ' ')
         query = query.or(
-          `company_name.ilike.%${search}%,first_name.ilike.%${search}%,last_name.ilike.%${search}%`
+          `name.ilike.%${escaped}%,company_name.ilike.%${escaped}%,first_name.ilike.%${escaped}%,last_name.ilike.%${escaped}%,email.ilike.%${escaped}%`
         )
       }
 
@@ -100,10 +111,9 @@ export function CustomerCombobox({
   }, [search, organization?.id])
 
   const getDisplayName = (customer: Customer) => {
-    if (customer.company_name) {
-      return customer.company_name
-    }
-    return `${customer.first_name} ${customer.last_name}`
+    if (customer.company_name) return customer.company_name
+    const personName = [customer.first_name, customer.last_name].filter(Boolean).join(' ')
+    return personName || customer.name || 'Unnamed'
   }
 
   const handleSelect = (customerId: string) => {
@@ -111,6 +121,7 @@ export function CustomerCombobox({
     if (customer) {
       setSelectedCustomer(customer)
       onValueChange(customer.id)
+      onCustomerSelect?.(customer)
     }
     setOpen(false)
   }
@@ -156,9 +167,11 @@ export function CustomerCombobox({
                   />
                   <div className="flex flex-col">
                     <span>{getDisplayName(customer)}</span>
-                    {customer.address && (
+                    {customer.address_line1 && (
                       <span className="text-sm text-muted-foreground">
-                        {customer.address}{customer.city ? `, ${customer.city}` : ''}
+                        {customer.address_line1}
+                        {customer.city ? `, ${customer.city}` : ''}
+                        {customer.state ? ` ${customer.state}` : ''}
                       </span>
                     )}
                   </div>

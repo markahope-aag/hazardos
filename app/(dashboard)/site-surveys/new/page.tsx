@@ -1,22 +1,15 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ArrowLeft, Search, Building2 } from 'lucide-react'
+import { ArrowLeft, Building2, Mail, Phone, MapPin, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { SimpleSiteSurveyForm } from '@/components/assessments/simple-site-survey-form'
-import { createClient } from '@/lib/supabase/client'
+import MobileSurveyWizard from '@/components/surveys/mobile/mobile-survey-wizard'
+import { CustomerCombobox } from '@/components/customers/customer-combobox'
+import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 
 interface Customer {
   id: string
@@ -32,200 +25,173 @@ interface Customer {
   zip: string | null
 }
 
-export default function NewSiteSurveyPage() {
+function NewSiteSurveyContent() {
   const searchParams = useSearchParams()
-  const customerId = searchParams.get('customer_id')
+  const customerIdFromUrl = searchParams.get('customer_id')
+  const { organization } = useMultiTenantAuth()
 
-  const [customers, setCustomers] = useState<Customer[]>([])
-  const [loadingCustomers, setLoadingCustomers] = useState(true)
-  const [contactSearch, setContactSearch] = useState('')
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(customerId || '')
-  const [initialData, setInitialData] = useState<Record<string, string> | null>(null)
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(customerIdFromUrl || '')
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
 
-  // Fetch all contacts
+  // If we got a customer_id via URL, fetch the preview card data for the summary.
+  // The wizard itself reads customerId as a prop; this fetch is only to render
+  // the confirmation card above the wizard on desktop.
   useEffect(() => {
-    async function fetchCustomers() {
-      try {
-        const response = await fetch('/api/customers?limit=500')
-        const data = await response.json()
-
-        if (data.customers) {
-          setCustomers(data.customers)
-        } else if (Array.isArray(data)) {
-          setCustomers(data)
-        }
-      } catch {
-        // Failed to load customers - form still usable with manual entry
-      } finally {
-        setLoadingCustomers(false)
+    if (!customerIdFromUrl || selectedCustomer) return
+    let cancelled = false
+    ;(async () => {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('customers')
+        .select('id, first_name, last_name, name, company_name, email, phone, address_line1, city, state, zip')
+        .eq('id', customerIdFromUrl)
+        .single()
+      if (!cancelled && data) {
+        setSelectedCustomer(data as Customer)
       }
+    })()
+    return () => {
+      cancelled = true
     }
-    fetchCustomers()
-  }, [])
+  }, [customerIdFromUrl, selectedCustomer])
 
-  // If a customer_id was passed via URL, pre-select and fetch details
-  useEffect(() => {
-    if (!customerId) {
-      setInitialData({})
-      return
-    }
-
-    const supabase = createClient()
-    supabase
-      .from('customers')
-      .select('first_name, last_name, name, email, phone, address_line1, city, state, zip')
-      .eq('id', customerId)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          const customerName = [data.first_name, data.last_name].filter(Boolean).join(' ') || data.name || ''
-          setInitialData({
-            customer_name: customerName,
-            customer_email: data.email || '',
-            customer_phone: data.phone || '',
-            site_address: data.address_line1 || '',
-            site_city: data.city || '',
-            site_state: data.state || '',
-            site_zip: data.zip || '',
-          })
-        } else {
-          setInitialData({})
-        }
-      })
-  }, [customerId])
-
-  const filteredCustomers = useMemo(() => {
-    if (!contactSearch) return customers
-    const q = contactSearch.toLowerCase()
-    return customers.filter(c =>
-      (c.name || '').toLowerCase().includes(q) ||
-      (c.first_name || '').toLowerCase().includes(q) ||
-      (c.last_name || '').toLowerCase().includes(q) ||
-      (c.company_name || '').toLowerCase().includes(q) ||
-      (c.email || '').toLowerCase().includes(q)
-    )
-  }, [customers, contactSearch])
-
-  const selectedCustomer = customers.find(c => c.id === selectedCustomerId)
-
-  const handleSelectCustomer = (id: string) => {
-    setSelectedCustomerId(id)
-    const customer = customers.find(c => c.id === id)
-    if (customer) {
-      const customerName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.name || ''
-      setInitialData({
-        customer_name: customerName,
-        customer_email: customer.email || '',
-        customer_phone: customer.phone || '',
-        site_address: customer.address_line1 || '',
-        site_city: customer.city || '',
-        site_state: customer.state || '',
-        site_zip: customer.zip || '',
-      })
-    }
+  const handleCustomerSelect = (customer: Customer) => {
+    setSelectedCustomer(customer)
+    setSelectedCustomerId(customer.id)
   }
 
-  const backHref = customerId ? `/crm/contacts/${customerId}` : '/site-surveys'
+  const backHref = customerIdFromUrl ? `/crm/contacts/${customerIdFromUrl}` : '/site-surveys'
 
-  return (
-    <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Link href={backHref}>
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">New Site Survey</h1>
-          <p className="text-gray-600">Create a new field site survey</p>
+  // Before a customer is chosen, show the picker only. Once a customer is
+  // selected, swap in the full survey wizard — identical in content to the
+  // mobile /site-surveys/mobile experience, so desktop QA exercises the same
+  // form the field team uses.
+  if (!selectedCustomerId) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="flex items-center gap-4 mb-6">
+          <Link href={backHref}>
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">New Site Survey</h1>
+            <p className="text-gray-600">Start by picking a contact, then fill in the survey</p>
+          </div>
         </div>
-      </div>
 
-      {/* Contact lookup (only show if no customer_id was pre-selected via URL) */}
-      {!customerId && (
-        <Card className="mb-6">
+        <Card>
           <CardHeader>
             <CardTitle>Select Contact</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Search Contacts</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={contactSearch}
-                  onChange={(e) => setContactSearch(e.target.value)}
-                  placeholder={loadingCustomers ? 'Loading contacts...' : 'Search by name, company, or email...'}
-                  className="pl-9"
-                  disabled={loadingCustomers}
-                />
-              </div>
-              <Select
+              <Label htmlFor="contact-combobox">Contact</Label>
+              <CustomerCombobox
                 value={selectedCustomerId}
-                onValueChange={handleSelectCustomer}
-                disabled={loadingCustomers}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a contact" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredCustomers.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">No contacts found</div>
-                  ) : (
-                    filteredCustomers.map(customer => {
-                      const displayName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.name || 'Unnamed'
-                      return (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{displayName}</span>
-                            {customer.company_name && (
-                              <span className="text-xs text-muted-foreground">
-                                · {customer.company_name}
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      )
-                    })
-                  )}
-                </SelectContent>
-              </Select>
+                onValueChange={setSelectedCustomerId}
+                onCustomerSelect={handleCustomerSelect}
+                placeholder="Search by name, company, or email..."
+              />
             </div>
-
-            {/* Selected contact info card */}
-            {selectedCustomer && (
-              <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
-                <div className="font-medium">
-                  {[selectedCustomer.first_name, selectedCustomer.last_name].filter(Boolean).join(' ') || selectedCustomer.name || 'Unnamed'}
-                </div>
-                {selectedCustomer.company_name && (
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <Building2 className="h-3 w-3" />{selectedCustomer.company_name}
-                  </div>
-                )}
-                {selectedCustomer.email && (
-                  <div className="text-muted-foreground">{selectedCustomer.email}</div>
-                )}
-                {selectedCustomer.address_line1 && (
-                  <div className="text-muted-foreground">
-                    {selectedCustomer.address_line1}
-                    {selectedCustomer.city && `, ${selectedCustomer.city}`}
-                    {selectedCustomer.state && ` ${selectedCustomer.state}`}
-                    {selectedCustomer.zip && ` ${selectedCustomer.zip}`}
-                  </div>
-                )}
-              </div>
-            )}
           </CardContent>
         </Card>
+      </div>
+    )
+  }
+
+  // Customer picked — render the wizard. Keyed on customerId so that if the
+  // user somehow changes contacts we get a clean remount and fresh draft.
+  return (
+    <div className="max-w-3xl mx-auto">
+      <div className="flex items-center justify-between gap-4 mb-4">
+        <div className="flex items-center gap-4">
+          <Link href={backHref}>
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">New Site Survey</h1>
+          </div>
+        </div>
+        {!customerIdFromUrl && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSelectedCustomerId('')
+              setSelectedCustomer(null)
+            }}
+          >
+            Change contact
+          </Button>
+        )}
+      </div>
+
+      {selectedCustomer && (
+        <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1.5 mb-4">
+          <div className="font-medium">
+            {[selectedCustomer.first_name, selectedCustomer.last_name].filter(Boolean).join(' ') ||
+              selectedCustomer.name ||
+              'Unnamed'}
+          </div>
+          {selectedCustomer.company_name && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Building2 className="h-3 w-3" />
+              <span>{selectedCustomer.company_name}</span>
+            </div>
+          )}
+          {selectedCustomer.email && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Mail className="h-3 w-3" />
+              <span>{selectedCustomer.email}</span>
+            </div>
+          )}
+          {selectedCustomer.phone && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Phone className="h-3 w-3" />
+              <span>{selectedCustomer.phone}</span>
+            </div>
+          )}
+          {selectedCustomer.address_line1 && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <MapPin className="h-3 w-3" />
+              <span>
+                {selectedCustomer.address_line1}
+                {selectedCustomer.city && `, ${selectedCustomer.city}`}
+                {selectedCustomer.state && ` ${selectedCustomer.state}`}
+                {selectedCustomer.zip && ` ${selectedCustomer.zip}`}
+              </span>
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Form -- render once initial data is resolved */}
-      {initialData !== null && (
-        <SimpleSiteSurveyForm initialData={initialData} />
-      )}
+      <MobileSurveyWizard
+        key={selectedCustomerId}
+        customerId={selectedCustomerId}
+        organizationId={organization?.id}
+        embedded
+      />
     </div>
+  )
+}
+
+export default function NewSiteSurveyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <NewSiteSurveyContent />
+    </Suspense>
   )
 }

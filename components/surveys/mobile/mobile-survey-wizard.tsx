@@ -51,6 +51,13 @@ interface MobileSurveyWizardProps {
   customerId?: string
   organizationId?: string
   className?: string
+  /**
+   * When true, render inside a parent page layout instead of as a fullscreen
+   * app. Drops `min-h-screen`, un-sticks the header, and pins the footer
+   * within the local container instead of the viewport. Use this on desktop
+   * dashboard pages; leave false for the /site-surveys/mobile PWA entry.
+   */
+  embedded?: boolean
   onComplete?: (data: {
     id: string
     customer_id: string
@@ -120,6 +127,7 @@ export default function MobileSurveyWizard({
   customerId,
   organizationId,
   className,
+  embedded = false,
   onComplete,
   onExit,
 }: MobileSurveyWizardProps) {
@@ -460,9 +468,20 @@ export default function MobileSurveyWizard({
 
   return (
     <MobileSurveyWizardErrorBoundary>
-      <div className={cn('flex flex-col min-h-screen bg-background', className)}>
+      <div
+        className={cn(
+          'flex flex-col bg-background',
+          embedded ? 'min-h-[70vh] rounded-lg border' : 'min-h-screen',
+          className
+        )}
+      >
         {/* Header */}
-        <header className="sticky top-0 z-50 bg-background border-b border-border safe-area-top">
+        <header
+          className={cn(
+            'bg-background border-b border-border',
+            embedded ? 'rounded-t-lg' : 'sticky top-0 z-50 safe-area-top'
+          )}
+        >
           <div className="flex items-center justify-between px-4 py-3">
             {/* Exit Button */}
             <Button
@@ -540,7 +559,10 @@ export default function MobileSurveyWizard({
         {/* Main Content Area with swipe support */}
         <main
           ref={mainContentRef}
-          className="flex-1 overflow-y-auto pb-28"
+          className={cn(
+            'flex-1',
+            embedded ? '' : 'overflow-y-auto pb-28'
+          )}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
@@ -552,7 +574,14 @@ export default function MobileSurveyWizard({
         </main>
 
         {/* Footer Navigation */}
-        <footer className="fixed bottom-0 left-0 right-0 bg-background border-t border-border safe-area-bottom z-40">
+        <footer
+          className={cn(
+            'bg-background border-t border-border',
+            embedded
+              ? 'sticky bottom-0 rounded-b-lg z-10'
+              : 'fixed bottom-0 left-0 right-0 safe-area-bottom z-40'
+          )}
+        >
           {/* Pending uploads indicator */}
           {hasPhotosToUpload && isOnline && (
             <div className="px-4 py-2 bg-blue-50 text-blue-700 text-sm text-center border-b border-blue-100">
