@@ -4,6 +4,7 @@ import { FollowUpsService } from '@/lib/services/follow-ups-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { estimateListQuerySchema, createEstimateFromSurveySchema } from '@/lib/validations/estimates'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { buildEntityNumberBase, withUniqueSuffix } from '@/lib/utils/entity-number'
 
 /**
  * GET /api/estimates
@@ -137,13 +138,21 @@ export const POST = createApiHandler(
       }
     )
 
-    // Generate estimate number using RPC
-    const { data: estimateNumber, error: numberError } = await context.supabase
-      .rpc('generate_estimate_number', { org_id: context.profile.organization_id })
-
-    if (numberError) {
-      throw numberError
-    }
+    // Estimate number follows the shared EST-<street>-<mmddyyyy> convention.
+    // The date comes from the caller's estimated_start_date when provided,
+    // else the survey's own scheduled date — both reflect "when the work
+    // is planned to happen", which is what the label is trying to convey.
+    const estimateDate = body.estimated_start_date || survey.scheduled_date || null
+    const estimateBase = buildEntityNumberBase('EST', survey.site_address, estimateDate)
+    const { data: existingNumbers } = await context.supabase
+      .from('estimates')
+      .select('estimate_number')
+      .eq('organization_id', context.profile.organization_id)
+      .like('estimate_number', `${estimateBase}%`)
+    const taken = new Set(
+      (existingNumbers || []).map((r) => r.estimate_number as string),
+    )
+    const estimateNumber = withUniqueSuffix(estimateBase, taken)
 
     // Create the estimate
     const { data: estimate, error: createError } = await context.supabase
@@ -152,7 +161,7 @@ export const POST = createApiHandler(
         organization_id: context.profile.organization_id,
         site_survey_id: body.site_survey_id,
         customer_id: body.customer_id || survey.customer_id,
-        estimate_number: estimateNumber || `EST-${Date.now()}`,
+        estimate_number: estimateNumber,
         status: 'draft',
         project_name: body.project_name || survey.job_name,
         project_description: body.project_description,

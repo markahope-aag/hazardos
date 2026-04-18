@@ -368,6 +368,13 @@ describe('Estimates API', () => {
         }
         if (table === 'estimates') {
           return {
+            // New: POST /api/estimates now queries existing estimate_numbers
+            // to dedupe the EST-<street>-<mmddyyyy> label before inserting.
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                like: vi.fn().mockResolvedValue({ data: [], error: null }),
+              }),
+            }),
             insert: vi.fn().mockReturnValue({
               select: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({

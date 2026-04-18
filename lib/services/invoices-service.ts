@@ -101,8 +101,8 @@ export class InvoicesService {
 
     if (error) throwDbError(error, 'create invoice')
 
-    // Log activity
-    await Activity.created('invoice', data.id, data.invoice_number)
+    // The activity_log 'created' entry is emitted by the trg_activity_invoices
+    // DB trigger — no need to log from here.
 
     return data
   }

@@ -252,7 +252,9 @@ export async function sendReminderRow(rowId: string): Promise<ReminderSendResult
         })
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
-        if (/opt[- _]?in|opted out|opt out/i.test(msg)) {
+        // Matches "opt in", "opt-in", "opted in", "opted out", etc. — any
+        // "opt(ed) in/out" phrasing SmsService might throw.
+        if (/opt(ed)?[- _]?(in|out)/i.test(msg)) {
           await markStatus(reminderRow.id, 'cancelled', 'Customer has not opted into SMS')
           return { sent: false, skipped: 'opted_out' }
         }

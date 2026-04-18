@@ -13,9 +13,13 @@ const mockSupabase = vi.hoisted(() => ({
   in: vi.fn(),
   gte: vi.fn(),
   lte: vi.fn(),
+  like: vi.fn(),
+  or: vi.fn(),
   order: vi.fn(),
   range: vi.fn(),
+  limit: vi.fn(),
   single: vi.fn(),
+  maybeSingle: vi.fn(),
   rpc: vi.fn(),
   auth: {
     getUser: vi.fn(),
@@ -34,8 +38,15 @@ const setupChainableMock = () => {
   mockSupabase.in.mockReturnValue(mockSupabase)
   mockSupabase.gte.mockReturnValue(mockSupabase)
   mockSupabase.lte.mockReturnValue(mockSupabase)
+  mockSupabase.like.mockReturnValue(mockSupabase)
+  mockSupabase.or.mockReturnValue(mockSupabase)
   mockSupabase.order.mockReturnValue(mockSupabase)
   mockSupabase.range.mockReturnValue(mockSupabase)
+  mockSupabase.limit.mockReturnValue(mockSupabase)
+  // Side-effect services called from JobsService after a mutation all have
+  // noop stubs (below), so the `single`/`maybeSingle` calls they'd otherwise
+  // emit don't land on the mock. We still reset these to no-default so each
+  // test's own mockResolvedValueOnce chain remains predictable.
 }
 
 // Mock activity service
@@ -52,11 +63,38 @@ vi.mock('@/lib/services/activity-service', () => ({
   Activity: mockActivity,
 }))
 
+// Stub out the post-mutation side effects so they don't consume the shared
+// supabase mock chain and confuse assertions in unrelated tests.
+vi.mock('@/lib/services/sms-service', () => ({
+  SmsService: {
+    sendJobStatusUpdate: vi.fn().mockResolvedValue(null),
+    send: vi.fn().mockResolvedValue(null),
+  },
+}))
+vi.mock('@/lib/services/google-calendar-service', () => ({
+  GoogleCalendarService: {
+    syncJobToCalendar: vi.fn().mockResolvedValue('evt'),
+    deleteCalendarEvent: vi.fn().mockResolvedValue(undefined),
+  },
+}))
+vi.mock('@/lib/services/outlook-calendar-service', () => ({
+  OutlookCalendarService: {
+    syncJobToCalendar: vi.fn().mockResolvedValue('evt'),
+    deleteCalendarEvent: vi.fn().mockResolvedValue(undefined),
+  },
+}))
+
 import { JobsService } from '@/lib/services/jobs-service'
 
 describe('JobsService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // clearAllMocks doesn't drain .mockResolvedValueOnce queues, so a test
+    // that sets up 4 `once` values but only consumes 3 will leak the 4th
+    // into the next test. Explicit reset on the terminal methods keeps
+    // each test's queue clean.
+    mockSupabase.single.mockReset()
+    mockSupabase.maybeSingle.mockReset()
     setupChainableMock()
   })
 
@@ -110,18 +148,23 @@ describe('JobsService', () => {
 
       expect(mockSupabase.auth.getUser).toHaveBeenCalled()
       expect(mockSupabase.from).toHaveBeenCalledWith('profiles')
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('generate_job_number', { org_id: 'org-1' })
+      // job_number is now generated in TS (not via generate_job_number RPC),
+      // so the insert body's job_number follows the JOB-<street>-<mmddyyyy>
+      // convention. Asserting shape rather than exact value keeps this test
+      // resilient to date math.
       expect(mockSupabase.from).toHaveBeenCalledWith('jobs')
       expect(mockSupabase.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           organization_id: 'org-1',
-          job_number: mockJobNumber,
+          job_number: expect.stringMatching(/^JOB-\d+-\d+$/),
           customer_id: mockInput.customer_id,
           status: 'scheduled',
           created_by: mockUser.id,
         })
       )
-      expect(mockActivity.created).toHaveBeenCalledWith('job', 'job-1', mockJobNumber)
+      // Activity.created is no longer called from the service — the
+      // trg_activity_jobs DB trigger logs the creation automatically.
+      expect(mockActivity.created).not.toHaveBeenCalled()
       expect(result).toEqual(mockJob)
     })
 
@@ -396,6 +439,8 @@ describe('JobsService', () => {
   })
 
   describe('getCalendarEvents', () => {
+    // The query now uses an overlap filter (lte start + or on end) instead of
+    // the old gte/lte pair on start_date, so multi-day jobs span properly.
     it('should fetch jobs for calendar date range', async () => {
       const mockJobs = [
         {
@@ -411,8 +456,8 @@ describe('JobsService', () => {
 
       const result = await JobsService.getCalendarEvents('2026-02-01', '2026-02-28')
 
-      expect(mockSupabase.gte).toHaveBeenCalledWith('scheduled_start_date', '2026-02-01')
       expect(mockSupabase.lte).toHaveBeenCalledWith('scheduled_start_date', '2026-02-28')
+      expect(mockSupabase.or).toHaveBeenCalled()
       expect(mockSupabase.neq).toHaveBeenCalledWith('status', 'cancelled')
       expect(result).toHaveLength(1)
     })
@@ -542,6 +587,10 @@ describe('JobsService', () => {
 
   describe('delete', () => {
     it('should delete job successfully', async () => {
+      // delete() now fetches the job's org_id first so it can remove
+      // linked external-calendar events; stub that lookup.
+      mockSupabase.single.mockResolvedValueOnce({ data: { organization_id: 'org-1' }, error: null })
+
       // Mock cancelReminders (which calls update on scheduled_reminders)
       const mockUpdateChain = {
         eq: vi.fn().mockReturnThis(),
@@ -562,6 +611,9 @@ describe('JobsService', () => {
     })
 
     it('should handle delete errors', async () => {
+      // Pre-delete org_id lookup.
+      mockSupabase.single.mockResolvedValueOnce({ data: { organization_id: 'org-1' }, error: null })
+
       // Mock cancelReminders
       const mockUpdateChain = {
         eq: vi.fn().mockReturnThis(),

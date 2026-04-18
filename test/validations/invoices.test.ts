@@ -318,13 +318,13 @@ describe('Invoice Validation Schemas', () => {
       expect(result.success).toBe(true)
     })
 
-    it('should default due_days to 30', () => {
+    it('should leave due_days undefined when omitted so the service picks per-customer default', () => {
       const result = createInvoiceFromJobSchema.safeParse({
         job_id: '550e8400-e29b-41d4-a716-446655440000'
       })
       expect(result.success).toBe(true)
       if (result.success) {
-        expect(result.data.due_days).toBe(30)
+        expect(result.data.due_days).toBeUndefined()
       }
     })
 

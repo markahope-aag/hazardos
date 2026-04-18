@@ -182,7 +182,7 @@ export class PipelineService {
 
     if (error) throwDbError(error, 'create opportunity')
 
-    await Activity.created('opportunity', data.id, input.name)
+    // 'created' activity is auto-logged by trg_activity_opportunities.
 
     return data as Opportunity
   }
@@ -217,7 +217,7 @@ export class PipelineService {
 
     if (error) throwDbError(error, 'update opportunity')
 
-    await Activity.updated('opportunity', id, data.name)
+    // 'updated' activity is auto-logged by trg_activity_opportunities.
 
     return data as Opportunity
   }

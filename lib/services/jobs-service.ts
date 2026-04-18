@@ -13,6 +13,27 @@ import type {
 
 const log = createServiceLogger('JobsService')
 
+// Job number convention JOB-<street>-<mmddyyyy> — shared helper in
+// lib/utils/entity-number keeps this identical to the estimate convention.
+async function generateJobNumber(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  organizationId: string,
+  jobAddress: string | null | undefined,
+  scheduledStartDate: string | null | undefined,
+): Promise<string> {
+  const { buildEntityNumberBase, withUniqueSuffix } = await import('@/lib/utils/entity-number')
+  const base = buildEntityNumberBase('JOB', jobAddress, scheduledStartDate)
+
+  const { data: existing } = await supabase
+    .from('jobs')
+    .select('job_number')
+    .eq('organization_id', organizationId)
+    .like('job_number', `${base}%`)
+
+  const taken = new Set((existing || []).map((r) => r.job_number as string))
+  return withUniqueSuffix(base, taken)
+}
+
 // Fires the external calendar sync(s) the org has active. Failures never
 // block the user's job save — they're logged and surfaced through the
 // calendar_sync_events table's sync_error column instead.
@@ -106,9 +127,12 @@ export class JobsService {
 
     const organizationId = profile.organization_id
 
-    // Generate job number
-    const { data: jobNumber } = await supabase
-      .rpc('generate_job_number', { org_id: organizationId })
+    const jobNumber = await generateJobNumber(
+      supabase,
+      organizationId,
+      input.job_address,
+      input.scheduled_start_date,
+    )
 
     const { data, error } = await supabase
       .from('jobs')
@@ -140,8 +164,8 @@ export class JobsService {
     // Schedule customer reminders
     await JobsService.scheduleReminders(data.id)
 
-    // Log activity
-    await Activity.created('job', data.id, data.job_number)
+    // The 'created' activity_log entry is emitted by the trg_activity_jobs
+    // DB trigger; no need to log from here.
 
     // Push to any connected external calendars (Google / Outlook). Failures
     // are logged but don't block job creation.

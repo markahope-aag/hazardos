@@ -98,7 +98,9 @@ describe('InvoicesService', () => {
 
       expect(invoice.invoice_number).toBe('INV-001')
       expect(invoice.status).toBe('draft')
-      expect(Activity.created).toHaveBeenCalledWith('invoice', 'inv-1', 'INV-001')
+      // Activity.created is no longer called from the service — the
+      // trg_activity_invoices DB trigger emits 'created' automatically.
+      expect(Activity.created).not.toHaveBeenCalled()
     })
 
     it('should throw error when user not authenticated', async () => {
@@ -676,22 +678,35 @@ describe('InvoicesService', () => {
 
   describe('void', () => {
     it('should void invoice and log activity', async () => {
-      mockSupabase.from = vi.fn(() => ({
-        update: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            select: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: {
-                  id: 'inv-1',
-                  invoice_number: 'INV-001',
-                  status: 'void',
-                },
-                error: null,
-              }),
+      // Two separate paths: the invoice update/select/single chain, and the
+      // follow-up cancelPaymentReminders that runs a triple-eq update on
+      // scheduled_reminders. Table-branch the mock so both land correctly.
+      mockSupabase.from = vi.fn((table: string) => {
+        if (table === 'scheduled_reminders') {
+          const updateChain = {
+            eq: vi.fn(() => updateChain),
+          }
+          return {
+            update: vi.fn(() => updateChain),
+          }
+        }
+        return {
+          update: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              select: vi.fn(() => ({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: 'inv-1',
+                    invoice_number: 'INV-001',
+                    status: 'void',
+                  },
+                  error: null,
+                }),
+              })),
             })),
           })),
-        })),
-      }))
+        }
+      })
 
       const invoice = await InvoicesService.void('inv-1')
 
@@ -957,6 +972,13 @@ describe('InvoicesService', () => {
                 return Promise.resolve({ error: null })
               }),
             })),
+          }
+        }
+        if (table === 'scheduled_reminders') {
+          // cancelPaymentReminders: update({status:'cancelled'}).eq().eq().eq()
+          const updateChain = { eq: vi.fn(() => updateChain) }
+          return {
+            update: vi.fn(() => updateChain),
           }
         }
         return {}

@@ -1,25 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock Supabase client
+// vi.mock factories are hoisted, so variables referenced inside them must be
+// declared via vi.hoisted() rather than regular `const` — otherwise the
+// hoisted factory runs before the module-level declaration and blows up
+// with "Cannot access 'x' before initialization".
+const { smsSendMock, resendSendMock } = vi.hoisted(() => ({
+  smsSendMock: vi.fn(),
+  resendSendMock: vi.fn(),
+}))
+
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(),
 }))
 
-// Capture SmsService.send calls so we can assert what made it through
-const smsSendMock = vi.fn()
 vi.mock('@/lib/services/sms-service', () => ({
   SmsService: {
     send: smsSendMock,
   },
 }))
 
-// Resend is dynamically imported inside the sender. Stub it so no real
-// network call is made and we can capture the email payload.
-const resendSendMock = vi.fn()
 vi.mock('resend', () => ({
-  Resend: vi.fn().mockImplementation(() => ({
-    emails: { send: resendSendMock },
-  })),
+  // Use a class so `new Resend(...)` in the sender works; a plain vi.fn
+  // implementation isn't invokable with `new` in this Vitest version.
+  Resend: class MockResend {
+    emails = { send: resendSendMock }
+  },
 }))
 
 import { createClient } from '@/lib/supabase/server'
