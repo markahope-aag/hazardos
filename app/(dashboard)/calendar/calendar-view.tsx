@@ -35,11 +35,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ChevronLeft, ChevronRight, Plus, MapPin, Clock, User } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, MapPin, Clock, User, FileText, FileSignature, Download, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { jobStatusConfig } from '@/types/jobs'
 import { logger, formatError } from '@/lib/utils/logger'
 import Link from 'next/link'
+import { useJobDocuments } from '@/lib/hooks/use-job-documents'
+import { JobDocumentsService } from '@/lib/supabase/job-documents'
+import type { JobDocumentCategory } from '@/types/database'
 
 type ViewMode = 'month' | 'week' | 'day'
 
@@ -52,6 +55,7 @@ interface CalendarJob {
   scheduled_start_time: string | null
   scheduled_end_date: string | null
   estimated_duration_hours: number | null
+  proposal_id: string | null
   job_address: string
   job_city: string | null
   customer: {
@@ -568,6 +572,12 @@ export function CalendarView() {
                     {selectedJob.job_city && <>, {selectedJob.job_city}</>}
                   </p>
                 </div>
+
+                <SelectedJobAttachments
+                  jobId={selectedJob.id}
+                  proposalId={selectedJob.proposal_id}
+                />
+
                 <div className="pt-4">
                   <Button asChild className="w-full">
                     <Link href={`/jobs/${selectedJob.id}`}>
@@ -581,5 +591,92 @@ export function CalendarView() {
         </SheetContent>
       </Sheet>
     </>
+  )
+}
+
+const CATEGORY_LABEL: Record<JobDocumentCategory, string> = {
+  permit: 'Permit',
+  manifest: 'Disposal manifest',
+  clearance: 'Clearance report',
+  air_monitoring: 'Air monitoring',
+  insurance: 'Insurance (COI)',
+  regulatory: 'Regulatory notification',
+  customer_signoff: 'Customer sign-off',
+  correspondence: 'Correspondence',
+  video: 'Video',
+  other: 'Other',
+}
+
+// Small block embedded in the calendar's job popup. Pulls the job's
+// documents from the DB and surfaces the linked proposal (if any) so the
+// user doesn't have to open the full job detail page just to grab a
+// permit or send the proposal.
+function SelectedJobAttachments({
+  jobId,
+  proposalId,
+}: {
+  jobId: string
+  proposalId: string | null
+}) {
+  const { data: documents = [], isLoading } = useJobDocuments(jobId)
+
+  const handleOpen = async (storagePath: string) => {
+    try {
+      const url = await JobDocumentsService.getSignedUrl(storagePath)
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch {
+      // Errors surface through the hook's toast on the full tab; here we
+      // silently swallow so the popup doesn't steal focus.
+    }
+  }
+
+  return (
+    <div className="border-t pt-4 space-y-3">
+      <h4 className="text-sm font-medium text-muted-foreground">Attachments</h4>
+
+      {proposalId && (
+        <Link
+          href={`/proposals/${proposalId}`}
+          className="flex items-center justify-between gap-2 rounded border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50"
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            <FileSignature className="h-4 w-4 text-primary flex-shrink-0" />
+            <span className="truncate">Proposal</span>
+          </span>
+          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+        </Link>
+      )}
+
+      {isLoading ? (
+        <div className="text-xs text-muted-foreground">Loading documents…</div>
+      ) : documents.length === 0 ? (
+        !proposalId && (
+          <div className="text-xs text-muted-foreground">
+            No documents attached. Open the job to upload permits, manifests, videos, etc.
+          </div>
+        )
+      ) : (
+        <ul className="space-y-1">
+          {documents.map((doc) => (
+            <li key={doc.id}>
+              <button
+                type="button"
+                onClick={() => handleOpen(doc.storage_path)}
+                className="flex items-center justify-between gap-2 w-full rounded border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50 text-left"
+              >
+                <span className="flex items-center gap-2 min-w-0">
+                  <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                  <span className="truncate">{doc.file_name}</span>
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground whitespace-nowrap">
+                    {CATEGORY_LABEL[doc.category]}
+                  </span>
+                </span>
+                <Download className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }

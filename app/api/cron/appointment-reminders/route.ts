@@ -1,125 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { timingSafeEqual } from 'crypto';
-import { createClient } from '@/lib/supabase/server';
-import { SmsService } from '@/lib/services/sms-service';
-import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
-import { createRequestLogger, formatError } from '@/lib/utils/logger';
+import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
+import { processDueReminders } from '@/lib/services/reminder-sender'
+import { withCronLogging } from '@/lib/services/cron-runner'
 
-// This endpoint should be called by a cron job (e.g., Vercel Cron) every hour
-// Configure in vercel.json:
-// {
-//   "crons": [{
-//     "path": "/api/cron/appointment-reminders",
-//     "schedule": "0 * * * *"
-//   }]
-// }
-
+// Vercel cron — hits this hourly. Authorization is a timing-safe compare
+// on CRON_SECRET or the Vercel-signed `x-vercel-cron` header.
 export async function GET(request: NextRequest) {
-  const log = createRequestLogger({
-    requestId: crypto.randomUUID(),
-    method: 'GET',
-    path: '/api/cron/appointment-reminders',
-  });
+  const rateLimitResponse = await applyUnifiedRateLimit(request, 'auth')
+  if (rateLimitResponse) return rateLimitResponse
 
-  try {
-    // Apply rate limiting (use auth type for cron jobs - 10/min is plenty)
-    const rateLimitResponse = await applyUnifiedRateLimit(request, 'auth');
-    if (rateLimitResponse) {
-      return rateLimitResponse;
-    }
-
-    // Verify cron secret for security (timing-safe comparison)
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret) {
-      return NextResponse.json({ error: 'Cron not configured' }, { status: 500 });
-    }
-    const expected = Buffer.from(`Bearer ${cronSecret}`);
-    const provided = Buffer.from(authHeader || '');
-    const isAuthorized = expected.length === provided.length && timingSafeEqual(expected, provided);
-    if (!isAuthorized) {
-      // Also allow Vercel cron requests
-      const vercelCronHeader = request.headers.get('x-vercel-cron');
-      if (!vercelCronHeader) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-    }
-
-    const supabase = await createClient();
-
-    // Get all organizations with SMS enabled and appointment reminders enabled
-    const { data: orgsWithSms } = await supabase
-      .from('organization_sms_settings')
-      .select('organization_id, appointment_reminder_hours')
-      .eq('sms_enabled', true)
-      .eq('appointment_reminders_enabled', true);
-
-    if (!orgsWithSms?.length) {
-      return NextResponse.json({ sent: 0, failed: 0, message: 'No organizations with SMS enabled' });
-    }
-
-    let sent = 0;
-    let failed = 0;
-    const errors: Array<{ jobId: string; error: string }> = [];
-
-    for (const org of orgsWithSms) {
-      // Calculate time window for reminders
-      const reminderHours = org.appointment_reminder_hours || 24;
-      const windowStart = new Date();
-      windowStart.setHours(windowStart.getHours() + reminderHours);
-      const windowEnd = new Date(windowStart);
-      windowEnd.setHours(windowEnd.getHours() + 1);
-
-      // Get jobs in reminder window that haven't been reminded yet
-      const windowStartDate = windowStart.toISOString().split('T')[0];
-      const windowEndDate = windowEnd.toISOString().split('T')[0];
-      const { data: jobs } = await supabase
-        .from('jobs')
-        .select('id, organization_id')
-        .eq('organization_id', org.organization_id)
-        .eq('status', 'scheduled')
-        .gte('scheduled_start_date', windowStartDate)
-        .lte('scheduled_start_date', windowEndDate);
-
-      for (const job of jobs || []) {
-        try {
-          const result = await SmsService.sendAppointmentReminder(job.id);
-
-          if (result) {
-            sent++;
-          }
-        } catch (error) {
-          log.error(
-            { 
-              error: formatError(error, 'REMINDER_SEND_ERROR'),
-              jobId: job.id,
-              organizationId: job.organization_id
-            },
-            'Failed to send reminder for job'
-          );
-          errors.push({
-            jobId: job.id,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-          failed++;
-        }
-      }
-    }
-
-    return NextResponse.json({
-      sent,
-      failed,
-      errors: errors.length > 0 ? errors : undefined,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    log.error(
-      { error: formatError(error, 'CRON_JOB_ERROR') },
-      'Cron job error'
-    );
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+  const authHeader = request.headers.get('authorization')
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) {
+    return NextResponse.json({ error: 'Cron not configured' }, { status: 500 })
   }
+  const expected = Buffer.from(`Bearer ${cronSecret}`)
+  const provided = Buffer.from(authHeader || '')
+  const isAuthorized = expected.length === provided.length && timingSafeEqual(expected, provided)
+  if (!isAuthorized && !request.headers.get('x-vercel-cron')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const result = await withCronLogging('appointment-reminders', async () => {
+    const r = await processDueReminders()
+    // Treat any send failures as a yellow condition so the run log records it
+    // and alerting kicks in; skipped (opted-out, no recipient) is normal.
+    return {
+      summary: r,
+      failureCount: r.failed,
+    }
+  })
+
+  return NextResponse.json({
+    sent: result.summary?.sent ?? 0,
+    failed: result.summary?.failed ?? 0,
+    skipped: result.summary?.skipped ?? 0,
+    run_id: result.run_id,
+    status: result.status,
+    timestamp: new Date().toISOString(),
+  })
 }

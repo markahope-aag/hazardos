@@ -37,6 +37,7 @@ const CATEGORY_LABEL: Record<JobDocumentCategory, string> = {
   regulatory: 'Regulatory notification',
   customer_signoff: 'Customer sign-off',
   correspondence: 'Correspondence',
+  video: 'Video',
   other: 'Other',
 }
 
@@ -49,6 +50,7 @@ const CATEGORY_BADGE: Record<JobDocumentCategory, string> = {
   regulatory: 'bg-red-100 text-red-700',
   customer_signoff: 'bg-indigo-100 text-indigo-700',
   correspondence: 'bg-gray-100 text-gray-700',
+  video: 'bg-pink-100 text-pink-700',
   other: 'bg-gray-100 text-gray-600',
 }
 
@@ -89,10 +91,11 @@ export function JobDocuments({ jobId }: JobDocumentsProps) {
     const file = e.target.files?.[0]
     if (!file) return
     setPendingFile(file)
-    // Best-effort category inference from filename — user can override before
-    // confirming.
+    // Best-effort category inference — MIME wins for videos (authoritative),
+    // filename keywords for the paperwork categories.
     const name = file.name.toLowerCase()
-    if (name.includes('permit')) setPendingCategory('permit')
+    if (file.type.startsWith('video/')) setPendingCategory('video')
+    else if (name.includes('permit')) setPendingCategory('permit')
     else if (name.includes('manifest')) setPendingCategory('manifest')
     else if (name.includes('clearance')) setPendingCategory('clearance')
     else if (name.includes('air') || name.includes('pcm') || name.includes('tem')) setPendingCategory('air_monitoring')

@@ -69,6 +69,7 @@ export type JobDocumentCategory =
   | 'regulatory'
   | 'customer_signoff'
   | 'correspondence'
+  | 'video'
   | 'other'
 export type CustomerStatus = 'lead' | 'prospect' | 'customer' | 'inactive'
 export type CustomerSource = 'phone' | 'website' | 'mail' | 'referral' | 'other'

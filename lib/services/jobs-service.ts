@@ -375,14 +375,26 @@ export class JobsService {
 
     if (error) throwDbError(error, 'update job')
 
-    // Cancelled jobs shouldn't occupy anyone's calendar. For any other
-    // status change (or non-status update), re-sync so schedule changes
-    // propagate — the calendar services update the existing event in place.
+    // Cancelled jobs shouldn't occupy anyone's calendar and shouldn't keep
+    // pending reminders queued up. For any other status change (or non-status
+    // update), re-sync the external calendar and re-schedule reminders — the
+    // calendar services update their event in place; scheduleReminders is
+    // idempotent.
     if (data.organization_id) {
       if (data.status === 'cancelled') {
         await deleteJobFromExternalCalendars(data.id, data.organization_id)
+        await JobsService.cancelReminders(data.id)
       } else {
         await syncJobToExternalCalendars(data.id, data.organization_id)
+        // Only re-schedule if the timing actually changed — avoids churn on
+        // updates that don't move the job (e.g. changing crew).
+        const timingChanged =
+          (updates as Record<string, unknown>).scheduled_start_date !== undefined
+          || (updates as Record<string, unknown>).scheduled_start_time !== undefined
+          || (updates as Record<string, unknown>).scheduled_end_date !== undefined
+        if (timingChanged) {
+          await JobsService.scheduleReminders(data.id)
+        }
       }
     }
 
@@ -407,6 +419,26 @@ export class JobsService {
     // Log activity if status actually changed
     if (oldStatus && oldStatus !== status) {
       await Activity.statusChanged('job', id, updatedJob.job_number, oldStatus, status)
+    }
+
+    // Auto-notify the customer on meaningful transitions. The SMS service
+    // itself handles all the "can we actually send" gates (org toggle,
+    // sms_enabled, customer opt-in, phone on file), so we just fire the
+    // appropriate variant and ignore the nullable return.
+    if (oldStatus && oldStatus !== status) {
+      try {
+        const { SmsService } = await import('@/lib/services/sms-service')
+        if (status === 'in_progress') {
+          await SmsService.sendJobStatusUpdate(id, 'arrived')
+        } else if (status === 'completed') {
+          await SmsService.sendJobStatusUpdate(id, 'completed')
+        }
+      } catch (e) {
+        log.warn(
+          { jobId: id, status, err: formatError(e) },
+          'job status SMS notification failed',
+        )
+      }
     }
 
     return updatedJob
@@ -440,11 +472,24 @@ export class JobsService {
 
   // ========== REMINDERS ==========
 
+  // Customer-facing cadence:
+  //   1. Email on confirmation (immediate)
+  //   2. SMS one week before the job
+  //   3. SMS on the morning of the job
+  //
+  // Template variables are deliberately a small, safe set — customer name,
+  // date/time, address, job number. No internal notes, access codes, or
+  // other staff-facing fields ever enter this payload, so the processor
+  // can render without worrying about leakage.
+  //
+  // Idempotent: cancels any pending rows for this job first so calling it
+  // after a reschedule doesn't produce duplicates.
   static async scheduleReminders(jobId: string): Promise<void> {
     const supabase = await createClient()
 
     const job = await JobsService.getById(jobId)
     if (!job || !job.customer) return
+    if (!job.scheduled_start_date) return
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -454,41 +499,105 @@ export class JobsService {
 
     if (!profile) return
 
-    const scheduledDate = new Date(job.scheduled_start_date)
+    // Clear any previously pending reminders for this job so we don't end up
+    // with stale rows after a reschedule.
+    await supabase
+      .from('scheduled_reminders')
+      .update({ status: 'cancelled' })
+      .eq('related_type', 'job')
+      .eq('related_id', jobId)
+      .eq('status', 'pending')
+
     const customer = job.customer
+    const scheduledDate = new Date(job.scheduled_start_date)
+    const now = new Date()
 
-    const reminders = [
-      { days: 7, type: 'job_7day', template: 'job_reminder_7day' },
-      { days: 3, type: 'job_3day', template: 'job_reminder_3day' },
-      { days: 1, type: 'job_1day', template: 'job_reminder_1day' },
-    ]
+    const commonVars = {
+      customer_name: customer.name || customer.company_name,
+      scheduled_date: job.scheduled_start_date,
+      scheduled_time: job.scheduled_start_time,
+      property_address: job.job_address,
+      job_number: job.job_number,
+    }
 
-    for (const reminder of reminders) {
-      const reminderDate = new Date(scheduledDate)
-      reminderDate.setDate(reminderDate.getDate() - reminder.days)
-      reminderDate.setHours(9, 0, 0, 0) // 9 AM
+    const rows: Array<Record<string, unknown>> = []
 
-      // Only schedule if in the future
-      if (reminderDate > new Date()) {
-        await supabase.from('scheduled_reminders').insert({
-          organization_id: profile.organization_id,
-          related_type: 'job',
-          related_id: jobId,
-          reminder_type: reminder.type,
-          recipient_type: 'customer',
-          recipient_email: customer.email,
-          recipient_phone: customer.phone,
-          channel: 'email',
-          scheduled_for: reminderDate.toISOString(),
-          template_slug: reminder.template,
-          template_variables: {
-            customer_name: customer.name || customer.company_name,
-            scheduled_date: job.scheduled_start_date,
-            scheduled_time: job.scheduled_start_time,
-            property_address: job.job_address,
-            job_number: job.job_number,
-          },
-        })
+    // 1. Confirmation email — goes out on the next cron tick.
+    if (customer.email) {
+      rows.push({
+        organization_id: profile.organization_id,
+        related_type: 'job',
+        related_id: jobId,
+        reminder_type: 'job_confirmation',
+        recipient_type: 'customer',
+        recipient_email: customer.email,
+        recipient_phone: customer.phone,
+        channel: 'email',
+        scheduled_for: now.toISOString(),
+        template_slug: 'job_confirmation',
+        template_variables: commonVars,
+      })
+    }
+
+    // 2. Week-before SMS at 9am local-ish (server time).
+    const weekBefore = new Date(scheduledDate)
+    weekBefore.setDate(weekBefore.getDate() - 7)
+    weekBefore.setHours(9, 0, 0, 0)
+    if (weekBefore > now && customer.phone) {
+      rows.push({
+        organization_id: profile.organization_id,
+        related_type: 'job',
+        related_id: jobId,
+        reminder_type: 'job_reminder_week',
+        recipient_type: 'customer',
+        recipient_email: customer.email,
+        recipient_phone: customer.phone,
+        channel: 'sms',
+        scheduled_for: weekBefore.toISOString(),
+        template_slug: 'job_reminder_week',
+        template_variables: commonVars,
+      })
+    }
+
+    // 3. Day-of SMS at 7am so the customer sees it before the crew arrives.
+    const dayOf = new Date(scheduledDate)
+    dayOf.setHours(7, 0, 0, 0)
+    if (dayOf > now && customer.phone) {
+      rows.push({
+        organization_id: profile.organization_id,
+        related_type: 'job',
+        related_id: jobId,
+        reminder_type: 'job_reminder_day',
+        recipient_type: 'customer',
+        recipient_email: customer.email,
+        recipient_phone: customer.phone,
+        channel: 'sms',
+        scheduled_for: dayOf.toISOString(),
+        template_slug: 'job_reminder_day',
+        template_variables: commonVars,
+      })
+    }
+
+    if (rows.length === 0) return
+
+    const { data: inserted } = await supabase
+      .from('scheduled_reminders')
+      .insert(rows)
+      .select('id, template_slug')
+
+    // Fire the confirmation email synchronously so the customer gets it
+    // now, not on the next hourly cron tick. Any failure is captured on
+    // the row itself and will be picked up by the processor next tick.
+    const confirmation = inserted?.find((r) => r.template_slug === 'job_confirmation')
+    if (confirmation) {
+      try {
+        const { sendReminderRow } = await import('@/lib/services/reminder-sender')
+        await sendReminderRow(confirmation.id)
+      } catch (e) {
+        log.warn(
+          { jobId, rowId: confirmation.id, err: formatError(e) },
+          'immediate confirmation send failed; cron will retry',
+        )
       }
     }
   }

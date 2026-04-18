@@ -297,7 +297,115 @@ export class InvoicesService {
     // Log activity
     await Activity.sent('invoice', id, invoice.invoice_number)
 
+    // Queue payment reminders (SMS) tied to the due date. Guarded by the
+    // org's payment_reminders_enabled toggle — no scheduled rows are created
+    // if the feature is off.
+    try {
+      await this.schedulePaymentReminders(updatedInvoice, profile.organization_id)
+    } catch (e) {
+      log.warn(
+        { invoiceId: id, err: formatError(e) },
+        'failed to schedule payment reminders; invoice send itself succeeded',
+      )
+    }
+
     return updatedInvoice
+  }
+
+  // Creates scheduled_reminders rows for a just-sent invoice:
+  //   - 3 days before due_date (early nudge)
+  //   - on the due date (due-today nudge)
+  //   - 3 days after due_date (overdue nudge)
+  // All SMS. Skipped entirely if the org toggle is off or the customer
+  // isn't opted into SMS / has no phone.
+  private static async schedulePaymentReminders(
+    invoice: Invoice,
+    organizationId: string,
+  ): Promise<void> {
+    if (!invoice.due_date) return
+    const customer = invoice.customer
+    if (!customer?.phone) return
+
+    const supabase = await createClient()
+
+    const { data: smsSettings } = await supabase
+      .from('organization_sms_settings')
+      .select('payment_reminders_enabled, sms_enabled')
+      .eq('organization_id', organizationId)
+      .maybeSingle()
+
+    if (!smsSettings?.sms_enabled || !smsSettings?.payment_reminders_enabled) return
+
+    // Cancel any prior pending reminders for this invoice so reschedules
+    // don't duplicate.
+    await supabase
+      .from('scheduled_reminders')
+      .update({ status: 'cancelled' })
+      .eq('related_type', 'invoice')
+      .eq('related_id', invoice.id)
+      .eq('status', 'pending')
+
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('name')
+      .eq('id', organizationId)
+      .single()
+    const companyName = org?.name || 'HazardOS'
+
+    const due = new Date(invoice.due_date)
+    const now = new Date()
+
+    const commonVars = {
+      company_name: companyName,
+      invoice_number: invoice.invoice_number,
+      amount: formatCurrency(invoice.balance_due),
+      due_date: due.toLocaleDateString(),
+      pay_url: `${process.env.NEXT_PUBLIC_APP_URL || ''}/pay/${invoice.id}`,
+    }
+
+    const reminderSpecs: Array<{ daysOffset: number; slug: string }> = [
+      { daysOffset: -3, slug: 'payment_reminder_pre_due' },
+      { daysOffset: 0, slug: 'payment_reminder_due' },
+      { daysOffset: 3, slug: 'payment_reminder_overdue' },
+    ]
+
+    const rows: Array<Record<string, unknown>> = []
+    for (const spec of reminderSpecs) {
+      const when = new Date(due)
+      when.setDate(when.getDate() + spec.daysOffset)
+      when.setHours(10, 0, 0, 0)
+      if (when <= now) continue
+      rows.push({
+        organization_id: organizationId,
+        related_type: 'invoice',
+        related_id: invoice.id,
+        reminder_type: spec.slug,
+        recipient_type: 'customer',
+        recipient_email: customer.email,
+        recipient_phone: customer.phone,
+        channel: 'sms',
+        scheduled_for: when.toISOString(),
+        template_slug: spec.slug,
+        template_variables: commonVars,
+      })
+    }
+
+    if (rows.length > 0) {
+      await supabase.from('scheduled_reminders').insert(rows)
+    }
+  }
+
+  // Cancels pending payment reminders for an invoice. Called when the
+  // invoice is paid or voided so the customer doesn't get a "due today"
+  // text after already paying.
+  private static async cancelPaymentReminders(invoiceId: string): Promise<void> {
+    const supabase = await createClient()
+    await supabase
+      .from('scheduled_reminders')
+      .update({ status: 'cancelled' })
+      .eq('related_type', 'invoice')
+      .eq('related_id', invoiceId)
+      .eq('status', 'pending')
   }
 
   private static async sendInvoiceEmail(
@@ -403,12 +511,26 @@ export class InvoicesService {
       throw new SecureError('VALIDATION_ERROR', 'Customer has no phone number', 'phone')
     }
 
-    const paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/pay/${invoice.id}`
+    // Look up the org name so we can interpolate it into the template.
+    const supabase = await createClient()
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('name')
+      .eq('id', organizationId)
+      .single()
 
-    await SmsService.send(organizationId, {
+    // Use the system payment_reminder template so wording is consistent
+    // with scheduled reminders and orgs can override it. message_type is
+    // derived from the template (payment_reminder — a valid enum value).
+    await SmsService.sendTemplated(organizationId, {
       to: customer.phone,
-      body: `Invoice ${invoice.invoice_number}: ${formatCurrency(invoice.balance_due)} due by ${new Date(invoice.due_date).toLocaleDateString()}. Pay now: ${paymentUrl}`,
-      message_type: 'invoice',
+      template_type: 'payment_reminder',
+      variables: {
+        company_name: org?.name || 'HazardOS',
+        invoice_number: invoice.invoice_number,
+        amount: formatCurrency(invoice.balance_due),
+        due_date: new Date(invoice.due_date).toLocaleDateString(),
+      },
       customer_id: customer.id,
       related_entity_type: 'invoice',
       related_entity_id: invoice.id,
@@ -437,8 +559,8 @@ export class InvoicesService {
   static async void(id: string): Promise<Invoice> {
     const invoice = await this.update(id, { status: 'void' } as Partial<Invoice>)
 
-    // Log activity
     await Activity.statusChanged('invoice', id, invoice.invoice_number, 'active', 'void')
+    await this.cancelPaymentReminders(id)
 
     return invoice
   }
@@ -580,13 +702,18 @@ export class InvoicesService {
 
     if (error) throwDbError(error, 'create payment')
 
-    // Update job status to paid if invoice is now paid
+    // Update job status to paid if invoice is now paid, and cancel any
+    // pending SMS payment reminders so the customer isn't chased for an
+    // invoice they've already cleared.
     const invoice = await this.getById(invoiceId)
-    if (invoice?.status === 'paid' && invoice.job_id) {
-      await supabase
-        .from('jobs')
-        .update({ status: 'paid', updated_at: new Date().toISOString() })
-        .eq('id', invoice.job_id)
+    if (invoice?.status === 'paid') {
+      await this.cancelPaymentReminders(invoiceId)
+      if (invoice.job_id) {
+        await supabase
+          .from('jobs')
+          .update({ status: 'paid', updated_at: new Date().toISOString() })
+          .eq('id', invoice.job_id)
+      }
     }
 
     // Log activity

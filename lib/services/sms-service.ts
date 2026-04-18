@@ -252,16 +252,32 @@ export class SmsService {
 
     if (!job.customer?.phone || !job.customer?.sms_opt_in) return null;
 
-    const variables = {
-      company_name: job.organization.name,
-      eta: eta || 'shortly',
-      company_phone: job.organization.phone || '',
-    };
+    const company = job.organization.name as string;
+    const companyPhone = (job.organization.phone as string) || '';
 
-    return this.sendTemplated(job.organization_id, {
+    // Different statusTypes need meaningfully different wording — "on the
+    // way, ETA X" is wrong once the crew has arrived or the job is done.
+    // Template library only has one job_status row today, so we render
+    // directly here and send via `send` (not `sendTemplated`). If custom
+    // wording becomes a per-org need, this is the spot to move the content
+    // back into sms_templates.
+    let body: string
+    switch (statusType) {
+      case 'en_route':
+        body = `${company}: Our crew is on the way! ETA ${eta || 'shortly'}. Questions? Call ${companyPhone || 'us'}.`
+        break
+      case 'arrived':
+        body = `${company}: Our crew has arrived at your property and is starting work. Questions? Call ${companyPhone || 'us'}.`
+        break
+      case 'completed':
+        body = `${company}: Your job is complete. Thanks for choosing us — we'll follow up with final paperwork shortly.`
+        break
+    }
+
+    return this.send(job.organization_id, {
       to: job.customer.phone,
-      template_type: 'job_status',
-      variables,
+      body,
+      message_type: 'job_status',
       customer_id: job.customer_id,
       related_entity_type: 'job',
       related_entity_id: jobId,
@@ -480,6 +496,115 @@ export class SmsService {
     const { data, error } = await query;
     if (error) throwDbError(error, 'fetch SMS messages');
     return data || [];
+  }
+
+  // ========== CONVERSATIONS ==========
+  //
+  // The inbox lists one row per customer with the most recent message as a
+  // preview. The "unread" count is approximated as inbound messages newer
+  // than the most recent outbound — there isn't (yet) a read/unread column
+  // because reading is implicit: once staff has replied, the inbound is
+  // "answered", and if staff hasn't replied, the unread flag stays up.
+
+  static async getConversations(
+    organizationId: string,
+    options: { search?: string; limit?: number } = {},
+  ): Promise<Array<{
+    customer_id: string | null
+    customer_name: string | null
+    customer_phone: string | null
+    last_message_body: string
+    last_message_direction: string
+    last_message_at: string
+    unread_inbound: number
+    total_messages: number
+  }>> {
+    const supabase = await createClient()
+
+    // Pull a recent slice, group in code. For the expected scale
+    // (thousands of messages, hundreds of customers) this is plenty fast;
+    // if it gets slow, move to a SQL window function.
+    const { data, error } = await supabase
+      .from('sms_messages')
+      .select('id, customer_id, from_phone, to_phone, body, direction, queued_at, received_at, sent_at')
+      .eq('organization_id', organizationId)
+      .order('queued_at', { ascending: false })
+      .limit(500)
+    if (error) throwDbError(error, 'fetch SMS conversations')
+
+    const threads = new Map<string, typeof data[number][]>()
+    for (const msg of data || []) {
+      // Conversations are keyed by customer_id if we have one, otherwise by
+      // the "other side" phone number so raw inbound messages from unknown
+      // senders still show up instead of disappearing.
+      const key = msg.customer_id
+        ?? (msg.direction === 'inbound' ? msg.from_phone : msg.to_phone)
+        ?? 'unknown'
+      const list = threads.get(key) ?? []
+      list.push(msg)
+      threads.set(key, list)
+    }
+
+    const customerIds = [...new Set(
+      (data || []).map((m) => m.customer_id).filter((id): id is string => !!id),
+    )]
+
+    const customerMap = new Map<string, { name: string | null; phone: string | null }>()
+    if (customerIds.length > 0) {
+      const { data: customers } = await supabase
+        .from('customers')
+        .select('id, name, company_name, phone, mobile_phone, first_name, last_name')
+        .in('id', customerIds)
+      for (const c of customers || []) {
+        customerMap.set(c.id, {
+          name: c.name || c.company_name || [c.first_name, c.last_name].filter(Boolean).join(' ') || null,
+          phone: c.phone || c.mobile_phone || null,
+        })
+      }
+    }
+
+    const conversations = [...threads.entries()].map(([key, msgs]) => {
+      const sorted = [...msgs].sort((a, b) => {
+        const at = a.received_at ?? a.sent_at ?? a.queued_at
+        const bt = b.received_at ?? b.sent_at ?? b.queued_at
+        return String(bt).localeCompare(String(at))
+      })
+      const last = sorted[0]
+      const customer = last.customer_id ? customerMap.get(last.customer_id) : undefined
+
+      // Unread = inbound messages queued after the most recent outbound.
+      let unread = 0
+      for (const m of sorted) {
+        if (m.direction === 'outbound') break
+        unread++
+      }
+
+      return {
+        customer_id: last.customer_id,
+        customer_name: customer?.name ?? null,
+        customer_phone:
+          customer?.phone
+          ?? (last.direction === 'inbound' ? last.from_phone : last.to_phone)
+          ?? (key === 'unknown' ? null : key),
+        last_message_body: last.body,
+        last_message_direction: last.direction,
+        last_message_at: last.received_at ?? last.sent_at ?? last.queued_at,
+        unread_inbound: unread,
+        total_messages: sorted.length,
+      }
+    })
+
+    const searchLower = options.search?.toLowerCase().trim()
+    const filtered = searchLower
+      ? conversations.filter((c) =>
+          (c.customer_name || '').toLowerCase().includes(searchLower)
+          || (c.customer_phone || '').includes(searchLower)
+          || c.last_message_body.toLowerCase().includes(searchLower),
+        )
+      : conversations
+
+    filtered.sort((a, b) => b.last_message_at.localeCompare(a.last_message_at))
+    return options.limit ? filtered.slice(0, options.limit) : filtered
   }
 
   // ========== OPT-IN/OPT-OUT ==========
