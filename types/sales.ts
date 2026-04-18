@@ -40,6 +40,7 @@ export interface Opportunity {
   site_contact_id: string | null
   owner_id: string | null
   // Property / Site
+  property_id: string | null
   service_address_line1: string | null
   service_address_line2: string | null
   service_city: string | null

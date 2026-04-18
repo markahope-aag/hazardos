@@ -299,10 +299,19 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
                   <Separator />
                   <div className="flex items-start gap-2 text-sm">
                     <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <div>
+                    <div className="flex-1">
                       <p>{customer.address_line1}</p>
                       {customer.address_line2 && <p>{customer.address_line2}</p>}
                       <p>{[customer.city, customer.state, customer.zip].filter(Boolean).join(', ')}</p>
+                      {customer.property_id && (
+                        <Link
+                          href={`/crm/properties/${customer.property_id}`}
+                          className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-primary hover:underline"
+                        >
+                          View property history
+                          <ArrowRight className="h-3 w-3" />
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </>

@@ -59,6 +59,7 @@ export interface AttributionTouchpoint {
 }
 
 // Customer management types
+export type PropertyContactRole = 'owner' | 'previous_owner' | 'tenant' | 'site_contact' | 'billing_contact'
 export type CustomerStatus = 'lead' | 'prospect' | 'customer' | 'inactive'
 export type CustomerSource = 'phone' | 'website' | 'mail' | 'referral' | 'other'
 export type AppointmentStatus = 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
@@ -462,6 +463,8 @@ export interface Database {
           insurance_adjuster_name: string | null
           insurance_adjuster_phone: string | null
           insurance_adjuster_email: string | null
+          // Property
+          property_id: string | null
           // Meta
           created_at: string
           updated_at: string
@@ -485,6 +488,7 @@ export interface Database {
           preferred_contact_method?: string | null
           address_line1?: string | null
           address_line2?: string | null
+          property_id?: string | null
           city?: string | null
           state?: string | null
           zip?: string | null
@@ -539,6 +543,7 @@ export interface Database {
           email?: string | null
           phone?: string | null
           mobile_phone?: string | null
+          property_id?: string | null
           office_phone?: string | null
           preferred_contact_method?: string | null
           address_line1?: string | null
@@ -590,6 +595,7 @@ export interface Database {
           organization_id: string
           estimator_id: string | null
           customer_id: string | null
+          property_id: string | null
           created_at: string
           updated_at: string
           job_name: string
@@ -644,6 +650,7 @@ export interface Database {
           organization_id: string
           estimator_id?: string | null
           customer_id?: string | null
+          property_id?: string | null
           created_at?: string
           updated_at?: string
           job_name: string
@@ -698,6 +705,7 @@ export interface Database {
           organization_id?: string
           estimator_id?: string | null
           customer_id?: string | null
+          property_id?: string | null
           created_at?: string
           updated_at?: string
           job_name?: string
@@ -924,6 +932,7 @@ export interface Database {
           site_survey_id: string
           estimate_id: string
           organization_id: string
+          property_id: string | null
           job_number: string
           start_date: string | null
           end_date: string | null
@@ -944,6 +953,7 @@ export interface Database {
           site_survey_id: string
           estimate_id: string
           organization_id: string
+          property_id?: string | null
           job_number: string
           start_date?: string | null
           end_date?: string | null
@@ -964,6 +974,7 @@ export interface Database {
           site_survey_id?: string
           estimate_id?: string
           organization_id?: string
+          property_id?: string | null
           job_number?: string
           start_date?: string | null
           end_date?: string | null
@@ -1327,6 +1338,98 @@ export interface Database {
           updated_at?: string
         }
       }
+      properties: {
+        Row: {
+          id: string
+          organization_id: string
+          address_line1: string
+          address_line2: string | null
+          city: string | null
+          state: string | null
+          zip: string | null
+          normalized_address: string
+          latitude: number | null
+          longitude: number | null
+          notes: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          address_line1: string
+          address_line2?: string | null
+          city?: string | null
+          state?: string | null
+          zip?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          address_line1?: string
+          address_line2?: string | null
+          city?: string | null
+          state?: string | null
+          zip?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      property_contacts: {
+        Row: {
+          id: string
+          organization_id: string
+          property_id: string
+          contact_id: string
+          role: PropertyContactRole
+          is_current: boolean
+          moved_in_date: string | null
+          moved_out_date: string | null
+          notes: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          property_id: string
+          contact_id: string
+          role: PropertyContactRole
+          is_current?: boolean
+          moved_in_date?: string | null
+          moved_out_date?: string | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          property_id?: string
+          contact_id?: string
+          role?: PropertyContactRole
+          is_current?: boolean
+          moved_in_date?: string | null
+          moved_out_date?: string | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -1373,6 +1476,8 @@ export type MaterialCost = Database['public']['Tables']['material_costs']['Row']
 export type DisposalFee = Database['public']['Tables']['disposal_fees']['Row']
 export type TravelRate = Database['public']['Tables']['travel_rates']['Row']
 export type PricingSetting = Database['public']['Tables']['pricing_settings']['Row']
+export type Property = Database['public']['Tables']['properties']['Row']
+export type PropertyContact = Database['public']['Tables']['property_contacts']['Row']
 
 // Insert types
 export type OrganizationInsert = Database['public']['Tables']['organizations']['Insert']
@@ -1394,6 +1499,8 @@ export type MaterialCostInsert = Database['public']['Tables']['material_costs'][
 export type DisposalFeeInsert = Database['public']['Tables']['disposal_fees']['Insert']
 export type TravelRateInsert = Database['public']['Tables']['travel_rates']['Insert']
 export type PricingSettingInsert = Database['public']['Tables']['pricing_settings']['Insert']
+export type PropertyInsert = Database['public']['Tables']['properties']['Insert']
+export type PropertyContactInsert = Database['public']['Tables']['property_contacts']['Insert']
 
 // Update types
 export type OrganizationUpdate = Database['public']['Tables']['organizations']['Update']
@@ -1415,6 +1522,8 @@ export type MaterialCostUpdate = Database['public']['Tables']['material_costs'][
 export type DisposalFeeUpdate = Database['public']['Tables']['disposal_fees']['Update']
 export type TravelRateUpdate = Database['public']['Tables']['travel_rates']['Update']
 export type PricingSettingUpdate = Database['public']['Tables']['pricing_settings']['Update']
+export type PropertyUpdate = Database['public']['Tables']['properties']['Update']
+export type PropertyContactUpdate = Database['public']['Tables']['property_contacts']['Update']
 
 // Structured types for JSONB fields
 export interface EquipmentNeeded {

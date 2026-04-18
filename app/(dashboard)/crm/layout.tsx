@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Users, Building2, Target, Briefcase, Kanban, ArrowLeft } from 'lucide-react'
+import { Users, Building2, Target, Briefcase, Kanban, ArrowLeft, MapPin } from 'lucide-react'
 
 const crmTabs = [
+  { href: '/crm/properties', label: 'Properties', icon: MapPin },
   { href: '/crm/contacts', label: 'Contacts', icon: Users },
   { href: '/crm/companies', label: 'Companies', icon: Building2 },
   { href: '/crm/opportunities', label: 'Opportunities', icon: Target },
