@@ -31,6 +31,13 @@ interface Customer {
   name: string
   company_name: string | null
   email: string | null
+  contact_type: 'residential' | 'commercial' | null
+}
+
+// Residential Net 15, commercial Net 30 — mirrors the default in
+// InvoicesService.createFromJob on the backend so both paths agree.
+function defaultDueDaysFor(contactType: Customer['contact_type']): number {
+  return contactType === 'commercial' ? 30 : 15
 }
 
 interface Job {
@@ -211,7 +218,16 @@ export default function NewInvoicePage() {
                 <Label>Select Customer *</Label>
                 <Select
                   value={formData.customer_id}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, customer_id: value }))}
+                  onValueChange={(value) => {
+                    const selected = customers.find((c) => c.id === value)
+                    const days = defaultDueDaysFor(selected?.contact_type ?? null)
+                    setFormData(prev => ({
+                      ...prev,
+                      customer_id: value,
+                      due_date: addDays(new Date(), days),
+                      payment_terms: `Net ${days}`,
+                    }))
+                  }}
                   disabled={loadingCustomers}
                 >
                   <SelectTrigger>

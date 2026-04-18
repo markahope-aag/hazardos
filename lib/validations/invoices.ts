@@ -79,7 +79,10 @@ export const sendInvoiceSchema = z.object({
 // Create invoice from job
 export const createInvoiceFromJobSchema = z.object({
   job_id: z.string().uuid('Invalid job ID'),
-  due_days: z.number().int().positive().optional().default(30),
+  // Optional — when omitted, the service picks a default based on the
+  // customer (residential → Net 15, commercial → Net 30, or the company's
+  // own payment_terms override when present).
+  due_days: z.number().int().positive().optional(),
   include_change_orders: z.boolean().optional().default(true),
 })
 

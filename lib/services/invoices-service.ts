@@ -16,6 +16,51 @@ import type {
 
 const log = createServiceLogger('InvoicesService')
 
+// Default payment windows reflect the company's real policy: residential
+// customers get Net 15, commercial customers Net 30. A commercial account
+// with a negotiated arrangement overrides via companies.payment_terms.
+const DEFAULT_RESIDENTIAL_DUE_DAYS = 15
+const DEFAULT_COMMERCIAL_DUE_DAYS = 30
+
+function resolveDueTerms(input: {
+  explicitDueDays?: number
+  contactType?: string | null
+  companyPaymentTerms?: string | null
+}): { dueDays: number; paymentTermsLabel: string } {
+  // 1. Explicit caller override beats everything.
+  if (input.explicitDueDays && input.explicitDueDays > 0) {
+    return {
+      dueDays: input.explicitDueDays,
+      paymentTermsLabel: `Net ${input.explicitDueDays}`,
+    }
+  }
+
+  // 2. Company's stored payment_terms. We try to parse "Net N" so the
+  //    due_date math still works, but fall back to a safe numeric default
+  //    while preserving the company's exact label text.
+  if (input.companyPaymentTerms) {
+    const match = /Net\s+(\d+)/i.exec(input.companyPaymentTerms)
+    if (match) {
+      return {
+        dueDays: parseInt(match[1], 10),
+        paymentTermsLabel: input.companyPaymentTerms,
+      }
+    }
+    // Non-standard label (e.g. "Due on receipt", "COD") — keep the label
+    // verbatim on the invoice and fall back to 30 days for due_date math.
+    return {
+      dueDays: DEFAULT_COMMERCIAL_DUE_DAYS,
+      paymentTermsLabel: input.companyPaymentTerms,
+    }
+  }
+
+  // 3. Residential vs commercial default.
+  if (input.contactType === 'commercial') {
+    return { dueDays: DEFAULT_COMMERCIAL_DUE_DAYS, paymentTermsLabel: `Net ${DEFAULT_COMMERCIAL_DUE_DAYS}` }
+  }
+  return { dueDays: DEFAULT_RESIDENTIAL_DUE_DAYS, paymentTermsLabel: `Net ${DEFAULT_RESIDENTIAL_DUE_DAYS}` }
+}
+
 export class InvoicesService {
   static async create(input: CreateInvoiceInput): Promise<Invoice> {
     const supabase = await createClient()
@@ -65,12 +110,14 @@ export class InvoicesService {
   static async createFromJob(input: CreateInvoiceFromJobInput): Promise<Invoice> {
     const supabase = await createClient()
 
-    // Get job with related data
+    // Get job with related data. We also pull the customer's company so
+    // commercial clients with their own negotiated payment terms get the
+    // right default (company.payment_terms overrides the per-type default).
     const { data: job, error: jobError } = await supabase
       .from('jobs')
       .select(`
         *,
-        customer:customers(*),
+        customer:customers(*, company:companies!company_id(id, payment_terms)),
         change_orders:job_change_orders(*)
       `)
       .eq('id', input.job_id)
@@ -78,16 +125,30 @@ export class InvoicesService {
 
     if (jobError || !job) throw new SecureError('NOT_FOUND', 'Job not found')
 
-    // Calculate due date
+    // Resolve due terms:
+    //   1. Explicit `due_days` on the request wins (manual override).
+    //   2. Else the company's `payment_terms` if it parses as "Net N".
+    //   3. Else by contact_type — residential Net 15, commercial Net 30.
+    //   4. Final fallback: Net 30.
+    const customer = Array.isArray(job.customer) ? job.customer[0] : job.customer
+    const company = customer && 'company' in customer
+      ? (Array.isArray(customer.company) ? customer.company[0] : customer.company)
+      : null
+    const { dueDays, paymentTermsLabel } = resolveDueTerms({
+      explicitDueDays: input.due_days,
+      contactType: customer?.contact_type,
+      companyPaymentTerms: company?.payment_terms,
+    })
+
     const dueDate = new Date()
-    dueDate.setDate(dueDate.getDate() + (input.due_days || 30))
+    dueDate.setDate(dueDate.getDate() + dueDays)
 
     // Create invoice
     const invoice = await this.create({
       job_id: input.job_id,
       customer_id: job.customer_id,
       due_date: dueDate.toISOString().split('T')[0],
-      payment_terms: `Net ${input.due_days || 30}`,
+      payment_terms: paymentTermsLabel,
     })
 
     // Collect all line items for batch insert (single query)
