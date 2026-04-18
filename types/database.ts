@@ -60,6 +60,16 @@ export interface AttributionTouchpoint {
 
 // Customer management types
 export type PropertyContactRole = 'owner' | 'previous_owner' | 'tenant' | 'site_contact' | 'billing_contact'
+export type JobDocumentCategory =
+  | 'permit'
+  | 'manifest'
+  | 'clearance'
+  | 'air_monitoring'
+  | 'insurance'
+  | 'regulatory'
+  | 'customer_signoff'
+  | 'correspondence'
+  | 'other'
 export type CustomerStatus = 'lead' | 'prospect' | 'customer' | 'inactive'
 export type CustomerSource = 'phone' | 'website' | 'mail' | 'referral' | 'other'
 export type AppointmentStatus = 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
@@ -1386,6 +1396,50 @@ export interface Database {
           updated_at?: string
         }
       }
+      job_documents: {
+        Row: {
+          id: string
+          organization_id: string
+          job_id: string
+          file_name: string
+          storage_path: string
+          mime_type: string | null
+          size_bytes: number | null
+          category: JobDocumentCategory
+          notes: string | null
+          uploaded_by: string | null
+          uploaded_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          job_id: string
+          file_name: string
+          storage_path: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          category?: JobDocumentCategory
+          notes?: string | null
+          uploaded_by?: string | null
+          uploaded_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          job_id?: string
+          file_name?: string
+          storage_path?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          category?: JobDocumentCategory
+          notes?: string | null
+          uploaded_by?: string | null
+          uploaded_at?: string
+          updated_at?: string
+        }
+      }
       property_contacts: {
         Row: {
           id: string
@@ -1478,6 +1532,7 @@ export type TravelRate = Database['public']['Tables']['travel_rates']['Row']
 export type PricingSetting = Database['public']['Tables']['pricing_settings']['Row']
 export type Property = Database['public']['Tables']['properties']['Row']
 export type PropertyContact = Database['public']['Tables']['property_contacts']['Row']
+export type JobDocument = Database['public']['Tables']['job_documents']['Row']
 
 // Insert types
 export type OrganizationInsert = Database['public']['Tables']['organizations']['Insert']
@@ -1501,6 +1556,7 @@ export type TravelRateInsert = Database['public']['Tables']['travel_rates']['Ins
 export type PricingSettingInsert = Database['public']['Tables']['pricing_settings']['Insert']
 export type PropertyInsert = Database['public']['Tables']['properties']['Insert']
 export type PropertyContactInsert = Database['public']['Tables']['property_contacts']['Insert']
+export type JobDocumentInsert = Database['public']['Tables']['job_documents']['Insert']
 
 // Update types
 export type OrganizationUpdate = Database['public']['Tables']['organizations']['Update']
@@ -1524,6 +1580,7 @@ export type TravelRateUpdate = Database['public']['Tables']['travel_rates']['Upd
 export type PricingSettingUpdate = Database['public']['Tables']['pricing_settings']['Update']
 export type PropertyUpdate = Database['public']['Tables']['properties']['Update']
 export type PropertyContactUpdate = Database['public']['Tables']['property_contacts']['Update']
+export type JobDocumentUpdate = Database['public']['Tables']['job_documents']['Update']
 
 // Structured types for JSONB fields
 export interface EquipmentNeeded {

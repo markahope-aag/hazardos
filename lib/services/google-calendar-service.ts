@@ -5,6 +5,39 @@ import { createServiceLogger, formatError } from '@/lib/utils/logger';
 import { SecureError } from '@/lib/utils/secure-error-handler';
 
 const log = createServiceLogger('GoogleCalendarService');
+
+// Builds Google Calendar start/end blocks for a HazardOS job. Rule:
+//   - If the job has a scheduled_start_time, make it a timed event with a
+//     duration driven by estimated_duration_hours (default 2h).
+//   - Otherwise, make it an all-day event spanning scheduled_start_date
+//     through scheduled_end_date (Google all-day end.date is exclusive, so
+//     we add a day).
+function buildGoogleEventTiming(job: {
+  scheduled_start_date: string;
+  scheduled_start_time: string | null;
+  scheduled_end_date: string | null;
+  estimated_duration_hours: number | null;
+}): Pick<calendar_v3.Schema$Event, 'start' | 'end'> {
+  if (job.scheduled_start_time) {
+    const start = new Date(`${job.scheduled_start_date}T${job.scheduled_start_time}`);
+    const durationHours = job.estimated_duration_hours && job.estimated_duration_hours > 0
+      ? job.estimated_duration_hours
+      : 2;
+    const end = new Date(start.getTime() + durationHours * 60 * 60 * 1000);
+    return {
+      start: { dateTime: start.toISOString() },
+      end: { dateTime: end.toISOString() },
+    };
+  }
+
+  const lastDay = job.scheduled_end_date || job.scheduled_start_date;
+  const exclusiveEnd = new Date(lastDay);
+  exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
+  return {
+    start: { date: job.scheduled_start_date },
+    end: { date: exclusiveEnd.toISOString().slice(0, 10) },
+  };
+}
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
@@ -232,6 +265,77 @@ export class GoogleCalendarService {
     }));
   }
 
+  // ========== READ: external events ==========
+
+  // Fetches the org's primary-calendar events in a date range, minus the
+  // events we pushed from HazardOS ourselves (looked up by google_event_id in
+  // calendar_sync_events). The caller gets only "external" entries — the
+  // user's meetings, appointments, personal items — so the HazardOS calendar
+  // can render them alongside jobs without double-booking the view.
+  //
+  // Returns null when Google Calendar isn't connected (caller treats as empty).
+  static async listEventsInRange(
+    organizationId: string,
+    start: string,
+    end: string,
+    calendarId: string = 'primary',
+  ): Promise<Array<{
+    id: string
+    summary: string
+    start: string | null
+    end: string | null
+    all_day: boolean
+    location: string | null
+    html_link: string | null
+  }> | null> {
+    const tokens = await this.getValidTokens(organizationId)
+    if (!tokens) return null
+
+    const calendar = await this.getCalendarClient(organizationId)
+
+    // timeMin/timeMax expect RFC3339. Expanding to full-day bounds so events
+    // on the first and last day of the range show up regardless of timezone.
+    const timeMin = new Date(`${start}T00:00:00Z`).toISOString()
+    const timeMax = new Date(`${end}T23:59:59Z`).toISOString()
+
+    const response = await calendar.events.list({
+      calendarId,
+      timeMin,
+      timeMax,
+      singleEvents: true,
+      orderBy: 'startTime',
+      maxResults: 250,
+    })
+
+    const items = response.data.items || []
+
+    const supabase = await createClient()
+    const { data: syncRows } = await supabase
+      .from('calendar_sync_events')
+      .select('google_event_id')
+      .eq('organization_id', organizationId)
+      .eq('calendar_type', 'google')
+      .not('google_event_id', 'is', null)
+
+    const ownedEventIds = new Set(
+      (syncRows || [])
+        .map((r) => r.google_event_id as string | null)
+        .filter((id): id is string => !!id),
+    )
+
+    return items
+      .filter((e) => e.id && !ownedEventIds.has(e.id))
+      .map((e) => ({
+        id: e.id!,
+        summary: e.summary || '(no title)',
+        start: e.start?.dateTime || e.start?.date || null,
+        end: e.end?.dateTime || e.end?.date || null,
+        all_day: !e.start?.dateTime,
+        location: e.location || null,
+        html_link: e.htmlLink || null,
+      }))
+  }
+
   // ========== JOB SYNC ==========
 
   static async syncJobToCalendar(
@@ -242,46 +346,36 @@ export class GoogleCalendarService {
     const supabase = await createClient();
     const calendar = await this.getCalendarClient(organizationId);
 
-    // Get job details
+    // Get job details. Pulling job-site address fields (not the customer's
+    // home address) because remediation work happens at the property, not
+    // the customer's residence.
     const { data: job } = await supabase
       .from('jobs')
       .select(`
-        *,
-        customer:customers(
-          first_name,
-          last_name,
-          company_name,
-          address_line1,
-          city,
-          state,
-          zip
-        )
+        id, job_number, name, status,
+        scheduled_start_date, scheduled_start_time,
+        scheduled_end_date, scheduled_end_time,
+        estimated_duration_hours,
+        job_address, job_city, job_state, job_zip,
+        customer:customers(first_name, last_name, company_name)
       `)
       .eq('id', jobId)
       .single();
 
     if (!job) throw new SecureError('NOT_FOUND', 'Job not found');
+    if (!job.scheduled_start_date) {
+      throw new SecureError('VALIDATION_ERROR', 'Job has no scheduled start date — cannot sync to calendar');
+    }
 
-    const customer = job.customer as {
-      first_name?: string;
-      last_name?: string;
-      company_name?: string;
-      address_line1?: string;
-      city?: string;
-      state?: string;
-      zip?: string;
-    };
-
-    const customerName = customer?.company_name ||
-      `${customer?.first_name || ''} ${customer?.last_name || ''}`.trim() ||
+    const customer = Array.isArray(job.customer) ? job.customer[0] : job.customer;
+    const c = customer as { first_name?: string; last_name?: string; company_name?: string } | null;
+    const customerName = c?.company_name ||
+      `${c?.first_name || ''} ${c?.last_name || ''}`.trim() ||
       'Unknown Customer';
 
-    const location = [
-      customer?.address_line1,
-      customer?.city,
-      customer?.state,
-      customer?.zip,
-    ].filter(Boolean).join(', ');
+    const location = [job.job_address, job.job_city, job.job_state, job.job_zip]
+      .filter(Boolean)
+      .join(', ');
 
     // Check for existing sync
     const { data: existingSync } = await supabase
@@ -293,18 +387,9 @@ export class GoogleCalendarService {
 
     const eventBody: calendar_v3.Schema$Event = {
       summary: `Job: ${job.job_number} - ${customerName}`,
-      description: `HazardOS Job #${job.job_number}\n\nCustomer: ${customerName}\nStatus: ${job.status}\n\nView in HazardOS: ${process.env.NEXT_PUBLIC_APP_URL}/jobs/${jobId}`,
+      description: `HazardOS Job #${job.job_number}${job.name ? ` — ${job.name}` : ''}\n\nCustomer: ${customerName}\nStatus: ${job.status}\n\nView in HazardOS: ${process.env.NEXT_PUBLIC_APP_URL}/jobs/${jobId}`,
       location,
-      start: {
-        dateTime: job.scheduled_date ? new Date(job.scheduled_date).toISOString() : undefined,
-        date: job.scheduled_date ? undefined : new Date().toISOString().split('T')[0],
-      },
-      end: {
-        dateTime: job.scheduled_date
-          ? new Date(new Date(job.scheduled_date).getTime() + 2 * 60 * 60 * 1000).toISOString()
-          : undefined,
-        date: job.scheduled_date ? undefined : new Date().toISOString().split('T')[0],
-      },
+      ...buildGoogleEventTiming(job),
     };
 
     let eventId: string;

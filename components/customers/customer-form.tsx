@@ -12,6 +12,7 @@ import {
 import { customerSchema, CUSTOMER_STATUS_OPTIONS, CUSTOMER_SOURCE_OPTIONS, CONTACT_TYPE_OPTIONS, CONTACT_ROLE_OPTIONS } from '@/lib/validations/customer'
 import { useFormAnalytics } from '@/lib/hooks/use-analytics'
 import { useSearchCompanies } from '@/lib/hooks/use-companies'
+import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import { logger, formatError } from '@/lib/utils/logger'
 import type { CustomerFormData } from '@/lib/validations/customer'
 import type { Customer, CustomerStatus, CustomerSource, ContactType, ContactRole } from '@/types/database'
@@ -32,6 +33,14 @@ export default function CustomerForm({
   submitLabel = 'Save Contact'
 }: CustomerFormProps) {
   const formAnalytics = useFormAnalytics('customer', customer ? 'edit_customer' : 'create_customer')
+  const { profile } = useMultiTenantAuth()
+
+  // Editing an existing address is admin-only (enforced at the DB too).
+  // Creating a brand-new contact always gets full access.
+  const role = profile?.role
+  const isAdminForAddress =
+    role === 'admin' || role === 'tenant_owner' || role === 'platform_owner' || role === 'platform_admin'
+  const addressLocked = !!customer && !isAdminForAddress
 
   const {
     register, handleSubmit, setValue, watch,
@@ -265,26 +274,33 @@ export default function CustomerForm({
 
       {/* Section 5: Address */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Address</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Address</h3>
+          {addressLocked && (
+            <span className="text-xs text-muted-foreground">
+              Read-only — ask an admin to change the address
+            </span>
+          )}
+        </div>
         <div>
           <Label htmlFor="address_line1">Street Address *</Label>
-          <Input id="address_line1" {...register('address_line1')} />
+          <Input id="address_line1" {...register('address_line1')} readOnly={addressLocked} />
           {errors.address_line1 && <p className="text-sm text-destructive mt-1">{errors.address_line1.message}</p>}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <Label htmlFor="city">City *</Label>
-            <Input id="city" {...register('city')} />
+            <Input id="city" {...register('city')} readOnly={addressLocked} />
             {errors.city && <p className="text-sm text-destructive mt-1">{errors.city.message}</p>}
           </div>
           <div>
             <Label htmlFor="state">State *</Label>
-            <Input id="state" {...register('state')} placeholder="CO" maxLength={2} />
+            <Input id="state" {...register('state')} placeholder="CO" maxLength={2} readOnly={addressLocked} />
             {errors.state && <p className="text-sm text-destructive mt-1">{errors.state.message}</p>}
           </div>
           <div>
             <Label htmlFor="zip">ZIP *</Label>
-            <Input id="zip" {...register('zip')} />
+            <Input id="zip" {...register('zip')} readOnly={addressLocked} />
             {errors.zip && <p className="text-sm text-destructive mt-1">{errors.zip.message}</p>}
           </div>
         </div>

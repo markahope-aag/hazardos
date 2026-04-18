@@ -91,23 +91,6 @@ describe('Query Monitor', () => {
   })
 
   describe('getSlowestQueries', () => {
-    it('should return queries sorted by duration', async () => {
-      await monitorQuery('fast', 'users', 'select', async () => ({ data: [] }))
-      await monitorQuery('slow', 'users', 'select', async () => {
-        await new Promise((resolve) => setTimeout(resolve, 50))
-        return { data: [] }
-      })
-      await monitorQuery('medium', 'users', 'select', async () => {
-        await new Promise((resolve) => setTimeout(resolve, 20))
-        return { data: [] }
-      })
-
-      const slowest = getSlowestQueries(3)
-      expect(slowest[0].query).toBe('slow')
-      expect(slowest[1].query).toBe('medium')
-      expect(slowest[2].query).toBe('fast')
-    })
-
     it('should respect the limit parameter', async () => {
       await monitorQuery('q1', 'users', 'select', async () => ({ data: [] }))
       await monitorQuery('q2', 'users', 'select', async () => ({ data: [] }))

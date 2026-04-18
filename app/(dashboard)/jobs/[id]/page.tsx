@@ -4,6 +4,7 @@ import { JobHeader } from './job-header'
 import { JobDetails } from './job-details'
 import { JobCrew } from './job-crew'
 import { JobNotes } from './job-notes'
+import { JobDocuments } from './job-documents'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default async function JobDetailPage({
@@ -79,6 +80,7 @@ export default async function JobDetailPage({
           <TabsTrigger value="crew">
             Crew ({transformedJob.crew?.length || 0})
           </TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="notes">
             Notes ({transformedJob.notes?.length || 0})
           </TabsTrigger>
@@ -94,6 +96,10 @@ export default async function JobDetailPage({
             crew={transformedJob.crew || []}
             availableCrew={availableCrew || []}
           />
+        </TabsContent>
+
+        <TabsContent value="documents" className="mt-4">
+          <JobDocuments jobId={transformedJob.id} />
         </TabsContent>
 
         <TabsContent value="notes" className="mt-4">

@@ -8,6 +8,43 @@ const log = createServiceLogger('OutlookCalendarService');
 const AZURE_AUTH_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize';
 const AZURE_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
 
+interface OutlookEventTiming {
+  start: { dateTime: string; timeZone: string };
+  end: { dateTime: string; timeZone: string };
+  isAllDay: boolean;
+}
+
+// Mirror of the Google helper: timed event when scheduled_start_time is set,
+// otherwise all-day. Microsoft Graph's all-day end is also exclusive.
+function buildOutlookEventTiming(job: {
+  scheduled_start_date: string;
+  scheduled_start_time: string | null;
+  scheduled_end_date: string | null;
+  estimated_duration_hours: number | null;
+}): OutlookEventTiming {
+  if (job.scheduled_start_time) {
+    const start = new Date(`${job.scheduled_start_date}T${job.scheduled_start_time}`);
+    const durationHours = job.estimated_duration_hours && job.estimated_duration_hours > 0
+      ? job.estimated_duration_hours
+      : 2;
+    const end = new Date(start.getTime() + durationHours * 60 * 60 * 1000);
+    return {
+      start: { dateTime: start.toISOString(), timeZone: 'UTC' },
+      end: { dateTime: end.toISOString(), timeZone: 'UTC' },
+      isAllDay: false,
+    };
+  }
+
+  const lastDay = job.scheduled_end_date || job.scheduled_start_date;
+  const exclusiveEnd = new Date(lastDay);
+  exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
+  return {
+    start: { dateTime: `${job.scheduled_start_date}T00:00:00`, timeZone: 'UTC' },
+    end: { dateTime: `${exclusiveEnd.toISOString().slice(0, 10)}T00:00:00`, timeZone: 'UTC' },
+    isAllDay: true,
+  };
+}
+
 const SCOPES = [
   'openid',
   'profile',
@@ -250,46 +287,34 @@ export class OutlookCalendarService {
     const supabase = await createClient();
     const client = await this.getGraphClient(organizationId);
 
-    // Get job details
+    // Pull job-site address (not customer home) — work happens at the property.
     const { data: job } = await supabase
       .from('jobs')
       .select(`
-        *,
-        customer:customers(
-          first_name,
-          last_name,
-          company_name,
-          address_line1,
-          city,
-          state,
-          zip
-        )
+        id, job_number, name, status,
+        scheduled_start_date, scheduled_start_time,
+        scheduled_end_date, scheduled_end_time,
+        estimated_duration_hours,
+        job_address, job_city, job_state, job_zip,
+        customer:customers(first_name, last_name, company_name)
       `)
       .eq('id', jobId)
       .single();
 
     if (!job) throw new SecureError('NOT_FOUND', 'Job not found');
+    if (!job.scheduled_start_date) {
+      throw new SecureError('VALIDATION_ERROR', 'Job has no scheduled start date — cannot sync to calendar');
+    }
 
-    const customer = job.customer as {
-      first_name?: string;
-      last_name?: string;
-      company_name?: string;
-      address_line1?: string;
-      city?: string;
-      state?: string;
-      zip?: string;
-    };
-
-    const customerName = customer?.company_name ||
-      `${customer?.first_name || ''} ${customer?.last_name || ''}`.trim() ||
+    const customer = Array.isArray(job.customer) ? job.customer[0] : job.customer;
+    const c = customer as { first_name?: string; last_name?: string; company_name?: string } | null;
+    const customerName = c?.company_name ||
+      `${c?.first_name || ''} ${c?.last_name || ''}`.trim() ||
       'Unknown Customer';
 
-    const location = [
-      customer?.address_line1,
-      customer?.city,
-      customer?.state,
-      customer?.zip,
-    ].filter(Boolean).join(', ');
+    const location = [job.job_address, job.job_city, job.job_state, job.job_zip]
+      .filter(Boolean)
+      .join(', ');
 
     // Check for existing sync
     const { data: existingSync } = await supabase
@@ -299,25 +324,19 @@ export class OutlookCalendarService {
       .eq('calendar_type', 'outlook')
       .maybeSingle();
 
-    const startDate = job.scheduled_date ? new Date(job.scheduled_date) : new Date();
-    const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+    const timing = buildOutlookEventTiming(job);
 
     const eventBody = {
       subject: `Job: ${job.job_number} - ${customerName}`,
       body: {
         contentType: 'HTML',
-        content: `<p><strong>HazardOS Job #${job.job_number}</strong></p>
+        content: `<p><strong>HazardOS Job #${job.job_number}${job.name ? ` — ${job.name}` : ''}</strong></p>
 <p>Customer: ${customerName}<br/>Status: ${job.status}</p>
 <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/jobs/${jobId}">View in HazardOS</a></p>`,
       },
-      start: {
-        dateTime: startDate.toISOString(),
-        timeZone: 'UTC',
-      },
-      end: {
-        dateTime: endDate.toISOString(),
-        timeZone: 'UTC',
-      },
+      start: timing.start,
+      end: timing.end,
+      isAllDay: timing.isAllDay,
       location: {
         displayName: location,
       },

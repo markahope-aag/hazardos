@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
+import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type {
   Job,
   JobCrew,
@@ -9,6 +10,84 @@ import type {
   UpdateJobInput,
   JobStatus,
 } from '@/types/jobs'
+
+const log = createServiceLogger('JobsService')
+
+// Fires the external calendar sync(s) the org has active. Failures never
+// block the user's job save — they're logged and surfaced through the
+// calendar_sync_events table's sync_error column instead.
+async function syncJobToExternalCalendars(jobId: string, organizationId: string): Promise<void> {
+  const supabase = await createClient()
+  const { data: integrations } = await supabase
+    .from('organization_integrations')
+    .select('integration_type, settings')
+    .eq('organization_id', organizationId)
+    .eq('is_active', true)
+    .in('integration_type', ['google_calendar', 'outlook_calendar'])
+
+  if (!integrations || integrations.length === 0) return
+
+  for (const integration of integrations) {
+    const settings = (integration.settings as Record<string, unknown> | null) || {}
+    // Respect per-integration opt-out. Default true so connecting a calendar
+    // just works without digging into settings.
+    if (settings.auto_sync_jobs === false) continue
+
+    try {
+      if (integration.integration_type === 'google_calendar') {
+        const { GoogleCalendarService } = await import('@/lib/services/google-calendar-service')
+        await GoogleCalendarService.syncJobToCalendar(organizationId, jobId)
+      } else if (integration.integration_type === 'outlook_calendar') {
+        const { OutlookCalendarService } = await import('@/lib/services/outlook-calendar-service')
+        await OutlookCalendarService.syncJobToCalendar(organizationId, jobId)
+      }
+    } catch (e) {
+      log.error(
+        { jobId, integration: integration.integration_type, err: formatError(e) },
+        'external calendar sync failed',
+      )
+      await supabase
+        .from('calendar_sync_events')
+        .upsert({
+          organization_id: organizationId,
+          job_id: jobId,
+          event_type: 'job',
+          calendar_type: integration.integration_type === 'google_calendar' ? 'google' : 'outlook',
+          sync_error: e instanceof Error ? e.message : String(e),
+          last_synced_at: new Date().toISOString(),
+        }, { onConflict: 'job_id,calendar_type' })
+    }
+  }
+}
+
+async function deleteJobFromExternalCalendars(jobId: string, organizationId: string): Promise<void> {
+  const supabase = await createClient()
+  const { data: syncRows } = await supabase
+    .from('calendar_sync_events')
+    .select('calendar_type, google_event_id, outlook_event_id')
+    .eq('job_id', jobId)
+
+  if (!syncRows || syncRows.length === 0) return
+
+  for (const row of syncRows) {
+    try {
+      if (row.calendar_type === 'google' && row.google_event_id) {
+        const { GoogleCalendarService } = await import('@/lib/services/google-calendar-service')
+        await GoogleCalendarService.deleteCalendarEvent(organizationId, row.google_event_id)
+      } else if (row.calendar_type === 'outlook' && row.outlook_event_id) {
+        const { OutlookCalendarService } = await import('@/lib/services/outlook-calendar-service')
+        await OutlookCalendarService.deleteCalendarEvent(organizationId, row.outlook_event_id)
+      }
+    } catch (e) {
+      log.error(
+        { jobId, calendar: row.calendar_type, err: formatError(e) },
+        'external calendar delete failed',
+      )
+    }
+  }
+
+  await supabase.from('calendar_sync_events').delete().eq('job_id', jobId)
+}
 
 export class JobsService {
   static async create(input: CreateJobInput): Promise<Job> {
@@ -63,6 +142,10 @@ export class JobsService {
 
     // Log activity
     await Activity.created('job', data.id, data.job_number)
+
+    // Push to any connected external calendars (Google / Outlook). Failures
+    // are logged but don't block job creation.
+    await syncJobToExternalCalendars(data.id, organizationId)
 
     return data
   }
@@ -254,6 +337,9 @@ export class JobsService {
   static async getCalendarEvents(start: string, end: string): Promise<Job[]> {
     const supabase = await createClient()
 
+    // A job overlaps [start, end] when it starts on or before `end` AND ends
+    // on or after `start`. Jobs without a scheduled_end_date are treated as
+    // single-day events (end = start).
     const { data, error } = await supabase
       .from('jobs')
       .select(`
@@ -264,8 +350,8 @@ export class JobsService {
           profile:profiles(id, full_name)
         )
       `)
-      .gte('scheduled_start_date', start)
       .lte('scheduled_start_date', end)
+      .or(`scheduled_end_date.gte.${start},and(scheduled_end_date.is.null,scheduled_start_date.gte.${start})`)
       .neq('status', 'cancelled')
       .order('scheduled_start_date', { ascending: true })
 
@@ -288,6 +374,18 @@ export class JobsService {
       .single()
 
     if (error) throwDbError(error, 'update job')
+
+    // Cancelled jobs shouldn't occupy anyone's calendar. For any other
+    // status change (or non-status update), re-sync so schedule changes
+    // propagate — the calendar services update the existing event in place.
+    if (data.organization_id) {
+      if (data.status === 'cancelled') {
+        await deleteJobFromExternalCalendars(data.id, data.organization_id)
+      } else {
+        await syncJobToExternalCalendars(data.id, data.organization_id)
+      }
+    }
+
     return data
   }
 
@@ -317,8 +415,20 @@ export class JobsService {
   static async delete(id: string): Promise<void> {
     const supabase = await createClient()
 
+    // Look up org_id before deletion so we can remove the associated external
+    // calendar events afterwards.
+    const { data: job } = await supabase
+      .from('jobs')
+      .select('organization_id')
+      .eq('id', id)
+      .single()
+
     // Cancel reminders first
     await JobsService.cancelReminders(id)
+
+    if (job?.organization_id) {
+      await deleteJobFromExternalCalendars(id, job.organization_id)
+    }
 
     const { error } = await supabase
       .from('jobs')
