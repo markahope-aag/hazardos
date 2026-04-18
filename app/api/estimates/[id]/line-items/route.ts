@@ -62,7 +62,7 @@ export const POST = createApiHandlerWithParams(
     }
 
     // Check if estimate can be modified
-    if (!['draft', 'pending_review'].includes(estimate.status)) {
+    if (!['draft', 'pending_approval'].includes(estimate.status)) {
       throw new SecureError('VALIDATION_ERROR', 'Cannot modify line items for an estimate in this status')
     }
 
@@ -130,7 +130,7 @@ export const PUT = createApiHandlerWithParams(
     }
 
     // Check if estimate can be modified
-    if (!['draft', 'pending_review'].includes(estimate.status)) {
+    if (!['draft', 'pending_approval'].includes(estimate.status)) {
       throw new SecureError('VALIDATION_ERROR', 'Cannot modify line items for an estimate in this status')
     }
 

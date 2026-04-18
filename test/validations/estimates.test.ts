@@ -15,7 +15,7 @@ describe('Estimate Validation Schemas', () => {
     it('should accept all valid status values', () => {
       const validStatuses = [
         'draft',
-        'pending_review',
+        'pending_approval',
         'approved',
         'sent',
         'accepted',
@@ -480,7 +480,7 @@ describe('Estimate Validation Schemas', () => {
 
     it('should accept combined filters', () => {
       const result = estimateListQuerySchema.safeParse({
-        status: 'pending_review',
+        status: 'pending_approval',
         customer_id: '550e8400-e29b-41d4-a716-446655440000',
         from_date: '2026-01-01',
         to_date: '2026-06-30',

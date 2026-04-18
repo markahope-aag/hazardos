@@ -303,7 +303,7 @@ All errors follow a consistent format:
       // Estimate schemas
       EstimateStatus: {
         type: 'string',
-        enum: ['draft', 'pending_review', 'approved', 'sent', 'accepted', 'rejected', 'expired'],
+        enum: ['draft', 'pending_approval', 'approved', 'sent', 'accepted', 'rejected', 'expired'],
       },
       LineItemType: {
         type: 'string',

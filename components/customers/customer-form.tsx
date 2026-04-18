@@ -66,9 +66,6 @@ export default function CustomerForm({
       referral_source: customer.referral_source || '',
       insurance_carrier: customer.insurance_carrier || '',
       insurance_policy_number: customer.insurance_policy_number || '',
-      insurance_adjuster_name: customer.insurance_adjuster_name || '',
-      insurance_adjuster_phone: customer.insurance_adjuster_phone || '',
-      insurance_adjuster_email: customer.insurance_adjuster_email || '',
       notes: customer.notes || '',
       next_followup_date: customer.next_followup_date || '',
       next_followup_note: customer.next_followup_note || '',
@@ -104,9 +101,6 @@ export default function CustomerForm({
     if (!data.referral_source) data.referral_source = undefined
     if (!data.insurance_carrier) data.insurance_carrier = undefined
     if (!data.insurance_policy_number) data.insurance_policy_number = undefined
-    if (!data.insurance_adjuster_name) data.insurance_adjuster_name = undefined
-    if (!data.insurance_adjuster_phone) data.insurance_adjuster_phone = undefined
-    if (!data.insurance_adjuster_email) data.insurance_adjuster_email = undefined
     try {
       await onSubmit(data)
       formAnalytics.trackSuccess()
@@ -299,7 +293,7 @@ export default function CustomerForm({
       {/* Section 6: Source & Insurance */}
       <div className="space-y-4">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Source & Insurance</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <Label htmlFor="referral_source">Referral Source</Label>
             <Input id="referral_source" {...register('referral_source')} placeholder="e.g., John Smith, Google Ads, Nextdoor" />
@@ -308,21 +302,14 @@ export default function CustomerForm({
             <Label htmlFor="insurance_carrier">Insurance Carrier</Label>
             <Input id="insurance_carrier" {...register('insurance_carrier')} placeholder="e.g., State Farm, Allstate" />
           </div>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <Label htmlFor="insurance_adjuster_name">Adjuster Name</Label>
-            <Input id="insurance_adjuster_name" {...register('insurance_adjuster_name')} />
-          </div>
-          <div>
-            <Label htmlFor="insurance_adjuster_phone">Adjuster Phone</Label>
-            <Input id="insurance_adjuster_phone" type="tel" {...register('insurance_adjuster_phone')} />
-          </div>
-          <div>
-            <Label htmlFor="insurance_adjuster_email">Adjuster Email</Label>
-            <Input id="insurance_adjuster_email" type="email" {...register('insurance_adjuster_email')} />
+            <Label htmlFor="insurance_policy_number">Policy Number</Label>
+            <Input id="insurance_policy_number" {...register('insurance_policy_number')} />
           </div>
         </div>
+        <p className="text-xs text-muted-foreground">
+          For reference only — customers file their own reimbursement claims.
+        </p>
       </div>
 
       {/* Section 7: Notes & Follow-up */}

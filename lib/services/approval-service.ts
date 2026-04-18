@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
+import { NotificationService } from '@/lib/services/notification-service'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
+import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type {
   ApprovalThreshold,
   ApprovalRequest,
@@ -8,6 +10,8 @@ import type {
   ApprovalEntityType,
   ApprovalDecisionInput,
 } from '@/types/sales'
+
+const log = createServiceLogger('ApprovalService')
 
 export class ApprovalService {
   // ========== THRESHOLDS ==========
@@ -371,5 +375,346 @@ export class ApprovalService {
   ): Promise<boolean> {
     const thresholds = await this.getThresholds(entityType)
     return thresholds.some(t => amount >= t.threshold_amount)
+  }
+
+  // ========== ESTIMATE WORKFLOW ==========
+  //
+  // The real-world flow: surveyor drafts → office manager (L1/admin) reviews
+  // → company owner (L2/tenant_owner) approves → estimate is sent to customer.
+  // Two-level approval is always required for estimates, regardless of amount.
+
+  static async submitEstimateForApproval(estimateId: string): Promise<ApprovalRequest> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new SecureError('UNAUTHORIZED')
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single()
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
+
+    const { data: estimate } = await supabase
+      .from('estimates')
+      .select('id, status, total, organization_id')
+      .eq('id', estimateId)
+      .eq('organization_id', profile.organization_id)
+      .single()
+    if (!estimate) throw new SecureError('NOT_FOUND', 'Estimate not found')
+    if (estimate.status !== 'draft') {
+      throw new SecureError('VALIDATION_ERROR', 'Only draft estimates can be submitted for approval')
+    }
+
+    const { data: approvalRequest, error } = await supabase
+      .from('approval_requests')
+      .insert({
+        organization_id: profile.organization_id,
+        entity_type: 'estimate',
+        entity_id: estimateId,
+        amount: estimate.total || 0,
+        requested_by: user.id,
+        requested_at: new Date().toISOString(),
+        level1_status: 'pending',
+        requires_level2: true,
+        level2_status: 'pending',
+        final_status: 'pending',
+      })
+      .select()
+      .single()
+    if (error) throwDbError(error, 'create estimate approval request')
+
+    await supabase
+      .from('estimates')
+      .update({ status: 'pending_approval' })
+      .eq('id', estimateId)
+
+    try {
+      await NotificationService.createForRole({
+        role: 'admin',
+        type: 'reminder',
+        title: 'Estimate awaiting your review',
+        message: 'A surveyor has submitted an estimate that needs your review before it goes to the owner.',
+        entity_type: 'estimate',
+        entity_id: estimateId,
+        action_url: `/estimates/${estimateId}`,
+        priority: 'normal',
+      })
+    } catch (e) {
+      log.warn({ estimateId, err: formatError(e) }, 'failed to notify admins of estimate submission')
+    }
+
+    await Activity.created('approval_request', approvalRequest.id, 'estimate approval')
+    return approvalRequest as ApprovalRequest
+  }
+
+  static async reviewEstimate(
+    estimateId: string,
+    decision: ApprovalDecisionInput,
+  ): Promise<{ request: ApprovalRequest; level: 1 | 2; finalized: boolean }> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new SecureError('UNAUTHORIZED')
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id, role')
+      .eq('id', user.id)
+      .single()
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
+
+    const { data: request } = await supabase
+      .from('approval_requests')
+      .select('*')
+      .eq('entity_type', 'estimate')
+      .eq('entity_id', estimateId)
+      .eq('final_status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (!request) throw new SecureError('NOT_FOUND', 'No pending approval request for this estimate')
+
+    let level: 1 | 2
+    if (request.level1_status === 'pending') {
+      level = 1
+    } else if (request.level1_status === 'approved' && request.requires_level2 && request.level2_status === 'pending') {
+      level = 2
+    } else {
+      throw new SecureError('VALIDATION_ERROR', 'Approval request is not currently reviewable')
+    }
+
+    // Role gate: admins + tenant_owner can do L1; only tenant_owner (or platform
+    // roles) can do L2. This mirrors the real-world "office manager reviews,
+    // owner has final say" rule.
+    const role = profile.role
+    const isOwnerLike = role === 'tenant_owner' || role === 'platform_owner' || role === 'platform_admin'
+    const isAdminLike = isOwnerLike || role === 'admin'
+    if (level === 1 && !isAdminLike) {
+      throw new SecureError('FORBIDDEN', 'Only admins can perform the first review')
+    }
+    if (level === 2 && !isOwnerLike) {
+      throw new SecureError('FORBIDDEN', 'Only the company owner can give final approval')
+    }
+
+    const now = new Date().toISOString()
+    const newLevelStatus: ApprovalStatus = decision.approved ? 'approved' : 'rejected'
+    let finalStatus: ApprovalStatus = 'pending'
+
+    const updates: Record<string, unknown> = {}
+    if (level === 1) {
+      updates.level1_status = newLevelStatus
+      updates.level1_approver = user.id
+      updates.level1_at = now
+      updates.level1_notes = decision.notes || null
+      if (!decision.approved) finalStatus = 'rejected'
+      else if (!request.requires_level2) finalStatus = 'approved'
+    } else {
+      updates.level2_status = newLevelStatus
+      updates.level2_approver = user.id
+      updates.level2_at = now
+      updates.level2_notes = decision.notes || null
+      finalStatus = newLevelStatus
+    }
+    updates.final_status = finalStatus
+
+    const { data: updated, error } = await supabase
+      .from('approval_requests')
+      .update(updates)
+      .eq('id', request.id)
+      .select()
+      .single()
+    if (error) throwDbError(error, 'record approval decision')
+
+    const finalized = finalStatus !== 'pending'
+
+    if (!decision.approved) {
+      // Send back to draft and notify the originator.
+      await supabase
+        .from('estimates')
+        .update({ status: 'draft', approval_notes: decision.notes || null })
+        .eq('id', estimateId)
+
+      try {
+        await NotificationService.create({
+          user_id: request.requested_by,
+          type: 'reminder',
+          title: 'Estimate sent back for changes',
+          message: decision.notes
+            ? `Reviewer notes: ${decision.notes}`
+            : 'Your estimate needs revisions before it can move forward.',
+          entity_type: 'estimate',
+          entity_id: estimateId,
+          action_url: `/estimates/${estimateId}`,
+          priority: 'high',
+        })
+      } catch (e) {
+        log.warn({ estimateId, err: formatError(e) }, 'failed to notify originator of rejection')
+      }
+    } else if (level === 1) {
+      // Forwarded to the owner for final approval.
+      try {
+        await NotificationService.createForRole({
+          role: 'tenant_owner',
+          type: 'reminder',
+          title: 'Estimate ready for your final approval',
+          message: 'The office manager has reviewed an estimate and forwarded it to you.',
+          entity_type: 'estimate',
+          entity_id: estimateId,
+          action_url: `/estimates/${estimateId}`,
+          priority: 'normal',
+        })
+      } catch (e) {
+        log.warn({ estimateId, err: formatError(e) }, 'failed to notify owner of forwarded estimate')
+      }
+    } else {
+      // Final approval: mark estimate approved and auto-deliver to the customer.
+      await supabase
+        .from('estimates')
+        .update({
+          status: 'approved',
+          approved_by: user.id,
+          approved_at: now,
+          approval_notes: decision.notes || null,
+        })
+        .eq('id', estimateId)
+
+      try {
+        await this.createAndSendProposalFromEstimate(estimateId)
+      } catch (e) {
+        log.error({ estimateId, err: formatError(e) }, 'failed to auto-convert approved estimate to proposal')
+      }
+    }
+
+    await Activity.statusChanged(
+      'approval_request',
+      request.id,
+      'estimate approval',
+      level === 1 ? 'pending' : 'level1_approved',
+      newLevelStatus,
+    )
+
+    return { request: updated as ApprovalRequest, level, finalized }
+  }
+
+  // Converts an approved estimate into a proposal and, if email is configured,
+  // emails the customer with a portal link. Silent on failure — the owner
+  // already approved; we don't want a flaky email vendor to leave the system
+  // in a half-approved state. Errors are logged for follow-up.
+  static async createAndSendProposalFromEstimate(estimateId: string): Promise<void> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { data: estimate } = await supabase
+      .from('estimates')
+      .select(`
+        id, organization_id, customer_id,
+        customer:customers!customer_id(id, name, first_name, last_name, email)
+      `)
+      .eq('id', estimateId)
+      .single()
+    if (!estimate) return
+
+    const customer = Array.isArray(estimate.customer) ? estimate.customer[0] : estimate.customer
+
+    const { data: proposalNumber } = await supabase
+      .rpc('generate_proposal_number', { org_id: estimate.organization_id })
+    const { data: accessToken } = await supabase
+      .rpc('generate_access_token')
+
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + 30)
+
+    const { data: proposal, error } = await supabase
+      .from('proposals')
+      .insert({
+        organization_id: estimate.organization_id,
+        estimate_id: estimateId,
+        customer_id: estimate.customer_id,
+        proposal_number: proposalNumber || `PRO-${Date.now()}`,
+        status: 'draft',
+        access_token: accessToken,
+        access_token_expires_at: expiresAt.toISOString(),
+        valid_until: expiresAt.toISOString().split('T')[0],
+        created_by: user.id,
+      })
+      .select()
+      .single()
+    if (error || !proposal) {
+      log.error({ estimateId, err: error && formatError(error) }, 'failed to create proposal')
+      return
+    }
+
+    // The estimate transitions to 'sent' once a proposal exists — same rule
+    // the manual POST /api/proposals path follows.
+    await supabase.from('estimates').update({ status: 'sent' }).eq('id', estimateId)
+
+    if (!customer?.email) {
+      log.warn({ estimateId, proposalId: proposal.id }, 'customer has no email — proposal created but not auto-sent')
+      return
+    }
+
+    const resendApiKey = process.env.RESEND_API_KEY
+    if (!resendApiKey) return
+
+    try {
+      const { Resend } = await import('resend')
+      const resend = new Resend(resendApiKey)
+
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('name, email')
+        .eq('id', estimate.organization_id)
+        .single()
+      const fromEmail = org?.email || 'noreply@hazardos.app'
+      const orgName = org?.name || 'HazardOS'
+      const recipientName = customer.name || [customer.first_name, customer.last_name].filter(Boolean).join(' ') || 'Valued Customer'
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const portalUrl = `${appUrl}/portal/proposal/${proposal.access_token}`
+
+      await resend.emails.send({
+        from: `${orgName} <${fromEmail}>`,
+        to: customer.email,
+        subject: `Proposal ${proposal.proposal_number} - ${orgName}`,
+        html: `
+          <h1>Proposal ${proposal.proposal_number}</h1>
+          <p>Dear ${recipientName},</p>
+          <p>Please review your proposal by clicking the link below:</p>
+          <p><a href="${portalUrl}" style="background-color: #FF6B35; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">View Proposal</a></p>
+          <p>This link will expire on ${new Date(proposal.access_token_expires_at).toLocaleDateString()}.</p>
+          <p>Thank you for your business!</p>
+          <p>${orgName}</p>
+        `,
+      })
+
+      await supabase
+        .from('proposals')
+        .update({
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          sent_to_email: customer.email,
+        })
+        .eq('id', proposal.id)
+    } catch (e) {
+      log.error({ estimateId, proposalId: proposal.id, err: formatError(e) }, 'failed to send proposal email')
+    }
+  }
+
+  // Looks up the current pending approval_request for an estimate (if any) so
+  // the UI can render the right call-to-action ("review" vs "final approval")
+  // and show who's waiting on what.
+  static async getEstimateApprovalState(estimateId: string): Promise<ApprovalRequest | null> {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('approval_requests')
+      .select('*')
+      .eq('entity_type', 'estimate')
+      .eq('entity_id', estimateId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (error && error.code !== 'PGRST116') throwDbError(error, 'load estimate approval state')
+    return (data as ApprovalRequest | null) ?? null
   }
 }

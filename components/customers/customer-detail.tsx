@@ -520,29 +520,10 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
                           <p className="font-medium">{customer.insurance_policy_number}</p>
                         </div>
                       )}
-                      {customer.insurance_adjuster_name && (
-                        <div>
-                          <p className="text-muted-foreground">Adjuster Name</p>
-                          <p className="font-medium">{customer.insurance_adjuster_name}</p>
-                        </div>
-                      )}
-                      {customer.insurance_adjuster_phone && (
-                        <div>
-                          <p className="text-muted-foreground">Adjuster Phone</p>
-                          <a href={`tel:${customer.insurance_adjuster_phone}`} className="font-medium text-primary hover:underline">
-                            {customer.insurance_adjuster_phone}
-                          </a>
-                        </div>
-                      )}
-                      {customer.insurance_adjuster_email && (
-                        <div>
-                          <p className="text-muted-foreground">Adjuster Email</p>
-                          <a href={`mailto:${customer.insurance_adjuster_email}`} className="font-medium text-primary hover:underline">
-                            {customer.insurance_adjuster_email}
-                          </a>
-                        </div>
-                      )}
                     </div>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      For reference only — customers file their own reimbursement claims.
+                    </p>
                   </CardContent>
                 </Card>
               )}

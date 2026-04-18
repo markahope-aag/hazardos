@@ -71,6 +71,19 @@ function EstimateStatusBadge({ status }: { status: EstimateStatus }) {
   )
 }
 
+interface ApprovalRequestState {
+  id: string
+  requested_by: string
+  level1_status: 'pending' | 'approved' | 'rejected'
+  level1_notes: string | null
+  level1_at: string | null
+  requires_level2: boolean
+  level2_status: 'pending' | 'approved' | 'rejected' | null
+  level2_notes: string | null
+  level2_at: string | null
+  final_status: 'pending' | 'approved' | 'rejected'
+}
+
 export default function EstimateDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -78,6 +91,10 @@ export default function EstimateDetailPage() {
   const { profile } = useMultiTenantAuth()
   const [estimate, setEstimate] = useState<EstimateWithRelations | null>(null)
   const [loading, setLoading] = useState(true)
+  const [approvalRequest, setApprovalRequest] = useState<ApprovalRequestState | null>(null)
+  const [rejectNotes, setRejectNotes] = useState('')
+  const [showRejectForm, setShowRejectForm] = useState(false)
+  const [actionPending, setActionPending] = useState(false)
 
   const estimateId = params.id as string
 
@@ -86,9 +103,12 @@ export default function EstimateDetailPage() {
 
     try {
       setLoading(true)
-      const response = await fetch(`/api/estimates/${estimateId}`)
-      if (!response.ok) {
-        if (response.status === 404) {
+      const [estRes, approvalRes] = await Promise.all([
+        fetch(`/api/estimates/${estimateId}`),
+        fetch(`/api/estimates/${estimateId}/approval`),
+      ])
+      if (!estRes.ok) {
+        if (estRes.status === 404) {
           toast({
             title: 'Not Found',
             description: 'Estimate not found.',
@@ -100,8 +120,13 @@ export default function EstimateDetailPage() {
         throw new Error('Failed to fetch estimate')
       }
 
-      const data = await response.json()
+      const data = await estRes.json()
       setEstimate(data.estimate)
+
+      if (approvalRes.ok) {
+        const approvalData = await approvalRes.json()
+        setApprovalRequest(approvalData.approval_request)
+      }
     } catch {
       toast({
         title: 'Error',
@@ -117,38 +142,20 @@ export default function EstimateDetailPage() {
     loadEstimate()
   }, [loadEstimate])
 
-  const handleApprove = async () => {
+  const handleSubmitForApproval = async () => {
+    setActionPending(true)
     try {
-      const response = await fetch(`/api/estimates/${estimateId}/approve`, {
+      const response = await fetch(`/api/estimates/${estimateId}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       })
-
-      if (!response.ok) throw new Error('Failed to approve estimate')
-
-      toast({ title: 'Success', description: 'Estimate approved.' })
-      loadEstimate()
-    } catch {
-      toast({
-        title: 'Error',
-        description: 'Failed to approve estimate.',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const handleSubmitForApproval = async () => {
-    try {
-      const response = await fetch(`/api/estimates/${estimateId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'pending_approval' }),
-      })
-
       if (!response.ok) throw new Error('Failed to submit estimate')
 
-      toast({ title: 'Success', description: 'Estimate submitted for approval.' })
+      toast({
+        title: 'Submitted for review',
+        description: 'The office manager has been notified.',
+      })
       loadEstimate()
     } catch {
       toast({
@@ -156,6 +163,52 @@ export default function EstimateDetailPage() {
         description: 'Failed to submit estimate.',
         variant: 'destructive',
       })
+    } finally {
+      setActionPending(false)
+    }
+  }
+
+  const handleReview = async (approved: boolean, notes?: string) => {
+    setActionPending(true)
+    try {
+      const response = await fetch(`/api/estimates/${estimateId}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approved, notes: notes || undefined }),
+      })
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}))
+        throw new Error(errBody?.error?.message || 'Failed to record decision')
+      }
+
+      const result = await response.json()
+      if (!approved) {
+        toast({
+          title: 'Sent back for changes',
+          description: 'The originator has been notified.',
+        })
+      } else if (result.finalized) {
+        toast({
+          title: 'Approved',
+          description: 'Estimate is being sent to the customer.',
+        })
+      } else {
+        toast({
+          title: 'Forwarded for final approval',
+          description: 'The company owner has been notified.',
+        })
+      }
+      setShowRejectForm(false)
+      setRejectNotes('')
+      loadEstimate()
+    } catch (e) {
+      toast({
+        title: 'Error',
+        description: e instanceof Error ? e.message : 'Failed to record decision.',
+        variant: 'destructive',
+      })
+    } finally {
+      setActionPending(false)
     }
   }
 
@@ -180,7 +233,21 @@ export default function EstimateDetailPage() {
     }
   }
 
-  const canApprove = profile?.role && ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'].includes(profile.role)
+  const role = profile?.role
+  const isOwnerLike = role === 'tenant_owner' || role === 'platform_owner' || role === 'platform_admin'
+  const isAdminLike = isOwnerLike || role === 'admin'
+
+  // L1 (office manager) reviews first; L2 (owner) gives final approval.
+  const awaitingLevel: 1 | 2 | null = approvalRequest && approvalRequest.final_status === 'pending'
+    ? approvalRequest.level1_status === 'pending'
+      ? 1
+      : approvalRequest.requires_level2 && approvalRequest.level2_status === 'pending'
+        ? 2
+        : null
+    : null
+  const canReviewNow =
+    awaitingLevel === 1 ? isAdminLike : awaitingLevel === 2 ? isOwnerLike : false
+
   const canEdit = estimate?.status === 'draft' || estimate?.status === 'pending_approval'
 
   // Group line items by type
@@ -242,16 +309,25 @@ export default function EstimateDetailPage() {
 
         <div className="flex flex-wrap items-center gap-2">
           {estimate.status === 'draft' && (
-            <Button onClick={handleSubmitForApproval}>
+            <Button onClick={handleSubmitForApproval} disabled={actionPending}>
               <Send className="h-4 w-4 mr-2" />
               Submit for Approval
             </Button>
           )}
-          {estimate.status === 'pending_approval' && canApprove && (
-            <Button onClick={handleApprove}>
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Approve
-            </Button>
+          {estimate.status === 'pending_approval' && canReviewNow && (
+            <>
+              <Button onClick={() => handleReview(true)} disabled={actionPending}>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                {awaitingLevel === 2 ? 'Give Final Approval' : 'Approve & Forward'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowRejectForm(true)}
+                disabled={actionPending}
+              >
+                Send Back for Changes
+              </Button>
+            </>
           )}
           {estimate.status === 'approved' && (
             <Button asChild>
@@ -287,6 +363,57 @@ export default function EstimateDetailPage() {
           )}
         </div>
       </div>
+
+      {approvalRequest && approvalRequest.final_status === 'pending' && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          {awaitingLevel === 1 && (
+            <>Awaiting office manager review. Once reviewed, it will be forwarded to the owner for final approval.</>
+          )}
+          {awaitingLevel === 2 && (
+            <>Office manager approved — waiting on final approval from the owner.</>
+          )}
+        </div>
+      )}
+
+      {estimate.approval_notes && estimate.status === 'draft' && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="font-semibold mb-1">Reviewer sent this back for changes:</div>
+          <div className="whitespace-pre-wrap">{estimate.approval_notes}</div>
+        </div>
+      )}
+
+      {showRejectForm && (
+        <div className="rounded-md border border-gray-200 bg-white p-4 space-y-3">
+          <div className="text-sm font-medium text-gray-800">Send back for changes</div>
+          <textarea
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm min-h-[80px]"
+            placeholder="What needs to change? (this goes to the surveyor)"
+            value={rejectNotes}
+            onChange={(e) => setRejectNotes(e.target.value)}
+            autoFocus
+          />
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setShowRejectForm(false)
+                setRejectNotes('')
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleReview(false, rejectNotes.trim() || undefined)}
+              disabled={actionPending}
+            >
+              Send Back
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Info Cards */}
       <div className="grid gap-6 lg:grid-cols-3">

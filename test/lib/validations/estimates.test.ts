@@ -14,7 +14,7 @@ import {
 
 describe('estimateStatusSchema', () => {
   it('accepts valid statuses', () => {
-    const statuses = ['draft', 'pending_review', 'approved', 'sent', 'accepted', 'rejected', 'expired']
+    const statuses = ['draft', 'pending_approval', 'approved', 'sent', 'accepted', 'rejected', 'expired']
     for (const status of statuses) {
       const result = estimateStatusSchema.safeParse(status)
       expect(result.success).toBe(true)

@@ -3,7 +3,7 @@ import { z } from 'zod'
 // Estimate status
 export const estimateStatusSchema = z.enum([
   'draft',
-  'pending_review',
+  'pending_approval',
   'approved',
   'sent',
   'accepted',
