@@ -12,6 +12,11 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
+// Re-query on every navigation. Without force-dynamic, Next.js may serve
+// a cached render from before the user just created a job, and the list
+// appears empty even though the record exists.
+export const dynamic = 'force-dynamic'
+
 export default async function JobsPage({
   searchParams,
 }: {
