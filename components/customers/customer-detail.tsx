@@ -27,6 +27,7 @@ import EditCustomerModal from './edit-customer-modal'
 import DeleteCustomerDialog from './delete-customer-dialog'
 import CustomerSurveysList from './customer-surveys-list'
 import CustomerActivityFeed from './customer-activity-feed'
+import CustomerJobsList from './customer-jobs-list'
 import { useUpdateCustomer, useUpdateCustomerStatus } from '@/lib/hooks/use-customers'
 import { CUSTOMER_STATUS_OPTIONS } from '@/lib/validations/customer'
 import { createClient } from '@/lib/supabase/client'
@@ -590,20 +591,7 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
             </Card>
           )}
 
-          {activeTab === 'jobs' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Briefcase className="h-5 w-5" />Jobs
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  Jobs linked to this contact will appear here
-                </p>
-              </CardContent>
-            </Card>
-          )}
+          {activeTab === 'jobs' && <CustomerJobsList customer={customer} />}
         </div>
       </div>
 

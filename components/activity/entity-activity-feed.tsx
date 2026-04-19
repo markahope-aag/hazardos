@@ -23,12 +23,16 @@ interface ActivityLogEntry {
   created_at: string
 }
 
-interface Props {
-  entityType: string
-  entityId: string
+// Either entityType+entityId (activity for one specific row) OR
+// customerId (aggregate activity across everything owned by a contact —
+// the contact itself + their surveys/estimates/proposals/jobs/opps).
+type Props = {
   title?: string
   limit?: number
-}
+} & (
+  | { entityType: string; entityId: string; customerId?: never }
+  | { entityType?: never; entityId?: never; customerId: string }
+)
 
 const ACTION_ICON: Record<string, typeof Activity> = {
   created: Plus,
@@ -76,7 +80,11 @@ function formatValue(v: unknown): string {
   return JSON.stringify(v).slice(0, 40)
 }
 
-export default function EntityActivityFeed({ entityType, entityId, title = 'Activity', limit }: Props) {
+export default function EntityActivityFeed(props: Props) {
+  const { title = 'Activity', limit } = props
+  const entityType = 'entityType' in props ? props.entityType : undefined
+  const entityId = 'entityId' in props ? props.entityId : undefined
+  const customerId = 'customerId' in props ? props.customerId : undefined
   const [entries, setEntries] = useState<ActivityLogEntry[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -84,8 +92,14 @@ export default function EntityActivityFeed({ entityType, entityId, title = 'Acti
     let cancelled = false
     async function load() {
       try {
-        const url = `/api/activity-log?entity_type=${encodeURIComponent(entityType)}&entity_id=${entityId}`
-        const res = await fetch(url)
+        const params = new URLSearchParams()
+        if (customerId) {
+          params.set('customer_id', customerId)
+        } else if (entityType && entityId) {
+          params.set('entity_type', entityType)
+          params.set('entity_id', entityId)
+        }
+        const res = await fetch(`/api/activity-log?${params.toString()}`)
         if (!res.ok) throw new Error('failed')
         const data = await res.json()
         if (!cancelled) setEntries((data.activity || []).slice(0, limit ?? 100))
@@ -99,7 +113,7 @@ export default function EntityActivityFeed({ entityType, entityId, title = 'Acti
     return () => {
       cancelled = true
     }
-  }, [entityType, entityId, limit])
+  }, [entityType, entityId, customerId, limit])
 
   return (
     <Card>

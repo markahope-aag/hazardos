@@ -5,6 +5,11 @@ interface CustomerActivityFeedProps {
   customer: Customer
 }
 
+// The feed on a contact page shows activity across the contact itself AND
+// every survey/estimate/proposal/opportunity/job linked to them. A feed
+// scoped to just the customer row would miss all the interesting events
+// (job created, estimate sent, proposal signed) — those entities have
+// their own entity_type in activity_log.
 export default function CustomerActivityFeed({ customer }: CustomerActivityFeedProps) {
-  return <EntityActivityFeed entityType="customer" entityId={customer.id} />
+  return <EntityActivityFeed customerId={customer.id} />
 }
