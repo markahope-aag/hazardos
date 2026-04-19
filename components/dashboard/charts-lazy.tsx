@@ -46,6 +46,14 @@ const LeadSourceChartInner = dynamic(
   }
 )
 
+const JobsByHazardInner = dynamic(
+  () => import('@/components/dashboard/jobs-by-hazard').then(mod => ({ default: mod.JobsByHazard })),
+  {
+    ssr: false,
+    loading: () => <ChartLoadingState title="Jobs by Hazard" />,
+  }
+)
+
 // Wrapped versions with error boundaries
 export function RevenueChart() {
   return (
@@ -67,6 +75,14 @@ export function LeadSourceChart({ filters }: { filters: DashboardFilters }) {
   return (
     <ChartErrorBoundary title="Lead Sources" height="200px">
       <LeadSourceChartInner filters={filters} />
+    </ChartErrorBoundary>
+  )
+}
+
+export function JobsByHazard({ filters }: { filters: DashboardFilters }) {
+  return (
+    <ChartErrorBoundary title="Jobs by Hazard" height="280px">
+      <JobsByHazardInner filters={filters} />
     </ChartErrorBoundary>
   )
 }

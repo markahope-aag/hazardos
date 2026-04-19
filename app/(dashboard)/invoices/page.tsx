@@ -16,7 +16,12 @@ import { formatCurrency } from '@/lib/utils'
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; customer_id?: string }>
+  searchParams: Promise<{
+    status?: string
+    customer_id?: string
+    date_from?: string
+    date_to?: string
+  }>
 }) {
   const params = await searchParams
   const supabase = await createClient()
@@ -30,12 +35,26 @@ export default async function InvoicesPage({
     `)
     .order('invoice_date', { ascending: false })
 
-  if (params.status) {
+  // `status=outstanding` is the virtual filter the dashboard's Outstanding AR
+  // card uses. It's not a real column value — it means "an invoice that
+  // still owes money": balance_due > 0 AND not void/paid.
+  if (params.status === 'outstanding') {
+    query = query.gt('balance_due', 0).not('status', 'in', '("void","paid")')
+  } else if (params.status) {
     query = query.eq('status', params.status)
   }
 
   if (params.customer_id) {
     query = query.eq('customer_id', params.customer_id)
+  }
+
+  // date_from/date_to filter by invoice_date so the Revenue card scopes to
+  // its reporting period instead of returning every paid invoice ever.
+  if (params.date_from) {
+    query = query.gte('invoice_date', params.date_from)
+  }
+  if (params.date_to) {
+    query = query.lte('invoice_date', params.date_to)
   }
 
   const { data: invoicesData } = await query

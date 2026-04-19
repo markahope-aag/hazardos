@@ -73,17 +73,26 @@ export const GET = createApiHandler(
       return NextResponse.json({ total: 0, buckets: [] })
     }
 
-    // 3) customers → lead_source
+    // 3) customers → lead_source (with fallback to the legacy `source` enum).
+    //
+    // `lead_source` is a free-text column meant for specific provenance
+    // ("Google Ads", "insurance adjuster", "Nextdoor"). `source` is the
+    // older limited enum (phone/website/mail/referral/other). Historical
+    // rows often only have `source` populated; coalescing both means this
+    // chart reflects what's actually there instead of showing an empty
+    // state for data that exists in a different column.
     const { data: customers, error: customersError } = await context.supabase
       .from('customers')
-      .select('id, lead_source')
+      .select('id, lead_source, source')
       .in('id', matchedCustomerIds)
 
     if (customersError) throw customersError
 
     const leadSourceByCustomerId = new Map<string, string>()
     for (const c of customers || []) {
-      leadSourceByCustomerId.set(c.id, (c.lead_source || 'Unknown').toString())
+      const lead = (c.lead_source || '').toString().trim()
+      const legacy = (c.source || '').toString().trim()
+      leadSourceByCustomerId.set(c.id, lead || legacy || 'Unknown')
     }
 
     // Build hazard-filtered job set via the survey matches

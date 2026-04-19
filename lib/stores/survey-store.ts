@@ -645,15 +645,35 @@ export const useSurveyStore = create<SurveyState>()(
     {
       name: 'hazardos-survey-draft',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        currentSurveyId: state.currentSurveyId,
-        customerId: state.customerId,
-        organizationId: state.organizationId,
-        formData: state.formData,
-        currentSection: state.currentSection,
-        startedAt: state.startedAt,
-        lastSavedAt: state.lastSavedAt,
-      }),
+      partialize: (state) => {
+        // Strip the heavy image payloads off each photo before writing to
+        // localStorage. A single 1–2MB base64 dataUrl × ~10 photos easily
+        // blows past the 5–10MB per-origin quota on mobile Safari, at which
+        // point setItem throws QuotaExceededError, the persisted state goes
+        // stale, and subsequent re-renders see inconsistent data — one of
+        // the root causes of the blank-white-on-return bug.
+        //
+        // The photo-queue-store keeps the localUri + upload state it needs
+        // for delivery; survey-store only needs the metadata for validation
+        // and review display.
+        const strippedPhotos = state.formData.photos.photos.map((p) => ({
+          ...p,
+          blob: null,
+          dataUrl: null,
+        }))
+        return {
+          currentSurveyId: state.currentSurveyId,
+          customerId: state.customerId,
+          organizationId: state.organizationId,
+          formData: {
+            ...state.formData,
+            photos: { photos: strippedPhotos },
+          },
+          currentSection: state.currentSection,
+          startedAt: state.startedAt,
+          lastSavedAt: state.lastSavedAt,
+        }
+      },
     }
   )
 )

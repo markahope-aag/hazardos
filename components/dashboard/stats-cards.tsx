@@ -87,21 +87,46 @@ export async function StatsCards({ filters }: StatsCardsProps) {
   const previousRevenue = (previousRevenueRes.data || []).reduce((s, p) => s + (p.amount || 0), 0)
 
   // ─── Outstanding AR ─────────────────────────────────────────────────
-  // Point-in-time value (doesn't vary by period). We still compute a
-  // "previous" number by treating previousEnd as a different point in
-  // time but invoices don't carry historical balances — so the trend
-  // line for AR is suppressed.
-  const { data: outstandingInvoices } = await supabase
-    .from('invoices')
-    .select('balance_due')
-    .eq('organization_id', organizationId)
-    .gt('balance_due', 0)
-    .not('status', 'in', '("void","paid")')
+  // Current AR comes straight from balance_due. For the prior-period
+  // comparison we reconstruct what AR looked like at the end of the
+  // previous period: sum over every non-void invoice created by that
+  // date, subtracting any payments received by that date — then include
+  // anything still > 0. That lets us render an actual up/down trend on
+  // a card the user would otherwise wonder why is static.
+  const [currentArRes, historicInvoicesRes, historicPaymentsRes] = await Promise.all([
+    supabase
+      .from('invoices')
+      .select('balance_due')
+      .eq('organization_id', organizationId)
+      .gt('balance_due', 0)
+      .not('status', 'in', '("void","paid")'),
+    supabase
+      .from('invoices')
+      .select('id, total, status, created_at')
+      .eq('organization_id', organizationId)
+      .lte('created_at', range.previousEnd.toISOString())
+      .neq('status', 'void'),
+    supabase
+      .from('payments')
+      .select('invoice_id, amount, payment_date')
+      .eq('organization_id', organizationId)
+      .lte('payment_date', toIsoDate(range.previousEnd)),
+  ])
 
-  const outstandingAR = (outstandingInvoices || []).reduce(
+  const outstandingAR = (currentArRes.data || []).reduce(
     (s, i) => s + (i.balance_due || 0),
-    0
+    0,
   )
+
+  const paidByInvoice = new Map<string, number>()
+  for (const p of historicPaymentsRes.data || []) {
+    paidByInvoice.set(p.invoice_id, (paidByInvoice.get(p.invoice_id) || 0) + (p.amount || 0))
+  }
+  const previousOutstandingAR = (historicInvoicesRes.data || []).reduce((sum, inv) => {
+    const paid = paidByInvoice.get(inv.id) || 0
+    const remaining = (inv.total || 0) - paid
+    return remaining > 0 ? sum + remaining : sum
+  }, 0)
 
   // ─── Jobs in period (filtered by hazard via survey IDs) ──────────────
   let jobsQuery = supabase
@@ -196,6 +221,7 @@ export async function StatsCards({ filters }: StatsCardsProps) {
   const revenueTrend = computeTrend(currentRevenue, previousRevenue)
   const jobsTrend = computeTrend(currentJobCount || 0, previousJobCount || 0)
   const winRateTrend = computeTrend(currentWinRate, previousWinRate)
+  const arTrend = computeTrend(outstandingAR, previousOutstandingAR)
 
   const stats = [
     {
@@ -206,6 +232,8 @@ export async function StatsCards({ filters }: StatsCardsProps) {
         ? `${range.label} · hazard filter not applied to payments`
         : `Payments received ${range.label.toLowerCase()}`,
       trend: revenueTrend,
+      // For revenue, an up-arrow is good — default TrendBadge polarity.
+      trendInverted: false,
       href: `/invoices${buildFilterQuery(filters, { status: 'paid' })}`,
     },
     {
@@ -213,7 +241,10 @@ export async function StatsCards({ filters }: StatsCardsProps) {
       value: formatCurrency(outstandingAR),
       icon: FileText,
       description: 'Unpaid invoice balance',
-      trend: null,
+      trend: arTrend,
+      // Falling AR is healthy (customers are paying); rising AR is a
+      // collections problem. Flip polarity so the arrow color reflects that.
+      trendInverted: true,
       href: `/invoices${buildFilterQuery(filters, { status: 'outstanding' })}`,
     },
     {
@@ -222,6 +253,7 @@ export async function StatsCards({ filters }: StatsCardsProps) {
       icon: Calendar,
       description: `Scheduled ${range.label.toLowerCase()}`,
       trend: jobsTrend,
+      trendInverted: false,
       href: `/crm/jobs${buildFilterQuery(filters)}`,
     },
     {
@@ -230,7 +262,10 @@ export async function StatsCards({ filters }: StatsCardsProps) {
       icon: TrendingUp,
       description: `${currentProposalsWon} of ${currentProposalsSent} proposals`,
       trend: winRateTrend,
-      href: `/proposals${buildFilterQuery(filters)}`,
+      trendInverted: false,
+      // /sales/win-loss is the wins/losses report; there is no top-level
+      // /proposals page today.
+      href: `/sales/win-loss${buildFilterQuery(filters)}`,
     },
   ]
 
@@ -251,7 +286,7 @@ export async function StatsCards({ filters }: StatsCardsProps) {
               <div className="text-2xl font-bold">{stat.value}</div>
               <div className="flex items-center justify-between gap-2 mt-1">
                 <p className="text-xs text-muted-foreground truncate">{stat.description}</p>
-                {stat.trend && <TrendBadge trend={stat.trend} />}
+                {stat.trend && <TrendBadge trend={stat.trend} inverted={stat.trendInverted} />}
               </div>
             </CardContent>
           </Card>
@@ -261,16 +296,18 @@ export async function StatsCards({ filters }: StatsCardsProps) {
   )
 }
 
-function TrendBadge({ trend }: { trend: Trend }) {
+// `inverted` flips the color scheme for metrics where "down is good" —
+// i.e. Outstanding AR. Arrow direction still reflects the raw math
+// (a falling number still points down); only the tint changes so the
+// user reads "green = good" without having to think about it.
+function TrendBadge({ trend, inverted = false }: { trend: Trend; inverted?: boolean }) {
   const { direction, percent } = trend
 
   const Icon = direction === 'up' ? ArrowUp : direction === 'down' ? ArrowDown : Minus
+  const isGood =
+    direction === 'flat' ? null : inverted ? direction === 'down' : direction === 'up'
   const colorClass =
-    direction === 'up'
-      ? 'text-emerald-600'
-      : direction === 'down'
-        ? 'text-red-600'
-        : 'text-muted-foreground'
+    isGood === null ? 'text-muted-foreground' : isGood ? 'text-emerald-600' : 'text-red-600'
 
   const label =
     percent === null

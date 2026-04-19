@@ -193,30 +193,38 @@ export default function MobileSurveyWizard({
     initializedRef.current = true
 
     const initializeSurvey = async () => {
-      // Set organization and customer IDs
-      if (organizationId) {
-        setOrganizationId(organizationId)
-      }
-      if (customerId) {
-        setCustomerId(customerId)
-      }
-
-      // Load existing survey or create new one
-      if (surveyId) {
-        setCurrentSurveyId(surveyId)
-        const loaded = await loadSurveyFromDb(surveyId)
-        if (!loaded) {
-          logger.error(
-            { surveyId },
-            'Failed to load survey'
-          )
+      try {
+        // Set organization and customer IDs
+        if (organizationId) {
+          setOrganizationId(organizationId)
         }
-      } else if (!currentSurveyId && organizationId) {
-        // Create new survey in database
-        await createSurveyInDb()
-      }
+        if (customerId) {
+          setCustomerId(customerId)
+        }
 
-      setIsInitialized(true)
+        // Load existing survey or create new one
+        if (surveyId) {
+          setCurrentSurveyId(surveyId)
+          const loaded = await loadSurveyFromDb(surveyId)
+          if (!loaded) {
+            logger.error({ surveyId }, 'Failed to load survey')
+          }
+        } else if (!currentSurveyId && organizationId) {
+          // Create new survey in database
+          await createSurveyInDb()
+        }
+      } catch (err) {
+        // Fail-open: a thrown init (bad network, rejected RLS, etc.) used
+        // to leave isInitialized=false forever, which presented as a blank
+        // white screen / frozen tab. Now we surface the error in the UI
+        // and still let the user interact — they can retry via save/exit.
+        logger.error(
+          { err: err instanceof Error ? err.message : String(err) },
+          'Mobile survey initialization failed',
+        )
+      } finally {
+        setIsInitialized(true)
+      }
     }
 
     initializeSurvey()
@@ -254,6 +262,43 @@ export default function MobileSurveyWizard({
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [isDirty])
+
+  // Rehydrate wizard state when the tab becomes visible again. On mobile
+  // the browser freezes background tabs aggressively — returning from
+  // another app can leave the React tree out of sync with what Zustand
+  // has in localStorage. Pushing the persisted state back onto the store
+  // avoids the blank-screen-on-return behavior.
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return
+      try {
+        const raw = localStorage.getItem('hazardos-survey-draft')
+        if (!raw) return
+        const parsed = JSON.parse(raw)
+        const persisted = parsed?.state
+        if (persisted && typeof persisted === 'object') {
+          // Only merge fields the persist config writes back — avoids
+          // clobbering transient UI state like validation caches.
+          useSurveyStore.setState((current) => ({
+            ...current,
+            currentSection: persisted.currentSection ?? current.currentSection,
+            currentSurveyId: persisted.currentSurveyId ?? current.currentSurveyId,
+            customerId: persisted.customerId ?? current.customerId,
+            organizationId: persisted.organizationId ?? current.organizationId,
+            formData: persisted.formData ?? current.formData,
+            lastSavedAt: persisted.lastSavedAt ?? current.lastSavedAt,
+          }))
+        }
+      } catch (err) {
+        logger.error(
+          { err: err instanceof Error ? err.message : String(err) },
+          'visibility-change rehydrate failed',
+        )
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [])
 
   // Process photo queue when coming online
   useEffect(() => {
@@ -479,8 +524,13 @@ export default function MobileSurveyWizard({
         <header
           className={cn(
             'bg-background border-b border-border',
-            embedded ? 'rounded-t-lg' : 'sticky top-0 z-50 safe-area-top'
+            embedded ? 'rounded-t-lg' : 'sticky top-0 z-50',
           )}
+          style={
+            embedded
+              ? undefined
+              : { paddingTop: 'env(safe-area-inset-top)' }
+          }
         >
           <div className="flex items-center justify-between px-4 py-3">
             {/* Exit Button */}
@@ -575,12 +625,23 @@ export default function MobileSurveyWizard({
 
         {/* Footer Navigation */}
         <footer
+          // The `safe-area-bottom` class that shipped here was never defined
+          // in CSS, so on iOS the Back/Next/Save buttons sat directly under
+          // the home indicator and couldn't be tapped reliably. Replaced
+          // with an explicit env(safe-area-inset-bottom) fallback; the
+          // min-height also keeps the bar above on-screen keyboard dismiss
+          // affordances on older iPhones.
           className={cn(
             'bg-background border-t border-border',
             embedded
               ? 'sticky bottom-0 rounded-b-lg z-10'
-              : 'fixed bottom-0 left-0 right-0 safe-area-bottom z-40'
+              : 'fixed bottom-0 left-0 right-0 z-40',
           )}
+          style={
+            embedded
+              ? undefined
+              : { paddingBottom: 'max(env(safe-area-inset-bottom), 0.5rem)' }
+          }
         >
           {/* Pending uploads indicator */}
           {hasPhotosToUpload && isOnline && (
@@ -643,11 +704,27 @@ export default function MobileSurveyWizard({
               <Button
                 size="lg"
                 onClick={handleNext}
-                disabled={isSubmitting}
+                // Block advancing off the photos step while uploads are
+                // still in flight — previously the user could tap Next
+                // mid-upload, the section would unmount, and the next
+                // section could render before photo state settled.
+                disabled={
+                  isSubmitting
+                  || (currentSection === 'photos' && pendingPhotos > 0)
+                }
                 className="flex-1 min-h-[52px] touch-manipulation"
               >
-                Next
-                <ChevronRight className="w-5 h-5 ml-1" />
+                {currentSection === 'photos' && pendingPhotos > 0 ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Uploading ({pendingPhotos})
+                  </>
+                ) : (
+                  <>
+                    Next
+                    <ChevronRight className="w-5 h-5 ml-1" />
+                  </>
+                )}
               </Button>
             )}
           </div>

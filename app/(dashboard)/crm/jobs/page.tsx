@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
@@ -47,11 +48,19 @@ function getPaymentStatus(job: Record<string, unknown>): { label: string; color:
 
 export default function CrmJobsPage() {
   const { organization } = useMultiTenantAuth()
+  // Seed filters from URL so the dashboard "Jobs this month" card lands
+  // on the right slice of data. Users can still override from the UI.
+  const searchParamsUrl = useSearchParams()
+  const initialStatus = searchParamsUrl?.get('status') || 'all'
+  const initialHazard = searchParamsUrl?.get('hazard_type') || searchParamsUrl?.get('hazardType') || 'all'
+  const initialDateFrom = searchParamsUrl?.get('date_from') || ''
+  const initialDateTo = searchParamsUrl?.get('date_to') || ''
+
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [hazardFilter, setHazardFilter] = useState('all')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [statusFilter, setStatusFilter] = useState(initialStatus)
+  const [hazardFilter, setHazardFilter] = useState(initialHazard)
+  const [dateFrom, setDateFrom] = useState(initialDateFrom)
+  const [dateTo, setDateTo] = useState(initialDateTo)
   const [page, setPage] = useState(1)
   const pageSize = 25
   const debouncedSearch = useDebouncedValue(search, 300)

@@ -4,7 +4,7 @@ import { StatsCards, StatsCardsErrorBoundary } from '@/components/dashboard/stat
 import { UpcomingJobs, UpcomingJobsErrorBoundary } from '@/components/dashboard/upcoming-jobs';
 import { OverdueInvoices, OverdueInvoicesErrorBoundary } from '@/components/dashboard/overdue-invoices';
 import { RecentActivity, RecentActivityErrorBoundary } from '@/components/dashboard/recent-activity';
-import { RevenueChart, JobsByStatus, LeadSourceChart } from '@/components/dashboard/charts-lazy';
+import { RevenueChart, JobsByStatus, LeadSourceChart, JobsByHazard } from '@/components/dashboard/charts-lazy';
 import { DashboardFiltersBar } from '@/components/dashboard/dashboard-filters';
 import { parseDashboardFilters } from '@/lib/dashboard/filters';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -126,6 +126,9 @@ export default async function DashboardPage({
         <RevenueChart />
         <JobsByStatus filters={filters} />
       </div>
+
+      {/* Hazard breakdown — click a bar to filter the rest of the dashboard */}
+      <JobsByHazard filters={filters} />
 
       {/* Lead source widget */}
       <LeadSourceChart filters={filters} />

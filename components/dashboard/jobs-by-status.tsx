@@ -75,17 +75,11 @@ export function JobsByStatus({ filters }: JobsByStatusProps) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-        <div>
-          <CardTitle>Jobs by Status</CardTitle>
-          <p className="text-xs text-muted-foreground mt-1">
-            {filters.hazardType === 'all' ? 'All hazard types' : `${filters.hazardType} only`}
-          </p>
-        </div>
-        <div className="text-right">
-          <div className="text-3xl font-bold leading-none">{total}</div>
-          <p className="text-xs text-muted-foreground mt-1">total jobs</p>
-        </div>
+      <CardHeader className="pb-2">
+        <CardTitle>Jobs by Status</CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          {filters.hazardType === 'all' ? 'All hazard types' : `${filters.hazardType} only`}
+        </p>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -97,30 +91,54 @@ export function JobsByStatus({ filters }: JobsByStatusProps) {
             No jobs match the selected filters
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={data}
-                dataKey="count"
-                nameKey="status"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                label={({ name, percent }) =>
-                  `${String(name).replace(/_/g, ' ')} (${((percent ?? 0) * 100).toFixed(0)}%)`
-                }
-              >
-                {data.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[entry.status] || '#9ca3af'}
-                  />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+          // Donut layout: inner label absorbs the big total so the number
+          // is impossible to miss, and the ring around it reads as a
+          // composition of that number. Outer labels show each slice's
+          // count directly (the dashboard is small-scale — showing 3 and 2
+          // and 1 is more useful than "43%" and "29%" at a glance).
+          <div className="relative">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={data}
+                  dataKey="count"
+                  nameKey="status"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={70}
+                  outerRadius={110}
+                  paddingAngle={1}
+                  label={({ name, value }) =>
+                    `${String(name).replace(/_/g, ' ')} · ${value}`
+                  }
+                  labelLine={false}
+                >
+                  {data.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[entry.status] || '#9ca3af'}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+
+            {/* Centered total in the donut hole. Positioned above the
+                legend row (~40px of legend height at the bottom) so it sits
+                in the middle of the ring, not the middle of the card. */}
+            <div
+              className="pointer-events-none absolute inset-x-0 flex flex-col items-center"
+              style={{ top: 110 }}
+              aria-hidden="true"
+            >
+              <div className="text-4xl font-bold leading-none">{total}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                total {total === 1 ? 'job' : 'jobs'}
+              </div>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>

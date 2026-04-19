@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Minus, Plus } from 'lucide-react'
@@ -16,6 +17,10 @@ interface NumericStepperProps {
   disabled?: boolean
 }
 
+// Stepper with a directly-editable number input in the middle. The +/−
+// buttons stay as accelerators, but typing a value (e.g. "72" for 72°F)
+// is the primary mode — tapping to an exact value through repeated +/−
+// presses is painful on mobile, especially for ranges like -20..150.
 export function NumericStepper({
   value,
   onChange,
@@ -27,20 +32,43 @@ export function NumericStepper({
   className,
   disabled = false,
 }: NumericStepperProps) {
-  const displayValue = value !== null ? value : null
+  // Local draft so a partial entry ("-", "1", "12") doesn't fight with
+  // the clamp-on-commit behavior.
+  const [draft, setDraft] = useState<string>(value !== null ? String(value) : '')
+
+  useEffect(() => {
+    setDraft(value !== null ? String(value) : '')
+  }, [value])
+
+  const commit = (raw: string) => {
+    const trimmed = raw.trim()
+    if (trimmed === '' || trimmed === '-') {
+      // Treat empty as the min — keeps downstream consumers expecting a
+      // number happy (onChange is typed as (number) => void).
+      onChange(min)
+      setDraft(String(min))
+      return
+    }
+    const parsed = Number(trimmed)
+    if (Number.isNaN(parsed)) {
+      setDraft(value !== null ? String(value) : '')
+      return
+    }
+    const clamped = Math.min(max, Math.max(min, parsed))
+    onChange(clamped)
+    setDraft(String(clamped))
+  }
 
   const handleDecrement = () => {
     if (disabled) return
     const currentValue = value ?? min
-    const newValue = Math.max(min, currentValue - step)
-    onChange(newValue)
+    onChange(Math.max(min, currentValue - step))
   }
 
   const handleIncrement = () => {
     if (disabled) return
     const currentValue = value ?? min
-    const newValue = Math.min(max, currentValue + step)
-    onChange(newValue)
+    onChange(Math.min(max, currentValue + step))
   }
 
   const canDecrement = !disabled && value !== null && value > min
@@ -66,12 +94,32 @@ export function NumericStepper({
         <Minus className="w-6 h-6" />
       </Button>
 
-      <div className="flex-1 text-center px-2">
-        <span className="text-2xl font-semibold tabular-nums">
-          {displayValue !== null ? displayValue : placeholder}
-        </span>
-        {suffix && displayValue !== null && (
-          <span className="text-sm text-muted-foreground ml-1">{suffix}</span>
+      <div className="flex-1 flex items-center justify-center px-2">
+        <input
+          type="number"
+          inputMode="decimal"
+          value={draft}
+          min={min}
+          max={max}
+          step={step}
+          placeholder={placeholder}
+          disabled={disabled}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={(e) => commit(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.currentTarget.blur()
+            }
+          }}
+          className={cn(
+            'w-full bg-transparent text-center text-2xl font-semibold tabular-nums',
+            'focus:outline-none focus:ring-2 focus:ring-primary/40 rounded',
+            'appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+          )}
+          aria-label="Value"
+        />
+        {suffix && draft !== '' && (
+          <span className="text-sm text-muted-foreground ml-1 whitespace-nowrap">{suffix}</span>
         )}
       </div>
 
