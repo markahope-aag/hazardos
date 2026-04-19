@@ -17,8 +17,8 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => Promise.resolve(mockSupabaseClient))
 }))
 
-vi.mock('@/lib/services/invoices-service', () => ({
-  InvoicesService: {
+vi.mock('@/lib/services/invoice-delivery-service', () => ({
+  InvoiceDeliveryService: {
     send: vi.fn(),
   },
 }))
@@ -27,7 +27,7 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
   applyUnifiedRateLimit: vi.fn(() => Promise.resolve(null))
 }))
 
-import { InvoicesService } from '@/lib/services/invoices-service'
+import { InvoiceDeliveryService } from '@/lib/services/invoice-delivery-service'
 
 describe('Invoice Send API', () => {
   const mockProfile = {
@@ -66,7 +66,7 @@ describe('Invoice Send API', () => {
         status: 'sent',
         sent_at: '2026-03-01T10:00:00Z',
       }
-      vi.mocked(InvoicesService.send).mockResolvedValue(sentInvoice)
+      vi.mocked(InvoiceDeliveryService.send).mockResolvedValue(sentInvoice)
 
       const request = new NextRequest('http://localhost:3000/api/invoices/invoice-123/send', {
         method: 'POST',
@@ -81,7 +81,7 @@ describe('Invoice Send API', () => {
 
       expect(response.status).toBe(200)
       expect(data).toEqual(sentInvoice)
-      expect(InvoicesService.send).toHaveBeenCalledWith('invoice-123', 'email')
+      expect(InvoiceDeliveryService.send).toHaveBeenCalledWith('invoice-123', 'email')
     })
 
     it('should send invoice with custom message', async () => {
@@ -91,7 +91,7 @@ describe('Invoice Send API', () => {
         id: 'invoice-456',
         status: 'sent',
       }
-      vi.mocked(InvoicesService.send).mockResolvedValue(sentInvoice)
+      vi.mocked(InvoiceDeliveryService.send).mockResolvedValue(sentInvoice)
 
       const request = new NextRequest('http://localhost:3000/api/invoices/invoice-456/send', {
         method: 'POST',

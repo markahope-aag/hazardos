@@ -1,5 +1,8 @@
 # dependencies
 /node_modules
+# vitest creates a .vite cache under node_modules when invoked from a
+# subdirectory; catch those nested strays so they can't leak into commits.
+**/node_modules
 /.pnp
 .pnp.js
 

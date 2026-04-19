@@ -91,7 +91,7 @@
 
 ### How to Update Documentation
 
-1. **Feature Changes**: Update [Application Status](./APP-STATUS%20013126.md) when features are completed
+1. **Feature Changes**: Update [Application Status](./APP-STATUS%20020226.md) when features are completed
 2. **Database Changes**: Add migrations to `database/` folder and update [Migration Guide](./MIGRATION-GUIDE.md)
 3. **Architecture Changes**: Update [Multi-Tenant Setup](./MULTI_TENANT_SETUP.md) and related docs
 4. **New Features**: Update [PRD](./HazardOS-PRD.md) and create specific implementation docs
@@ -107,7 +107,7 @@
 ## 📞 Support
 
 - **Technical Issues**: Check [Database Checklist](./DATABASE-SETUP-CHECKLIST.md) first
-- **Feature Questions**: Refer to [PRD](./HazardOS-PRD.md) and [Application Status](./APP-STATUS%20013126.md)
+- **Feature Questions**: Refer to [PRD](./HazardOS-PRD.md) and [Application Status](./APP-STATUS%20020226.md)
 - **Contact**: mark.hope@asymmetric.pro
 
 ---

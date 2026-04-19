@@ -65,6 +65,8 @@ describe('SettingsPage', () => {
     expect(hrefs).toContain('/settings/company')
     expect(hrefs).toContain('/settings/notifications')
     expect(hrefs).toContain('/settings/security')
-    expect(hrefs).toContain('/settings/appearance')
+    // "Appearance" links to /settings/branding — the folder was renamed
+    // for consistency with the Branding feature flag on the backend.
+    expect(hrefs).toContain('/settings/branding')
   })
 })

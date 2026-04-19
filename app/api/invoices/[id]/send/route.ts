@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { InvoicesService } from '@/lib/services/invoices-service'
+import { InvoiceDeliveryService } from '@/lib/services/invoice-delivery-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { sendInvoiceSchema } from '@/lib/validations/invoices'
 
@@ -14,7 +14,7 @@ export const POST = createApiHandlerWithParams(
   },
   async (_request, _context, params, body) => {
     const method = body.email ? 'email' : 'email'
-    const invoice = await InvoicesService.send(params.id, method)
+    const invoice = await InvoiceDeliveryService.send(params.id, method)
     return NextResponse.json(invoice)
   }
 )

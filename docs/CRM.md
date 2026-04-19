@@ -15,6 +15,7 @@ When a user clicks **CRM** in the main nav, the main navigation bar is replaced 
 | Opportunities | `/crm/opportunities` | Sales opportunities (list view) |
 | Pipeline | `/crm/pipeline` | Kanban board for drag-and-drop stage management |
 | Jobs | `/crm/jobs` | Scheduled and completed work |
+| Properties | `/crm/properties` | Physical addresses with work history tracking |
 
 ## Data Model
 
@@ -253,6 +254,74 @@ Stages are configurable per organization with custom names, colors, and probabil
 
 **Status Update Modal:** Status dropdown, actual hours prompt (when completing), notes field. Auto-sets `actual_start_at` on In Progress, `actual_end_at` on Complete.
 
+## Properties
+
+### Overview
+
+Properties track the complete work history of physical addresses across different owners and contacts. This provides continuity when ownership changes but environmental hazards remain at the same location.
+
+### Database Tables
+
+#### `properties`
+**Core fields:** `address_line1`, `address_line2`, `city`, `state`, `zip_code`, `property_type` (single_family, multi_family, commercial, industrial, mixed_use, vacant_land), `year_built`, `square_footage`
+
+**Contact tracking:** `current_primary_contact_id` (FK to customers), `notes`
+
+**Metadata:** `created_at`, `updated_at`, `organization_id`
+
+#### `property_contacts`
+Junction table linking properties to contacts with role-based relationships:
+
+**Fields:** `property_id`, `contact_id`, `role` (owner, previous_owner, tenant, site_contact, billing_contact), `start_date`, `end_date`, `is_active`, `notes`
+
+This allows tracking ownership history, tenant relationships, and designated contacts for different purposes.
+
+### List View (`/crm/properties`)
+
+- **Search:** Full address search (street, city, state, ZIP)
+- **Columns:** Full Address, Property Type, Current Primary Contact (linked), Contact Count, Job Count, Year Built, Square Footage
+- **Actions:** New Property button top-right
+
+### Detail View (`/crm/properties/[id]`)
+
+**Left sidebar (static property card):**
+- Full address
+- Property type and year built badges  
+- Square footage
+- Current primary contact (linked to contact detail)
+
+**Right content (tabbed):**
+- **Overview** — Property details, notes, contact counts, job counts
+- **Contacts** — List of all associated contacts with roles and date ranges, "Mark as Moved Out" action for active contacts
+- **Jobs** — Complete work history at this address (linked jobs from all contacts)
+- **Activity** — Property-related activity feed
+
+### Contact Roles
+
+| Role | Purpose |
+|------|---------|
+| `owner` | Current property owner |
+| `previous_owner` | Former owner (for continuity tracking) |
+| `tenant` | Current tenant or lessee |
+| `site_contact` | On-site contact for work coordination |
+| `billing_contact` | Handles payments and invoicing |
+
+Multiple contacts can have the same role (e.g., multiple owners, multiple tenants). Date ranges track when relationships were active.
+
+### Create/Edit Form
+
+Grouped into sections:
+1. **Property Details** — Address fields, property type, year built, square footage
+2. **Primary Contact** — Current primary contact selection (required)
+3. **Notes** — Property-specific notes and observations
+
+### Business Logic
+
+- **Contact Assignment**: Properties require a primary contact but can have multiple associated contacts through `property_contacts`
+- **Work History Continuity**: Jobs remain linked to properties even when ownership changes
+- **Role Management**: "Mark as Moved Out" action sets `end_date` and `is_active = false` for contact relationships
+- **Attribution**: Properties inherit marketing attribution from their primary contact
+
 ## File Structure
 
 ```
@@ -274,6 +343,9 @@ app/(dashboard)/crm/
   jobs/
     page.tsx                    # Job list
     [id]/page.tsx               # Job detail
+  properties/
+    page.tsx                    # Property list
+    [id]/page.tsx               # Property detail
 
 components/
   customers/
@@ -304,10 +376,13 @@ lib/
   hooks/
     use-customers.ts            # TanStack Query hooks for contacts
     use-companies.ts            # TanStack Query hooks for companies
+    use-properties.ts           # TanStack Query hooks for properties
   services/
     pipeline-service.ts         # Pipeline/opportunity service (server-side)
+    properties-service.ts       # PropertiesService (CRUD, contact assignment)
   validations/
     customer.ts                 # Zod schema, form types, option constants
+    properties.ts               # Property validation schemas
 
 types/
   database.ts                   # All DB types (Company, Customer, enums)
@@ -325,6 +400,7 @@ types/
 | `20260403000005_enhance_opportunities.sql` | Full opportunity model (property, hazards, urgency, dates, attribution) |
 | `20260403000006_enhance_jobs.sql` | Full job model (containment, compliance, financials, attribution) |
 | `20260403000007_multi_touch_attribution.sql` | Three-touch attribution, source inheritance triggers, touchpoints log |
+| `20260418000001_properties.sql` | Properties and property_contacts tables for address-based work history |
 
 ## API Routes
 

@@ -1,318 +1,217 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NextRequest } from 'next/server'
-import { GET, POST } from '@/app/api/customers/route'
+import { NextRequest, NextResponse } from 'next/server'
 
-// Mock Supabase client
-const mockSupabaseClient = {
-  auth: {
-    getUser: vi.fn()
-  },
-  from: vi.fn(() => ({
-    select: vi.fn(() => ({
-      eq: vi.fn(() => ({
-        single: vi.fn()
-      }))
-    }))
-  }))
+// The /api/customers route was inlined to query `context.supabase` directly
+// (instead of delegating to CustomersService), so these tests mock the
+// createApiHandler wrapper to supply a fake context with a chainable
+// Supabase stub. Going through the real handler would fight with auth,
+// rate limiting, and profile lookup — none of which we're trying to cover
+// here. See the route comment for why the inlining happened.
+
+type QueryResult = { data: unknown; error: unknown | null }
+
+function makeSupabaseStub(queryResult: QueryResult, insertResult?: QueryResult) {
+  const single = vi.fn().mockResolvedValue(insertResult ?? { data: null, error: null })
+  const chain: Record<string, unknown> = {
+    select: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    or: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    range: vi.fn().mockReturnThis(),
+    single,
+    then: (resolve: (v: QueryResult) => void) => Promise.resolve(queryResult).then(resolve),
+  }
+  const from = vi.fn().mockReturnValue(chain)
+  return { from, chain }
 }
 
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(() => Promise.resolve(mockSupabaseClient)),
-}))
+let supabaseStub = makeSupabaseStub({ data: [], error: null })
 
-vi.mock('@/lib/supabase/customers', () => ({
-  CustomersService: {
-    getCustomers: vi.fn(),
-    createCustomer: vi.fn(),
-  },
-}))
-
-vi.mock('@/lib/middleware/unified-rate-limit', () => ({
-  applyUnifiedRateLimit: vi.fn(() => Promise.resolve(null))
-}))
-
-import { CustomersService } from '@/lib/supabase/customers'
-
-describe('Customers API', () => {
-  const mockProfile = {
-    organization_id: 'org-123',
-    role: 'user'
-  }
-
-  // Helper to setup authenticated user with profile
-  const setupAuthenticatedUser = () => {
-    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-      data: { user: { id: 'user-123', email: 'user@example.com' } },
-      error: null,
-    })
-
-    vi.mocked(mockSupabaseClient.from).mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({
-            data: mockProfile,
-            error: null
-          })
+vi.mock('@/lib/utils/api-handler', () => ({
+  createApiHandler: vi.fn(
+    (options: Record<string, unknown>, handler: (...args: unknown[]) => unknown) => {
+      return async (request: NextRequest) => {
+        const url = new URL(request.url)
+        const query: Record<string, unknown> = {}
+        url.searchParams.forEach((value, key) => {
+          query[key] = value
         })
-      })
-    } as any)
-  }
 
-  // Helper to setup unauthenticated user
-  const setupUnauthenticatedUser = () => {
-    vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
-      data: { user: null },
-      error: { message: 'Not authenticated' } as any,
-    })
-  }
+        if (options.querySchema) {
+          const schema = options.querySchema as { safeParse: (v: unknown) => { success: boolean; data?: unknown } }
+          const result = schema.safeParse(query)
+          if (!result.success) {
+            return NextResponse.json(
+              { error: 'The provided data is invalid', type: 'VALIDATION_ERROR' },
+              { status: 400 },
+            )
+          }
+          Object.assign(query, result.data)
+        }
 
+        let body: unknown = null
+        if (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') {
+          try {
+            body = await request.json()
+          } catch {
+            return NextResponse.json(
+              { error: 'The provided data is invalid', type: 'VALIDATION_ERROR' },
+              { status: 400 },
+            )
+          }
+          if (options.bodySchema) {
+            const schema = options.bodySchema as { safeParse: (v: unknown) => { success: boolean; data?: unknown } }
+            const result = schema.safeParse(body)
+            if (!result.success) {
+              return NextResponse.json(
+                { error: 'The provided data is invalid', type: 'VALIDATION_ERROR' },
+                { status: 400 },
+              )
+            }
+            body = result.data
+          }
+        }
+
+        const context = {
+          supabase: supabaseStub,
+          user: { id: 'user-123', email: 'test@example.com' },
+          profile: { id: 'profile-123', organization_id: 'org-123', role: 'admin' },
+          log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+        }
+
+        return (handler as (req: NextRequest, ctx: unknown, body: unknown, query: unknown) => unknown)(
+          request,
+          context,
+          body,
+          query,
+        )
+      }
+    },
+  ),
+}))
+
+import { GET, POST } from '@/app/api/customers/route'
+
+describe('/api/customers', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    supabaseStub = makeSupabaseStub({ data: [], error: null })
   })
 
-  describe('GET /api/customers', () => {
-    it('should return list of customers', async () => {
-      setupAuthenticatedUser()
-
-      const mockCustomers = [
-        { id: '1', name: 'John Doe', email: 'john@example.com', status: 'customer' },
-        { id: '2', name: 'Jane Smith', email: 'jane@example.com', status: 'lead' },
+  describe('GET', () => {
+    it('returns rows scoped to the caller organization', async () => {
+      const rows = [
+        { id: '1', name: 'John Doe', email: 'john@example.com' },
+        { id: '2', name: 'Jane Smith', email: 'jane@example.com' },
       ]
-      vi.mocked(CustomersService.getCustomers).mockResolvedValue(mockCustomers)
+      supabaseStub = makeSupabaseStub({ data: rows, error: null })
 
       const request = new NextRequest('http://localhost:3000/api/customers')
-
       const response = await GET(request)
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.customers).toEqual(mockCustomers)
-      expect(CustomersService.getCustomers).toHaveBeenCalledWith('org-123', {
-        status: undefined,
-        search: undefined,
-        limit: undefined,
-        offset: undefined,
-      })
+      expect(data.customers).toEqual(rows)
+      expect(supabaseStub.from).toHaveBeenCalledWith('customers')
+      expect(supabaseStub.chain.eq).toHaveBeenCalledWith('organization_id', 'org-123')
     })
 
-    it('should filter customers by status', async () => {
-      setupAuthenticatedUser()
+    it('applies the status filter when provided', async () => {
+      supabaseStub = makeSupabaseStub({ data: [], error: null })
 
-      const mockCustomers = [
-        { id: '1', name: 'John Doe', status: 'customer' },
-      ]
-      vi.mocked(CustomersService.getCustomers).mockResolvedValue(mockCustomers)
+      const request = new NextRequest('http://localhost:3000/api/customers?status=lead')
+      await GET(request)
 
-      const request = new NextRequest('http://localhost:3000/api/customers?status=customer')
-
-      const response = await GET(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(200)
-      expect(data.customers).toEqual(mockCustomers)
-      expect(CustomersService.getCustomers).toHaveBeenCalledWith('org-123', {
-        status: 'customer',
-        search: undefined,
-        limit: undefined,
-        offset: undefined,
-      })
+      expect(supabaseStub.chain.eq).toHaveBeenCalledWith('status', 'lead')
     })
 
-    it('should search customers by name or email', async () => {
-      setupAuthenticatedUser()
-
-      const mockCustomers = [
-        { id: '1', name: 'John Doe', email: 'john@example.com' },
-      ]
-      vi.mocked(CustomersService.getCustomers).mockResolvedValue(mockCustomers)
+    it('applies the search filter as a sanitized OR clause', async () => {
+      supabaseStub = makeSupabaseStub({ data: [], error: null })
 
       const request = new NextRequest('http://localhost:3000/api/customers?search=john')
+      await GET(request)
 
-      const response = await GET(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(200)
-      expect(data.customers).toEqual(mockCustomers)
-      expect(CustomersService.getCustomers).toHaveBeenCalledWith('org-123', {
-        status: undefined,
-        search: 'john',
-        limit: undefined,
-        offset: undefined,
-      })
+      expect(supabaseStub.chain.or).toHaveBeenCalledTimes(1)
+      const orArg = (supabaseStub.chain.or as ReturnType<typeof vi.fn>).mock.calls[0][0] as string
+      expect(orArg).toContain('name.ilike.%john%')
+      expect(orArg).toContain('email.ilike.%john%')
     })
 
-    it('should support pagination with limit and offset', async () => {
-      setupAuthenticatedUser()
+    it('paginates using limit and offset', async () => {
+      supabaseStub = makeSupabaseStub({ data: [], error: null })
 
-      const mockCustomers = [
-        { id: '11', name: 'Customer 11' },
-        { id: '12', name: 'Customer 12' },
-      ]
-      vi.mocked(CustomersService.getCustomers).mockResolvedValue(mockCustomers)
+      const request = new NextRequest('http://localhost:3000/api/customers?limit=10&offset=20')
+      await GET(request)
 
-      const request = new NextRequest('http://localhost:3000/api/customers?limit=10&offset=10')
-
-      const response = await GET(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(200)
-      expect(data.customers).toEqual(mockCustomers)
-      // Note: query params come as strings, need to check if schema converts them
-      expect(CustomersService.getCustomers).toHaveBeenCalled()
-    })
-
-    it('should reject unauthenticated requests', async () => {
-      setupUnauthenticatedUser()
-
-      const request = new NextRequest('http://localhost:3000/api/customers')
-
-      const response = await GET(request)
-
-      expect(response.status).toBe(401)
+      expect(supabaseStub.chain.limit).toHaveBeenCalledWith(10)
+      expect(supabaseStub.chain.range).toHaveBeenCalledWith(20, 29)
     })
   })
 
-  describe('POST /api/customers', () => {
-    it('should create a new customer', async () => {
-      setupAuthenticatedUser()
+  describe('POST', () => {
+    it('inserts with organization_id and created_by stamped from context', async () => {
+      const created = {
+        id: '3',
+        name: 'New Customer',
+        email: 'new@example.com',
+        organization_id: 'org-123',
+      }
+      supabaseStub = makeSupabaseStub({ data: [], error: null }, { data: created, error: null })
 
-      const newCustomer = {
-        id: 'customer-123',
+      const request = new NextRequest('http://localhost:3000/api/customers', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'New Customer', email: 'new@example.com' }),
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const response = await POST(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(201)
+      expect(data.customer).toEqual(created)
+      const insertArg = (supabaseStub.chain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0]
+      expect(insertArg).toMatchObject({
         organization_id: 'org-123',
         name: 'New Customer',
         email: 'new@example.com',
-        phone: '555-1234',
-        status: 'lead',
         created_by: 'user-123',
-      }
-      vi.mocked(CustomersService.createCustomer).mockResolvedValue(newCustomer)
-
-      const request = new NextRequest('http://localhost:3000/api/customers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'New Customer',
-          email: 'new@example.com',
-          phone: '555-1234',
-        }),
       })
-
-      const response = await POST(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(201)
-      expect(data.customer).toEqual(newCustomer)
-      expect(CustomersService.createCustomer).toHaveBeenCalled()
     })
 
-    it('should create customer with full address details', async () => {
-      setupAuthenticatedUser()
-
-      const newCustomer = {
-        id: 'customer-123',
-        name: 'New Customer',
-        address_line1: '123 Main St',
-        city: 'New York',
-        state: 'NY',
-        zip: '10001',
-      }
-      vi.mocked(CustomersService.createCustomer).mockResolvedValue(newCustomer)
-
+    it('rejects payloads missing the required name field', async () => {
       const request = new NextRequest('http://localhost:3000/api/customers', {
         method: 'POST',
+        body: JSON.stringify({ email: 'no-name@example.com' }),
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'New Customer',
-          address_line1: '123 Main St',
-          city: 'New York',
-          state: 'NY',
-          zip: '10001',
-        }),
       })
-
-      const response = await POST(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(201)
-      expect(data.customer).toEqual(newCustomer)
-    })
-
-    it('should create customer with communication preferences', async () => {
-      setupAuthenticatedUser()
-
-      const newCustomer = {
-        id: 'customer-123',
-        name: 'New Customer',
-        communication_preferences: { email: true, sms: true, mail: false },
-        marketing_consent: true,
-      }
-      vi.mocked(CustomersService.createCustomer).mockResolvedValue(newCustomer)
-
-      const request = new NextRequest('http://localhost:3000/api/customers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'New Customer',
-          communication_preferences: { email: true, sms: true, mail: false },
-          marketing_consent: true,
-        }),
-      })
-
-      const response = await POST(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(201)
-      expect(data.customer.communication_preferences).toEqual({ email: true, sms: true, mail: false })
-      expect(data.customer.marketing_consent).toBe(true)
-    })
-
-    it('should reject customer creation without name', async () => {
-      setupAuthenticatedUser()
-
-      const request = new NextRequest('http://localhost:3000/api/customers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: 'no-name@example.com',
-        }),
-      })
-
       const response = await POST(request)
 
       expect(response.status).toBe(400)
+      expect(supabaseStub.chain.insert).not.toHaveBeenCalled()
     })
 
-    it('should reject customer creation with invalid email', async () => {
-      setupAuthenticatedUser()
-
+    it('rejects payloads with an invalid email format', async () => {
       const request = new NextRequest('http://localhost:3000/api/customers', {
         method: 'POST',
+        body: JSON.stringify({ name: 'New Customer', email: 'not-an-email' }),
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'New Customer',
-          email: 'invalid-email',
-        }),
       })
-
       const response = await POST(request)
 
       expect(response.status).toBe(400)
+      expect(supabaseStub.chain.insert).not.toHaveBeenCalled()
     })
 
-    it('should reject unauthenticated requests', async () => {
-      setupUnauthenticatedUser()
-
+    it('rejects malformed JSON bodies', async () => {
       const request = new NextRequest('http://localhost:3000/api/customers', {
         method: 'POST',
+        body: 'invalid json{',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'New Customer',
-        }),
       })
-
       const response = await POST(request)
 
-      expect(response.status).toBe(401)
+      expect(response.status).toBe(400)
     })
   })
 })

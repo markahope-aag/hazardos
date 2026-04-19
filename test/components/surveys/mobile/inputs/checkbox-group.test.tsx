@@ -4,129 +4,278 @@ import userEvent from '@testing-library/user-event'
 import { CheckboxGroup, SingleCheckbox } from '@/components/surveys/mobile/inputs/checkbox-group'
 
 describe('CheckboxGroup', () => {
-  const options = [
-    { value: 'option1' as const, label: 'Option 1' },
-    { value: 'option2' as const, label: 'Option 2' },
-    { value: 'option3' as const, label: 'Option 3', description: 'Description' },
+  const mockOnChange = vi.fn()
+  const mockOptions = [
+    { value: 'option1', label: 'Option 1', description: 'First option' },
+    { value: 'option2', label: 'Option 2' },
+    { value: 'option3', label: 'Option 3', description: 'Third option' },
   ]
 
-  it('renders all options', () => {
-    render(<CheckboxGroup values={[]} onChange={() => {}} options={options} />)
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should render all checkbox options', () => {
+    render(
+      <CheckboxGroup
+        values={[]}
+        onChange={mockOnChange}
+        options={mockOptions}
+      />
+    )
 
     expect(screen.getByText('Option 1')).toBeInTheDocument()
     expect(screen.getByText('Option 2')).toBeInTheDocument()
     expect(screen.getByText('Option 3')).toBeInTheDocument()
   })
 
-  it('renders option descriptions when provided', () => {
-    render(<CheckboxGroup values={[]} onChange={() => {}} options={options} />)
-    expect(screen.getByText('Description')).toBeInTheDocument()
+  it('should show descriptions when provided', () => {
+    render(
+      <CheckboxGroup
+        values={[]}
+        onChange={mockOnChange}
+        options={mockOptions}
+      />
+    )
+
+    expect(screen.getByText('First option')).toBeInTheDocument()
+    expect(screen.getByText('Third option')).toBeInTheDocument()
   })
 
-  it('marks selected options as checked', () => {
-    render(<CheckboxGroup values={['option1', 'option2']} onChange={() => {}} options={options} />)
+  it('should check selected values', () => {
+    render(
+      <CheckboxGroup
+        values={['option1', 'option3']}
+        onChange={mockOnChange}
+        options={mockOptions}
+      />
+    )
 
     const checkboxes = screen.getAllByRole('checkbox')
     expect(checkboxes[0]).toHaveAttribute('aria-checked', 'true')
-    expect(checkboxes[1]).toHaveAttribute('aria-checked', 'true')
-    expect(checkboxes[2]).toHaveAttribute('aria-checked', 'false')
+    expect(checkboxes[1]).toHaveAttribute('aria-checked', 'false')
+    expect(checkboxes[2]).toHaveAttribute('aria-checked', 'true')
   })
 
-  it('calls onChange when option is toggled', async () => {
-    const user = userEvent.setup()
-    const handleChange = vi.fn()
-
-    render(<CheckboxGroup values={[]} onChange={handleChange} options={options} />)
-
-    await user.click(screen.getByText('Option 1'))
-    expect(handleChange).toHaveBeenCalledWith(['option1'])
-  })
-
-  it('removes option when already selected', async () => {
-    const user = userEvent.setup()
-    const handleChange = vi.fn()
-
-    render(<CheckboxGroup values={['option1']} onChange={handleChange} options={options} />)
-
-    await user.click(screen.getByText('Option 1'))
-    expect(handleChange).toHaveBeenCalledWith([])
-  })
-
-  it('does not call onChange when disabled', async () => {
-    const user = userEvent.setup()
-    const handleChange = vi.fn()
-
-    render(<CheckboxGroup values={[]} onChange={handleChange} options={options} disabled />)
-
-    await user.click(screen.getByText('Option 1'))
-    expect(handleChange).not.toHaveBeenCalled()
-  })
-
-  it('renders with two columns when specified', () => {
-    const { container } = render(
-      <CheckboxGroup values={[]} onChange={() => {}} options={options} columns={2} />
+  it('should add value when unchecked option clicked', async () => {
+    render(
+      <CheckboxGroup
+        values={['option1']}
+        onChange={mockOnChange}
+        options={mockOptions}
+      />
     )
-    expect(container.querySelector('.grid-cols-2')).toBeInTheDocument()
+
+    const option2 = screen.getByText('Option 2')
+    await userEvent.click(option2)
+
+    expect(mockOnChange).toHaveBeenCalledWith(['option1', 'option2'])
   })
 
-  it('renders with one column by default', () => {
-    const { container } = render(
-      <CheckboxGroup values={[]} onChange={() => {}} options={options} />
+  it('should remove value when checked option clicked', async () => {
+    render(
+      <CheckboxGroup
+        values={['option1', 'option2']}
+        onChange={mockOnChange}
+        options={mockOptions}
+      />
     )
-    expect(container.querySelector('.grid-cols-1')).toBeInTheDocument()
+
+    const option1 = screen.getByText('Option 1')
+    await userEvent.click(option1)
+
+    expect(mockOnChange).toHaveBeenCalledWith(['option2'])
+  })
+
+  it('should not call onChange when disabled', async () => {
+    render(
+      <CheckboxGroup
+        values={[]}
+        onChange={mockOnChange}
+        options={mockOptions}
+        disabled={true}
+      />
+    )
+
+    const option1 = screen.getByText('Option 1')
+    await userEvent.click(option1)
+
+    expect(mockOnChange).not.toHaveBeenCalled()
+  })
+
+  it('should render in single column by default', () => {
+    const { container } = render(
+      <CheckboxGroup
+        values={[]}
+        onChange={mockOnChange}
+        options={mockOptions}
+      />
+    )
+
+    const grid = container.querySelector('[role="group"]')
+    expect(grid?.className).toContain('grid-cols-1')
+  })
+
+  it('should render in two columns when specified', () => {
+    const { container } = render(
+      <CheckboxGroup
+        values={[]}
+        onChange={mockOnChange}
+        options={mockOptions}
+        columns={2}
+      />
+    )
+
+    const grid = container.querySelector('[role="group"]')
+    expect(grid?.className).toContain('grid-cols-2')
+  })
+
+  it('should apply custom className', () => {
+    const { container } = render(
+      <CheckboxGroup
+        values={[]}
+        onChange={mockOnChange}
+        options={mockOptions}
+        className="custom-class"
+      />
+    )
+
+    const grid = container.querySelector('[role="group"]')
+    expect(grid?.className).toContain('custom-class')
+  })
+
+  it('should have proper ARIA attributes', () => {
+    render(
+      <CheckboxGroup
+        values={['option1']}
+        onChange={mockOnChange}
+        options={mockOptions}
+      />
+    )
+
+    const checkboxes = screen.getAllByRole('checkbox')
+    expect(checkboxes).toHaveLength(3)
+    checkboxes.forEach(checkbox => {
+      expect(checkbox).toHaveAttribute('aria-checked')
+    })
   })
 })
 
 describe('SingleCheckbox', () => {
-  it('renders with label', () => {
-    render(<SingleCheckbox checked={false} onChange={() => {}} label="Single Option" />)
-    expect(screen.getByText('Single Option')).toBeInTheDocument()
+  const mockOnChange = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
   })
 
-  it('renders description when provided', () => {
+  it('should render label', () => {
     render(
       <SingleCheckbox
         checked={false}
-        onChange={() => {}}
-        label="Option"
-        description="A description"
+        onChange={mockOnChange}
+        label="Test Label"
       />
     )
-    expect(screen.getByText('A description')).toBeInTheDocument()
+
+    expect(screen.getByText('Test Label')).toBeInTheDocument()
   })
 
-  it('shows checked state', () => {
-    render(<SingleCheckbox checked={true} onChange={() => {}} label="Checked" />)
-    expect(screen.getByRole('checkbox')).toHaveAttribute('aria-checked', 'true')
+  it('should render description when provided', () => {
+    render(
+      <SingleCheckbox
+        checked={false}
+        onChange={mockOnChange}
+        label="Test Label"
+        description="Test description"
+      />
+    )
+
+    expect(screen.getByText('Test description')).toBeInTheDocument()
   })
 
-  it('calls onChange when clicked', async () => {
-    const user = userEvent.setup()
-    const handleChange = vi.fn()
+  it('should toggle checked state on click', async () => {
+    render(
+      <SingleCheckbox
+        checked={false}
+        onChange={mockOnChange}
+        label="Test Label"
+      />
+    )
 
-    render(<SingleCheckbox checked={false} onChange={handleChange} label="Toggle" />)
+    const checkbox = screen.getByRole('checkbox')
+    await userEvent.click(checkbox)
 
-    await user.click(screen.getByRole('checkbox'))
-    expect(handleChange).toHaveBeenCalledWith(true)
+    expect(mockOnChange).toHaveBeenCalledWith(true)
   })
 
-  it('toggles from checked to unchecked', async () => {
-    const user = userEvent.setup()
-    const handleChange = vi.fn()
+  it('should toggle unchecked state on click', async () => {
+    render(
+      <SingleCheckbox
+        checked={true}
+        onChange={mockOnChange}
+        label="Test Label"
+      />
+    )
 
-    render(<SingleCheckbox checked={true} onChange={handleChange} label="Toggle" />)
+    const checkbox = screen.getByRole('checkbox')
+    await userEvent.click(checkbox)
 
-    await user.click(screen.getByRole('checkbox'))
-    expect(handleChange).toHaveBeenCalledWith(false)
+    expect(mockOnChange).toHaveBeenCalledWith(false)
   })
 
-  it('does not call onChange when disabled', async () => {
-    const user = userEvent.setup()
-    const handleChange = vi.fn()
+  it('should not call onChange when disabled', async () => {
+    render(
+      <SingleCheckbox
+        checked={false}
+        onChange={mockOnChange}
+        label="Test Label"
+        disabled={true}
+      />
+    )
 
-    render(<SingleCheckbox checked={false} onChange={handleChange} label="Disabled" disabled />)
+    const checkbox = screen.getByRole('checkbox')
+    await userEvent.click(checkbox)
 
-    await user.click(screen.getByRole('checkbox'))
-    expect(handleChange).not.toHaveBeenCalled()
+    expect(mockOnChange).not.toHaveBeenCalled()
+  })
+
+  it('should have aria-checked true when checked', () => {
+    render(
+      <SingleCheckbox
+        checked={true}
+        onChange={mockOnChange}
+        label="Test Label"
+      />
+    )
+
+    const checkbox = screen.getByRole('checkbox')
+    expect(checkbox).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('should have aria-checked false when unchecked', () => {
+    render(
+      <SingleCheckbox
+        checked={false}
+        onChange={mockOnChange}
+        label="Test Label"
+      />
+    )
+
+    const checkbox = screen.getByRole('checkbox')
+    expect(checkbox).toHaveAttribute('aria-checked', 'false')
+  })
+
+  it('should apply custom className', () => {
+    render(
+      <SingleCheckbox
+        checked={false}
+        onChange={mockOnChange}
+        label="Test Label"
+        className="custom-class"
+      />
+    )
+
+    const checkbox = screen.getByRole('checkbox')
+    expect(checkbox.className).toContain('custom-class')
   })
 })

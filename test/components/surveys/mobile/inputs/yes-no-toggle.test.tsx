@@ -3,117 +3,278 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { YesNoToggle, YesNoNaToggle } from '@/components/surveys/mobile/inputs/yes-no-toggle'
 
-describe('YesNoToggle', () => {
-  it('renders yes and no buttons', () => {
-    render(<YesNoToggle value={null} onChange={() => {}} />)
+describe('YesNoToggle Component', () => {
+  const mockOnChange = vi.fn()
 
-    expect(screen.getByText('Yes')).toBeInTheDocument()
-    expect(screen.getByText('No')).toBeInTheDocument()
+  beforeEach(() => {
+    vi.clearAllMocks()
   })
 
-  it('renders with custom labels', () => {
+  it('should render with default labels', () => {
+    render(<YesNoToggle value={null} onChange={mockOnChange} />)
+
+    expect(screen.getByRole('button', { name: /yes/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /no/i })).toBeInTheDocument()
+  })
+
+  it('should render with custom labels', () => {
     render(
-      <YesNoToggle value={null} onChange={() => {}} yesLabel="Accept" noLabel="Decline" />
-    )
-
-    expect(screen.getByText('Accept')).toBeInTheDocument()
-    expect(screen.getByText('Decline')).toBeInTheDocument()
-  })
-
-  it('highlights yes button when value is true', () => {
-    render(<YesNoToggle value={true} onChange={() => {}} />)
-
-    const yesButton = screen.getByText('Yes').closest('button')
-    expect(yesButton).toHaveAttribute('aria-pressed', 'true')
-  })
-
-  it('highlights no button when value is false', () => {
-    render(<YesNoToggle value={false} onChange={() => {}} />)
-
-    const noButton = screen.getByText('No').closest('button')
-    expect(noButton).toHaveAttribute('aria-pressed', 'true')
-  })
-
-  it('calls onChange with true when yes is clicked', async () => {
-    const user = userEvent.setup()
-    const handleChange = vi.fn()
-
-    render(<YesNoToggle value={null} onChange={handleChange} />)
-
-    await user.click(screen.getByText('Yes'))
-    expect(handleChange).toHaveBeenCalledWith(true)
-  })
-
-  it('calls onChange with false when no is clicked', async () => {
-    const user = userEvent.setup()
-    const handleChange = vi.fn()
-
-    render(<YesNoToggle value={null} onChange={handleChange} />)
-
-    await user.click(screen.getByText('No'))
-    expect(handleChange).toHaveBeenCalledWith(false)
-  })
-
-  it('does not call onChange when disabled', async () => {
-    const user = userEvent.setup()
-    const handleChange = vi.fn()
-
-    render(<YesNoToggle value={null} onChange={handleChange} disabled />)
-
-    await user.click(screen.getByText('Yes'))
-    expect(handleChange).not.toHaveBeenCalled()
-  })
-})
-
-describe('YesNoNaToggle', () => {
-  it('renders yes, no, and N/A buttons', () => {
-    render(<YesNoNaToggle value={null} onChange={() => {}} />)
-
-    expect(screen.getByText('Yes')).toBeInTheDocument()
-    expect(screen.getByText('No')).toBeInTheDocument()
-    expect(screen.getByText('N/A')).toBeInTheDocument()
-  })
-
-  it('renders with custom labels', () => {
-    render(
-      <YesNoNaToggle
+      <YesNoToggle
         value={null}
-        onChange={() => {}}
-        yesLabel="True"
-        noLabel="False"
-        naLabel="Unknown"
+        onChange={mockOnChange}
+        yesLabel="Agree"
+        noLabel="Disagree"
       />
     )
 
-    expect(screen.getByText('True')).toBeInTheDocument()
-    expect(screen.getByText('False')).toBeInTheDocument()
-    expect(screen.getByText('Unknown')).toBeInTheDocument()
+    expect(screen.getByText('Agree')).toBeInTheDocument()
+    expect(screen.getByText('Disagree')).toBeInTheDocument()
   })
 
-  it('highlights N/A button when value is null', () => {
-    render(<YesNoNaToggle value={null} onChange={() => {}} />)
+  it('should call onChange with true when yes button is clicked', async () => {
+    const user = userEvent.setup()
+    render(<YesNoToggle value={null} onChange={mockOnChange} />)
 
-    const naButton = screen.getByText('N/A').closest('button')
+    const yesButton = screen.getByRole('button', { name: /yes/i })
+    await user.click(yesButton)
+
+    expect(mockOnChange).toHaveBeenCalledWith(true)
+  })
+
+  it('should call onChange with false when no button is clicked', async () => {
+    const user = userEvent.setup()
+    render(<YesNoToggle value={null} onChange={mockOnChange} />)
+
+    const noButton = screen.getByRole('button', { name: /no/i })
+    await user.click(noButton)
+
+    expect(mockOnChange).toHaveBeenCalledWith(false)
+  })
+
+  it('should show selected state for yes', () => {
+    render(<YesNoToggle value={true} onChange={mockOnChange} />)
+
+    const yesButton = screen.getByRole('button', { name: /yes/i })
+    const noButton = screen.getByRole('button', { name: /no/i })
+
+    expect(yesButton).toHaveAttribute('aria-pressed', 'true')
+    expect(noButton).toHaveAttribute('aria-pressed', 'false')
+    expect(yesButton).toHaveClass('bg-green-600')
+  })
+
+  it('should show selected state for no', () => {
+    render(<YesNoToggle value={false} onChange={mockOnChange} />)
+
+    const yesButton = screen.getByRole('button', { name: /yes/i })
+    const noButton = screen.getByRole('button', { name: /no/i })
+
+    expect(yesButton).toHaveAttribute('aria-pressed', 'false')
+    expect(noButton).toHaveAttribute('aria-pressed', 'true')
+    expect(noButton).toHaveClass('bg-red-600')
+  })
+
+  it('should show unselected state when value is null', () => {
+    render(<YesNoToggle value={null} onChange={mockOnChange} />)
+
+    const yesButton = screen.getByRole('button', { name: /yes/i })
+    const noButton = screen.getByRole('button', { name: /no/i })
+
+    expect(yesButton).toHaveAttribute('aria-pressed', 'false')
+    expect(noButton).toHaveAttribute('aria-pressed', 'false')
+    expect(yesButton).not.toHaveClass('bg-green-600')
+    expect(noButton).not.toHaveClass('bg-red-600')
+  })
+
+  it('should be disabled when disabled prop is true', () => {
+    render(<YesNoToggle value={null} onChange={mockOnChange} disabled />)
+
+    const yesButton = screen.getByRole('button', { name: /yes/i })
+    const noButton = screen.getByRole('button', { name: /no/i })
+
+    expect(yesButton).toBeDisabled()
+    expect(noButton).toBeDisabled()
+    expect(yesButton).toHaveAttribute('aria-disabled', 'true')
+    expect(noButton).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('should not call onChange when disabled and clicked', async () => {
+    const user = userEvent.setup()
+    render(<YesNoToggle value={null} onChange={mockOnChange} disabled />)
+
+    const yesButton = screen.getByRole('button', { name: /yes/i })
+    await user.click(yesButton)
+
+    expect(mockOnChange).not.toHaveBeenCalled()
+  })
+
+  it('should apply custom className', () => {
+    render(<YesNoToggle value={null} onChange={mockOnChange} className="custom-class" />)
+
+    const container = screen.getByRole('button', { name: /yes/i }).parentElement
+    expect(container).toHaveClass('custom-class')
+  })
+
+  it('should have proper accessibility attributes', () => {
+    render(<YesNoToggle value={true} onChange={mockOnChange} />)
+
+    const yesButton = screen.getByRole('button', { name: /yes/i })
+    const noButton = screen.getByRole('button', { name: /no/i })
+
+    expect(yesButton).toHaveAttribute('type', 'button')
+    expect(noButton).toHaveAttribute('type', 'button')
+    expect(yesButton).toHaveAttribute('aria-pressed', 'true')
+    expect(noButton).toHaveAttribute('aria-pressed', 'false')
+  })
+})
+
+describe('YesNoNaToggle Component', () => {
+  const mockOnChange = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should render with default labels', () => {
+    render(<YesNoNaToggle value={null} onChange={mockOnChange} />)
+
+    expect(screen.getByRole('button', { name: /yes/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /no/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /n\/a/i })).toBeInTheDocument()
+  })
+
+  it('should render with custom labels', () => {
+    render(
+      <YesNoNaToggle
+        value={null}
+        onChange={mockOnChange}
+        yesLabel="Agree"
+        noLabel="Disagree"
+        naLabel="Skip"
+      />
+    )
+
+    expect(screen.getByText('Agree')).toBeInTheDocument()
+    expect(screen.getByText('Disagree')).toBeInTheDocument()
+    expect(screen.getByText('Skip')).toBeInTheDocument()
+  })
+
+  it('should call onChange with true when yes button is clicked', async () => {
+    const user = userEvent.setup()
+    render(<YesNoNaToggle value={null} onChange={mockOnChange} />)
+
+    const yesButton = screen.getByRole('button', { name: /yes/i })
+    await user.click(yesButton)
+
+    expect(mockOnChange).toHaveBeenCalledWith(true)
+  })
+
+  it('should call onChange with false when no button is clicked', async () => {
+    const user = userEvent.setup()
+    render(<YesNoNaToggle value={null} onChange={mockOnChange} />)
+
+    const noButton = screen.getByRole('button', { name: /no/i })
+    await user.click(noButton)
+
+    expect(mockOnChange).toHaveBeenCalledWith(false)
+  })
+
+  it('should call onChange with null when N/A button is clicked', async () => {
+    const user = userEvent.setup()
+    render(<YesNoNaToggle value={true} onChange={mockOnChange} />)
+
+    const naButton = screen.getByRole('button', { name: /n\/a/i })
+    await user.click(naButton)
+
+    expect(mockOnChange).toHaveBeenCalledWith(null)
+  })
+
+  it('should show selected state for yes', () => {
+    render(<YesNoNaToggle value={true} onChange={mockOnChange} />)
+
+    const yesButton = screen.getByRole('button', { name: /yes/i })
+    const noButton = screen.getByRole('button', { name: /no/i })
+    const naButton = screen.getByRole('button', { name: /n\/a/i })
+
+    expect(yesButton).toHaveAttribute('aria-pressed', 'true')
+    expect(noButton).toHaveAttribute('aria-pressed', 'false')
+    expect(naButton).toHaveAttribute('aria-pressed', 'false')
+    expect(yesButton).toHaveClass('bg-green-600')
+  })
+
+  it('should show selected state for no', () => {
+    render(<YesNoNaToggle value={false} onChange={mockOnChange} />)
+
+    const yesButton = screen.getByRole('button', { name: /yes/i })
+    const noButton = screen.getByRole('button', { name: /no/i })
+    const naButton = screen.getByRole('button', { name: /n\/a/i })
+
+    expect(yesButton).toHaveAttribute('aria-pressed', 'false')
+    expect(noButton).toHaveAttribute('aria-pressed', 'true')
+    expect(naButton).toHaveAttribute('aria-pressed', 'false')
+    expect(noButton).toHaveClass('bg-red-600')
+  })
+
+  it('should show selected state for N/A', () => {
+    render(<YesNoNaToggle value={null} onChange={mockOnChange} />)
+
+    const yesButton = screen.getByRole('button', { name: /yes/i })
+    const noButton = screen.getByRole('button', { name: /no/i })
+    const naButton = screen.getByRole('button', { name: /n\/a/i })
+
+    expect(yesButton).toHaveAttribute('aria-pressed', 'false')
+    expect(noButton).toHaveAttribute('aria-pressed', 'false')
     expect(naButton).toHaveAttribute('aria-pressed', 'true')
+    expect(naButton).toHaveClass('bg-gray-600')
   })
 
-  it('calls onChange with null when N/A is clicked', async () => {
-    const user = userEvent.setup()
-    const handleChange = vi.fn()
+  it('should be disabled when disabled prop is true', () => {
+    render(<YesNoNaToggle value={null} onChange={mockOnChange} disabled />)
 
-    render(<YesNoNaToggle value={true} onChange={handleChange} />)
+    const yesButton = screen.getByRole('button', { name: /yes/i })
+    const noButton = screen.getByRole('button', { name: /no/i })
+    const naButton = screen.getByRole('button', { name: /n\/a/i })
 
-    await user.click(screen.getByText('N/A'))
-    expect(handleChange).toHaveBeenCalledWith(null)
+    expect(yesButton).toBeDisabled()
+    expect(noButton).toBeDisabled()
+    expect(naButton).toBeDisabled()
   })
 
-  it('does not call onChange when disabled', async () => {
+  it('should not call onChange when disabled and clicked', async () => {
     const user = userEvent.setup()
-    const handleChange = vi.fn()
+    render(<YesNoNaToggle value={null} onChange={mockOnChange} disabled />)
 
-    render(<YesNoNaToggle value={null} onChange={handleChange} disabled />)
+    const yesButton = screen.getByRole('button', { name: /yes/i })
+    await user.click(yesButton)
 
-    await user.click(screen.getByText('Yes'))
-    expect(handleChange).not.toHaveBeenCalled()
+    expect(mockOnChange).not.toHaveBeenCalled()
+  })
+
+  it('should apply custom className', () => {
+    render(<YesNoNaToggle value={null} onChange={mockOnChange} className="custom-class" />)
+
+    const container = screen.getByRole('button', { name: /yes/i }).parentElement
+    expect(container).toHaveClass('custom-class')
+  })
+
+  it('should handle state transitions correctly', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(<YesNoNaToggle value={null} onChange={mockOnChange} />)
+
+    // Start with N/A selected
+    const yesButton = screen.getByRole('button', { name: /yes/i })
+    expect(yesButton).toHaveAttribute('aria-pressed', 'false')
+
+    // Click Yes
+    await user.click(yesButton)
+    expect(mockOnChange).toHaveBeenCalledWith(true)
+
+    // Simulate state change
+    rerender(<YesNoNaToggle value={true} onChange={mockOnChange} />)
+    expect(yesButton).toHaveAttribute('aria-pressed', 'true')
+
+    // Click No
+    const noButton = screen.getByRole('button', { name: /no/i })
+    await user.click(noButton)
+    expect(mockOnChange).toHaveBeenCalledWith(false)
   })
 })

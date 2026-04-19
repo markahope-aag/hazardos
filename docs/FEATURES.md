@@ -2,30 +2,356 @@
 
 **Complete feature reference for the HazardOS platform**
 
-> **Last Updated**: February 2, 2026 (v0.2.2)
-> **Status**: Production Ready with Comprehensive Testing and Structured Logging
+> **Last Updated**: April 19, 2026 (v0.3.1)
+> **Status**: Production Ready with Enhanced CRM System and Properties Management
 
 ---
 
 ## Table of Contents
 
-1. [API Standardization & Testing](#api-standardization--testing)
-2. [Job Completion System](#job-completion-system)
-3. [Customer Feedback System](#customer-feedback-system)
-4. [Analytics & Variance Tracking](#analytics--variance-tracking)
-5. [QuickBooks Integration](#quickbooks-integration)
-6. [Multiple Contacts System](#multiple-contacts-system)
-7. [Activity Logging](#activity-logging)
-8. [Site Survey Mobile Wizard](#site-survey-mobile-wizard)
-9. [Pricing Management](#pricing-management)
-10. [Customer Management](#customer-management)
-11. [Estimate Builder](#estimate-builder)
-12. [Invoice Management](#invoice-management)
+1. [CRM System Rebuild](#crm-system-rebuild)
+2. [Properties Management](#properties-management)
+3. [Invoice Delivery & Payment System](#invoice-delivery--payment-system)
+4. [Job Reminders & Calendar Sync](#job-reminders--calendar-sync)
+5. [Enhanced Estimate Calculator](#enhanced-estimate-calculator)
+6. [Job Documents System](#job-documents-system)
+7. [API Standardization & Testing](#api-standardization--testing)
+8. [Job Completion System](#job-completion-system)
+9. [Customer Feedback System](#customer-feedback-system)
+10. [Analytics & Variance Tracking](#analytics--variance-tracking)
+11. [QuickBooks Integration](#quickbooks-integration)
+12. [Multiple Contacts System](#multiple-contacts-system)
+13. [Activity Logging](#activity-logging)
+14. [Site Survey Mobile Wizard](#site-survey-mobile-wizard)
+15. [Pricing Management](#pricing-management)
+16. [Customer Management](#customer-management)
+17. [Estimate Builder](#estimate-builder)
+18. [Invoice Management](#invoice-management)
 
 ## Related Documentation
 
 For in-depth explanations of business rules and domain logic, see:
 - [Business Logic Documentation](./BUSINESS-LOGIC.md) - Deep dive into pricing calculations, job workflows, commission rules, approval workflows, and more
+
+---
+
+## CRM System Rebuild
+
+### Overview
+
+Complete customer relationship management system that serves as the primary hub of HazardOS. Replaces disparate customer management with unified companies, contacts, opportunities, pipeline, jobs, and properties management.
+
+### Core Features
+
+#### Companies Management (`/crm/companies`)
+- **Business Account Tracking**: Full company profiles with type classification
+- **Address Management**: Separate billing and service addresses
+- **Financial Metrics**: Lifetime value, payment terms, job counts
+- **QuickBooks Integration**: Bi-directional sync preparation
+- **Relationship Tracking**: Account owner assignment and status management
+
+#### Enhanced Contacts System (`/crm/contacts`)
+- **Person-Centric Design**: First/last name separation with proper name handling
+- **Contact Types**: Residential vs commercial contact classification
+- **Role Management**: Decision maker, influencer, billing, property manager roles
+- **Relationship Linking**: Smart company association and primary contact designation
+- **Communication Preferences**: Email/SMS opt-in tracking with dates
+
+#### Opportunities & Sales Pipeline (`/crm/opportunities`, `/crm/pipeline`)
+- **Complete Sales Tracking**: Full opportunity lifecycle management
+- **Kanban Interface**: Drag-and-drop stage management with visual pipeline
+- **Property Integration**: Address and hazard type specification
+- **Timeline Management**: Urgency tracking and deadline management
+- **Conversion Tracking**: Seamless flow from opportunity to job
+
+#### Jobs within CRM Context (`/crm/jobs`)
+- **Integrated Job Management**: Jobs as part of customer relationship flow
+- **Enhanced Details**: Containment levels, compliance requirements, crew assignments
+- **Financial Tracking**: Estimated vs actual revenue/cost analysis
+- **Status Workflow**: Clear progression from scheduled to completed
+- **Performance Analytics**: Time tracking and variance analysis
+
+### Multi-Touch Attribution System
+
+#### Three-Touch Model
+- **First Touch**: Original customer discovery source
+- **Last Touch**: Most recent re-engagement channel
+- **Converting Touch**: Final interaction that closed the deal
+
+#### Attribution Flow
+- **Source Inheritance**: Contact → Opportunity → Job attribution flow
+- **Override Capability**: Manual attribution correction at any level
+- **Analytics Integration**: True marketing ROI with revenue attribution
+
+### Navigation System
+
+#### CRM Hub Design
+- **Primary Navigation Replacement**: CRM becomes main workspace
+- **Sub-Navigation Tabs**: Contacts, Companies, Opportunities, Pipeline, Jobs, Properties
+- **Context Preservation**: Seamless switching between related entities
+- **Main Menu Return**: Easy return to broader application features
+
+### Technical Implementation
+
+#### Database Architecture
+- **Enhanced Tables**: companies, customers (contacts), opportunities, jobs
+- **Junction Tables**: property_contacts for complex relationships
+- **Attribution Tables**: touchpoints logging for full funnel analysis
+- **Trigger-Based Inheritance**: Automatic attribution flow via database triggers
+
+#### Migration Strategy
+- **Seamless Transition**: Existing data automatically upgraded
+- **Legacy Route Support**: Old URLs redirect to new CRM equivalents
+- **Backward Compatibility**: All existing functionality preserved
+
+---
+
+## Properties Management
+
+### Overview
+
+Complete work history tracking for physical addresses across different owners and contacts. Provides continuity when ownership changes but environmental hazards remain at the same location.
+
+### Core Features
+
+#### Property Tracking (`/crm/properties`)
+- **Address-Centric Records**: Complete property profiles with work history
+- **Property Details**: Type, year built, square footage, property characteristics
+- **Work Continuity**: Job history persists across ownership changes
+- **Contact Relationships**: Multiple contacts per property with defined roles
+
+#### Contact Role Management
+- **Owner Tracking**: Current and previous ownership history
+- **Tenant Management**: Active tenant and lease relationship tracking
+- **Site Contacts**: On-site coordination contact designation
+- **Billing Contacts**: Payment and invoicing contact assignment
+- **Role Transitions**: "Mark as Moved Out" workflow for relationship changes
+
+#### Property History
+- **Complete Work Log**: All jobs performed at address regardless of customer
+- **Contact Timeline**: Historical view of all associated contacts
+- **Service Continuity**: Hazard assessments and remediation tracking
+- **Knowledge Retention**: Institutional memory of property conditions
+
+### Business Value
+
+#### Operational Continuity
+- **Customer Turnover Resilience**: Maintain service history through ownership changes
+- **Hazard Knowledge**: Track ongoing environmental conditions
+- **Regulatory Compliance**: Historical documentation for regulatory requirements
+- **Service Excellence**: Informed service based on property history
+
+#### Revenue Opportunities
+- **Follow-up Services**: Target properties for recurring inspections
+- **Upselling**: Leverage history for additional services
+- **Market Intelligence**: Property-based market analysis
+- **Customer Acquisition**: Target new owners of serviced properties
+
+---
+
+## Invoice Delivery & Payment System
+
+### Overview
+
+Automated multi-channel invoice delivery with intelligent reminder scheduling and comprehensive payment tracking. Built for reliability, compliance, and customer experience optimization.
+
+### Invoice Delivery Service
+
+#### Multi-Channel Communication
+- **Email Delivery**: Professional invoice emails via Resend
+- **SMS Notifications**: Invoice alerts via Twilio integration
+- **Preference Respect**: Honor customer communication preferences
+- **Quiet Hours**: SMS timing compliance with organization settings
+
+#### Intelligent Reminder System
+- **Pre-Due Reminders**: Gentle notifications before due date (7, 3, 1 days)
+- **Due Date Alerts**: "Invoice due today" notifications
+- **Post-Due Escalation**: Increasing urgency after due date (1, 7, 14, 30 days)
+- **Smart Scheduling**: Automatic reminder cancellation upon payment
+
+#### Delivery Tracking
+- **Status Monitoring**: Track email delivery, opens, and SMS delivery
+- **Failure Handling**: Retry logic for failed deliveries
+- **Compliance Logging**: Complete audit trail for regulatory requirements
+- **Performance Analytics**: Delivery success rates and response tracking
+
+### Payment Processing & Recording
+
+#### Payment Flexibility
+- **Multiple Methods**: Check, credit card, bank transfer, cash support
+- **Partial Payments**: Support for payment plans and partial payments
+- **Overpayment Handling**: Credit tracking for overpayments
+- **Refund Management**: Payment reversal and refund processing
+
+#### Automated Workflows
+- **Status Updates**: Automatic invoice and job status updates
+- **Reminder Cleanup**: Immediate cancellation of pending reminders
+- **Activity Logging**: Comprehensive payment activity tracking
+- **Integration Ready**: QuickBooks payment sync preparation
+
+#### Business Intelligence
+- **Payment Analytics**: Payment timing and method analysis
+- **Collection Metrics**: Days to payment and collection effectiveness
+- **Customer Insights**: Payment behavior and reliability tracking
+- **Cash Flow Optimization**: Improved collection timing and methods
+
+---
+
+## Job Reminders & Calendar Sync
+
+### Overview
+
+Automated customer communication and calendar integration system that keeps customers informed and technician schedules synchronized across multiple calendar platforms.
+
+### Job Reminders Service
+
+#### 3-Stage Communication System
+- **Immediate Confirmation**: Instant booking confirmation upon scheduling
+- **Week-Before Reminder**: Advance notice with preparation instructions
+- **Day-Of Notification**: Final confirmation with technician contact details
+
+#### Customer Experience
+- **Preparation Instructions**: Clear guidance for appointment readiness
+- **Technician Information**: Contact details for day-of coordination
+- **Rescheduling Support**: Easy rescheduling through customer portal
+- **Preference Respect**: SMS opt-out and communication preference honor
+
+#### Operational Benefits
+- **Reduced No-Shows**: Proactive communication reduces missed appointments
+- **Preparation Time**: Customers prepared for efficient service delivery
+- **Professional Image**: Consistent, timely communication builds trust
+- **Staff Efficiency**: Reduced customer service calls about appointments
+
+### Calendar Integration System
+
+#### Multi-Platform Sync
+- **Google Calendar**: OAuth integration with automatic event creation
+- **Outlook Calendar**: Microsoft Graph API integration
+- **Real-Time Updates**: Immediate sync of schedule changes
+- **Conflict Detection**: Calendar availability checking
+
+#### Sync Reliability
+- **Non-Blocking Design**: Calendar failures never block job operations
+- **Graceful Degradation**: Business continues if calendar sync fails
+- **Retry Logic**: Automatic retry for temporary integration failures
+- **Error Logging**: Comprehensive failure tracking for troubleshooting
+
+#### Technician Benefits
+- **Mobile Calendar Access**: Job details available on mobile devices
+- **Automatic Updates**: No manual calendar entry required
+- **Conflict Awareness**: Visual schedule conflict identification
+- **Route Optimization**: Geographic job clustering for efficient routing
+
+---
+
+## Enhanced Estimate Calculator
+
+### Overview
+
+Refactored estimation system with improved architecture, better testability, and enhanced accuracy. Split into focused modules for better maintainability and reliability.
+
+### Architecture Improvements
+
+#### Modular Design
+- **Main Calculator**: High-level orchestration and business logic
+- **Line Item Calculators**: Pure calculation functions by cost category
+- **Pricing Rules**: Centralized constants and rate definitions
+
+#### Pure Function Approach
+- **Deterministic Results**: Same inputs always produce same outputs
+- **Independent Testing**: Each calculation function individually testable
+- **No Side Effects**: Calculations don't modify external state
+- **Composability**: Functions can be combined in different workflows
+
+### Calculation Categories
+
+#### Labor Cost Calculation
+- **Hours per Square Foot**: Industry-standard rates by hazard and containment level
+- **Crew Size Optimization**: Automatic crew sizing based on containment requirements
+- **Role-Based Rates**: Separate supervisor and technician hourly rates
+- **Overtime Handling**: Extended job hour calculations
+
+#### Equipment Cost Calculation  
+- **Duration-Based Pricing**: Equipment rental by containment level and job duration
+- **Category-Specific Rates**: Different equipment for different hazard types
+- **Delivery and Setup**: Transportation and installation cost factors
+- **Maintenance Factors**: Equipment condition and availability pricing
+
+#### Material Cost Calculation
+- **Area-Based Quantities**: Automatic material quantity calculation
+- **Waste Factor**: Industry-standard waste percentage inclusion
+- **Bulk Pricing**: Quantity break discounts and pricing tiers
+- **Vendor Integration**: Real-time pricing from supplier systems
+
+#### Disposal Cost Calculation
+- **Hazard-Specific Rates**: Different disposal costs by material type
+- **Volume Estimation**: Waste volume calculation based on removal area
+- **Transportation Costs**: Distance-based disposal facility charges
+- **Regulatory Fees**: Environmental compliance and permit costs
+
+### Business Benefits
+
+#### Estimation Accuracy
+- **Industry Standards**: Based on actual industry performance data
+- **Consistent Pricing**: Eliminates estimator-specific variations
+- **Competitive Positioning**: Accurate pricing for proposal competitiveness
+- **Profit Margin Control**: Reliable cost calculation for margin management
+
+#### Operational Efficiency
+- **Faster Estimates**: Automated calculation reduces estimate time
+- **Error Reduction**: Eliminates manual calculation mistakes
+- **Standardization**: Consistent estimation process across all estimators
+- **Training Support**: New estimators can produce accurate estimates immediately
+
+---
+
+## Job Documents System
+
+### Overview
+
+Comprehensive document management system for job-related paperwork including permits, manifests, clearance reports, photos, and videos. Provides organized storage and retrieval for regulatory compliance and customer communication.
+
+### Document Categories
+
+#### Regulatory Documents
+- **Permits**: Work permits and authorization documents
+- **Manifests**: Waste disposal and transportation manifests
+- **Clearance Reports**: Post-remediation clearance and certification
+- **Compliance Records**: Regulatory filing and inspection records
+
+#### Visual Documentation
+- **Photos**: Before, during, and after project photos
+- **Videos**: Work process documentation and customer communication
+- **Progress Updates**: Time-stamped visual project progress
+- **Quality Assurance**: Visual verification of work completion
+
+### Storage & Organization
+
+#### File Management
+- **Cloud Storage**: Secure cloud-based document storage via Supabase Storage
+- **Automatic Organization**: Documents organized by job and category
+- **Version Control**: Multiple versions of documents with history tracking
+- **Access Control**: Role-based document access and sharing
+
+#### Search & Retrieval
+- **Category Filtering**: Quick access by document type
+- **Date Range Searches**: Find documents by creation or upload date
+- **Job Association**: All documents linked to specific jobs
+- **Customer Access**: Secure customer portal document sharing
+
+### Business Value
+
+#### Regulatory Compliance
+- **Audit Trail**: Complete documentation for regulatory inspections
+- **Retention Management**: Automated retention policy compliance
+- **Easy Retrieval**: Quick access for regulatory requests
+- **Compliance Reporting**: Systematic compliance documentation
+
+#### Customer Communication
+- **Progress Sharing**: Real-time project updates with visual proof
+- **Completion Documentation**: Professional completion packages
+- **Historical Reference**: Easy access to past work documentation
+- **Transparency**: Open communication about work performed
 
 ---
 

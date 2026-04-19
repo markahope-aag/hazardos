@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST, DELETE } from '@/app/api/invoices/[id]/payments/route'
-import { InvoicesService } from '@/lib/services/invoices-service'
+import { InvoicePaymentsService } from '@/lib/services/invoice-payments-service'
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -16,8 +16,8 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => Promise.resolve(mockSupabaseClient))
 }))
 
-vi.mock('@/lib/services/invoices-service', () => ({
-  InvoicesService: {
+vi.mock('@/lib/services/invoice-payments-service', () => ({
+  InvoicePaymentsService: {
     recordPayment: vi.fn(),
     deletePayment: vi.fn()
   }
@@ -63,7 +63,7 @@ describe('Invoice Payments API', () => {
         payment_method: 'credit_card'
       }
 
-      vi.mocked(InvoicesService.recordPayment).mockResolvedValue(mockPayment)
+      vi.mocked(InvoicePaymentsService.recordPayment).mockResolvedValue(mockPayment)
 
       const paymentData = {
         amount: 1000,
@@ -103,7 +103,7 @@ describe('Invoice Payments API', () => {
         })
       } as any)
 
-      vi.mocked(InvoicesService.deletePayment).mockResolvedValue(undefined)
+      vi.mocked(InvoicePaymentsService.deletePayment).mockResolvedValue(undefined)
 
       const request = new NextRequest('http://localhost:3000/api/invoices/invoice-123/payments?payment_id=550e8400-e29b-41d4-a716-446655440000', {
         method: 'DELETE'

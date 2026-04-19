@@ -1,9 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
-import { SmsService } from '@/lib/services/sms-service'
-import { formatCurrency } from '@/lib/utils'
-import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type {
   Invoice,
   InvoiceLineItem,
@@ -11,10 +8,7 @@ import type {
   CreateInvoiceInput,
   CreateInvoiceFromJobInput,
   AddLineItemInput,
-  RecordPaymentInput,
 } from '@/types/invoices'
-
-const log = createServiceLogger('InvoicesService')
 
 // Default payment windows reflect the company's real policy: residential
 // customers get Net 15, commercial customers Net 30. A commercial account
@@ -61,6 +55,14 @@ function resolveDueTerms(input: {
   return { dueDays: DEFAULT_RESIDENTIAL_DUE_DAYS, paymentTermsLabel: `Net ${DEFAULT_RESIDENTIAL_DUE_DAYS}` }
 }
 
+/**
+ * Core invoice data service: CRUD, creation from jobs, line items, and
+ * org-scoped stats. Split off from this file:
+ *   - InvoiceDeliveryService (lib/services/invoice-delivery-service.ts) —
+ *     email/SMS delivery + scheduled reminder cadence
+ *   - InvoicePaymentsService (lib/services/invoice-payments-service.ts) —
+ *     recording/deleting payments and the paid-state side-effects
+ */
 export class InvoicesService {
   static async create(input: CreateInvoiceInput): Promise<Invoice> {
     const supabase = await createClient()
@@ -78,7 +80,6 @@ export class InvoicesService {
 
     const orgId = profile.organization_id
 
-    // Generate invoice number
     const { data: invoiceNumber } = await supabase
       .rpc('generate_invoice_number', { org_id: orgId })
 
@@ -143,7 +144,6 @@ export class InvoicesService {
     const dueDate = new Date()
     dueDate.setDate(dueDate.getDate() + dueDays)
 
-    // Create invoice
     const invoice = await this.create({
       job_id: input.job_id,
       customer_id: job.customer_id,
@@ -154,7 +154,6 @@ export class InvoicesService {
     // Collect all line items for batch insert (single query)
     const lineItems: AddLineItemInput[] = []
 
-    // Add main job amount as line item
     const jobAmount = job.final_amount || job.contract_amount
     if (jobAmount) {
       lineItems.push({
@@ -167,10 +166,9 @@ export class InvoicesService {
       })
     }
 
-    // Add approved change orders
     if (input.include_change_orders !== false) {
       const approvedCOs = (job.change_orders || []).filter(
-        (co: { status: string }) => co.status === 'approved'
+        (co: { status: string }) => co.status === 'approved',
       )
 
       for (const co of approvedCOs) {
@@ -185,12 +183,10 @@ export class InvoicesService {
       }
     }
 
-    // Batch insert all line items in a single query
     if (lineItems.length > 0) {
       await this.addLineItemsBatch(invoice.id, lineItems)
     }
 
-    // Update job status to invoiced
     await supabase
       .from('jobs')
       .update({ status: 'invoiced', updated_at: new Date().toISOString() })
@@ -216,21 +212,18 @@ export class InvoicesService {
 
     if (error) return null
 
-    // Transform nested arrays
-    const transformed = {
+    return {
       ...data,
       customer: Array.isArray(data.customer) ? data.customer[0] : data.customer,
       job: Array.isArray(data.job) ? data.job[0] : data.job,
       line_items: (data.line_items || []).sort(
-        (a: InvoiceLineItem, b: InvoiceLineItem) => a.sort_order - b.sort_order
+        (a: InvoiceLineItem, b: InvoiceLineItem) => a.sort_order - b.sort_order,
       ),
       payments: (data.payments || []).sort(
         (a: Payment, b: Payment) =>
-          new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime()
+          new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime(),
       ),
     }
-
-    return transformed
   }
 
   static async list(filters?: {
@@ -279,7 +272,6 @@ export class InvoicesService {
 
     if (error) throwDbError(error, 'fetch invoices')
 
-    // Transform nested arrays
     return (data || []).map((inv) => ({
       ...inv,
       customer: Array.isArray(inv.customer) ? inv.customer[0] : inv.customer,
@@ -309,300 +301,6 @@ export class InvoicesService {
     if (error) throwDbError(error, 'delete invoice')
   }
 
-  static async send(id: string, method: 'email' | 'sms' = 'email'): Promise<Invoice> {
-    const supabase = await createClient()
-
-    // Get the full invoice with customer data
-    const invoice = await this.getById(id)
-    if (!invoice) throw new SecureError('NOT_FOUND', 'Invoice not found')
-
-    const customer = invoice.customer
-    if (!customer) throw new SecureError('BAD_REQUEST', 'Invoice has no customer')
-
-    // Get organization info for branding
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .single()
-
-    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
-
-    const { data: organization } = await supabase
-      .from('organizations')
-      .select('name, email, phone, address, city, state, zip, website')
-      .eq('id', profile.organization_id)
-      .single()
-
-    try {
-      if (method === 'email') {
-        await this.sendInvoiceEmail(invoice, customer, organization, profile.organization_id)
-      } else if (method === 'sms') {
-        await this.sendInvoiceSms(invoice, customer, profile.organization_id)
-      }
-    } catch (error) {
-      log.error(
-        { operation: 'send', error: formatError(error), invoiceId: id, method },
-        'Failed to send invoice'
-      )
-      // Still update status even if send fails, but log the error
-      throw error
-    }
-
-    // Update invoice status
-    const updatedInvoice = await this.update(id, {
-      status: 'sent',
-      sent_at: new Date().toISOString(),
-      sent_via: method,
-    } as Partial<Invoice>)
-
-    // Log activity
-    await Activity.sent('invoice', id, invoice.invoice_number)
-
-    // Queue payment reminders (SMS) tied to the due date. Guarded by the
-    // org's payment_reminders_enabled toggle — no scheduled rows are created
-    // if the feature is off.
-    try {
-      await this.schedulePaymentReminders(updatedInvoice, profile.organization_id)
-    } catch (e) {
-      log.warn(
-        { invoiceId: id, err: formatError(e) },
-        'failed to schedule payment reminders; invoice send itself succeeded',
-      )
-    }
-
-    return updatedInvoice
-  }
-
-  // Creates scheduled_reminders rows for a just-sent invoice:
-  //   - 3 days before due_date (early nudge)
-  //   - on the due date (due-today nudge)
-  //   - 3 days after due_date (overdue nudge)
-  // All SMS. Skipped entirely if the org toggle is off or the customer
-  // isn't opted into SMS / has no phone.
-  private static async schedulePaymentReminders(
-    invoice: Invoice,
-    organizationId: string,
-  ): Promise<void> {
-    if (!invoice.due_date) return
-    const customer = invoice.customer
-    if (!customer?.phone) return
-
-    const supabase = await createClient()
-
-    const { data: smsSettings } = await supabase
-      .from('organization_sms_settings')
-      .select('payment_reminders_enabled, sms_enabled')
-      .eq('organization_id', organizationId)
-      .maybeSingle()
-
-    if (!smsSettings?.sms_enabled || !smsSettings?.payment_reminders_enabled) return
-
-    // Cancel any prior pending reminders for this invoice so reschedules
-    // don't duplicate.
-    await supabase
-      .from('scheduled_reminders')
-      .update({ status: 'cancelled' })
-      .eq('related_type', 'invoice')
-      .eq('related_id', invoice.id)
-      .eq('status', 'pending')
-
-    const { data: org } = await supabase
-      .from('organizations')
-      .select('name')
-      .eq('id', organizationId)
-      .single()
-    const companyName = org?.name || 'HazardOS'
-
-    const due = new Date(invoice.due_date)
-    const now = new Date()
-
-    const commonVars = {
-      company_name: companyName,
-      invoice_number: invoice.invoice_number,
-      amount: formatCurrency(invoice.balance_due),
-      due_date: due.toLocaleDateString(),
-      pay_url: `${process.env.NEXT_PUBLIC_APP_URL || ''}/pay/${invoice.id}`,
-    }
-
-    const reminderSpecs: Array<{ daysOffset: number; slug: string }> = [
-      { daysOffset: -3, slug: 'payment_reminder_pre_due' },
-      { daysOffset: 0, slug: 'payment_reminder_due' },
-      { daysOffset: 3, slug: 'payment_reminder_overdue' },
-    ]
-
-    const rows: Array<Record<string, unknown>> = []
-    for (const spec of reminderSpecs) {
-      const when = new Date(due)
-      when.setDate(when.getDate() + spec.daysOffset)
-      when.setHours(10, 0, 0, 0)
-      if (when <= now) continue
-      rows.push({
-        organization_id: organizationId,
-        related_type: 'invoice',
-        related_id: invoice.id,
-        reminder_type: spec.slug,
-        recipient_type: 'customer',
-        recipient_email: customer.email,
-        recipient_phone: customer.phone,
-        channel: 'sms',
-        scheduled_for: when.toISOString(),
-        template_slug: spec.slug,
-        template_variables: commonVars,
-      })
-    }
-
-    if (rows.length > 0) {
-      await supabase.from('scheduled_reminders').insert(rows)
-    }
-  }
-
-  // Cancels pending payment reminders for an invoice. Called when the
-  // invoice is paid or voided so the customer doesn't get a "due today"
-  // text after already paying.
-  private static async cancelPaymentReminders(invoiceId: string): Promise<void> {
-    const supabase = await createClient()
-    await supabase
-      .from('scheduled_reminders')
-      .update({ status: 'cancelled' })
-      .eq('related_type', 'invoice')
-      .eq('related_id', invoiceId)
-      .eq('status', 'pending')
-  }
-
-  private static async sendInvoiceEmail(
-    invoice: Invoice,
-    customer: NonNullable<Invoice['customer']>,
-    organization: { name: string | null; email: string | null; phone: string | null; address: string | null; city: string | null; state: string | null; zip: string | null; website: string | null } | null,
-    _organizationId: string
-  ): Promise<void> {
-    const resendApiKey = process.env.RESEND_API_KEY
-    if (!resendApiKey) {
-      throw new SecureError('BAD_REQUEST', 'Email service not configured (RESEND_API_KEY missing)')
-    }
-
-    if (!customer.email) {
-      throw new SecureError('VALIDATION_ERROR', 'Customer has no email address', 'email')
-    }
-
-    const { Resend } = await import('resend')
-    const resend = new Resend(resendApiKey)
-
-    const customerName = customer.company_name || customer.name || 'Customer'
-    const companyName = organization?.name || 'HazardOS'
-    const paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/pay/${invoice.id}`
-
-    // Generate line items HTML
-    const lineItemsHtml = invoice.line_items?.map(item => `
-      <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${item.description}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.unit_price)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.line_total)}</td>
-      </tr>
-    `).join('') || ''
-
-    const emailHtml = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background-color: #f97316; padding: 24px; text-align: center;">
-          <h1 style="color: white; margin: 0;">${companyName}</h1>
-        </div>
-
-        <div style="padding: 24px;">
-          <h2 style="color: #1f2937;">Invoice ${invoice.invoice_number}</h2>
-
-          <p>Dear ${customerName},</p>
-
-          <p>Please find your invoice details below. The total amount due is <strong>${formatCurrency(invoice.balance_due)}</strong> by ${new Date(invoice.due_date).toLocaleDateString()}.</p>
-
-          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-            <thead>
-              <tr style="background-color: #f3f4f6;">
-                <th style="padding: 8px; text-align: left;">Description</th>
-                <th style="padding: 8px; text-align: center;">Qty</th>
-                <th style="padding: 8px; text-align: right;">Price</th>
-                <th style="padding: 8px; text-align: right;">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${lineItemsHtml}
-            </tbody>
-          </table>
-
-          <div style="text-align: right; margin-top: 20px;">
-            <p style="margin: 4px 0;">Subtotal: ${formatCurrency(invoice.subtotal)}</p>
-            ${invoice.tax_amount > 0 ? `<p style="margin: 4px 0;">Tax: ${formatCurrency(invoice.tax_amount)}</p>` : ''}
-            ${invoice.discount_amount > 0 ? `<p style="margin: 4px 0;">Discount: -${formatCurrency(invoice.discount_amount)}</p>` : ''}
-            <p style="margin: 8px 0; font-size: 18px; font-weight: bold;">Total Due: ${formatCurrency(invoice.balance_due)}</p>
-          </div>
-
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${paymentUrl}" style="display: inline-block; padding: 14px 32px; background-color: #f97316; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Pay Now</a>
-          </div>
-
-          ${invoice.notes ? `<p style="margin-top: 20px; padding: 12px; background-color: #f3f4f6; border-radius: 4px;"><strong>Notes:</strong> ${invoice.notes}</p>` : ''}
-
-          <hr style="margin-top: 30px; border: none; border-top: 1px solid #e5e7eb;" />
-
-          <p style="font-size: 12px; color: #6b7280; text-align: center;">
-            ${companyName}${organization?.address ? ` | ${organization.address}` : ''}${organization?.phone ? ` | ${organization.phone}` : ''}
-          </p>
-        </div>
-      </div>
-    `
-
-    await resend.emails.send({
-      from: `${companyName} <invoices@${process.env.RESEND_DOMAIN || 'resend.dev'}>`,
-      to: customer.email,
-      subject: `Invoice ${invoice.invoice_number} from ${companyName} - ${formatCurrency(invoice.balance_due)} Due`,
-      html: emailHtml,
-    })
-
-    log.info(
-      { operation: 'sendInvoiceEmail', invoiceId: invoice.id, customerEmail: customer.email },
-      'Invoice email sent'
-    )
-  }
-
-  private static async sendInvoiceSms(
-    invoice: Invoice,
-    customer: NonNullable<Invoice['customer']>,
-    organizationId: string
-  ): Promise<void> {
-    if (!customer.phone) {
-      throw new SecureError('VALIDATION_ERROR', 'Customer has no phone number', 'phone')
-    }
-
-    // Look up the org name so we can interpolate it into the template.
-    const supabase = await createClient()
-    const { data: org } = await supabase
-      .from('organizations')
-      .select('name')
-      .eq('id', organizationId)
-      .single()
-
-    // Use the system payment_reminder template so wording is consistent
-    // with scheduled reminders and orgs can override it. message_type is
-    // derived from the template (payment_reminder — a valid enum value).
-    await SmsService.sendTemplated(organizationId, {
-      to: customer.phone,
-      template_type: 'payment_reminder',
-      variables: {
-        company_name: org?.name || 'HazardOS',
-        invoice_number: invoice.invoice_number,
-        amount: formatCurrency(invoice.balance_due),
-        due_date: new Date(invoice.due_date).toLocaleDateString(),
-      },
-      customer_id: customer.id,
-      related_entity_type: 'invoice',
-      related_entity_id: invoice.id,
-    })
-
-    log.info(
-      { operation: 'sendInvoiceSms', invoiceId: invoice.id, customerPhone: customer.phone },
-      'Invoice SMS sent'
-    )
-  }
-
   static async markViewed(id: string): Promise<Invoice> {
     const invoice = await this.getById(id)
     if (!invoice) throw new SecureError('NOT_FOUND', 'Invoice not found')
@@ -621,7 +319,18 @@ export class InvoicesService {
     const invoice = await this.update(id, { status: 'void' } as Partial<Invoice>)
 
     await Activity.statusChanged('invoice', id, invoice.invoice_number, 'active', 'void')
-    await this.cancelPaymentReminders(id)
+
+    // Cancel any pending reminders so the customer isn't chased for an
+    // invoice we've voided. Inlined (rather than calling into
+    // InvoiceDeliveryService) to keep this module free of a circular
+    // dependency with the delivery service, which depends on this one.
+    const supabase = await createClient()
+    await supabase
+      .from('scheduled_reminders')
+      .update({ status: 'cancelled' })
+      .eq('related_type', 'invoice')
+      .eq('related_id', id)
+      .eq('status', 'pending')
 
     return invoice
   }
@@ -630,7 +339,6 @@ export class InvoicesService {
   static async addLineItem(invoiceId: string, item: AddLineItemInput): Promise<InvoiceLineItem> {
     const supabase = await createClient()
 
-    // Get max sort order
     const { data: existing } = await supabase
       .from('invoice_line_items')
       .select('sort_order')
@@ -660,13 +368,11 @@ export class InvoicesService {
     return data
   }
 
-  /**
-   * Batch insert multiple line items efficiently (single query)
-   */
+  /** Batch insert multiple line items efficiently (single query) */
   static async addLineItemsBatch(
     invoiceId: string,
     items: AddLineItemInput[],
-    startSortOrder: number = 0
+    startSortOrder: number = 0,
   ): Promise<InvoiceLineItem[]> {
     if (items.length === 0) return []
 
@@ -695,7 +401,7 @@ export class InvoicesService {
 
   static async updateLineItem(
     id: string,
-    updates: Partial<InvoiceLineItem>
+    updates: Partial<InvoiceLineItem>,
   ): Promise<InvoiceLineItem> {
     const supabase = await createClient()
 
@@ -731,67 +437,6 @@ export class InvoicesService {
     if (error) throwDbError(error, 'delete invoice line item')
   }
 
-  // Payments
-  static async recordPayment(invoiceId: string, payment: RecordPaymentInput): Promise<Payment> {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new SecureError('UNAUTHORIZED')
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) throw new SecureError('UNAUTHORIZED')
-
-    const { data, error } = await supabase
-      .from('payments')
-      .insert({
-        organization_id: profile.organization_id,
-        invoice_id: invoiceId,
-        amount: payment.amount,
-        payment_date: payment.payment_date || new Date().toISOString().split('T')[0],
-        payment_method: payment.payment_method || null,
-        reference_number: payment.reference_number || null,
-        notes: payment.notes || null,
-        created_by: user.id,
-      })
-      .select()
-      .single()
-
-    if (error) throwDbError(error, 'create payment')
-
-    // Update job status to paid if invoice is now paid, and cancel any
-    // pending SMS payment reminders so the customer isn't chased for an
-    // invoice they've already cleared.
-    const invoice = await this.getById(invoiceId)
-    if (invoice?.status === 'paid') {
-      await this.cancelPaymentReminders(invoiceId)
-      if (invoice.job_id) {
-        await supabase
-          .from('jobs')
-          .update({ status: 'paid', updated_at: new Date().toISOString() })
-          .eq('id', invoice.job_id)
-      }
-    }
-
-    // Log activity
-    await Activity.paid('invoice', invoiceId, invoice?.invoice_number, payment.amount)
-
-    return data
-  }
-
-  static async deletePayment(id: string): Promise<void> {
-    const supabase = await createClient()
-
-    const { error } = await supabase.from('payments').delete().eq('id', id)
-
-    if (error) throwDbError(error, 'delete payment')
-  }
-
-  // Stats
   static async getStats(): Promise<{
     total_outstanding: number
     total_overdue: number
@@ -818,7 +463,6 @@ export class InvoicesService {
     monthStart.setDate(1)
     const monthStartStr = monthStart.toISOString().split('T')[0]
 
-    // Run all queries in parallel for better performance
     const [
       draftResult,
       sentResult,
@@ -827,20 +471,17 @@ export class InvoicesService {
       overdueAmountResult,
       paymentsResult,
     ] = await Promise.all([
-      // Draft count
       supabase
         .from('invoices')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', profile.organization_id)
         .eq('status', 'draft'),
-      // Sent count (sent, viewed but not overdue)
       supabase
         .from('invoices')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', profile.organization_id)
         .in('status', ['sent', 'viewed'])
         .gte('due_date', today),
-      // Overdue count
       supabase
         .from('invoices')
         .select('*', { count: 'exact', head: true })
@@ -848,13 +489,11 @@ export class InvoicesService {
         .in('status', ['sent', 'viewed'])
         .lt('due_date', today)
         .gt('balance_due', 0),
-      // Total outstanding (sum of balance_due for non-paid, non-void)
       supabase
         .from('invoices')
         .select('balance_due')
         .eq('organization_id', profile.organization_id)
         .not('status', 'in', '("paid","void")'),
-      // Total overdue amount
       supabase
         .from('invoices')
         .select('balance_due')
@@ -862,7 +501,6 @@ export class InvoicesService {
         .in('status', ['sent', 'viewed'])
         .lt('due_date', today)
         .gt('balance_due', 0),
-      // Paid this month
       supabase
         .from('payments')
         .select('amount')

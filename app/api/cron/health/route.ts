@@ -6,10 +6,10 @@ import { createClient } from '@/lib/supabase/server'
 // recent problem. Always returns a JSON body that describes the state so a
 // human hitting it in a browser gets useful information.
 //
-// Authorization is intentionally open — the response contains no sensitive
-// data (just cron names and last-run timestamps), and Uptime Kuma probes
-// need to reach it without a secret. If that changes, protect with
-// CRON_SECRET like the cron routes.
+// hazardos/allow-unauthenticated: Uptime Kuma probes need to reach this
+// without a secret, and the response carries only cron names and last-run
+// timestamps — nothing org-scoped. If that changes, protect with
+// CRON_SECRET like the other cron routes.
 
 interface CronStatus {
   cron_name: string

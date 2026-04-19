@@ -81,7 +81,36 @@ export default function CrmJobsPage() {
         .range((page - 1) * pageSize, page * pageSize - 1)
 
       if (debouncedSearch) {
-        query = query.or(`job_number.ilike.%${debouncedSearch}%,name.ilike.%${debouncedSearch}%,job_address.ilike.%${debouncedSearch}%`)
+        // Resolve crew matches first so a rep typing a technician's name
+        // surfaces that tech's jobs alongside matches on job number, name,
+        // and address. Two extra lookups, but they only fire while the
+        // user is actively searching (300ms debounced).
+        const { data: matchingProfiles } = await supabase
+          .from('profiles')
+          .select('id')
+          .or(
+            `first_name.ilike.%${debouncedSearch}%,last_name.ilike.%${debouncedSearch}%,full_name.ilike.%${debouncedSearch}%`,
+          )
+        const profileIds = (matchingProfiles || []).map((p) => p.id as string)
+
+        let jobIdsFromCrew: string[] = []
+        if (profileIds.length > 0) {
+          const { data: crewRows } = await supabase
+            .from('job_crew')
+            .select('job_id')
+            .in('profile_id', profileIds)
+          jobIdsFromCrew = Array.from(new Set((crewRows || []).map((r) => r.job_id as string)))
+        }
+
+        const orParts = [
+          `job_number.ilike.%${debouncedSearch}%`,
+          `name.ilike.%${debouncedSearch}%`,
+          `job_address.ilike.%${debouncedSearch}%`,
+        ]
+        if (jobIdsFromCrew.length > 0) {
+          orParts.push(`id.in.(${jobIdsFromCrew.join(',')})`)
+        }
+        query = query.or(orParts.join(','))
       }
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter)
@@ -148,7 +177,7 @@ export default function CrmJobsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} placeholder="Search job number, company, address..." className="pl-9" />
+          <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} placeholder="Search job number, address, or tech name..." className="pl-9" />
         </div>
         <div className="flex flex-wrap gap-2">
           <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1) }}>
@@ -233,7 +262,6 @@ export default function CrmJobsPage() {
                           ) : '—'}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {/* TODO: also search by tech name */}
                           {techName || '—'}
                         </TableCell>
                         <TableCell><Badge className={`text-xs border-0 ${sc.color}`}>{sc.label}</Badge></TableCell>

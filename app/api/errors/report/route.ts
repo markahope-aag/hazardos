@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { createClient } from '@/lib/supabase/server';
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
 import { logger } from '@/lib/utils/logger';
 
 /**
@@ -24,6 +25,13 @@ interface ErrorReportPayload {
 }
 
 export async function POST(request: NextRequest) {
+  // Client-reported errors are unauthenticated by design — anonymous users
+  // can hit error boundaries too — so rate-limit to blunt any floods of
+  // forged reports. The auth session, if one exists, is attached to the
+  // Sentry event below but not required.
+  const rateLimitResponse = await applyUnifiedRateLimit(request, 'general');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

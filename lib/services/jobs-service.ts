@@ -1,6 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
+import {
+  syncJobToExternalCalendars,
+  deleteJobFromExternalCalendars,
+} from '@/lib/services/job-calendar-sync'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type {
   Job,
@@ -32,82 +36,6 @@ async function generateJobNumber(
 
   const taken = new Set((existing || []).map((r) => r.job_number as string))
   return withUniqueSuffix(base, taken)
-}
-
-// Fires the external calendar sync(s) the org has active. Failures never
-// block the user's job save — they're logged and surfaced through the
-// calendar_sync_events table's sync_error column instead.
-async function syncJobToExternalCalendars(jobId: string, organizationId: string): Promise<void> {
-  const supabase = await createClient()
-  const { data: integrations } = await supabase
-    .from('organization_integrations')
-    .select('integration_type, settings')
-    .eq('organization_id', organizationId)
-    .eq('is_active', true)
-    .in('integration_type', ['google_calendar', 'outlook_calendar'])
-
-  if (!integrations || integrations.length === 0) return
-
-  for (const integration of integrations) {
-    const settings = (integration.settings as Record<string, unknown> | null) || {}
-    // Respect per-integration opt-out. Default true so connecting a calendar
-    // just works without digging into settings.
-    if (settings.auto_sync_jobs === false) continue
-
-    try {
-      if (integration.integration_type === 'google_calendar') {
-        const { GoogleCalendarService } = await import('@/lib/services/google-calendar-service')
-        await GoogleCalendarService.syncJobToCalendar(organizationId, jobId)
-      } else if (integration.integration_type === 'outlook_calendar') {
-        const { OutlookCalendarService } = await import('@/lib/services/outlook-calendar-service')
-        await OutlookCalendarService.syncJobToCalendar(organizationId, jobId)
-      }
-    } catch (e) {
-      log.error(
-        { jobId, integration: integration.integration_type, err: formatError(e) },
-        'external calendar sync failed',
-      )
-      await supabase
-        .from('calendar_sync_events')
-        .upsert({
-          organization_id: organizationId,
-          job_id: jobId,
-          event_type: 'job',
-          calendar_type: integration.integration_type === 'google_calendar' ? 'google' : 'outlook',
-          sync_error: e instanceof Error ? e.message : String(e),
-          last_synced_at: new Date().toISOString(),
-        }, { onConflict: 'job_id,calendar_type' })
-    }
-  }
-}
-
-async function deleteJobFromExternalCalendars(jobId: string, organizationId: string): Promise<void> {
-  const supabase = await createClient()
-  const { data: syncRows } = await supabase
-    .from('calendar_sync_events')
-    .select('calendar_type, google_event_id, outlook_event_id')
-    .eq('job_id', jobId)
-
-  if (!syncRows || syncRows.length === 0) return
-
-  for (const row of syncRows) {
-    try {
-      if (row.calendar_type === 'google' && row.google_event_id) {
-        const { GoogleCalendarService } = await import('@/lib/services/google-calendar-service')
-        await GoogleCalendarService.deleteCalendarEvent(organizationId, row.google_event_id)
-      } else if (row.calendar_type === 'outlook' && row.outlook_event_id) {
-        const { OutlookCalendarService } = await import('@/lib/services/outlook-calendar-service')
-        await OutlookCalendarService.deleteCalendarEvent(organizationId, row.outlook_event_id)
-      }
-    } catch (e) {
-      log.error(
-        { jobId, calendar: row.calendar_type, err: formatError(e) },
-        'external calendar delete failed',
-      )
-    }
-  }
-
-  await supabase.from('calendar_sync_events').delete().eq('job_id', jobId)
 }
 
 export class JobsService {
@@ -494,152 +422,24 @@ export class JobsService {
     if (error) throwDbError(error, 'delete job')
   }
 
-  // ========== REMINDERS ==========
+  // Reminder scheduling lives in job-reminders-service.ts. The delegation
+  // shims below keep existing callers working without the circular import
+  // we'd get from making those the primary methods (the reminders service
+  // needs JobsService.getById to load the job).
 
-  // Customer-facing cadence:
-  //   1. Email on confirmation (immediate)
-  //   2. SMS one week before the job
-  //   3. SMS on the morning of the job
-  //
-  // Template variables are deliberately a small, safe set — customer name,
-  // date/time, address, job number. No internal notes, access codes, or
-  // other staff-facing fields ever enter this payload, so the processor
-  // can render without worrying about leakage.
-  //
-  // Idempotent: cancels any pending rows for this job first so calling it
-  // after a reschedule doesn't produce duplicates.
   static async scheduleReminders(jobId: string): Promise<void> {
-    const supabase = await createClient()
-
-    const job = await JobsService.getById(jobId)
-    if (!job || !job.customer) return
-    if (!job.scheduled_start_date) return
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', job.created_by)
-      .single()
-
-    if (!profile) return
-
-    // Clear any previously pending reminders for this job so we don't end up
-    // with stale rows after a reschedule.
-    await supabase
-      .from('scheduled_reminders')
-      .update({ status: 'cancelled' })
-      .eq('related_type', 'job')
-      .eq('related_id', jobId)
-      .eq('status', 'pending')
-
-    const customer = job.customer
-    const scheduledDate = new Date(job.scheduled_start_date)
-    const now = new Date()
-
-    const commonVars = {
-      customer_name: customer.name || customer.company_name,
-      scheduled_date: job.scheduled_start_date,
-      scheduled_time: job.scheduled_start_time,
-      property_address: job.job_address,
-      job_number: job.job_number,
-    }
-
-    const rows: Array<Record<string, unknown>> = []
-
-    // 1. Confirmation email — goes out on the next cron tick.
-    if (customer.email) {
-      rows.push({
-        organization_id: profile.organization_id,
-        related_type: 'job',
-        related_id: jobId,
-        reminder_type: 'job_confirmation',
-        recipient_type: 'customer',
-        recipient_email: customer.email,
-        recipient_phone: customer.phone,
-        channel: 'email',
-        scheduled_for: now.toISOString(),
-        template_slug: 'job_confirmation',
-        template_variables: commonVars,
-      })
-    }
-
-    // 2. Week-before SMS at 9am local-ish (server time).
-    const weekBefore = new Date(scheduledDate)
-    weekBefore.setDate(weekBefore.getDate() - 7)
-    weekBefore.setHours(9, 0, 0, 0)
-    if (weekBefore > now && customer.phone) {
-      rows.push({
-        organization_id: profile.organization_id,
-        related_type: 'job',
-        related_id: jobId,
-        reminder_type: 'job_reminder_week',
-        recipient_type: 'customer',
-        recipient_email: customer.email,
-        recipient_phone: customer.phone,
-        channel: 'sms',
-        scheduled_for: weekBefore.toISOString(),
-        template_slug: 'job_reminder_week',
-        template_variables: commonVars,
-      })
-    }
-
-    // 3. Day-of SMS at 7am so the customer sees it before the crew arrives.
-    const dayOf = new Date(scheduledDate)
-    dayOf.setHours(7, 0, 0, 0)
-    if (dayOf > now && customer.phone) {
-      rows.push({
-        organization_id: profile.organization_id,
-        related_type: 'job',
-        related_id: jobId,
-        reminder_type: 'job_reminder_day',
-        recipient_type: 'customer',
-        recipient_email: customer.email,
-        recipient_phone: customer.phone,
-        channel: 'sms',
-        scheduled_for: dayOf.toISOString(),
-        template_slug: 'job_reminder_day',
-        template_variables: commonVars,
-      })
-    }
-
-    if (rows.length === 0) return
-
-    const { data: inserted } = await supabase
-      .from('scheduled_reminders')
-      .insert(rows)
-      .select('id, template_slug')
-
-    // Fire the confirmation email synchronously so the customer gets it
-    // now, not on the next hourly cron tick. Any failure is captured on
-    // the row itself and will be picked up by the processor next tick.
-    const confirmation = inserted?.find((r) => r.template_slug === 'job_confirmation')
-    if (confirmation) {
-      try {
-        const { sendReminderRow } = await import('@/lib/services/reminder-sender')
-        await sendReminderRow(confirmation.id)
-      } catch (e) {
-        log.warn(
-          { jobId, rowId: confirmation.id, err: formatError(e) },
-          'immediate confirmation send failed; cron will retry',
-        )
-      }
-    }
+    const { JobRemindersService } = await import('./job-reminders-service')
+    return JobRemindersService.schedule(jobId)
   }
 
   static async cancelReminders(jobId: string): Promise<void> {
-    const supabase = await createClient()
-
-    await supabase
-      .from('scheduled_reminders')
-      .update({ status: 'cancelled' })
-      .eq('related_type', 'job')
-      .eq('related_id', jobId)
-      .eq('status', 'pending')
+    const { JobRemindersService } = await import('./job-reminders-service')
+    return JobRemindersService.cancel(jobId)
   }
 
   static async rescheduleReminders(jobId: string): Promise<void> {
-    await JobsService.cancelReminders(jobId)
-    await JobsService.scheduleReminders(jobId)
+    const { JobRemindersService } = await import('./job-reminders-service')
+    return JobRemindersService.reschedule(jobId)
   }
 
   // ========== BACKWARD COMPATIBILITY ==========

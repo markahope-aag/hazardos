@@ -368,6 +368,9 @@ describe('UpcomingJobs', () => {
     render(await UpcomingJobs())
 
     expect(mockSupabaseClient.from).toHaveBeenCalledWith('jobs')
+    // PostgREST needs the !customer_id disambiguation because jobs has
+    // three FKs into customers (customer_id, primary_contact_id,
+    // site_contact_id).
     expect(mockSupabaseClient.select).toHaveBeenCalledWith(`
       id,
       job_number,
@@ -375,7 +378,7 @@ describe('UpcomingJobs', () => {
       scheduled_start_time,
       job_address,
       status,
-      customer:customers(company_name, name)
+      customer:customers!customer_id(company_name, name)
     `)
     expect(mockSupabaseClient.gte).toHaveBeenCalledWith('scheduled_start_date', '2024-01-15')
     expect(mockSupabaseClient.lte).toHaveBeenCalledWith('scheduled_start_date', '2024-01-22')

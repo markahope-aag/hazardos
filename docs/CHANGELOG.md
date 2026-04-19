@@ -15,12 +15,120 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Logger integration across remaining services
 
 ### Planned
-- Mobile survey wizard UI enhancements
-- User registration and invitation system
-- Advanced estimate builder interface
 - Equipment tracking
 - Customer portal improvements
 - Native mobile apps (iOS/Android)
+
+---
+
+## [0.3.1] - 2026-04-19
+
+### Added - Properties Feature & Advanced Services
+
+#### New Features
+- **Properties Management System** (`/crm/properties`)
+  - Complete work history tracking for physical addresses
+  - Property-contact relationships with roles (owner, tenant, site_contact, billing_contact)
+  - Work continuity across ownership changes
+  - Address-based job history aggregation
+
+- **Job Documents System** 
+  - Document management for permits, manifests, clearance reports
+  - Video category support for job documentation
+  - File organization and retrieval system
+
+#### Service Architecture Improvements
+- **Invoice Delivery Service** (`InvoiceDeliveryService`)
+  - Separated email/SMS delivery logic with reminder cadence
+  - Pre-due and post-due reminder scheduling
+  - Resend and Twilio integration isolation
+
+- **Invoice Payments Service** (`InvoicePaymentsService`)
+  - Payment recording and job status automation
+  - Automatic SMS reminder cancellation on payment
+  - Clean separation of payment workflow
+
+- **Job Reminders Service** (`JobRemindersService`) 
+  - 3-stage reminder system (immediate, week-before, day-of)
+  - Idempotent scheduling with automatic cleanup
+  - Customer data isolation and safety
+
+- **Job Calendar Sync** (`JobCalendarSync`)
+  - Automatic Google/Outlook calendar integration
+  - Non-blocking sync with error logging
+  - Multiple integration support per organization
+
+#### Developer Experience
+- **Estimate Calculator Refactor**
+  - Split into focused modules: `estimate-calculator.ts`, `estimate-line-item-calculators.ts`, `estimate-pricing-rules.ts`
+  - Pure functions for per-category calculations
+  - Single source of truth for pricing constants
+
+### Enhanced
+- **Mobile Survey Wizard** - Component architecture improvements with dedicated UI components
+- **CRM System** - Added Properties tab to main navigation
+- **User Registration** - Enhanced invitation and onboarding system
+- **SMS Integration** - Inbound message handling and template system
+- **Auto Activity Tracking** - Comprehensive activity logging across all entities
+
+### Fixed
+- **Database Performance** - Added performance indexes for common queries
+- **Security Hardening** - RLS policy improvements and search path security
+- **Notification Preferences** - Fixed RPC function for user preferences
+- **Customer Activity** - Fixed entity type tracking for activity feed
+
+---
+
+## [0.3.0] - 2026-04-08
+
+### Added - CRM System Rebuild (Major Version)
+
+#### Complete CRM Overhaul
+- **Companies Management** (`/crm/companies`)
+  - Full business account tracking with type classification
+  - Billing and service address separation
+  - Financial metrics (lifetime value, payment terms)
+  - QuickBooks integration preparation
+
+- **Enhanced Contacts System** (`/crm/contacts`) 
+  - First/last name separation from legacy "name" field
+  - Contact roles and relationship management
+  - Email/SMS opt-in tracking with dates
+  - Contact type classification (residential/commercial)
+
+- **Opportunities & Sales Pipeline** (`/crm/opportunities`, `/crm/pipeline`)
+  - Complete sales opportunity tracking
+  - Kanban board with drag-and-drop stage management
+  - Property details and hazard type specification
+  - Urgency and timeline management
+
+- **Jobs within CRM Context** (`/crm/jobs`)
+  - Job management integrated with CRM workflow
+  - Enhanced job details with containment and compliance
+  - Financial tracking (estimated vs actual revenue/cost)
+  - Crew scheduling and time tracking
+
+#### Multi-Touch Attribution System
+- **Three-Touch Attribution Model**
+  - First touch (original discovery)
+  - Last touch (re-engagement)  
+  - Converting touch (deal closure)
+  - Automatic inheritance from contacts → opportunities → jobs
+
+- **Attribution Analytics**
+  - Marketing ROI tracking with actual revenue attribution
+  - Source performance analysis across customer journey
+  - Campaign effectiveness measurement
+
+### Enhanced
+- **Navigation System** - CRM becomes primary hub with sub-navigation
+- **Database Architecture** - Enhanced multi-tenant isolation and performance
+- **User Experience** - Streamlined workflows matching actual business processes
+
+### Migration Notes
+- Existing customer data automatically migrated to new contact system
+- Legacy routes redirect to new CRM equivalents
+- All existing functionality preserved with enhanced capabilities
 
 ---
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { InvoicesService } from '@/lib/services/invoices-service'
+import { InvoicePaymentsService } from '@/lib/services/invoice-payments-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { addPaymentSchema } from '@/lib/validations/invoices'
 import { SecureError } from '@/lib/utils/secure-error-handler'
@@ -19,7 +19,7 @@ export const POST = createApiHandlerWithParams(
     bodySchema: addPaymentSchema,
   },
   async (_request, _context, params, body) => {
-    const payment = await InvoicesService.recordPayment(params.id, body)
+    const payment = await InvoicePaymentsService.recordPayment(params.id, body)
     return NextResponse.json(payment, { status: 201 })
   }
 )
@@ -37,7 +37,7 @@ export const DELETE = createApiHandlerWithParams(
     if (!query.payment_id) {
       throw new SecureError('VALIDATION_ERROR', 'payment_id is required')
     }
-    await InvoicesService.deletePayment(query.payment_id)
+    await InvoicePaymentsService.deletePayment(query.payment_id)
     return NextResponse.json({ success: true })
   }
 )

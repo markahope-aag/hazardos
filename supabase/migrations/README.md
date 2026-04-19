@@ -24,28 +24,46 @@ This folder contains the **official Supabase CLI migrations** for HazardOS.
 .\supabase.exe db status
 ```
 
-## Current Migration Files
+## Migration Series Overview
 
-### ✅ Applied Migrations (In Chronological Order)
+**Total Migrations**: 80 files (as of April 19, 2026)  
+**Status**: Active development with ongoing feature additions
 
-1. `20260131170746_initial_schema.sql` - Base database schema with organizations, profiles, assessments, etc.
-2. `20260131170912_rls_policies.sql` - Row Level Security policies for multi-tenancy  
-3. `20260131135419_create_customers_table.sql` - Customer contact and relationship management
-4. `20260131135551_add_customer_linkage_to_site_surveys.sql` - Links site surveys to customer records
-5. `20260131135626_add_scheduling_fields_to_site_surveys.sql` - Scheduling and appointment status fields
-6. `20260131135724_create_pricing_settings_tables.sql` - Pricing tables (labor, equipment, materials, etc.)
-7. `20260131180000_rename_assessments_to_site_surveys.sql` - Renames assessments → site_surveys
-8. `20260131200000_add_mobile_survey_fields.sql` - Mobile survey wizard JSONB fields
-9. `20260131210000_fix_rls_infinite_recursion.sql` - Fixed RLS infinite recursion issue
+### 🏗️ Major Migration Series (Chronological)
 
-### 📊 Migration Status: **COMPLETE** ✅
+#### **Phase 1: Foundation (Jan 31, 2026) - 9 migrations**
+- Initial schema, RLS policies, customers, pricing tables
+- Mobile survey wizard support
+- Basic multi-tenant architecture
 
-All migrations have been successfully applied. Database is production-ready with:
-- Complete customer management system
-- Site survey scheduling capabilities  
-- Comprehensive pricing tables
-- Mobile survey support
-- Secure RLS policies
+#### **Phase 2: CRM Rebuild (Apr 3-8, 2026) - 25+ migrations**
+- Companies and enhanced contacts system
+- Opportunities and pipeline management  
+- Job management within CRM context
+- Multi-touch attribution system
+- Enhanced organization and user management
+
+#### **Phase 3: Advanced Features (Apr 6-19, 2026) - 45+ migrations**
+- Invoice delivery and payment services
+- Job reminders and calendar sync
+- Properties feature (Apr 18)
+- Job documents with video support (Apr 18)
+- SMS inbound handling and templates (Apr 18)
+- Performance indexes and security hardening
+- Auto activity tracking and notifications
+
+### 📊 Current Database Status
+
+The database includes comprehensive functionality for:
+- **Multi-tenant SaaS platform** with full organization isolation
+- **Complete CRM system** with companies, contacts, opportunities, pipeline
+- **Properties management** with work history tracking
+- **Mobile site surveys** with offline support and media upload
+- **Job management** with scheduling, completion tracking, documents
+- **Invoice system** with delivery automation and payment tracking
+- **SMS communications** with two-way messaging and templates
+- **Advanced integrations** with QuickBooks, Google Calendar, Twilio
+- **Security & performance** optimizations with proper indexing
 
 ## Migration Workflow
 

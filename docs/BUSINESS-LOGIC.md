@@ -2,8 +2,8 @@
 
 **Comprehensive guide to complex business rules, workflows, and domain logic**
 
-> **Last Updated**: February 1, 2026
-> **Version**: 0.2.1
+> **Last Updated**: April 19, 2026
+> **Version**: 0.3.1
 
 ---
 
@@ -16,7 +16,10 @@
 5. [Sales Pipeline Logic](#sales-pipeline-logic)
 6. [Invoice Generation](#invoice-generation)
 7. [Multi-Tenant Data Isolation](#multi-tenant-data-isolation)
-8. [SMS & Notification Logic](#sms--notification-logic)
+8. [Invoice Delivery & Payment Flow](#invoice-delivery--payment-flow)
+9. [Job Reminders & Calendar Sync](#job-reminders--calendar-sync)
+10. [Enhanced Estimate Calculation Logic](#enhanced-estimate-calculation-logic)
+11. [SMS & Notification Logic](#sms--notification-logic)
 
 ---
 
@@ -1928,6 +1931,264 @@ CREATE POLICY "Allow profile creation during onboarding"
 - RLS overhead: <1ms per query (imperceptible)
 - Benefit: Bulletproof security
 - Trade-off: Worth it for peace of mind
+
+---
+
+## Invoice Delivery & Payment Flow
+
+**Services**: 
+- `lib/services/invoice-delivery-service.ts`
+- `lib/services/invoice-payments-service.ts`
+
+### Overview
+
+Automated invoice delivery and payment tracking system with multi-channel communication (email + SMS) and intelligent reminder scheduling. Split from the monolithic `InvoicesService` for better separation of concerns and side-effect isolation.
+
+### Invoice Delivery Service
+
+**Purpose**: Handles all invoice delivery logic including email/SMS sending and reminder scheduling.
+
+**Why Separated**: 
+- Isolates Resend and Twilio side-effects from core invoice logic
+- Enables independent testing of delivery workflows
+- Allows different retry and error handling strategies
+- Cleaner service responsibilities
+
+**Reminder Cadence Logic**:
+```typescript
+interface ReminderSchedule {
+  pre_due_days: number[]    // Default: [7, 3, 1] days before due
+  post_due_days: number[]   // Default: [1, 7, 14, 30] days after due
+  max_reminders: number     // Default: 7 total reminders
+}
+```
+
+**Delivery Flow**:
+1. **Initial Delivery** - Send invoice via email + SMS (if opted in)
+2. **Pre-Due Reminders** - Gentle reminders before due date
+3. **Due Date Notification** - "Invoice due today" message
+4. **Post-Due Escalation** - Increasingly urgent messages after due date
+5. **Final Notice** - Last reminder before collections
+
+**Business Rules**:
+- Respects customer communication preferences (email-only, SMS-only, both)
+- Honors quiet hours for SMS (organization-configurable)
+- Stops reminders immediately upon payment
+- Tracks delivery status and failures for follow-up
+
+### Invoice Payments Service
+
+**Purpose**: Handles payment recording and downstream effects (job status updates, reminder cancellation).
+
+**Why Separated**:
+- Clean separation of payment recording from payment processing
+- Handles cascading effects (job status, SMS cleanup) in isolation
+- Enables transactional payment workflows
+- Supports multiple payment methods and sources
+
+**Payment Recording Flow**:
+1. **Payment Validation** - Verify payment amount and method
+2. **Payment Recording** - Store in `invoice_payments` table
+3. **Invoice Status Update** - Auto-mark invoice as paid when fully paid
+4. **Job Status Update** - Mark linked job as "Paid" 
+5. **Reminder Cleanup** - Cancel all pending SMS reminders
+6. **Activity Logging** - Record payment in activity feed
+
+**Partial Payment Logic**:
+- Supports multiple partial payments per invoice
+- Tracks payment method (check, credit_card, bank_transfer, cash)
+- Updates invoice `amount_paid` and `payment_status` fields
+- Only marks job as "Paid" when invoice is fully paid
+
+**Business Impact**:
+- Eliminates duplicate reminders to paying customers
+- Provides clean audit trail of all payments
+- Supports complex payment scenarios (partial, overpayment, refunds)
+- Integrates with QuickBooks payment sync
+
+---
+
+## Job Reminders & Calendar Sync
+
+**Services**:
+- `lib/services/job-reminders-service.ts`
+- `lib/services/job-calendar-sync.ts`
+
+### Job Reminders Service
+
+**Purpose**: Manages 3-stage SMS reminder system for scheduled jobs with idempotent scheduling and customer data safety.
+
+**3-Stage Reminder System**:
+1. **Immediate Confirmation** (sent immediately upon scheduling)
+   - "Your [hazard] inspection is scheduled for [date] at [time]"
+   - Confirms appointment is booked
+   
+2. **Week-Before Reminder** (7 days before job)
+   - "Reminder: Your inspection is scheduled for next [day]"
+   - Includes preparation instructions
+   
+3. **Day-Of Reminder** (morning of job, 2-4 hours before)
+   - "Your inspection is today at [time]. We'll see you soon!"
+   - Final confirmation with technician contact
+
+**Idempotent Scheduling Logic**:
+```typescript
+// Always safe to call - cancels old reminders first
+scheduleJobReminders(jobId: string): Promise<void>
+```
+
+**Why Idempotent**:
+- Job times change frequently (rescheduling is common)
+- Prevents duplicate reminders from multiple reschedules  
+- Simplifies calling code (no need to check existing reminders)
+- Database handles cleanup automatically
+
+**Customer Data Safety**:
+- Only exposes safe customer fields (first name, phone, job type, date/time)
+- Never includes sensitive data (full address, billing info, internal notes)
+- Uses templated messages with variable substitution
+- Respects customer SMS opt-out status
+
+**Database Table**: `job_sms_reminders`
+```sql
+CREATE TABLE job_sms_reminders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
+  reminder_type TEXT NOT NULL, -- 'confirmation', 'week_before', 'day_of'
+  scheduled_for TIMESTAMPTZ NOT NULL,
+  sent_at TIMESTAMPTZ,
+  cancelled_at TIMESTAMPTZ,
+  organization_id UUID REFERENCES organizations(id)
+);
+```
+
+### Job Calendar Sync Service
+
+**Purpose**: Automatically pushes job schedule changes to Google Calendar and Outlook integrations.
+
+**Why Non-Blocking**:
+- Calendar sync failures should never block job operations
+- Different calendars may have different availability
+- Provides graceful degradation when integrations are down
+- Allows business operations to continue independently
+
+**Sync Triggers**:
+- Job created with scheduled date/time
+- Job rescheduled (date or time change)
+- Job cancelled or completed
+- Job technician assignment changes
+
+**Integration Support**:
+- **Google Calendar** - OAuth integration with calendar write access
+- **Outlook Calendar** - Microsoft Graph API integration
+- **Future**: CalDAV support for other calendar systems
+
+**Error Handling Strategy**:
+```typescript
+// Never throws - always returns success/failure details
+interface CalendarSyncResult {
+  success: boolean
+  integrations_attempted: number
+  integrations_succeeded: number
+  failures: CalendarSyncFailure[]
+}
+```
+
+**Audit Trail**: `calendar_sync_events` table logs all sync attempts for troubleshooting and compliance.
+
+**Business Value**:
+- Keeps technician calendars automatically updated
+- Reduces scheduling conflicts and missed appointments
+- Provides backup scheduling when main system is unavailable
+- Enables mobile calendar access for field teams
+
+---
+
+## Enhanced Estimate Calculation Logic
+
+**Services**:
+- `lib/services/estimate-calculator.ts` (main orchestrator)
+- `lib/utils/estimate-line-item-calculators.ts` (pure calculation functions)
+- `lib/utils/estimate-pricing-rules.ts` (constants and defaults)
+
+### Architecture Refactor
+
+**Why Split Into Three Files**:
+- **estimate-calculator.ts**: High-level orchestration and business logic
+- **estimate-line-item-calculators.ts**: Pure arithmetic functions by category
+- **estimate-pricing-rules.ts**: Single source of truth for all pricing constants
+
+**Benefits of Separation**:
+- **Testability**: Each calculator function can be tested independently
+- **Maintainability**: Pricing changes happen in one place
+- **Readability**: Related calculations grouped together
+- **Reusability**: Pure functions can be used in other contexts
+
+### Line Item Calculators
+
+**Categories**:
+- `calculateLaborCosts(area, hazardType, containmentLevel, laborRates)`
+- `calculateEquipmentCosts(area, containmentLevel, equipmentRates, duration)`
+- `calculateMaterialCosts(area, hazardType, containmentLevel, materialCosts)`
+- `calculateDisposalCosts(area, hazardType, disposalFees)`
+- `calculateTravelCosts(distance, travelRates)`
+
+**Pure Function Design**:
+```typescript
+// Pure function - no side effects, deterministic output
+export function calculateLaborCosts(
+  area: number,
+  hazardType: HazardType,
+  containmentLevel: ContainmentLevel,
+  laborRates: LaborRates
+): LaborCalculationResult {
+  const hoursPerSqft = LABOR_HOURS_PER_SQFT[hazardType][containmentLevel]
+  const crewSize = CREW_SIZE_BY_CONTAINMENT[containmentLevel]
+  const totalHours = area * hoursPerSqft * crewSize
+  
+  // ... detailed calculation logic
+  
+  return {
+    supervisorHours: totalHours / crewSize,
+    technicianHours: totalHours * ((crewSize - 1) / crewSize),
+    totalCost: supervisorCost + technicianCost,
+    breakdown: { /* detailed breakdown */ }
+  }
+}
+```
+
+### Pricing Rules Constants
+
+**Centralized Constants**:
+```typescript
+// Single source of truth for all pricing logic
+export const LABOR_HOURS_PER_SQFT = {
+  asbestos: { 1: 0.15, 2: 0.25, 3: 0.35, 4: 0.5 },
+  mold: { 1: 0.10, 2: 0.20, 3: 0.30, 4: 0.4 },
+  lead: { 1: 0.12, 2: 0.22, 3: 0.32, 4: 0.42 },
+  vermiculite: { 1: 0.20, 2: 0.30, 3: 0.40, 4: 0.5 }
+}
+
+export const CREW_SIZE_BY_CONTAINMENT = {
+  1: 2, // 1 supervisor + 1 technician
+  2: 3, // 1 supervisor + 2 technicians  
+  3: 4, // 1 supervisor + 3 technicians
+  4: 5  // 1 supervisor + 4 technicians
+}
+
+export const DEFAULT_EQUIPMENT_DURATION_DAYS = {
+  1: 1, // Minimal containment - single day
+  2: 2, // Basic containment - 2 days
+  3: 3, // Standard containment - 3 days  
+  4: 5  // Full containment - extended duration
+}
+```
+
+**Benefits of Centralization**:
+- Industry rate changes update in one location
+- Consistent calculations across all estimates
+- Easy to audit pricing logic
+- Supports A/B testing of different rates
 
 ---
 
