@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server'
-import { CustomersService } from '@/lib/supabase/customers'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { customerListQuerySchema, createCustomerSchema } from '@/lib/validations/customers'
+import { sanitizeSearchQuery } from '@/lib/utils/sanitize'
 import type { CustomerInsert } from '@/types/database'
 
 /**
  * GET /api/customers
- * List customers with optional filtering
+ * List customers with optional filtering.
+ *
+ * We intentionally run the query against `context.supabase` (the server-side
+ * client from createApiHandler, scoped to the caller's cookie session)
+ * rather than going through CustomersService. CustomersService holds a
+ * browser-only client captured at module load, which has no auth context
+ * on the server — calling it from an API route returns an empty list
+ * because RLS filters everything out. Duplicating the query shape here is
+ * cheaper than carrying that ambiguity.
  */
 export const GET = createApiHandler(
   {
@@ -14,15 +22,32 @@ export const GET = createApiHandler(
     querySchema: customerListQuerySchema,
   },
   async (_request, context, _body, query) => {
-    const customers = await CustomersService.getCustomers(context.profile.organization_id, {
-      status: query.status,
-      search: query.search,
-      limit: query.limit,
-      offset: query.offset,
-    })
+    let dbQuery = context.supabase
+      .from('customers')
+      .select(
+        '*, company:companies!company_id(id, name), account_owner:profiles!account_owner_id(id, first_name, last_name, full_name), open_jobs:jobs!customer_id(id)',
+      )
+      .eq('organization_id', context.profile.organization_id)
+      .order('created_at', { ascending: false })
 
-    return NextResponse.json({ customers })
-  }
+    if (query.status) dbQuery = dbQuery.eq('status', query.status)
+    if (query.search) {
+      const s = sanitizeSearchQuery(query.search)
+      dbQuery = dbQuery.or(
+        `name.ilike.%${s}%,company_name.ilike.%${s}%,email.ilike.%${s}%,phone.ilike.%${s}%`,
+      )
+    }
+    if (query.limit) dbQuery = dbQuery.limit(query.limit)
+    if (query.offset) {
+      const limit = query.limit || 25
+      dbQuery = dbQuery.range(query.offset, query.offset + limit - 1)
+    }
+
+    const { data, error } = await dbQuery
+    if (error) throw error
+
+    return NextResponse.json({ customers: data || [] })
+  },
 )
 
 /**
@@ -55,8 +80,13 @@ export const POST = createApiHandler(
       created_by: context.user.id,
     }
 
-    const customer = await CustomersService.createCustomer(customerData)
+    const { data: customer, error } = await context.supabase
+      .from('customers')
+      .insert(customerData)
+      .select()
+      .single()
+    if (error) throw error
 
     return NextResponse.json({ customer }, { status: 201 })
-  }
+  },
 )
