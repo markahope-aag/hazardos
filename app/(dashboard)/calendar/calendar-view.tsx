@@ -46,6 +46,18 @@ import type { JobDocumentCategory } from '@/types/database'
 
 type ViewMode = 'month' | 'week' | 'day'
 
+// Postgres DATE columns come across the wire as bare 'YYYY-MM-DD' strings.
+// date-fns' parseISO treats those as UTC midnight per the ISO spec, which
+// means in any US timezone the value renders as the previous day locally —
+// so a job scheduled for April 19 silently shows up on April 18 (or falls
+// off the visible grid). Parse as local-time to pin the calendar day to
+// the date the user actually picked.
+function parseLocalDate(value: string): Date {
+  const [datePart] = value.split('T')
+  const [y, m, d] = datePart.split('-').map(Number)
+  return new Date(y, (m || 1) - 1, d || 1)
+}
+
 interface CalendarJob {
   id: string
   job_number: string
@@ -151,8 +163,8 @@ export function CalendarView() {
     // Multi-day jobs (e.g. a 5-day abatement project) need to appear on every
     // day they're scheduled, not just the start date.
     return jobs.filter((job) => {
-      const start = parseISO(job.scheduled_start_date)
-      const end = job.scheduled_end_date ? parseISO(job.scheduled_end_date) : start
+      const start = parseLocalDate(job.scheduled_start_date)
+      const end = job.scheduled_end_date ? parseLocalDate(job.scheduled_end_date) : start
       if (isSameDay(start, date) || isSameDay(end, date)) return true
       return date > start && date < end
     })
@@ -161,8 +173,12 @@ export function CalendarView() {
   const getExternalEventsForDate = (date: Date) => {
     return externalEvents.filter((e) => {
       if (!e.start) return false
-      const start = parseISO(e.start)
-      const end = e.end ? parseISO(e.end) : start
+      // Google timed events come with full timestamps, but all-day events
+      // look like DATE strings and need the same local-time handling as
+      // job scheduled_start_date — otherwise the "Offsite" event lands a
+      // day early in Pacific time.
+      const start = e.all_day ? parseLocalDate(e.start) : parseISO(e.start)
+      const end = e.end ? (e.all_day ? parseLocalDate(e.end) : parseISO(e.end)) : start
       // Google all-day ranges use an exclusive end date, so subtract one day
       // from the end for "is this event on this day" checks when all-day.
       const effectiveEnd = e.all_day && e.end ? addDays(end, -1) : end
@@ -547,7 +563,7 @@ export function CalendarView() {
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Scheduled</h4>
                   <p className="mt-1">
-                    {format(parseISO(selectedJob.scheduled_start_date), 'MMMM d, yyyy')}
+                    {format(parseLocalDate(selectedJob.scheduled_start_date), 'MMMM d, yyyy')}
                     {selectedJob.scheduled_start_time && (
                       <> at {format(parseISO(`2000-01-01T${selectedJob.scheduled_start_time}`), 'h:mm a')}</>
                     )}
