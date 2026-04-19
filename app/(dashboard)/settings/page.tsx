@@ -42,7 +42,7 @@ const settingsGroups = [
   {
     title: 'Appearance',
     description: 'Theme, branding, and display preferences',
-    href: '/settings/appearance',
+    href: '/settings/branding',
     icon: Palette,
   },
 ]
