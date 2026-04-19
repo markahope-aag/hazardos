@@ -174,6 +174,7 @@ export default function MobileSurveyWizard({
   // Refs for auto-save timer
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const mainContentRef = useRef<HTMLDivElement>(null)
+  const wizardRootRef = useRef<HTMLDivElement>(null)
 
   // Current section index
   const currentIndex = SURVEY_SECTIONS.indexOf(currentSection)
@@ -230,6 +231,33 @@ export default function MobileSurveyWizard({
     initializeSurvey()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Propagate orgId/customerId when they arrive after initial mount.
+  // `useMultiTenantAuth` resolves asynchronously; if the wizard renders
+  // before organization loads, the initial init above runs with
+  // organizationId=undefined and photos captured afterward fail to
+  // upload because the storage RLS policy keys on the first folder
+  // segment being the org id.
+  useEffect(() => {
+    if (organizationId) setOrganizationId(organizationId)
+  }, [organizationId, setOrganizationId])
+  useEffect(() => {
+    if (customerId) setCustomerId(customerId)
+  }, [customerId, setCustomerId])
+
+  // Scroll reset when the section changes. In embedded mode the outer
+  // page is the scroll container (main has no overflow-y), so scrolling
+  // mainContentRef does nothing — we have to scroll the wizard root
+  // into view. In fullscreen mode main IS the scroll container, so we
+  // still scroll it to top for snappiness.
+  useEffect(() => {
+    if (!isInitialized) return
+    if (embedded) {
+      wizardRootRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    } else {
+      mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [currentSection, embedded, isInitialized])
 
   // Auto-save effect — read from store directly to avoid dep re-renders
   useEffect(() => {
@@ -307,45 +335,37 @@ export default function MobileSurveyWizard({
     }
   }, [isOnline, currentSurveyId])
 
-  // Navigation handlers
+  // Navigation handlers — the scroll-to-top is handled by the effect on
+  // currentSection above, so these just update the step.
   const handleBack = useCallback(() => {
     if (!isFirstSection) {
-      // Validate current section (non-blocking)
       validateSection(currentSection)
       setCurrentSection(SURVEY_SECTIONS[currentIndex - 1])
-      // Scroll to top of main content
-      mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [isFirstSection, currentSection, currentIndex, validateSection, setCurrentSection])
 
   const handleNext = useCallback(() => {
-    // Validate current section
     const validation = validateSection(currentSection)
-
-    // Show validation errors but still allow navigation (soft validation)
     if (!validation.isValid && currentSection !== 'review') {
-      // User can still proceed, but they'll see the warning
       logger.debug(
-        { 
+        {
           section: currentSection,
-          validationErrors: validation.errors
+          validationErrors: validation.errors,
         },
-        'Section validation issues'
+        'Section validation issues',
       )
     }
-
     if (!isLastSection) {
       setCurrentSection(SURVEY_SECTIONS[currentIndex + 1])
-      // Scroll to top of main content
-      mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [currentSection, currentIndex, isLastSection, validateSection, setCurrentSection])
 
-  // Jump to specific section (if not blocked)
-  const handleJumpToSection = useCallback((section: SurveySection) => {
-    setCurrentSection(section)
-    mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [setCurrentSection])
+  const handleJumpToSection = useCallback(
+    (section: SurveySection) => {
+      setCurrentSection(section)
+    },
+    [setCurrentSection],
+  )
 
   // Swipe gesture handlers
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -514,6 +534,7 @@ export default function MobileSurveyWizard({
   return (
     <MobileSurveyWizardErrorBoundary>
       <div
+        ref={wizardRootRef}
         className={cn(
           'flex flex-col bg-background',
           embedded ? 'min-h-[70vh] rounded-lg border' : 'min-h-screen',

@@ -21,7 +21,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { ArrowLeft, CalendarIcon, Loader2, Search, Building2 } from 'lucide-react'
+import { ArrowLeft, CalendarIcon, Loader2, Search, Building2, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 import Link from 'next/link'
@@ -232,34 +232,57 @@ export default function NewOpportunityPage() {
                     disabled={loadingData}
                   />
                 </div>
-                <Select
-                  value={formData.customer_id}
-                  onValueChange={handleSelectCustomer}
-                  disabled={loadingData}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a contact" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredCustomers.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-muted-foreground">No contacts found</div>
-                    ) : (
-                      filteredCustomers.map(customer => {
+                {/* Inline results list — the previous version hid matches inside
+                    a closed Select dropdown, so typing in the search box looked
+                    like it did nothing until you remembered to click the hidden
+                    dropdown. This surfaces matches directly. */}
+                <div className="max-h-64 overflow-y-auto rounded-md border">
+                  {loadingData ? (
+                    <div className="px-3 py-4 text-sm text-muted-foreground text-center">Loading contacts…</div>
+                  ) : filteredCustomers.length === 0 ? (
+                    <div className="px-3 py-4 text-sm text-muted-foreground text-center">
+                      {contactSearch ? 'No contacts match your search' : 'No contacts yet — create one first'}
+                    </div>
+                  ) : (
+                    <ul className="divide-y">
+                      {filteredCustomers.slice(0, 50).map((customer) => {
                         const displayName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.name
+                        const isSelected = customer.id === formData.customer_id
                         return (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            <div className="flex items-center gap-2">
-                              <span>{displayName}</span>
-                              {customer.company_name && (
-                                <span className="text-xs text-muted-foreground">· {customer.company_name}</span>
+                          <li key={customer.id}>
+                            <button
+                              type="button"
+                              onClick={() => handleSelectCustomer(customer.id)}
+                              className={cn(
+                                'w-full text-left px-3 py-2 hover:bg-accent flex items-center justify-between gap-2',
+                                isSelected && 'bg-accent',
                               )}
-                            </div>
-                          </SelectItem>
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-medium truncate">{displayName || 'Unnamed'}</div>
+                                <div className="text-xs text-muted-foreground truncate flex items-center gap-2">
+                                  {customer.company_name && (
+                                    <span className="inline-flex items-center gap-1">
+                                      <Building2 className="h-3 w-3" />
+                                      {customer.company_name}
+                                    </span>
+                                  )}
+                                  {customer.email && <span>{customer.email}</span>}
+                                </div>
+                              </div>
+                              {isSelected && <Check className="h-4 w-4 text-primary flex-shrink-0" />}
+                            </button>
+                          </li>
                         )
-                      })
-                    )}
-                  </SelectContent>
-                </Select>
+                      })}
+                    </ul>
+                  )}
+                </div>
+                {filteredCustomers.length > 50 && (
+                  <p className="text-xs text-muted-foreground">
+                    Showing first 50 of {filteredCustomers.length} — refine your search to see more.
+                  </p>
+                )}
               </div>
 
               {/* Selected contact info */}
@@ -380,7 +403,11 @@ export default function NewOpportunityPage() {
                 <Label>Expected Close Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn('w-full justify-start text-left font-normal', !formData.expected_close_date && 'text-muted-foreground')}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn('w-full justify-start text-left font-normal', !formData.expected_close_date && 'text-muted-foreground')}
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {formData.expected_close_date ? format(formData.expected_close_date, 'PPP') : 'Pick a date'}
                     </Button>

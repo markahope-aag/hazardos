@@ -630,9 +630,23 @@ export const useSurveyStore = create<SurveyState>()(
         }
 
         const result = { isValid: errors.length === 0, errors }
-        set((state) => ({
-          sectionValidation: { ...state.sectionValidation, [section]: result },
-        }))
+        // Only write back if validation actually changed — otherwise any
+        // component that reads the store during render (the review-section
+        // computes `validateAll()` in its render body) triggers a fresh
+        // object reference every time, Zustand notifies subscribers, they
+        // re-render, they call `validateAll()` again, infinite loop. On
+        // Chrome this presents as the "Aw, Snap!" renderer crash.
+        const existing = state.sectionValidation[section]
+        const sameResult =
+          existing
+          && existing.isValid === result.isValid
+          && existing.errors.length === result.errors.length
+          && existing.errors.every((e, i) => e === result.errors[i])
+        if (!sameResult) {
+          set((state) => ({
+            sectionValidation: { ...state.sectionValidation, [section]: result },
+          }))
+        }
         return result
       },
 

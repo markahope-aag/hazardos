@@ -122,7 +122,7 @@ export function SurveyActions({ survey, onStatusChange }: SurveyActionsProps) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem asChild>
-            <a href={`/site-surveys/mobile?survey_id=${survey.id}`}>
+            <a href={`/site-surveys/mobile?surveyId=${survey.id}`}>
               <Edit className="h-4 w-4 mr-2" />
               Edit Survey
             </a>
