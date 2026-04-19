@@ -357,7 +357,7 @@ export class GoogleCalendarService {
         scheduled_end_date, scheduled_end_time,
         estimated_duration_hours,
         job_address, job_city, job_state, job_zip,
-        customer:customers(first_name, last_name, company_name)
+        customer:customers!customer_id(first_name, last_name, company_name)
       `)
       .eq('id', jobId)
       .single();

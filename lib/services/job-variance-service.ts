@@ -52,7 +52,7 @@ export class JobVarianceService {
           id,
           job_number,
           name,
-          customer:customers(name, company_name),
+          customer:customers!customer_id(name, company_name),
           hazard_types,
           contract_amount,
           estimated_duration_hours

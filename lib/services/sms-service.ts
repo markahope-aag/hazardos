@@ -193,7 +193,7 @@ export class SmsService {
       .from('jobs')
       .select(`
         *,
-        customer:customers(*),
+        customer:customers!customer_id(*),
         organization:organizations(*)
       `)
       .eq('id', jobId)
@@ -238,7 +238,7 @@ export class SmsService {
       .from('jobs')
       .select(`
         *,
-        customer:customers(*),
+        customer:customers!customer_id(*),
         organization:organizations(*)
       `)
       .eq('id', jobId)

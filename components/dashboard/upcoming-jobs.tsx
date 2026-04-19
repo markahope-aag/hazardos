@@ -38,7 +38,7 @@ export async function UpcomingJobs() {
       scheduled_start_time,
       job_address,
       status,
-      customer:customers(company_name, name)
+      customer:customers!customer_id(company_name, name)
     `)
     .gte('scheduled_start_date', today)
     .lte('scheduled_start_date', nextWeek)

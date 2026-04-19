@@ -182,7 +182,7 @@ export class JobsService {
       .from('proposals')
       .select(`
         *,
-        customer:customers(*),
+        customer:customers!customer_id(*),
         estimate:estimates(
           *,
           site_survey:site_surveys(*)
@@ -250,7 +250,7 @@ export class JobsService {
       .from('jobs')
       .select(`
         *,
-        customer:customers(*),
+        customer:customers!customer_id(*),
         proposal:proposals(id, proposal_number, total),
         estimate:estimates(id, estimate_number),
         site_survey:site_surveys(id),
@@ -300,7 +300,7 @@ export class JobsService {
       .from('jobs')
       .select(`
         *,
-        customer:customers(id, company_name, name, email),
+        customer:customers!customer_id(id, company_name, name, email),
         crew:job_crew(
           profile_id,
           is_lead,
@@ -368,7 +368,7 @@ export class JobsService {
       .from('jobs')
       .select(`
         *,
-        customer:customers(id, company_name, name),
+        customer:customers!customer_id(id, company_name, name),
         crew:job_crew(
           is_lead,
           profile:profiles(id, full_name)

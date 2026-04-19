@@ -39,7 +39,7 @@ async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Prom
     .from('jobs')
     .select(`
       *,
-      customer:customers(id, name, company_name, email)
+      customer:customers!customer_id(id, name, company_name, email)
     `, { count: 'exact' })
     .eq('organization_id', context.organizationId)
     .order('created_at', { ascending: false })

@@ -36,7 +36,7 @@ export default async function JobReviewPage({
     .from('jobs')
     .select(`
       *,
-      customer:customers(id, name, company_name, email, phone),
+      customer:customers!customer_id(id, name, company_name, email, phone),
       completion:job_completions(
         *,
         submitter:profiles!job_completions_submitted_by_fkey(id, full_name, avatar_url),

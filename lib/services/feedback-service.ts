@@ -35,7 +35,7 @@ export class FeedbackService {
     // Get job and customer info
     const { data: job } = await supabase
       .from('jobs')
-      .select('id, job_number, name, customer_id, customer:customers(id, name, company_name, email)')
+      .select('id, job_number, name, customer_id, customer:customers!customer_id(id, name, company_name, email)')
       .eq('id', input.job_id)
       .single()
 

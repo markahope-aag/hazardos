@@ -20,7 +20,7 @@ export default async function JobDetailPage({
     .from('jobs')
     .select(`
       *,
-      customer:customers(*),
+      customer:customers!customer_id(*),
       proposal:proposals(id, proposal_number, total),
       estimate:estimates(id, estimate_number),
       site_survey:site_surveys(id),

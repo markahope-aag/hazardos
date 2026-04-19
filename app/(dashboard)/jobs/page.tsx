@@ -29,7 +29,7 @@ export default async function JobsPage({
     .from('jobs')
     .select(`
       *,
-      customer:customers(id, company_name, name, email),
+      customer:customers!customer_id(id, company_name, name, email),
       crew:job_crew(
         is_lead,
         profile:profiles(id, full_name)
