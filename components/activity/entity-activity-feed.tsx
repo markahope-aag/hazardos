@@ -23,15 +23,20 @@ interface ActivityLogEntry {
   created_at: string
 }
 
-// Either entityType+entityId (activity for one specific row) OR
-// customerId (aggregate activity across everything owned by a contact —
-// the contact itself + their surveys/estimates/proposals/jobs/opps).
+// Three shapes the feed can run in:
+//   - entityType+entityId — activity for one specific row
+//   - customerId — aggregate across a contact (contact + surveys/estimates/
+//     proposals/opps/jobs all owned by that contact)
+//   - companyId — aggregate across a company (company + its contacts and
+//     everything those contacts own, plus jobs/opps keyed directly to the
+//     company)
 type Props = {
   title?: string
   limit?: number
 } & (
-  | { entityType: string; entityId: string; customerId?: never }
-  | { entityType?: never; entityId?: never; customerId: string }
+  | { entityType: string; entityId: string; customerId?: never; companyId?: never }
+  | { entityType?: never; entityId?: never; customerId: string; companyId?: never }
+  | { entityType?: never; entityId?: never; customerId?: never; companyId: string }
 )
 
 const ACTION_ICON: Record<string, typeof Activity> = {
@@ -85,6 +90,7 @@ export default function EntityActivityFeed(props: Props) {
   const entityType = 'entityType' in props ? props.entityType : undefined
   const entityId = 'entityId' in props ? props.entityId : undefined
   const customerId = 'customerId' in props ? props.customerId : undefined
+  const companyId = 'companyId' in props ? props.companyId : undefined
   const [entries, setEntries] = useState<ActivityLogEntry[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -93,7 +99,9 @@ export default function EntityActivityFeed(props: Props) {
     async function load() {
       try {
         const params = new URLSearchParams()
-        if (customerId) {
+        if (companyId) {
+          params.set('company_id', companyId)
+        } else if (customerId) {
           params.set('customer_id', customerId)
         } else if (entityType && entityId) {
           params.set('entity_type', entityType)
@@ -113,7 +121,7 @@ export default function EntityActivityFeed(props: Props) {
     return () => {
       cancelled = true
     }
-  }, [entityType, entityId, customerId, limit])
+  }, [entityType, entityId, customerId, companyId, limit])
 
   return (
     <Card>

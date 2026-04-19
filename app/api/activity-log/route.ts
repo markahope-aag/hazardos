@@ -7,6 +7,7 @@ const querySchema = z.object({
   entity_type: z.string().optional(),
   entity_id: z.string().uuid().optional(),
   customer_id: z.string().uuid().optional(),
+  company_id: z.string().uuid().optional(),
   limit: z.coerce.number().int().min(1).max(200).optional(),
 })
 
@@ -26,6 +27,54 @@ export const GET = createApiHandler(
     querySchema,
   },
   async (_request, context, _body, query) => {
+    if (query.company_id) {
+      // Companies aggregate activity across:
+      //   - the company row itself
+      //   - contacts that belong to the company
+      //   - jobs and opportunities keyed by company_id directly
+      const relatedIds: Array<[string, string]> = [['company', query.company_id]]
+
+      const [contacts, opps, jobs] = await Promise.all([
+        context.supabase.from('customers').select('id').eq('company_id', query.company_id),
+        context.supabase.from('opportunities').select('id').eq('company_id', query.company_id),
+        context.supabase.from('jobs').select('id').eq('company_id', query.company_id),
+      ])
+
+      for (const row of contacts.data || []) relatedIds.push(['customer', row.id])
+      for (const row of opps.data || []) relatedIds.push(['opportunity', row.id])
+      for (const row of jobs.data || []) relatedIds.push(['job', row.id])
+
+      // Also fold in surveys/estimates/proposals that belong to those contacts
+      // — otherwise we'd miss "estimate sent" and "survey scheduled" events
+      // on a company whose work all flows through one contact.
+      const contactIds = (contacts.data || []).map((r) => r.id)
+      if (contactIds.length > 0) {
+        const [surveys, estimates, proposals] = await Promise.all([
+          context.supabase.from('site_surveys').select('id').in('customer_id', contactIds),
+          context.supabase.from('estimates').select('id').in('customer_id', contactIds),
+          context.supabase.from('proposals').select('id').in('customer_id', contactIds),
+        ])
+        for (const row of surveys.data || []) relatedIds.push(['site_survey', row.id])
+        for (const row of estimates.data || []) relatedIds.push(['estimate', row.id])
+        for (const row of proposals.data || []) relatedIds.push(['proposal', row.id])
+      }
+
+      const entityIds = relatedIds.map(([, id]) => id)
+      const entityTypes = Array.from(new Set(relatedIds.map(([t]) => t)))
+      const { data, error } = await context.supabase
+        .from('activity_log')
+        .select(
+          'id, organization_id, user_id, user_name, action, entity_type, entity_id, entity_name, old_values, new_values, description, created_at',
+        )
+        .in('entity_type', entityTypes)
+        .in('entity_id', entityIds)
+        .order('created_at', { ascending: false })
+        .limit(query.limit ?? 200)
+      if (error) throw error
+
+      return NextResponse.json({ activity: data || [] })
+    }
+
     if (query.customer_id) {
       // Gather the IDs of every related entity first, in a handful of narrow
       // queries. Doing this server-side is cheaper than a single activity_log

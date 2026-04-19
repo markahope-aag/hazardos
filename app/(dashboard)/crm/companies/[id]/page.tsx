@@ -10,11 +10,13 @@ import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import {
   ArrowLeft, Building2, Users, Mail, Phone, MapPin, Globe, AlertCircle,
-  DollarSign, Briefcase, Target, ExternalLink, Edit, User,
+  DollarSign, Target, ExternalLink, Edit, User,
 } from 'lucide-react'
 import { useCompany, useUpdateCompany } from '@/lib/hooks/use-companies'
 import { useCustomers } from '@/lib/hooks/use-customers'
 import { formatCurrency } from '@/lib/utils'
+import EntityActivityFeed from '@/components/activity/entity-activity-feed'
+import CompanyJobsList from '@/components/companies/company-jobs-list'
 
 const TYPE_LABELS: Record<string, string> = {
   residential_property_mgr: 'Residential Property Manager',
@@ -114,8 +116,10 @@ export default function CompanyDetailPage({ params }: Props) {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Edit className="h-4 w-4 mr-2" />Edit
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/crm/companies/${company.id}/edit`}>
+              <Edit className="h-4 w-4 mr-2" />Edit
+            </Link>
           </Button>
           <Button variant="outline" asChild>
             <Link href={`/crm/opportunities/new?company=${company.name}`}>
@@ -431,26 +435,10 @@ export default function CompanyDetailPage({ params }: Props) {
           )}
 
           {/* Jobs Tab */}
-          {activeTab === 'jobs' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base"><Briefcase className="h-5 w-5" />Jobs</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground text-center py-8">Jobs linked to this company will appear here</p>
-              </CardContent>
-            </Card>
-          )}
+          {activeTab === 'jobs' && <CompanyJobsList companyId={company.id} />}
 
           {/* Activity Tab */}
-          {activeTab === 'activity' && (
-            <Card>
-              <CardHeader><CardTitle className="text-base">Activity</CardTitle></CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground text-center py-8">Activity feed for this company will appear here</p>
-              </CardContent>
-            </Card>
-          )}
+          {activeTab === 'activity' && <EntityActivityFeed companyId={company.id} />}
         </div>
       </div>
     </div>
