@@ -20,7 +20,10 @@ export interface DashboardFilters {
 }
 
 export const DEFAULT_FILTERS: DashboardFilters = {
-  period: 'month',
+  // YTD by default so the dashboard shows meaningful activity on first
+  // load instead of "this month", which excludes everything older and
+  // reads as empty for new users or seasonal businesses.
+  period: 'ytd',
   hazardType: 'all',
 }
 

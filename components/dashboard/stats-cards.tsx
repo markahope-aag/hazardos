@@ -63,28 +63,50 @@ export async function StatsCards({ filters }: StatsCardsProps) {
   const hazardActive = hazardSurveyIds !== null
   const hasHazardMatches = !hazardActive || hazardSurveyIds.length > 0
 
-  // ─── Revenue (paid invoice payments) ─────────────────────────────────
-  // Revenue is computed off the payments table. Hazard filter isn't
-  // applied here — payments don't carry hazard type and linking each
-  // payment back through invoice→estimate→site_survey is expensive. We
-  // note this constraint via a card description instead of faking it.
+  // ─── Revenue (sum of completed-job revenue) ─────────────────────────
+  // Revenue = the earned value of work the crew has finished, not cash
+  // received. A job contributes its actual_revenue (falls back to
+  // contract_amount, then final_amount) once it reaches a post-work
+  // status. Period bucketing uses scheduled_start_date to stay
+  // consistent with how the Jobs card and every chart slice jobs.
+  const REVENUE_STATUSES = ['completed', 'invoiced', 'paid', 'closed']
+  const buildRevenueQuery = (startIso: string, endIso: string) => {
+    let q = supabase
+      .from('jobs')
+      .select('actual_revenue, contract_amount, final_amount, site_survey_id')
+      .eq('organization_id', organizationId)
+      .in('status', REVENUE_STATUSES)
+      .gte('scheduled_start_date', startIso)
+      .lte('scheduled_start_date', endIso)
+    if (hazardActive) {
+      if (!hasHazardMatches) {
+        q = q.in('site_survey_id', ['00000000-0000-0000-0000-000000000000'])
+      } else {
+        q = q.in('site_survey_id', hazardSurveyIds as string[])
+      }
+    }
+    return q
+  }
+
+  const sumRevenue = (
+    rows: Array<{
+      actual_revenue: number | null
+      contract_amount: number | null
+      final_amount: number | null
+    }> | null,
+  ) =>
+    (rows || []).reduce((s, j) => {
+      const v = j.actual_revenue ?? j.final_amount ?? j.contract_amount ?? 0
+      return s + v
+    }, 0)
+
   const [currentRevenueRes, previousRevenueRes] = await Promise.all([
-    supabase
-      .from('payments')
-      .select('amount')
-      .eq('organization_id', organizationId)
-      .gte('payment_date', toIsoDate(range.start))
-      .lte('payment_date', toIsoDate(range.end)),
-    supabase
-      .from('payments')
-      .select('amount')
-      .eq('organization_id', organizationId)
-      .gte('payment_date', toIsoDate(range.previousStart))
-      .lte('payment_date', toIsoDate(range.previousEnd)),
+    buildRevenueQuery(toIsoDate(range.start), toIsoDate(range.end)),
+    buildRevenueQuery(toIsoDate(range.previousStart), toIsoDate(range.previousEnd)),
   ])
 
-  const currentRevenue = (currentRevenueRes.data || []).reduce((s, p) => s + (p.amount || 0), 0)
-  const previousRevenue = (previousRevenueRes.data || []).reduce((s, p) => s + (p.amount || 0), 0)
+  const currentRevenue = sumRevenue(currentRevenueRes.data)
+  const previousRevenue = sumRevenue(previousRevenueRes.data)
 
   // ─── Outstanding AR ─────────────────────────────────────────────────
   // Current AR comes straight from balance_due. For the prior-period
@@ -228,13 +250,11 @@ export async function StatsCards({ filters }: StatsCardsProps) {
       title: 'Revenue',
       value: formatCurrency(currentRevenue),
       icon: DollarSign,
-      description: hazardActive
-        ? `${range.label} · hazard filter not applied to payments`
-        : `Payments received ${range.label.toLowerCase()}`,
+      description: `Completed jobs ${range.label.toLowerCase()}`,
       trend: revenueTrend,
-      // For revenue, an up-arrow is good — default TrendBadge polarity.
+      // Up-arrow = good (default polarity).
       trendInverted: false,
-      href: `/invoices${buildFilterQuery(filters, { status: 'paid' })}`,
+      href: `/jobs${buildFilterQuery(filters)}`,
     },
     {
       title: 'Outstanding AR',

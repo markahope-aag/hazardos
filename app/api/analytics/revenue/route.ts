@@ -4,48 +4,48 @@ import { subMonths, format, startOfMonth, endOfMonth } from 'date-fns'
 
 /**
  * GET /api/analytics/revenue
- * Get revenue data for the last 6 months (single optimized query)
+ * Revenue-earned by month over the last 6 months. Revenue is the value
+ * of completed jobs (actual_revenue, falling back to final_amount and
+ * then contract_amount), bucketed by scheduled_start_date so the x-axis
+ * matches how Jobs and the stat card slice the data elsewhere on the
+ * dashboard. Cash-received (payments) is a separate concept and lives
+ * on the AR / Invoices surfaces.
  */
+const REVENUE_STATUSES = ['completed', 'invoiced', 'paid', 'closed']
+
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
   },
   async (_request, context) => {
-    // Calculate date range for all 6 months
     const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5))
     const now = endOfMonth(new Date())
 
-    // Single query to fetch all payments in the 6-month range
-    const { data: payments, error } = await context.supabase
-      .from('payments')
-      .select('amount, payment_date')
+    const { data: jobs, error } = await context.supabase
+      .from('jobs')
+      .select('actual_revenue, contract_amount, final_amount, scheduled_start_date, status')
       .eq('organization_id', context.profile.organization_id)
-      .gte('payment_date', format(sixMonthsAgo, 'yyyy-MM-dd'))
-      .lte('payment_date', format(now, 'yyyy-MM-dd'))
+      .in('status', REVENUE_STATUSES)
+      .gte('scheduled_start_date', format(sixMonthsAgo, 'yyyy-MM-dd'))
+      .lte('scheduled_start_date', format(now, 'yyyy-MM-dd'))
 
     if (error) {
       throw error
     }
 
-    // Group payments by month in memory
     const monthlyRevenue = new Map<string, number>()
-
-    // Initialize all 6 months with 0
     for (let i = 5; i >= 0; i--) {
       const monthKey = format(subMonths(new Date(), i), 'yyyy-MM')
       monthlyRevenue.set(monthKey, 0)
     }
 
-    // Sum payments by month
-    for (const payment of payments || []) {
-      if (payment.payment_date) {
-        const monthKey = payment.payment_date.substring(0, 7) // 'yyyy-MM'
-        const current = monthlyRevenue.get(monthKey) || 0
-        monthlyRevenue.set(monthKey, current + (payment.amount || 0))
-      }
+    for (const j of jobs || []) {
+      if (!j.scheduled_start_date) continue
+      const monthKey = j.scheduled_start_date.substring(0, 7) // 'yyyy-MM'
+      const value = j.actual_revenue ?? j.final_amount ?? j.contract_amount ?? 0
+      monthlyRevenue.set(monthKey, (monthlyRevenue.get(monthKey) || 0) + value)
     }
 
-    // Format response
     const data = []
     for (let i = 5; i >= 0; i--) {
       const monthDate = subMonths(new Date(), i)
