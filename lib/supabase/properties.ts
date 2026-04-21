@@ -9,8 +9,8 @@ import type {
   PropertyContactUpdate,
   Customer,
   SiteSurvey,
-  Job,
 } from '@/types/database'
+import type { Job } from '@/types/jobs'
 import type { Opportunity } from '@/types/sales'
 
 export interface PropertyWithCounts extends Property {
@@ -28,7 +28,7 @@ export interface PropertyHistory {
   contacts: PropertyContactWithContact[]
   site_surveys: Pick<SiteSurvey, 'id' | 'job_name' | 'hazard_type' | 'status' | 'created_at' | 'scheduled_date'>[]
   opportunities: Pick<Opportunity, 'id' | 'name' | 'opportunity_status' | 'estimated_value' | 'created_at'>[]
-  jobs: Pick<Job, 'id' | 'job_number' | 'status' | 'created_at' | 'start_date'>[]
+  jobs: Pick<Job, 'id' | 'job_number' | 'status' | 'created_at' | 'scheduled_start_date'>[]
 }
 
 export class PropertiesService {
