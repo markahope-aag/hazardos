@@ -10,7 +10,6 @@ export interface CompanyWithPrimaryContact extends Company {
     name: string | null
     email: string | null
     mobile_phone: string | null
-    insurance_carrier: string | null
   } | null
 }
 
@@ -35,7 +34,7 @@ export class CompaniesService {
   ): Promise<CompanyWithPrimaryContact[]> {
     let query = this.supabase
       .from('companies')
-      .select('*, primary_contact:customers!company_id(id, first_name, last_name, name, email, mobile_phone, insurance_carrier)')
+      .select('*, primary_contact:customers!company_id(id, first_name, last_name, name, email, mobile_phone)')
       .eq('organization_id', organizationId)
 
     if (options.search) {

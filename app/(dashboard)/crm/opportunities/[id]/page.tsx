@@ -43,7 +43,6 @@ const TRIGGER_LABELS: Record<string, string> = {
   inspection_required: 'Inspection Required',
   sale_pending: 'Sale Pending',
   tenant_complaint: 'Tenant Complaint',
-  insurance_claim: 'Insurance Claim',
   voluntary: 'Voluntary',
 }
 

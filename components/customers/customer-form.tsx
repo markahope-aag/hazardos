@@ -73,8 +73,6 @@ export default function CustomerForm({
       lead_source: customer.lead_source || '',
       lead_source_detail: customer.lead_source_detail || '',
       referral_source: customer.referral_source || '',
-      insurance_carrier: customer.insurance_carrier || '',
-      insurance_policy_number: customer.insurance_policy_number || '',
       notes: customer.notes || '',
       next_followup_date: customer.next_followup_date || '',
       next_followup_note: customer.next_followup_note || '',
@@ -108,8 +106,6 @@ export default function CustomerForm({
     if (!data.title) data.title = undefined
     if (!data.company_id) data.company_id = undefined
     if (!data.referral_source) data.referral_source = undefined
-    if (!data.insurance_carrier) data.insurance_carrier = undefined
-    if (!data.insurance_policy_number) data.insurance_policy_number = undefined
     try {
       await onSubmit(data)
       formAnalytics.trackSuccess()
@@ -306,33 +302,22 @@ export default function CustomerForm({
         </div>
       </div>
 
-      {/* Section 6: Lead Source & Insurance */}
+      {/* Section 6: Lead Source */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Lead Source &amp; Insurance</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Lead Source</h3>
+        <div className="grid grid-cols-1 gap-4">
+          <div>
             <Label htmlFor="lead_source">How did they find us?</Label>
             <Input
               id="lead_source"
               {...register('lead_source')}
-              placeholder="Google, Nextdoor, insurance adjuster, referral from John Smith, repeat customer, walk-in, ..."
+              placeholder="Google, Nextdoor, referral from John Smith, repeat customer, walk-in, ..."
             />
             <p className="text-xs text-muted-foreground mt-1">
               Free text — specific is better. This is what drives the Lead Sources chart on the dashboard.
             </p>
           </div>
-          <div>
-            <Label htmlFor="insurance_carrier">Insurance Carrier</Label>
-            <Input id="insurance_carrier" {...register('insurance_carrier')} placeholder="e.g., State Farm, Allstate" />
-          </div>
-          <div>
-            <Label htmlFor="insurance_policy_number">Policy Number</Label>
-            <Input id="insurance_policy_number" {...register('insurance_policy_number')} />
-          </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Insurance is for reference only — customers file their own reimbursement claims.
-        </p>
       </div>
 
       {/* Section 7: Notes & Follow-up */}

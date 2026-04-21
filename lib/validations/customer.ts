@@ -47,8 +47,6 @@ export const customerSchema = z.object({
   referred_by_contact_id: z.string().uuid().optional().or(z.literal('')),
   account_owner_id: z.string().uuid().optional().or(z.literal('')),
   referral_source: z.string().max(255).optional().or(z.literal('')),
-  insurance_carrier: z.string().max(255).optional().or(z.literal('')),
-  insurance_policy_number: z.string().max(100).optional().or(z.literal('')),
   notes: z.string().max(2000, 'Notes are too long').optional().or(z.literal('')),
   next_followup_date: z.string().optional().or(z.literal('')),
   next_followup_note: z.string().max(500).optional().or(z.literal('')),

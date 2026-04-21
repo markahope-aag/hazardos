@@ -40,7 +40,6 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
   const [contactType, setContactType] = useState<ContactType | 'all'>('all')
   const [activityFilter, setActivityFilter] = useState<'no_contact_30' | 'no_contact_90' | 'no_contact_365' | 'all'>('all')
   const [hasOpenJobs, setHasOpenJobs] = useState<boolean | 'all'>('all')
-  const [insuranceCarrier, setInsuranceCarrier] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [page, setPage] = useState(1)
   const [sortBy, setSortBy] = useState<string>('created_at')
@@ -49,20 +48,17 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
 
   const debouncedSearch = useDebouncedValue(search, 300)
 
-  const debouncedInsurance = useDebouncedValue(insuranceCarrier, 300)
-
   const queryOptions = useMemo(() => ({
     search: debouncedSearch,
     status,
     contactType,
     activityFilter,
     hasOpenJobs,
-    insuranceCarrier: debouncedInsurance || undefined,
     page,
     pageSize,
     sortBy,
     sortOrder,
-  }), [debouncedSearch, status, contactType, activityFilter, hasOpenJobs, debouncedInsurance, page, pageSize, sortBy, sortOrder])
+  }), [debouncedSearch, status, contactType, activityFilter, hasOpenJobs, page, pageSize, sortBy, sortOrder])
 
   const { data: customers = [], isLoading, error } = useCustomers(queryOptions)
   const { data: stats } = useCustomerStats()
@@ -72,7 +68,6 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
     setContactType('all')
     setActivityFilter('all')
     setHasOpenJobs('all')
-    setInsuranceCarrier('')
     setSearch('')
     setShowAdvanced(false)
     setPage(1)
@@ -80,7 +75,7 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
 
   const hasNextPage = customers.length === pageSize
   const hasPrevPage = page > 1
-  const hasFilters = status !== 'all' || contactType !== 'all' || search !== '' || activityFilter !== 'all' || hasOpenJobs !== 'all' || insuranceCarrier !== ''
+  const hasFilters = status !== 'all' || contactType !== 'all' || search !== '' || activityFilter !== 'all' || hasOpenJobs !== 'all'
 
   const toggleSort = useCallback((column: string) => {
     if (sortBy === column) {
@@ -173,14 +168,6 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
               <SelectItem value="false">No Open Jobs</SelectItem>
             </SelectContent>
           </Select>
-          <div className="relative max-w-[200px]">
-            <Input
-              value={insuranceCarrier}
-              onChange={(e) => { setInsuranceCarrier(e.target.value); setPage(1) }}
-              placeholder="Insurance carrier..."
-              className="text-sm"
-            />
-          </div>
         </div>
       )}
 
@@ -248,7 +235,6 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
                       <span className="flex items-center">Last Job<SortIcon column="last_job_date" /></span>
                     </TableHead>
                     <TableHead>Source</TableHead>
-                    <TableHead>Insurance</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -341,9 +327,6 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground truncate max-w-[120px]">
                           {customer.referral_source || customer.lead_source || '—'}
-                        </TableCell>
-                        <TableCell className="text-sm truncate max-w-[120px]">
-                          {customer.insurance_carrier || <span className="text-muted-foreground">—</span>}
                         </TableCell>
                       </TableRow>
                     )

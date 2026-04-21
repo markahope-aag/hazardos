@@ -14,7 +14,6 @@ interface UseCustomersOptions {
   minRevenue?: number
   maxRevenue?: number
   minJobs?: number
-  insuranceCarrier?: string
   referralSource?: string
   hasOpenJobs?: boolean | 'all'
   sortBy?: string
@@ -29,14 +28,14 @@ export function useCustomers(options: UseCustomersOptions = {}) {
   const {
     search, status, source, contactType,
     activityFilter, minRevenue, maxRevenue, minJobs,
-    insuranceCarrier, referralSource, hasOpenJobs,
+    referralSource, hasOpenJobs,
     sortBy, sortOrder,
     page = 1, pageSize = 25,
   } = options
 
   return useQuery({
     queryKey: ['customers', organization?.id, search, status, source, contactType,
-      activityFilter, minRevenue, maxRevenue, minJobs, insuranceCarrier, referralSource, hasOpenJobs,
+      activityFilter, minRevenue, maxRevenue, minJobs, referralSource, hasOpenJobs,
       sortBy, sortOrder, page, pageSize],
     queryFn: async () => {
       if (!organization?.id) {
@@ -53,7 +52,6 @@ export function useCustomers(options: UseCustomersOptions = {}) {
         minRevenue,
         maxRevenue,
         minJobs,
-        insuranceCarrier: insuranceCarrier || undefined,
         referralSource: referralSource || undefined,
         hasOpenJobs: hasOpenJobs === 'all' ? undefined : hasOpenJobs,
         sortBy,

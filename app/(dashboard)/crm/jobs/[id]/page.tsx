@@ -205,10 +205,6 @@ export default function JobDetailPage({ params }: Props) {
                   <span className="font-medium font-mono text-xs">{job.permit_numbers?.[0] || '—'}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Insurance Claim #</span>
-                  <span className="font-medium font-mono text-xs">{job.insurance_claim_number ?? '—'}</span>
-                </div>
-                <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">PO Number</span>
                   <span className="font-medium font-mono text-xs">{job.po_number ?? '—'}</span>
                 </div>

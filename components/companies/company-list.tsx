@@ -234,7 +234,6 @@ export default function CompanyList() {
                     <TableHead className="cursor-pointer select-none text-right" onClick={() => toggleSort('lifetime_value')}>
                       <span className="flex items-center justify-end">Lifetime Value<SortIcon column="lifetime_value" /></span>
                     </TableHead>
-                    <TableHead>Insurance</TableHead>
                     <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('updated_at')}>
                       <span className="flex items-center">Last Activity<SortIcon column="updated_at" /></span>
                     </TableHead>
@@ -252,7 +251,6 @@ export default function CompanyList() {
                       ? [company.primary_contact.first_name, company.primary_contact.last_name].filter(Boolean).join(' ') || company.primary_contact.name || null
                       : null
                     const contactPhone = company.primary_contact?.mobile_phone ?? null
-                    const insuranceCarrier = company.primary_contact?.insurance_carrier ?? null
 
                     return (
                       <TableRow key={company.id} className="group">
@@ -289,9 +287,6 @@ export default function CompanyList() {
                         </TableCell>
                         <TableCell className="text-right font-medium">
                           {company.lifetime_value ? formatCurrency(company.lifetime_value, false) : '\u2014'}
-                        </TableCell>
-                        <TableCell className="text-sm truncate max-w-[120px]">
-                          {insuranceCarrier || <span className="text-muted-foreground">&mdash;</span>}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {company.updated_at ? (

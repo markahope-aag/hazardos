@@ -15,7 +15,6 @@ export class CustomersService {
       minRevenue?: number
       maxRevenue?: number
       minJobs?: number
-      insuranceCarrier?: string
       referralSource?: string
       hasOpenJobs?: boolean
       sortBy?: string
@@ -31,7 +30,7 @@ export class CustomersService {
 
     if (options.search) {
       const sanitizedSearch = sanitizeSearchQuery(options.search)
-      query = query.or(`name.ilike.%${sanitizedSearch}%,company_name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%,phone.ilike.%${sanitizedSearch}%,insurance_carrier.ilike.%${sanitizedSearch}%`)
+      query = query.or(`name.ilike.%${sanitizedSearch}%,company_name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%,phone.ilike.%${sanitizedSearch}%`)
     }
 
     if (options.status) {
@@ -64,11 +63,6 @@ export class CustomersService {
       query = query.gte('total_jobs', options.minJobs)
     }
 
-    // Insurance carrier filter
-    if (options.insuranceCarrier) {
-      const safe = sanitizeSearchQuery(options.insuranceCarrier)
-      query = query.ilike('insurance_carrier', `%${safe}%`)
-    }
 
     // Referral source filter
     if (options.referralSource) {

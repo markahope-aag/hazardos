@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Shield, User } from 'lucide-react'
+import { Plus, User } from 'lucide-react'
 import CustomerSurveysList from './customer-surveys-list'
 import { useUpdateCustomer } from '@/lib/hooks/use-customers'
 import { WorkflowProgress } from '@/components/workflow/workflow-progress'
@@ -75,7 +75,7 @@ interface Props {
 
 /**
  * Overview tab body: workflow progress strip, key dates, lead source /
- * attribution, insurance (when present), the timestamped notes feed
+ * attribution, the timestamped notes feed
  * with an add-note row, and the list of site surveys for this contact.
  * The notes list is append-prepend — new notes go to the top, old ones
  * are preserved so we keep the full history visible.
@@ -207,34 +207,6 @@ export function CustomerDetailOverview({ customer, displayName, workflow }: Prop
           </div>
         </CardContent>
       </Card>
-
-      {customer.insurance_carrier && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Shield className="h-4 w-4" />
-              Insurance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground">Insurance Carrier</p>
-                <p className="font-medium">{customer.insurance_carrier}</p>
-              </div>
-              {customer.insurance_policy_number && (
-                <div>
-                  <p className="text-muted-foreground">Policy Number</p>
-                  <p className="font-medium">{customer.insurance_policy_number}</p>
-                </div>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-3">
-              For reference only — customers file their own reimbursement claims.
-            </p>
-          </CardContent>
-        </Card>
-      )}
 
       <Card>
         <CardHeader>
