@@ -56,20 +56,23 @@ vi.mock('@/lib/utils/api-handler', () => ({
           )
         }
         
-        // Mock body schema validation
+        // Run the real Zod schema so invalid emails/roles get 400
         if (options.bodySchema) {
-          if (!body.email || !body.role) {
+          const result = options.bodySchema.safeParse(body)
+          if (!result.success) {
             return NextResponse.json(
               { error: 'Validation failed' },
               { status: 400 }
             )
           }
+          body = result.data
         }
       }
 
       const context = {
         supabase: mockSupabaseClient,
-        profile: { organization_id: 'org-123', role: 'admin' }
+        profile: { organization_id: 'org-123', role: 'admin' },
+        user: { id: 'user-admin-123' },
       }
 
       return handler(request, context, body)
@@ -160,27 +163,26 @@ describe('Invitations API', () => {
         created_at: '2024-01-03T10:00:00Z'
       }
 
-      // Mock user lookup (no existing user)
+      // Route makes three DB calls: profiles existence check, then two
+      // on tenant_invitations (existence check then insert). Track the
+      // invitations call index so the second one returns the inserted row.
+      let invitationsCall = 0
       mockSupabaseClient.from.mockImplementation((table) => {
         const builder = createQueryBuilder()
-        
+
         if (table === 'profiles') {
           builder.then.mockImplementation((resolve) => {
-            resolve({ data: [], error: null }) // No existing user
+            resolve({ data: null, error: null })
           })
         } else if (table === 'tenant_invitations') {
-          // First call: check existing invitation (none found)
-          // Second call: insert new invitation
-          builder.then
-            .mockImplementationOnce((resolve) => {
-              resolve({ data: null, error: null }) // No existing invitation
-            })
-          builder.single = vi.fn().mockResolvedValue({ 
-            data: mockInvitation, 
-            error: null 
+          const response = invitationsCall++ === 0
+            ? { data: null, error: null }
+            : { data: mockInvitation, error: null }
+          builder.then.mockImplementation((resolve) => {
+            resolve(response)
           })
         }
-        
+
         return builder
       })
 
@@ -266,27 +268,31 @@ describe('Invitations API', () => {
       })
       
       // Should throw SecureError for existing user
-      await expect(POST(request)).rejects.toThrow('User already exists')
+      await expect(POST(request)).rejects.toThrow(
+        'A user with this email already belongs to this organization'
+      )
     })
 
     it('should handle existing invitation conflict', async () => {
-      // Mock no existing user but existing invitation
+      // Mock no existing user but existing invitation. `.single()` returns
+      // a single row or null in real Supabase, so use null here — an empty
+      // array would be truthy and trip the user-exists check first.
       mockSupabaseClient.from.mockImplementation((table) => {
         const builder = createQueryBuilder()
-        
+
         if (table === 'profiles') {
           builder.then.mockImplementation((resolve) => {
-            resolve({ data: [], error: null }) // No existing user
+            resolve({ data: null, error: null })
           })
         } else if (table === 'tenant_invitations') {
           builder.then.mockImplementation((resolve) => {
-            resolve({ 
-              data: { id: 'existing-inv', email: 'pending@example.com' }, 
-              error: null 
+            resolve({
+              data: { id: 'existing-inv', email: 'pending@example.com' },
+              error: null
             })
           })
         }
-        
+
         return builder
       })
 
@@ -299,7 +305,9 @@ describe('Invitations API', () => {
       })
       
       // Should throw SecureError for existing invitation
-      await expect(POST(request)).rejects.toThrow('Invitation already exists')
+      await expect(POST(request)).rejects.toThrow(
+        'A pending invitation already exists for this email'
+      )
     })
   })
 })

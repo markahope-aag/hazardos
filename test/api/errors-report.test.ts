@@ -10,11 +10,27 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => Promise.resolve(mockSupabaseClient))
 }))
 
-vi.mock('@/lib/utils/logger', () => ({
-  logger: {
-    error: vi.fn()
-  }
+vi.mock('@/lib/middleware/unified-rate-limit', () => ({
+  applyUnifiedRateLimit: vi.fn(() => Promise.resolve(null))
 }))
+
+vi.mock('@/lib/utils/logger', () => {
+  const childLogger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  }
+  return {
+    logger: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+      child: vi.fn(() => childLogger),
+    },
+  }
+})
 
 import { logger } from '@/lib/utils/logger'
 

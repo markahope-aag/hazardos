@@ -27,9 +27,12 @@ import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
 
 describe('HubSpot OAuth Callback API', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-    
-    // Set environment variables
+    // Reset (not just clear) so mockResolvedValue() overrides from earlier
+    // tests don't bleed into later ones — otherwise the 429 set by the
+    // rate-limit test below makes every subsequent test short-circuit.
+    vi.resetAllMocks()
+    vi.mocked(applyUnifiedRateLimit).mockResolvedValue(null)
+
     process.env.NEXT_PUBLIC_APP_URL = 'https://example.com'
   })
 
@@ -38,7 +41,7 @@ describe('HubSpot OAuth Callback API', () => {
     
     const response = await GET(request)
     
-    expect(response.status).toBe(302)
+    expect(response.status).toBe(307)
     expect(response.headers.get('Location')).toBe(
       'https://example.com/settings/integrations?error=access_denied'
     )
@@ -49,7 +52,7 @@ describe('HubSpot OAuth Callback API', () => {
     
     const response = await GET(request)
     
-    expect(response.status).toBe(302)
+    expect(response.status).toBe(307)
     expect(response.headers.get('Location')).toBe(
       'https://example.com/settings/integrations?error=missing_params'
     )
@@ -60,7 +63,7 @@ describe('HubSpot OAuth Callback API', () => {
     
     const response = await GET(request)
     
-    expect(response.status).toBe(302)
+    expect(response.status).toBe(307)
     expect(response.headers.get('Location')).toBe(
       'https://example.com/settings/integrations?error=missing_params'
     )
@@ -75,7 +78,7 @@ describe('HubSpot OAuth Callback API', () => {
     
     const response = await GET(request)
     
-    expect(response.status).toBe(302)
+    expect(response.status).toBe(307)
     expect(response.headers.get('Location')).toBe(
       'https://example.com/settings/integrations?error=invalid_state'
     )
@@ -101,7 +104,7 @@ describe('HubSpot OAuth Callback API', () => {
     
     const response = await GET(request)
     
-    expect(response.status).toBe(302)
+    expect(response.status).toBe(307)
     expect(response.headers.get('Location')).toBe(
       'https://example.com/settings/integrations?success=hubspot'
     )
@@ -141,7 +144,7 @@ describe('HubSpot OAuth Callback API', () => {
     
     const response = await GET(request)
     
-    expect(response.status).toBe(302)
+    expect(response.status).toBe(307)
     expect(response.headers.get('Location')).toBe(
       'https://example.com/settings/integrations?error=callback_failed'
     )
@@ -169,7 +172,7 @@ describe('HubSpot OAuth Callback API', () => {
     
     const response = await GET(request)
     
-    expect(response.status).toBe(302)
+    expect(response.status).toBe(307)
     expect(response.headers.get('Location')).toBe(
       'https://example.com/settings/integrations?error=callback_failed'
     )
@@ -181,7 +184,7 @@ describe('HubSpot OAuth Callback API', () => {
     
     const response = await GET(request)
     
-    expect(response.status).toBe(302)
+    expect(response.status).toBe(307)
     expect(response.headers.get('Location')).toBe(
       'https://example.com/settings/integrations?error=invalid_state'
     )
