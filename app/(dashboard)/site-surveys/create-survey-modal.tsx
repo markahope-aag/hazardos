@@ -35,7 +35,7 @@ interface Technician {
   email: string
 }
 
-export function CreateSurveyButton() {
+export function CreateSurveyButton({ onCreated }: { onCreated?: () => void } = {}) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -50,7 +50,12 @@ export function CreateSurveyButton() {
         <DialogHeader>
           <DialogTitle>Schedule Site Survey</DialogTitle>
         </DialogHeader>
-        <CreateSurveyForm onSuccess={() => setOpen(false)} />
+        <CreateSurveyForm
+          onSuccess={() => {
+            setOpen(false)
+            onCreated?.()
+          }}
+        />
       </DialogContent>
     </Dialog>
   )

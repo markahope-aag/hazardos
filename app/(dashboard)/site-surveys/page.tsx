@@ -287,7 +287,7 @@ export default function SiteSurveysPage() {
                   Mobile Survey
                 </Button>
               </Link>
-              <CreateSurveyButton />
+              <CreateSurveyButton onCreated={loadSurveys} />
             </>
           )}
         </div>
@@ -415,7 +415,7 @@ export default function SiteSurveysPage() {
                 </Button>
               </Link>
             ) : !filters.search && filters.status === 'all' ? (
-              <CreateSurveyButton />
+              <CreateSurveyButton onCreated={loadSurveys} />
             ) : null}
           </CardContent>
         </Card>
