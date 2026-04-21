@@ -273,31 +273,44 @@ export default function EstimatesPage() {
   }, [estimates, searchQuery])
 
   const stats = useMemo(() => {
-    const total = estimates.length
-    const sentEstimates = estimates.filter(e =>
+    // "Open" = still in the pipeline. Once an estimate is rejected,
+    // expired, or converted into a job it's closed from the office's
+    // perspective and shouldn't count against active capacity metrics.
+    const OPEN_STATUSES = ['draft', 'pending_approval', 'approved', 'sent', 'accepted']
+    const openEstimates = estimates.filter(e => OPEN_STATUSES.includes(e.status))
+    const open = openEstimates.length
+
+    // Win rate: of estimates that reached a customer-facing decision
+    // (sent / accepted / rejected / expired / converted), how many ended
+    // up producing a non-cancelled job? Previous version divided withJobs
+    // by sent-count but counted withJobs across all statuses — that let
+    // a draft with a linked job push the ratio above 100%.
+    const decidedEstimates = estimates.filter(e =>
       ['sent', 'accepted', 'rejected', 'expired', 'converted'].includes(e.status)
     )
-    const sentCount = sentEstimates.length
-    const withJobs = estimates.filter(e =>
+    const withJobs = decidedEstimates.filter(e =>
       (e.jobs?.length ?? 0) > 0 &&
       !e.jobs?.every(j => j.status === 'cancelled')
     ).length
-    const winRate = sentCount > 0 ? Math.round((withJobs / sentCount) * 100) : 0
+    const winRate = decidedEstimates.length > 0
+      ? Math.min(100, Math.round((withJobs / decidedEstimates.length) * 100))
+      : 0
 
     const today = new Date().toISOString().split('T')[0]
     const overdue = estimates.filter(e =>
       e.status === 'sent' && e.valid_until && e.valid_until < today
     ).length
 
-    const estimatesWithValue = estimates.filter(e => e.total > 0)
-    const avgValue = estimatesWithValue.length > 0
-      ? estimatesWithValue.reduce((sum, e) => sum + e.total, 0) / estimatesWithValue.length
+    // Avg / total value scoped to open estimates so the metric reflects
+    // pipeline value, not historical noise from years of closed records.
+    const openWithValue = openEstimates.filter(e => e.total > 0)
+    const avgValue = openWithValue.length > 0
+      ? openWithValue.reduce((sum, e) => sum + e.total, 0) / openWithValue.length
       : 0
-
-    const totalValue = estimates.reduce((sum, e) => sum + (e.total || 0), 0)
+    const totalValue = openEstimates.reduce((sum, e) => sum + (e.total || 0), 0)
     const draft = estimates.filter(e => e.status === 'draft').length
 
-    return { total, draft, winRate, overdue, avgValue, totalValue }
+    return { open, draft, winRate, overdue, avgValue, totalValue }
   }, [estimates])
 
   return (
@@ -322,11 +335,11 @@ export default function EstimatesPage() {
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Estimates</CardTitle>
+            <CardTitle className="text-sm font-medium">Open Estimates</CardTitle>
             <Calculator className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-2xl font-bold">{stats.open}</div>
             <p className="text-xs text-muted-foreground">{stats.draft} drafts</p>
           </CardContent>
         </Card>
@@ -337,7 +350,7 @@ export default function EstimatesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.winRate}%</div>
-            <p className="text-xs text-muted-foreground">of sent estimates</p>
+            <p className="text-xs text-muted-foreground">of decided estimates</p>
           </CardContent>
         </Card>
         <Card>
@@ -358,8 +371,8 @@ export default function EstimatesPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.avgValue)}</div>
-            <p className="text-xs text-muted-foreground">per estimate</p>
+            <div className="text-2xl font-bold">{formatCurrency(stats.avgValue, false)}</div>
+            <p className="text-xs text-muted-foreground">per open estimate</p>
           </CardContent>
         </Card>
         <Card>
@@ -368,8 +381,8 @@ export default function EstimatesPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalValue)}</div>
-            <p className="text-xs text-muted-foreground">all estimates</p>
+            <div className="text-2xl font-bold">{formatCurrency(stats.totalValue, false)}</div>
+            <p className="text-xs text-muted-foreground">open pipeline</p>
           </CardContent>
         </Card>
       </div>

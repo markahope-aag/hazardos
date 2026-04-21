@@ -29,6 +29,7 @@ import {
   CheckCircle,
   FileText,
   XCircle,
+  ClipboardList,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Job } from '@/types/jobs'
@@ -45,6 +46,36 @@ export function JobHeader({ job }: JobHeaderProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [generatingManifest, setGeneratingManifest] = useState(false)
+
+  const generateManifest = async () => {
+    setGeneratingManifest(true)
+    try {
+      const res = await fetch('/api/manifests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_id: job.id }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.error?.message || 'Failed to generate manifest')
+      }
+      const body = await res.json()
+      toast({
+        title: 'Manifest generated',
+        description: `${body.manifest.manifest_number} created as draft.`,
+      })
+      router.push(`/manifests/${body.manifest.id}`)
+    } catch (err) {
+      toast({
+        title: 'Could not generate manifest',
+        description: err instanceof Error ? err.message : 'Try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setGeneratingManifest(false)
+    }
+  }
 
   const updateStatus = async (status: string) => {
     setLoading(true)
@@ -124,6 +155,15 @@ export function JobHeader({ job }: JobHeaderProps) {
               </Link>
             </Button>
           )}
+
+          <Button
+            variant="outline"
+            onClick={generateManifest}
+            disabled={generatingManifest}
+          >
+            <ClipboardList className="h-4 w-4 mr-2" />
+            {generatingManifest ? 'Generating...' : 'Generate Manifest'}
+          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

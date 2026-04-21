@@ -7,7 +7,7 @@ import { AuthProvider, useMultiTenantAuth } from '@/components/providers/auth-pr
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { Home, FileText, Calculator, Calendar, Settings, DollarSign, LayoutGrid, Briefcase, MessageCircle, type LucideIcon } from 'lucide-react'
+import { Home, FileText, Calculator, Calendar, Settings, DollarSign, LayoutGrid, Briefcase, MessageCircle, ClipboardList, type LucideIcon } from 'lucide-react'
 import LoginForm from '@/components/auth/login-form'
 
 // Single source of truth for main-nav order, labels, and active-matching.
@@ -25,6 +25,7 @@ const MAIN_NAV_ITEMS: MainNavItem[] = [
   { href: '/site-surveys', label: 'Surveys', icon: FileText, match: (p) => p.startsWith('/site-surveys') },
   { href: '/estimates', label: 'Estimates', icon: Calculator, match: (p) => p.startsWith('/estimates') },
   { href: '/jobs', label: 'Jobs', icon: Briefcase, match: (p) => p.startsWith('/jobs') },
+  { href: '/manifests', label: 'Manifests', icon: ClipboardList, match: (p) => p.startsWith('/manifests') },
   { href: '/invoices', label: 'Invoices', icon: DollarSign, match: (p) => p.startsWith('/invoices') },
   { href: '/calendar', label: 'Calendar', icon: Calendar, match: (p) => p.startsWith('/calendar') },
   { href: '/messages', label: 'Messaging', icon: MessageCircle, match: (p) => p.startsWith('/messages') },
