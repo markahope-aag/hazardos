@@ -22,7 +22,7 @@ interface UploadStatusProps {
 
 export function UploadStatus({ surveyId, className }: UploadStatusProps) {
   const isOnline = useOnlineStatus()
-  const { retryFailed } = usePhotoQueueStore()
+  const { retryFailed, getPhotosForSurvey, removePhoto, queue } = usePhotoQueueStore()
   const [status, setStatus] = useState({
     total: 0,
     uploaded: 0,
@@ -31,6 +31,14 @@ export function UploadStatus({ surveyId, className }: UploadStatusProps) {
     progress: 100,
   })
   const [isRetrying, setIsRetrying] = useState(false)
+
+  // First failure's message — "Please retry" is useless without the actual
+  // reason (RLS denied, MIME rejected, network, etc.). Surface it so the
+  // user and support have something to act on. Recompute whenever the
+  // queue changes so new errors show immediately.
+  const failureDetail = surveyId
+    ? getPhotosForSurvey(surveyId).find((p) => p.status === 'failed')?.error ?? null
+    : null
 
   // Update status periodically
   useEffect(() => {
@@ -48,6 +56,18 @@ export function UploadStatus({ surveyId, className }: UploadStatusProps) {
 
     return () => clearInterval(interval)
   }, [surveyId])
+
+  const handleRemoveFailed = () => {
+    if (!surveyId) return
+    const failed = getPhotosForSurvey(surveyId).filter((p) => p.status === 'failed')
+    for (const p of failed) {
+      removePhoto(p.id)
+    }
+  }
+
+  // Touch queue length in a dependency so TS doesn't complain about unused
+  // `queue`; rendering is already driven by the polling interval above.
+  void queue.length
 
   // Don't show if no photos
   if (!surveyId || status.total === 0) {
@@ -73,7 +93,7 @@ export function UploadStatus({ surveyId, className }: UploadStatusProps) {
   return (
     <div
       className={cn(
-        'flex items-center gap-3 text-sm p-3 rounded-lg',
+        'rounded-lg',
         !isOnline
           ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
           : hasFailures
@@ -86,78 +106,99 @@ export function UploadStatus({ surveyId, className }: UploadStatusProps) {
         className
       )}
     >
-      {/* Icon */}
-      {!isOnline ? (
-        <CloudOff className="h-5 w-5 flex-shrink-0" />
-      ) : isProcessing ? (
-        <Loader2 className="h-5 w-5 flex-shrink-0 animate-spin" />
-      ) : hasFailures ? (
-        <AlertCircle className="h-5 w-5 flex-shrink-0" />
-      ) : isComplete ? (
-        <CheckCircle className="h-5 w-5 flex-shrink-0" />
-      ) : (
-        <Cloud className="h-5 w-5 flex-shrink-0" />
-      )}
-
-      {/* Status Text */}
-      <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-3 text-sm p-3">
+        {/* Icon */}
         {!isOnline ? (
-          <p>
-            <span className="font-medium">{status.pending + status.failed} photos</span> waiting
-            for connection
-          </p>
+          <CloudOff className="h-5 w-5 flex-shrink-0" />
         ) : isProcessing ? (
-          <p>
-            Uploading <span className="font-medium">{status.pending}</span> of{' '}
-            <span className="font-medium">{status.pending + status.uploaded}</span>...
-          </p>
+          <Loader2 className="h-5 w-5 flex-shrink-0 animate-spin" />
         ) : hasFailures ? (
-          <p>
-            <span className="font-medium">{status.failed}</span> photo
-            {status.failed !== 1 ? 's' : ''} failed to upload
-          </p>
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
         ) : isComplete ? (
-          <p>
-            All <span className="font-medium">{status.uploaded}</span> photos uploaded
-          </p>
+          <CheckCircle className="h-5 w-5 flex-shrink-0" />
         ) : (
-          <p>
-            <span className="font-medium">{status.uploaded}</span> uploaded,{' '}
-            <span className="font-medium">{status.pending}</span> pending
-          </p>
+          <Cloud className="h-5 w-5 flex-shrink-0" />
+        )}
+
+        {/* Status Text */}
+        <div className="flex-1 min-w-0">
+          {!isOnline ? (
+            <p>
+              <span className="font-medium">{status.pending + status.failed} photos</span> waiting
+              for connection
+            </p>
+          ) : isProcessing ? (
+            <p>
+              Uploading <span className="font-medium">{status.pending}</span> of{' '}
+              <span className="font-medium">{status.pending + status.uploaded}</span>...
+            </p>
+          ) : hasFailures ? (
+            <p>
+              <span className="font-medium">{status.failed}</span> photo
+              {status.failed !== 1 ? 's' : ''} failed to upload
+            </p>
+          ) : isComplete ? (
+            <p>
+              All <span className="font-medium">{status.uploaded}</span> photos uploaded
+            </p>
+          ) : (
+            <p>
+              <span className="font-medium">{status.uploaded}</span> uploaded,{' '}
+              <span className="font-medium">{status.pending}</span> pending
+            </p>
+          )}
+        </div>
+
+        {/* Action Button */}
+        {isOnline && hasFailures && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRetry}
+            disabled={isRetrying}
+            className="flex-shrink-0 h-8 px-2 text-red-700 hover:text-red-800 hover:bg-red-100"
+          >
+            {isRetrying ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Retry
+              </>
+            )}
+          </Button>
+        )}
+
+        {isOnline && !isProcessing && !hasFailures && status.pending > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleUploadNow}
+            className="flex-shrink-0 h-8 px-2 text-blue-700 hover:text-blue-800 hover:bg-blue-100"
+          >
+            <Cloud className="h-4 w-4 mr-1" />
+            Upload
+          </Button>
         )}
       </div>
 
-      {/* Action Button */}
-      {isOnline && hasFailures && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleRetry}
-          disabled={isRetrying}
-          className="flex-shrink-0 h-8 px-2 text-red-700 hover:text-red-800 hover:bg-red-100"
-        >
-          {isRetrying ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <>
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Retry
-            </>
-          )}
-        </Button>
-      )}
-
-      {isOnline && !isProcessing && !hasFailures && status.pending > 0 && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleUploadNow}
-          className="flex-shrink-0 h-8 px-2 text-blue-700 hover:text-blue-800 hover:bg-blue-100"
-        >
-          <Cloud className="h-4 w-4 mr-1" />
-          Upload
-        </Button>
+      {/* Detail on first failure — actual reason from Supabase + a discard
+          escape hatch so the user isn't trapped on "retry the same broken
+          thing forever". */}
+      {hasFailures && failureDetail && (
+        <div className="border-t border-red-200 px-3 py-2 text-xs space-y-2">
+          <p className="break-words">
+            <span className="font-medium">Reason:</span> {failureDetail}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRemoveFailed}
+            className="h-7 px-2 text-xs border-red-300 text-red-700 hover:bg-red-100"
+          >
+            Discard failed photos
+          </Button>
+        </div>
       )}
     </div>
   )

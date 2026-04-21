@@ -186,6 +186,18 @@ export function PhotoCapture({
       setIsProcessing(true)
       setError(null)
 
+      // Upload path is {orgId}/surveys/{surveyId}/... and storage RLS keys
+      // the first folder segment to the caller's org. Queuing with an empty
+      // org id (possible if useMultiTenantAuth hasn't resolved yet) makes
+      // every upload hit a permission error that's hard to diagnose from
+      // "please retry". Refuse to add the photo in that window instead.
+      if (!organizationId) {
+        setError('Still loading your account — give it a second and try again.')
+        setIsProcessing(false)
+        if (inputRef.current) inputRef.current.value = ''
+        return
+      }
+
       try {
         // Start GPS request in parallel with image processing
         const gpsPromise = getGPSCoordinates()
@@ -214,7 +226,7 @@ export function PhotoCapture({
         if (currentSurveyId) {
           addToQueue({
             surveyId: currentSurveyId,
-            organizationId: organizationId || '',
+            organizationId,
             localUri: dataUrl,
             category,
             location: '',
