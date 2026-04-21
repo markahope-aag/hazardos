@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Plus, MapPin, Calendar, User, Eye, MoreHorizontal, Smartphone, TrendingUp, AlertTriangle, DollarSign } from 'lucide-react'
+import { Plus, MapPin, Calendar, User, Eye, MoreHorizontal, Smartphone, TrendingUp, AlertTriangle, DollarSign, Calculator, ArrowRight, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -28,6 +28,8 @@ import { SurveyFilters } from './survey-filters'
 import { CreateSurveyButton } from './create-survey-modal'
 import { logger, formatError } from '@/lib/utils/logger'
 import { format } from 'date-fns'
+
+const ESTIMATE_ELIGIBLE_STATUSES = ['completed', 'reviewed', 'submitted'] as const
 
 interface SurveyWithRelations {
   id: string
@@ -71,6 +73,8 @@ export default function SiteSurveysPage() {
   const [surveys, setSurveys] = useState<SurveyWithRelations[]>([])
   const [loading, setLoading] = useState(true)
 
+  const isEstimatePickerMode = searchParams.get('action') === 'estimate'
+
   // Parse search params
   const filters = useMemo(() => ({
     search: searchParams.get('search') || '',
@@ -79,6 +83,14 @@ export default function SiteSurveysPage() {
     from: searchParams.get('from') || '',
     to: searchParams.get('to') || '',
   }), [searchParams])
+
+  const displayedSurveys = useMemo(() => {
+    if (!isEstimatePickerMode) return surveys
+    return surveys.filter(s =>
+      (ESTIMATE_ELIGIBLE_STATUSES as readonly string[]).includes(s.status) &&
+      (s.estimate?.length ?? 0) === 0
+    )
+  }, [surveys, isEstimatePickerMode])
 
   const loadSurveys = useCallback(async () => {
     if (!organization?.id) return
@@ -249,20 +261,46 @@ export default function SiteSurveysPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Site Surveys</h1>
-          <p className="text-muted-foreground">Manage and review site survey assessments</p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {isEstimatePickerMode ? 'Select a Survey' : 'Site Surveys'}
+          </h1>
+          <p className="text-muted-foreground">
+            {isEstimatePickerMode
+              ? 'Estimates are generated from completed surveys. Pick one below.'
+              : 'Manage and review site survey assessments'}
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/site-surveys/mobile">
-            <Button variant="outline">
-              <Smartphone className="h-4 w-4 mr-2" />
-              Mobile Survey
-            </Button>
-          </Link>
-          <CreateSurveyButton />
+          {isEstimatePickerMode ? (
+            <Link href="/estimates">
+              <Button variant="outline">
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/site-surveys/mobile">
+                <Button variant="outline">
+                  <Smartphone className="h-4 w-4 mr-2" />
+                  Mobile Survey
+                </Button>
+              </Link>
+              <CreateSurveyButton />
+            </>
+          )}
         </div>
       </div>
+
+      {isEstimatePickerMode && (
+        <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm">
+          <Calculator className="h-4 w-4 text-blue-600 shrink-0" />
+          <span className="text-blue-800">
+            Showing surveys that are ready for an estimate (completed and not yet estimated).
+          </span>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-8">
@@ -345,24 +383,40 @@ export default function SiteSurveysPage() {
       <SurveyFilters />
 
       {/* Surveys Table */}
-      {surveys.length === 0 ? (
+      {displayedSurveys.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <Plus className="h-8 w-8 text-gray-400" />
+              {isEstimatePickerMode ? (
+                <Calculator className="h-8 w-8 text-gray-400" />
+              ) : (
+                <Plus className="h-8 w-8 text-gray-400" />
+              )}
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {filters.search || filters.status !== 'all' ? 'No surveys found' : 'No surveys yet'}
+              {isEstimatePickerMode
+                ? 'No surveys ready to estimate'
+                : filters.search || filters.status !== 'all'
+                  ? 'No surveys found'
+                  : 'No surveys yet'}
             </h3>
             <p className="text-muted-foreground mb-4">
-              {filters.search || filters.status !== 'all'
-                ? 'Try adjusting your search or filters'
-                : 'Get started by scheduling your first site survey'
-              }
+              {isEstimatePickerMode
+                ? 'Estimates are generated from completed surveys. Complete a survey, then return here.'
+                : filters.search || filters.status !== 'all'
+                  ? 'Try adjusting your search or filters'
+                  : 'Get started by scheduling your first site survey'}
             </p>
-            {!filters.search && filters.status === 'all' && (
+            {isEstimatePickerMode ? (
+              <Link href="/estimates">
+                <Button variant="outline">
+                  <X className="h-4 w-4 mr-2" />
+                  Back to Estimates
+                </Button>
+              </Link>
+            ) : !filters.search && filters.status === 'all' ? (
               <CreateSurveyButton />
-            )}
+            ) : null}
           </CardContent>
         </Card>
       ) : (
@@ -385,7 +439,7 @@ export default function SiteSurveysPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {surveys.map((survey) => (
+              {displayedSurveys.map((survey) => (
                 <TableRow key={survey.id}>
                   <TableCell>
                     <Link
@@ -466,29 +520,41 @@ export default function SiteSurveysPage() {
                     })()}
                   </TableCell>
                   <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label="Survey actions">
-                          <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
-                          <span className="sr-only">Survey actions</span>
+                    {isEstimatePickerMode ? (
+                      <Link href={`/estimates/new?survey_id=${survey.id}`}>
+                        <Button size="sm">
+                          <Calculator className="h-4 w-4 mr-2" />
+                          Generate Estimate
+                          <ArrowRight className="h-4 w-4 ml-2" />
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link href={`/site-surveys/${survey.id}`}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Details
-                          </Link>
-                        </DropdownMenuItem>
-                        {survey.status === 'reviewed' && (
+                      </Link>
+                    ) : (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label="Survey actions">
+                            <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                            <span className="sr-only">Survey actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
-                            <Link href={`/estimates/new?survey=${survey.id}`}>
-                              Generate Estimate
+                            <Link href={`/site-surveys/${survey.id}`}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
                             </Link>
                           </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          {(ESTIMATE_ELIGIBLE_STATUSES as readonly string[]).includes(survey.status) &&
+                            (survey.estimate?.length ?? 0) === 0 && (
+                              <DropdownMenuItem asChild>
+                                <Link href={`/estimates/new?survey_id=${survey.id}`}>
+                                  <Calculator className="h-4 w-4 mr-2" />
+                                  Generate Estimate
+                                </Link>
+                              </DropdownMenuItem>
+                            )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
