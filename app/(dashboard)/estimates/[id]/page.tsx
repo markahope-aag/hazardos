@@ -280,9 +280,17 @@ export default function EstimateDetailPage() {
     )
   }
 
-  const customerName = estimate.customer
-    ? estimate.customer.company_name || `${estimate.customer.first_name} ${estimate.customer.last_name}`
-    : 'No customer assigned'
+  const customerName = (() => {
+    const c = estimate.customer
+    if (!c) return 'No customer assigned'
+    if (c.company_name) return c.company_name
+    // first_name / last_name are both nullable on customers, so blindly
+    // interpolating renders "undefined undefined" for contacts that only
+    // have the computed `name` field populated. Compose from whatever's
+    // present; fall through to `name` or a neutral placeholder.
+    const full = [c.first_name, c.last_name].filter(Boolean).join(' ').trim()
+    return full || c.name || 'Unnamed customer'
+  })()
 
   return (
     <div className="space-y-6">
@@ -486,6 +494,21 @@ export default function EstimateDetailPage() {
                 {new Date(estimate.valid_until).toLocaleDateString()}
               </p>
             )}
+            {!estimate.estimated_duration_days &&
+              !estimate.estimated_start_date &&
+              !estimate.valid_until && (
+                <p className="text-sm text-muted-foreground">
+                  No timeline set.{' '}
+                  {canEdit && (
+                    <Link
+                      href={`/estimates/${estimate.id}/edit`}
+                      className="underline hover:text-foreground"
+                    >
+                      Add duration, start date, or expiry
+                    </Link>
+                  )}
+                </p>
+              )}
           </CardContent>
         </Card>
       </div>
