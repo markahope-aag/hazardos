@@ -55,12 +55,40 @@ export class JobsService {
 
     const organizationId = profile.organization_id
 
-    const jobNumber = await generateJobNumber(
-      supabase,
-      organizationId,
-      input.job_address,
-      input.scheduled_start_date,
-    )
+    // If this job is being spun out of an accepted estimate, mirror the
+    // estimate's number with a JOB- prefix so the paper trail is visible
+    // (EST-1210-4212026 becomes JOB-1210-4212026). Fall back to the
+    // normal street/date generator if no estimate is linked or if the
+    // mirrored number collides.
+    let jobNumber: string | null = null
+    if (input.estimate_id) {
+      const { data: est } = await supabase
+        .from('estimates')
+        .select('estimate_number')
+        .eq('id', input.estimate_id)
+        .eq('organization_id', organizationId)
+        .single()
+      const candidate = est?.estimate_number?.startsWith('EST-')
+        ? `JOB-${est.estimate_number.slice(4)}`
+        : null
+      if (candidate) {
+        const { data: collision } = await supabase
+          .from('jobs')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .eq('job_number', candidate)
+          .maybeSingle()
+        if (!collision) jobNumber = candidate
+      }
+    }
+    if (!jobNumber) {
+      jobNumber = await generateJobNumber(
+        supabase,
+        organizationId,
+        input.job_address,
+        input.scheduled_start_date,
+      )
+    }
 
     const { data, error } = await supabase
       .from('jobs')
@@ -68,6 +96,7 @@ export class JobsService {
         organization_id: organizationId,
         job_number: jobNumber,
         customer_id: input.customer_id,
+        estimate_id: input.estimate_id,
         proposal_id: input.proposal_id,
         name: input.name,
         scheduled_start_date: input.scheduled_start_date,

@@ -4,8 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
-import { Loader2, Clock, Wrench, Package, Truck, AlertTriangle, Settings, ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
+import { Loader2, Clock, Wrench, Package, Truck, AlertTriangle, Settings } from 'lucide-react'
 import type { PricingData } from '@/components/settings/pricing/types'
 import { GeneralSettingsTab } from '@/components/settings/pricing/general-settings-tab'
 import { LaborRatesTab } from '@/components/settings/pricing/labor-rates-tab'
@@ -44,7 +43,7 @@ export default function PricingSettingsPage() {
 
   if (loading) {
     return (
-      <div className="container py-6 flex items-center justify-center h-[60vh]">
+      <div className="flex items-center justify-center h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     )
@@ -53,15 +52,10 @@ export default function PricingSettingsPage() {
   const tabProps = { data, onDataChange: fetchData }
 
   return (
-    <div className="container py-6 max-w-5xl">
-      <div className="flex items-center gap-2 mb-6">
-        <Button variant="ghost" size="icon" asChild aria-label="Back to settings">
-          <Link href="/settings"><ArrowLeft className="h-4 w-4" /></Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Pricing Settings</h1>
-          <p className="text-muted-foreground">Configure rates and costs for estimates</p>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Pricing Settings</h1>
+        <p className="text-muted-foreground">Configure rates and costs for estimates</p>
       </div>
 
       <Tabs defaultValue="general" className="space-y-4">

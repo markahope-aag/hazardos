@@ -39,8 +39,8 @@ export default async function JobReviewPage({
       customer:customers!customer_id(id, name, company_name, email, phone),
       completion:job_completions(
         *,
-        submitter:profiles!job_completions_submitted_by_fkey(id, full_name, avatar_url),
-        reviewer:profiles!job_completions_reviewed_by_fkey(id, full_name, avatar_url)
+        submitter:profiles!job_completions_submitted_by_fkey(id, full_name),
+        reviewer:profiles!job_completions_reviewed_by_fkey(id, full_name)
       )
     `)
     .eq('id', id)

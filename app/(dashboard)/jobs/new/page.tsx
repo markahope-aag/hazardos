@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,13 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
 import { TimeSelect } from '@/components/ui/time-select'
 import {
@@ -22,7 +15,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { ArrowLeft, CalendarIcon, Loader2, Search, Building2 } from 'lucide-react'
+import { CustomerCombobox } from '@/components/customers/customer-combobox'
+import { ArrowLeft, CalendarIcon, Loader2, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 import { logger, formatError } from '@/lib/utils/logger'
@@ -54,7 +48,6 @@ export default function NewJobPage() {
   const [loading, setLoading] = useState(false)
   const [loadingCustomers, setLoadingCustomers] = useState(true)
   const [customers, setCustomers] = useState<Customer[]>([])
-  const [contactSearch, setContactSearch] = useState('')
 
   const [formData, setFormData] = useState({
     customer_id: customerId || '',
@@ -95,18 +88,6 @@ export default function NewJobPage() {
   }, [])
 
   const selectedCustomer = customers.find(c => c.id === formData.customer_id)
-
-  const filteredCustomers = useMemo(() => {
-    if (!contactSearch) return customers
-    const q = contactSearch.toLowerCase()
-    return customers.filter(c =>
-      (c.name || '').toLowerCase().includes(q) ||
-      (c.first_name || '').toLowerCase().includes(q) ||
-      (c.last_name || '').toLowerCase().includes(q) ||
-      (c.company_name || '').toLowerCase().includes(q) ||
-      (c.email || '').toLowerCase().includes(q)
-    )
-  }, [customers, contactSearch])
 
   const handleSelectCustomer = (value: string) => {
     const customer = customers.find(c => c.id === value)
@@ -222,44 +203,12 @@ export default function NewJobPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Select Customer *</Label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      value={contactSearch}
-                      onChange={(e) => setContactSearch(e.target.value)}
-                      placeholder={loadingCustomers ? 'Loading contacts...' : 'Search by name, company, or email...'}
-                      className="pl-9"
-                      disabled={loadingCustomers}
-                    />
-                  </div>
-                  <Select
+                  <CustomerCombobox
                     value={formData.customer_id}
-                    onValueChange={handleSelectCustomer}
+                    onValueChange={(v) => handleSelectCustomer(v)}
+                    placeholder="Search by name, company, or email..."
                     disabled={loadingCustomers}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a contact" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredCustomers.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-muted-foreground">No contacts found</div>
-                      ) : (
-                        filteredCustomers.map(customer => {
-                          const displayName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.name
-                          return (
-                            <SelectItem key={customer.id} value={customer.id}>
-                              <div className="flex items-center gap-2">
-                                <span>{displayName}</span>
-                                {customer.company_name && (
-                                  <span className="text-xs text-muted-foreground">· {customer.company_name}</span>
-                                )}
-                              </div>
-                            </SelectItem>
-                          )
-                        })
-                      )}
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
 
                 {selectedCustomer && (

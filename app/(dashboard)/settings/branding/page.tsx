@@ -20,8 +20,8 @@ export default async function BrandingPage() {
   const domains = await WhiteLabelService.listDomains(profile.organization_id);
 
   return (
-    <div className="container py-6">
-      <div className="mb-6">
+    <div className="space-y-6">
+      <div>
         <h1 className="text-2xl font-bold">Branding</h1>
         <p className="text-muted-foreground">
           Customize the look and feel of your HazardOS instance

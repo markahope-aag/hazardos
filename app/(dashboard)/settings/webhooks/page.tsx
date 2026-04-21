@@ -23,8 +23,8 @@ export default async function WebhooksPage() {
   const availableEvents = WebhookService.getAvailableEvents();
 
   return (
-    <div className="container py-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Webhooks</h1>
           <p className="text-muted-foreground">

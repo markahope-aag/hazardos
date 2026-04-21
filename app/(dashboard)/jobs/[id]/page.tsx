@@ -26,7 +26,7 @@ export default async function JobDetailPage({
       site_survey:site_surveys(id),
       crew:job_crew(
         *,
-        profile:profiles(id, full_name, email, phone, avatar_url, role)
+        profile:profiles(id, full_name, email, phone, role)
       ),
       equipment:job_equipment(*),
       materials:job_materials(*),
@@ -36,7 +36,7 @@ export default async function JobDetailPage({
       ),
       notes:job_notes(
         *,
-        author:profiles(id, full_name, avatar_url)
+        author:profiles(id, full_name)
       )
     `)
     .eq('id', id)

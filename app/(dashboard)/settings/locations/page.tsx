@@ -22,8 +22,8 @@ export default async function LocationsPage() {
   const locations = await LocationService.list(profile.organization_id);
 
   return (
-    <div className="container py-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Locations</h1>
           <p className="text-muted-foreground">

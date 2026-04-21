@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef } from 'react'
 import {
   Select,
   SelectContent,
@@ -53,11 +54,28 @@ export function TimeSelect({
   defaultScrollAnchor = DEFAULT_SCROLL_ANCHOR,
 }: TimeSelectProps) {
   const normalized = value ? value.slice(0, 5) : ''
+  const anchorRef = useRef<HTMLDivElement | null>(null)
+
+  // Radix auto-scrolls to the highlighted (selected) item after it opens
+  // the popover, which clobbers anything we do inside a ref callback on
+  // mount. Wait until that settles, then scroll our anchor into view.
+  // ~80ms is reliable across Chrome/Safari/Firefox; shorter delays lose
+  // the race on slower devices.
+  const handleOpenChange = (open: boolean) => {
+    if (!open || normalized) return
+    const el = anchorRef.current
+    if (!el) return
+    setTimeout(() => {
+      el.scrollIntoView({ block: 'start' })
+    }, 80)
+  }
+
   return (
     <Select
       value={normalized || undefined}
       onValueChange={onChange}
       disabled={disabled}
+      onOpenChange={handleOpenChange}
     >
       <SelectTrigger id={id} className={className} aria-label={ariaLabel}>
         <SelectValue placeholder={placeholder} />
@@ -67,20 +85,7 @@ export function TimeSelect({
           <SelectItem
             key={opt.value}
             value={opt.value}
-            ref={
-              opt.value === defaultScrollAnchor && !normalized
-                ? (el) => {
-                    // Radix portals content on open, so this ref callback
-                    // fires each time the dropdown opens with no selection.
-                    // rAF so layout is settled before scrollIntoView measures.
-                    if (el) {
-                      requestAnimationFrame(() => {
-                        el.scrollIntoView({ block: 'start' })
-                      })
-                    }
-                  }
-                : undefined
-            }
+            ref={opt.value === defaultScrollAnchor ? anchorRef : undefined}
           >
             {opt.label}
           </SelectItem>

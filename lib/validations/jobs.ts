@@ -15,6 +15,7 @@ export const jobStatusSchema = z.enum([
 export const createJobSchema = z.object({
   customer_id: z.string().uuid('Invalid customer ID'),
   proposal_id: z.string().uuid().optional(),
+  estimate_id: z.string().uuid().optional(),
   name: z.string().min(1).max(255).optional(),
   scheduled_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)'),
   scheduled_start_time: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format (HH:MM)').optional(),

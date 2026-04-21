@@ -39,8 +39,8 @@ export default async function IntegrationsPage() {
   const hasActiveIntegration = integrations?.some(i => i.is_active);
 
   return (
-    <div className="container py-6">
-      <div className="mb-6">
+    <div className="space-y-6">
+      <div>
         <h1 className="text-2xl font-bold">Integrations</h1>
         <p className="text-muted-foreground">
           Connect HazardOS with your accounting, marketing, calendar, and business tools

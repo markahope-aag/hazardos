@@ -255,6 +255,7 @@ export interface ScheduledReminder {
 // Input types
 export interface CreateJobInput {
   proposal_id?: string
+  estimate_id?: string
   customer_id: string
   scheduled_start_date: string
   scheduled_start_time?: string
