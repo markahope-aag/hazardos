@@ -27,6 +27,7 @@ import { SurveyStatusBadge, HazardTypeBadge } from '@/components/surveys/survey-
 import { SurveyFilters } from './survey-filters'
 import { CreateSurveyButton } from './create-survey-modal'
 import { logger, formatError } from '@/lib/utils/logger'
+import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
 
 const ESTIMATE_ELIGIBLE_STATUSES = ['completed', 'reviewed', 'submitted'] as const
@@ -63,13 +64,14 @@ interface SurveyWithRelations {
   }[] | null
   estimate?: {
     id: string
-    total_price: number
+    total: number
   }[] | null
 }
 
 export default function SiteSurveysPage() {
   const { organization } = useMultiTenantAuth()
   const searchParams = useSearchParams()
+  const { toast } = useToast()
   const [surveys, setSurveys] = useState<SurveyWithRelations[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -119,7 +121,7 @@ export default function SiteSurveysPage() {
           customer:customers!customer_id(id, company_name, name),
           technician:profiles!assigned_to(id, first_name, last_name),
           job:jobs!site_survey_id(id, job_number, status),
-          estimate:estimates!site_survey_id(id, total_price)
+          estimate:estimates!site_survey_id(id, total)
         `)
         .eq('organization_id', organization.id)
         .order('created_at', { ascending: false })
@@ -165,16 +167,27 @@ export default function SiteSurveysPage() {
       setSurveys(filteredData)
     } catch (error) {
       logger.error(
-        { 
+        {
           error: formatError(error, 'SURVEYS_LOAD_ERROR'),
           organizationId: organization?.id
         },
         'Error loading surveys'
       )
+      // Surface the real message so schema/permission drift doesn't hide
+      // behind an empty table.
+      const message =
+        (error as { message?: string; details?: string } | null)?.message ||
+        (error as { details?: string } | null)?.details ||
+        'Could not load surveys.'
+      toast({
+        title: 'Could not load surveys',
+        description: message,
+        variant: 'destructive',
+      })
     } finally {
       setLoading(false)
     }
-  }, [organization?.id, filters])
+  }, [organization?.id, filters, toast])
 
   useEffect(() => {
     loadSurveys()
@@ -205,7 +218,7 @@ export default function SiteSurveysPage() {
       const linkedJob = s.job?.[0]
       if (!linkedJob || linkedJob.status === 'cancelled') return sum
       const est = s.estimate?.[0]
-      return sum + (est?.total_price || 0)
+      return sum + (est?.total || 0)
     }, 0)
 
     return { conversionRate, overdue, totalEstimateValue }
