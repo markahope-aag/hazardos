@@ -4,13 +4,11 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
+  PieChart,
+  Pie,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from '@/components/charts/recharts-lazy'
 import { Cell } from 'recharts'
 import type { DashboardFilters } from '@/lib/dashboard/filters'
@@ -135,22 +133,21 @@ export function JobsByHazard({ filters }: JobsByHazardProps) {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="label" tickLine={false} axisLine={false} />
-              <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
-              <Tooltip
-                cursor={{ fill: 'rgba(0,0,0,0.04)' }}
-                formatter={(value) => [`${value} jobs`, 'Count']}
-              />
-              <Bar
+            <PieChart>
+              <Pie
+                data={chartData}
                 dataKey="count"
-                radius={[4, 4, 0, 0]}
-                cursor="pointer"
+                nameKey="label"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                label={({ name, value }) => `${name} · ${value}`}
+                labelLine={false}
                 onClick={(entry: unknown) => {
                   const e = entry as { hazard?: string }
                   if (e.hazard) filterByHazard(e.hazard)
                 }}
+                cursor="pointer"
               >
                 {chartData.map((entry) => (
                   <Cell
@@ -161,8 +158,10 @@ export function JobsByHazard({ filters }: JobsByHazardProps) {
                     }
                   />
                 ))}
-              </Bar>
-            </BarChart>
+              </Pie>
+              <Tooltip formatter={(value) => [`${value} jobs`, 'Count']} />
+              <Legend />
+            </PieChart>
           </ResponsiveContainer>
         )}
 

@@ -42,8 +42,8 @@ export const GET = createApiHandler(
       .from('jobs')
       .select('id, site_survey_id')
       .eq('organization_id', context.profile.organization_id)
-      .gte('start_date', range.start.toISOString().split('T')[0])
-      .lte('start_date', range.end.toISOString().split('T')[0])
+      .gte('scheduled_start_date', range.start.toISOString().split('T')[0])
+      .lte('scheduled_start_date', range.end.toISOString().split('T')[0])
       .neq('status', 'cancelled')
     if (jobsError) throw jobsError
 

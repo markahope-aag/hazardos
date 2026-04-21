@@ -133,8 +133,8 @@ export async function StatsCards({ filters }: StatsCardsProps) {
     .from('jobs')
     .select('*', { count: 'exact', head: true })
     .eq('organization_id', organizationId)
-    .gte('start_date', toIsoDate(range.start))
-    .lte('start_date', toIsoDate(range.end))
+    .gte('scheduled_start_date', toIsoDate(range.start))
+    .lte('scheduled_start_date', toIsoDate(range.end))
     .neq('status', 'cancelled')
 
   if (hazardActive) {
@@ -149,8 +149,8 @@ export async function StatsCards({ filters }: StatsCardsProps) {
     .from('jobs')
     .select('*', { count: 'exact', head: true })
     .eq('organization_id', organizationId)
-    .gte('start_date', toIsoDate(range.previousStart))
-    .lte('start_date', toIsoDate(range.previousEnd))
+    .gte('scheduled_start_date', toIsoDate(range.previousStart))
+    .lte('scheduled_start_date', toIsoDate(range.previousEnd))
     .neq('status', 'cancelled')
 
   if (hazardActive) {

@@ -50,10 +50,13 @@ export function RevenueChart() {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={data}>
+            {/* Left margin + explicit YAxis width keep the "$5k" tick
+                label from clipping on the card edge. Recharts' default
+                60px YAxis is tight when ticks carry a $ prefix. */}
+            <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
-              <YAxis tickFormatter={(value) => `$${value / 1000}k`} />
+              <YAxis width={72} tickFormatter={(value) => `$${value / 1000}k`} />
               <Tooltip
                 formatter={(value) => [formatCurrency(Number(value)), 'Revenue']}
               />

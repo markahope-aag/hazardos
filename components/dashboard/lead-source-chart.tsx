@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
+import {
+  PieChart,
+  Pie,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from '@/components/charts/recharts-lazy'
+import { Cell } from 'recharts'
 import type { DashboardFilters } from '@/lib/dashboard/filters'
 
 interface LeadSourceBucket {
@@ -19,9 +26,25 @@ interface LeadSourceChartProps {
   filters: DashboardFilters
 }
 
+// A small cycling palette — lead-source labels are free-text so we can't
+// hard-code colors per value. Stable color-per-label across renders by
+// hashing the source string to a palette index.
+const PALETTE = [
+  '#2563eb', '#16a34a', '#f59e0b', '#db2777',
+  '#7c3aed', '#0891b2', '#dc2626', '#ca8a04',
+  '#65a30d', '#0284c7', '#be185d', '#9333ea',
+]
+
+function colorFor(key: string): string {
+  let hash = 0
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash * 31 + key.charCodeAt(i)) | 0
+  }
+  return PALETTE[Math.abs(hash) % PALETTE.length]
+}
+
 function formatSourceLabel(raw: string): string {
   if (!raw) return 'Unknown'
-  // Accept snake_case, kebab-case, or already-pretty strings.
   return raw
     .replace(/[_-]+/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase())
@@ -65,7 +88,11 @@ export function LeadSourceChart({ filters }: LeadSourceChartProps) {
     }
   }, [filters.period, filters.hazardType])
 
-  const max = data.reduce((m, b) => Math.max(m, b.count), 0)
+  const chartData = data.map((b) => ({
+    ...b,
+    label: formatSourceLabel(b.source),
+    color: colorFor(b.source || 'unknown'),
+  }))
 
   return (
     <Card>
@@ -81,36 +108,34 @@ export function LeadSourceChart({ filters }: LeadSourceChartProps) {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="h-[200px] flex items-center justify-center">
+          <div className="h-[300px] flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
-        ) : data.length === 0 ? (
-          <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+        ) : chartData.length === 0 ? (
+          <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm">
             No lead-source data for this period
           </div>
         ) : (
-          <div className="space-y-3">
-            {data.map((bucket) => {
-              const percent = max > 0 ? (bucket.count / max) * 100 : 0
-              const share = total > 0 ? Math.round((bucket.count / total) * 100) : 0
-              return (
-                <div key={bucket.source} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium truncate">{formatSourceLabel(bucket.source)}</span>
-                    <span className="text-muted-foreground whitespace-nowrap">
-                      {bucket.count} <span className="text-xs">({share}%)</span>
-                    </span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={cn('h-full bg-primary/80 rounded-full transition-all')}
-                      style={{ width: `${percent}%` }}
-                    />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={chartData}
+                dataKey="count"
+                nameKey="label"
+                cx="50%"
+                cy="50%"
+                outerRadius={110}
+                label={({ name, value }) => `${name} · ${value}`}
+                labelLine={false}
+              >
+                {chartData.map((entry) => (
+                  <Cell key={entry.source} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value) => [`${value} jobs`, 'Count']} />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
         )}
       </CardContent>
     </Card>

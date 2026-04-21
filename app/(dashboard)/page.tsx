@@ -7,10 +7,7 @@ import { RecentActivity, RecentActivityErrorBoundary } from '@/components/dashbo
 import { RevenueChart, JobsByStatus, LeadSourceChart, JobsByHazard } from '@/components/dashboard/charts-lazy';
 import { DashboardFiltersBar } from '@/components/dashboard/dashboard-filters';
 import { parseDashboardFilters } from '@/lib/dashboard/filters';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Plus, FileText, Calendar, Users } from 'lucide-react';
-import Link from 'next/link';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 
 function StatsCardsSkeleton() {
   return (
@@ -121,26 +118,29 @@ export default async function DashboardPage({
         </Suspense>
       </StatsCardsErrorBoundary>
 
-      {/* Charts Row - Lazy loaded (error boundaries built into chart components) */}
+      {/* Upcoming Jobs — promoted out of the bottom details row. What the
+          crew is doing next is one of the two most useful things to see
+          on a dashboard, alongside the revenue stat just above. */}
+      <UpcomingJobsErrorBoundary>
+        <Suspense fallback={<WidgetSkeleton />}>
+          <UpcomingJobs />
+        </Suspense>
+      </UpcomingJobsErrorBoundary>
+
+      {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RevenueChart />
         <JobsByStatus filters={filters} />
       </div>
 
-      {/* Hazard breakdown — click a bar to filter the rest of the dashboard */}
+      {/* Hazard breakdown — click a slice to filter the rest of the dashboard */}
       <JobsByHazard filters={filters} />
 
-      {/* Lead source widget */}
+      {/* Lead sources */}
       <LeadSourceChart filters={filters} />
 
-
-      {/* Details Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <UpcomingJobsErrorBoundary>
-          <Suspense fallback={<WidgetSkeleton />}>
-            <UpcomingJobs />
-          </Suspense>
-        </UpcomingJobsErrorBoundary>
+      {/* Secondary row: what needs money in, what happened recently */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <OverdueInvoicesErrorBoundary>
           <Suspense fallback={<WidgetSkeleton />}>
             <OverdueInvoices />
@@ -152,42 +152,6 @@ export default async function DashboardPage({
           </Suspense>
         </RecentActivityErrorBoundary>
       </div>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Common tasks and workflows</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Link href="/site-surveys/new">
-              <Button className="w-full justify-start" variant="outline">
-                <Plus className="mr-2 h-4 w-4" />
-                New Survey
-              </Button>
-            </Link>
-            <Link href="/customers">
-              <Button className="w-full justify-start" variant="outline">
-                <Users className="mr-2 h-4 w-4" />
-                Customers
-              </Button>
-            </Link>
-            <Link href="/jobs/new">
-              <Button className="w-full justify-start" variant="outline">
-                <Calendar className="mr-2 h-4 w-4" />
-                Schedule Job
-              </Button>
-            </Link>
-            <Link href="/invoices/new">
-              <Button className="w-full justify-start" variant="outline">
-                <FileText className="mr-2 h-4 w-4" />
-                New Invoice
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
