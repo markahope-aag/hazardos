@@ -193,21 +193,28 @@ export default function SiteSurveysPage() {
     loadSurveys()
   }, [loadSurveys])
 
-  // Calculate status counts
-  const statusCounts = useMemo(() => {
-    return surveys.reduce((acc, survey) => {
-      acc[survey.status] = (acc[survey.status] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
-  }, [surveys])
-
   const surveyStats = useMemo(() => {
     const total = surveys.length
-    const withJob = surveys.filter(s => {
-      const linkedJob = s.job?.[0]
-      return linkedJob && linkedJob.status !== 'cancelled'
-    })
-    const conversionRate = total > 0 ? Math.round((withJob.length / total) * 100) : 0
+
+    // Workflow buckets, mapped to the survey-status enum:
+    //   scheduled / in_progress  → "Scheduled"       (appointment booked)
+    //   submitted                → "Completed"       (tech finished paperwork)
+    //   reviewed                 → "Awaiting Review" (office has seen it)
+    //   estimated / has estimate → "Converted"
+    //   completed / cancelled    → closed, not in Open
+    const scheduled = surveys.filter(
+      (s) => s.status === 'scheduled' || s.status === 'in_progress',
+    ).length
+    const completed = surveys.filter((s) => s.status === 'submitted').length
+    const awaitingReview = surveys.filter((s) => s.status === 'reviewed').length
+    const converted = surveys.filter(
+      (s) => s.status === 'estimated' || (s.estimate?.length ?? 0) > 0,
+    ).length
+
+    const CLOSED_STATUSES = new Set(['completed', 'cancelled'])
+    const totalOpen = surveys.filter(
+      (s) => !CLOSED_STATUSES.has(s.status) && s.status !== 'estimated' && (s.estimate?.length ?? 0) === 0,
+    ).length
 
     const today = new Date().toISOString().split('T')[0]
     const overdue = surveys.filter(
@@ -221,7 +228,11 @@ export default function SiteSurveysPage() {
       return sum + (est?.total || 0)
     }, 0)
 
-    return { conversionRate, overdue, totalEstimateValue }
+    void total // keep local for potential future use; silences unused-var
+    return {
+      totalOpen, scheduled, completed, awaitingReview, converted,
+      overdue, totalEstimateValue,
+    }
   }, [surveys])
 
   const getLinkedJob = (survey: SurveyWithRelations) => {
@@ -315,66 +326,47 @@ export default function SiteSurveysPage() {
         </div>
       )}
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-8">
+      {/* Stats Cards — pipeline flow left to right, then the two
+          operational signals (overdue / revenue). */}
+      <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-7">
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-gray-900">
-              {surveys.length}
-            </div>
-            <p className="text-sm text-muted-foreground">Total</p>
+            <div className="text-2xl font-bold text-gray-900">{surveyStats.totalOpen}</div>
+            <p className="text-sm text-muted-foreground">Total Open</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">
-              {statusCounts['scheduled'] || 0}
-            </div>
+            <div className="text-2xl font-bold text-blue-600">{surveyStats.scheduled}</div>
             <p className="text-sm text-muted-foreground">Scheduled</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-indigo-600">
-              {statusCounts['in_progress'] || 0}
-            </div>
-            <p className="text-sm text-muted-foreground">In Progress</p>
+            <div className="text-2xl font-bold text-indigo-600">{surveyStats.completed}</div>
+            <p className="text-sm text-muted-foreground">Completed</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-yellow-600">
-              {statusCounts['submitted'] || 0}
-            </div>
+            <div className="text-2xl font-bold text-yellow-600">{surveyStats.awaitingReview}</div>
             <p className="text-sm text-muted-foreground">Awaiting Review</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">
-              {statusCounts['reviewed'] || 0}
-            </div>
-            <p className="text-sm text-muted-foreground">Reviewed</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-1.5">
               <TrendingUp className="h-4 w-4 text-emerald-600" />
-              <div className="text-2xl font-bold text-emerald-600">
-                {surveyStats.conversionRate}%
-              </div>
+              <div className="text-2xl font-bold text-emerald-600">{surveyStats.converted}</div>
             </div>
-            <p className="text-sm text-muted-foreground">Conversion</p>
+            <p className="text-sm text-muted-foreground">Converted</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-1.5">
               <AlertTriangle className="h-4 w-4 text-red-600" />
-              <div className="text-2xl font-bold text-red-600">
-                {surveyStats.overdue}
-              </div>
+              <div className="text-2xl font-bold text-red-600">{surveyStats.overdue}</div>
             </div>
             <p className="text-sm text-muted-foreground">Overdue</p>
           </CardContent>
