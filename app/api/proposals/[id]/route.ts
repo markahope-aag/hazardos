@@ -23,7 +23,7 @@ export const GET = createApiHandlerWithParams(
           line_items:estimate_line_items(*)
         ),
         customer:customers(id, company_name, name, email, phone, address_line1, city, state, zip),
-        organization:organizations(id, name, logo_url, address, city, state, zip, phone, email, website)
+        organization:organizations(id, name, address, city, state, zip, phone, email, website)
       `)
       .eq('id', params.id)
       .eq('organization_id', context.profile.organization_id)

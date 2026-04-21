@@ -18,7 +18,7 @@ export class JobTimeEntriesService {
       .from('job_time_entries')
       .select(`
         *,
-        profile:profiles!job_time_entries_profile_id_fkey(id, full_name, email, avatar_url),
+        profile:profiles!job_time_entries_profile_id_fkey(id, full_name, email),
         creator:profiles!job_time_entries_created_by_fkey(id, full_name)
       `)
       .eq('job_id', jobId)

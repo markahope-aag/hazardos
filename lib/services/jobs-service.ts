@@ -208,12 +208,12 @@ export class JobsService {
       .select(`
         *,
         customer:customers!customer_id(*),
-        proposal:proposals(id, proposal_number, total),
-        estimate:estimates(id, estimate_number),
+        proposal:proposals(id, proposal_number),
+        estimate:estimates(id, estimate_number, total),
         site_survey:site_surveys(id),
         crew:job_crew(
           *,
-          profile:profiles(id, full_name, email, phone, avatar_url)
+          profile:profiles(id, full_name, email, phone)
         ),
         equipment:job_equipment(*),
         materials:job_materials(*),

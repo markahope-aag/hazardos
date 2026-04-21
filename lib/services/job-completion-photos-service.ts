@@ -19,7 +19,7 @@ export class JobCompletionPhotosService {
       .from('job_completion_photos')
       .select(`
         *,
-        uploader:profiles!job_completion_photos_uploaded_by_fkey(id, full_name, avatar_url)
+        uploader:profiles!job_completion_photos_uploaded_by_fkey(id, full_name)
       `)
       .eq('job_id', jobId)
       .order('created_at', { ascending: false })

@@ -162,8 +162,8 @@ export class JobCompletionService {
       .from('job_completions')
       .select(`
         *,
-        submitter:profiles!job_completions_submitted_by_fkey(id, full_name, avatar_url),
-        reviewer:profiles!job_completions_reviewed_by_fkey(id, full_name, avatar_url)
+        submitter:profiles!job_completions_submitted_by_fkey(id, full_name),
+        reviewer:profiles!job_completions_reviewed_by_fkey(id, full_name)
       `)
       .eq('job_id', jobId)
       .single()

@@ -16,55 +16,81 @@ export default async function JobDetailPage({
   const { id } = await params
   const supabase = await createClient()
 
-  const { data: job, error } = await supabase
+  // Fetch the base job alone first — if this fails we truly have no job
+  // to render. Anything else (customer, crew, equipment, etc.) gets
+  // pulled separately so a single broken embed can't blank the whole
+  // page. This class of silent-embed-kill has produced four unexplained
+  // 404s this week already.
+  const { data: job, error: jobError } = await supabase
     .from('jobs')
-    .select(`
-      *,
-      customer:customers!customer_id(*),
-      proposal:proposals(id, proposal_number),
-      estimate:estimates(id, estimate_number, total),
-      site_survey:site_surveys(id),
-      crew:job_crew(
-        *,
-        profile:profiles(id, full_name, email, phone, role)
-      ),
-      equipment:job_equipment(*),
-      materials:job_materials(*),
-      disposal:job_disposal(*),
-      change_orders:job_change_orders(
-        *
-      ),
-      notes:job_notes(
-        *,
-        author:profiles(id, full_name)
-      )
-    `)
+    .select('*')
     .eq('id', id)
     .single()
 
-  if (error || !job) {
-    // notFound() renders a bare 404 and swallows the underlying reason.
-    // Log it so a missing column / bad FK hint / RLS denial surfaces in
-    // the server logs next time, instead of the user staring at an
-    // unexplained 404.
-    if (error) {
-      console.error('[jobs/[id]] fetch failed', { id, error })
+  if (jobError || !job) {
+    if (jobError) {
+      console.error('[jobs/[id]] base job fetch failed', { id, error: jobError })
     }
     notFound()
   }
 
-  // Transform nested arrays
+  const [
+    customerRes, proposalRes, estimateRes, surveyRes,
+    crewRes, equipmentRes, materialsRes, disposalRes,
+    changeOrdersRes, notesRes,
+  ] = await Promise.all([
+    job.customer_id
+      ? supabase.from('customers').select('*').eq('id', job.customer_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    job.proposal_id
+      ? supabase.from('proposals').select('id, proposal_number').eq('id', job.proposal_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    job.estimate_id
+      ? supabase.from('estimates').select('id, estimate_number, total').eq('id', job.estimate_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    job.site_survey_id
+      ? supabase.from('site_surveys').select('id').eq('id', job.site_survey_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    supabase
+      .from('job_crew')
+      .select('*, profile:profiles(id, full_name, email, phone, role)')
+      .eq('job_id', id),
+    supabase.from('job_equipment').select('*').eq('job_id', id),
+    supabase.from('job_materials').select('*').eq('job_id', id),
+    supabase.from('job_disposal').select('*').eq('job_id', id),
+    supabase.from('job_change_orders').select('*').eq('job_id', id),
+    supabase
+      .from('job_notes')
+      .select('*, author:profiles(id, full_name)')
+      .eq('job_id', id),
+  ])
+
+  for (const [label, res] of Object.entries({
+    customer: customerRes, proposal: proposalRes, estimate: estimateRes,
+    survey: surveyRes, crew: crewRes, equipment: equipmentRes,
+    materials: materialsRes, disposal: disposalRes,
+    change_orders: changeOrdersRes, notes: notesRes,
+  })) {
+    if (res.error) {
+      console.error(`[jobs/[id]] embed '${label}' failed`, { id, error: res.error })
+    }
+  }
+
   const transformedJob = {
     ...job,
-    customer: Array.isArray(job.customer) ? job.customer[0] : job.customer,
-    proposal: Array.isArray(job.proposal) ? job.proposal[0] : job.proposal,
-    estimate: Array.isArray(job.estimate) ? job.estimate[0] : job.estimate,
-    site_survey: Array.isArray(job.site_survey) ? job.site_survey[0] : job.site_survey,
-    notes: (job.notes || []).map((note: { author?: unknown }) => ({
-      ...note,
-      author: Array.isArray(note.author) ? note.author[0] : note.author,
+    customer: customerRes.data ?? null,
+    proposal: proposalRes.data ?? null,
+    estimate: estimateRes.data ?? null,
+    site_survey: surveyRes.data ?? null,
+    equipment: equipmentRes.data ?? [],
+    materials: materialsRes.data ?? [],
+    disposal: disposalRes.data ?? [],
+    change_orders: changeOrdersRes.data ?? [],
+    notes: (notesRes.data ?? []).map((n: { author?: unknown }) => ({
+      ...n,
+      author: Array.isArray(n.author) ? n.author[0] : n.author,
     })),
-    crew: (job.crew || []).map((c: { profile?: unknown }) => ({
+    crew: (crewRes.data ?? []).map((c: { profile?: unknown }) => ({
       ...c,
       profile: Array.isArray(c.profile) ? c.profile[0] : c.profile,
     })),

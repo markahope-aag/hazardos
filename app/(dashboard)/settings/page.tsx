@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
-import { SETTINGS_NAV } from '@/components/settings/settings-sidebar'
+import { SETTINGS_NAV } from '@/components/settings/settings-nav'
 
 // Landing page for /settings. The sidebar is the primary navigation;
 // this page just gives a quick pointer into every section for users

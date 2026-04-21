@@ -18,7 +18,7 @@ export class JobCrewService {
       })
       .select(`
         *,
-        profile:profiles(id, full_name, email, phone, avatar_url)
+        profile:profiles(id, full_name, email, phone)
       `)
       .single()
 
@@ -47,7 +47,7 @@ export class JobCrewService {
       .eq('id', crewId)
       .select(`
         *,
-        profile:profiles(id, full_name, email, phone, avatar_url)
+        profile:profiles(id, full_name, email, phone)
       `)
       .single()
 
@@ -70,7 +70,7 @@ export class JobCrewService {
       .eq('id', input.job_crew_id)
       .select(`
         *,
-        profile:profiles(id, full_name, email, phone, avatar_url)
+        profile:profiles(id, full_name, email, phone)
       `)
       .single()
 

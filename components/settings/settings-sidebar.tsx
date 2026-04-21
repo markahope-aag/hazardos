@@ -2,77 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  Building2,
-  Users,
-  MapPin,
-  DollarSign,
-  CreditCard,
-  Link2,
-  KeyRound,
-  Webhook,
-  Bell,
-  MessageSquare,
-  Shield,
-  Palette,
-  type LucideIcon,
-} from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { SETTINGS_NAV } from './settings-nav'
 
-interface NavItem {
-  href: string
-  label: string
-  icon: LucideIcon
-  description?: string
-}
-
-interface NavGroup {
-  label: string
-  items: NavItem[]
-}
-
-// Single source of truth for the Settings sidebar. Add new pages by
-// appending to the appropriate group — no other component needs to
-// change. Order within each group IS the display order.
-export const SETTINGS_NAV: NavGroup[] = [
-  {
-    label: 'Organization',
-    items: [
-      { href: '/settings/company', label: 'Company Profile', icon: Building2 },
-      { href: '/settings/team', label: 'Team Members', icon: Users },
-      { href: '/settings/locations', label: 'Locations', icon: MapPin },
-    ],
-  },
-  {
-    label: 'Workflow',
-    items: [
-      { href: '/settings/pricing', label: 'Pricing', icon: DollarSign },
-      { href: '/settings/billing', label: 'Billing', icon: CreditCard },
-    ],
-  },
-  {
-    label: 'Integrations',
-    items: [
-      { href: '/settings/integrations', label: 'Integrations', icon: Link2 },
-      { href: '/settings/api', label: 'API Keys', icon: KeyRound },
-      { href: '/settings/webhooks', label: 'Webhooks', icon: Webhook },
-    ],
-  },
-  {
-    label: 'Communications',
-    items: [
-      { href: '/settings/notifications', label: 'Notifications', icon: Bell },
-      { href: '/settings/sms', label: 'SMS', icon: MessageSquare },
-    ],
-  },
-  {
-    label: 'Account',
-    items: [
-      { href: '/settings/security', label: 'Security', icon: Shield },
-      { href: '/settings/branding', label: 'Appearance', icon: Palette },
-    ],
-  },
-]
+// Re-exported so existing imports from './settings-sidebar' keep working.
+// The array itself lives in settings-nav.ts (a plain module) so server
+// components can import it without touching this 'use client' boundary.
+export { SETTINGS_NAV } from './settings-nav'
 
 function isActive(pathname: string, href: string): boolean {
   // Exact match first — so /settings doesn't collapse into every item.

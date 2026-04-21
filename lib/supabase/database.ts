@@ -127,9 +127,9 @@ export class DatabaseService {
         ),
         estimates (
           id,
-          total_price,
-          created_at,
-          is_active
+          total,
+          status,
+          created_at
         )
       `)
       .eq('id', id)

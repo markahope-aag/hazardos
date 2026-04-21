@@ -87,7 +87,7 @@ export class SiteSurveyService {
         ),
         estimates (
           id,
-          total_price,
+          total,
           status,
           created_at
         )
