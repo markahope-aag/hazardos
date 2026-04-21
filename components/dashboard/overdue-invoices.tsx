@@ -62,7 +62,7 @@ export async function OverdueInvoices() {
         ) : (
           <>
             <div className="text-2xl font-bold text-destructive mb-4">
-              {formatCurrency(totalOverdue)}
+              {formatCurrency(totalOverdue, false)}
             </div>
             <div className="space-y-3">
               {typedInvoices.map((invoice) => (
@@ -82,7 +82,7 @@ export async function OverdueInvoices() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">{formatCurrency(invoice.balance_due)}</p>
+                    <p className="font-medium">{formatCurrency(invoice.balance_due, false)}</p>
                     <Badge variant="outline" className="text-xs">
                       {invoice.invoice_number}
                     </Badge>

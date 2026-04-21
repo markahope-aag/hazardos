@@ -302,7 +302,7 @@ export default function SiteSurveysPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Site Surveys</h1>
-            <p className="text-muted-foreground">Manage and review site survey assessments</p>
+            <p className="text-muted-foreground">Manage and review site surveys</p>
           </div>
         </div>
 
@@ -325,7 +325,7 @@ export default function SiteSurveysPage() {
           <p className="text-muted-foreground">
             {isEstimatePickerMode
               ? 'Estimates are generated from completed surveys. Pick one below.'
-              : 'Manage and review site survey assessments'}
+              : 'Manage and review site surveys'}
           </p>
         </div>
 

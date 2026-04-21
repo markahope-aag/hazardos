@@ -228,7 +228,7 @@ export function MediaUpload({
     if (newMedia.length > 0) {
       toast({
         title: 'Media added',
-        description: `Added ${newMedia.length} file(s) to assessment`,
+        description: `Added ${newMedia.length} file(s) to survey`,
       })
     }
   }
@@ -389,7 +389,7 @@ export function MediaUpload({
                 {item.type === 'image' ? (
                   <Image
                     src={item.url}
-                    alt="Assessment photo"
+                    alt="Survey photo"
                     className="w-full h-full object-cover"
                     width={200}
                     height={200}
@@ -456,7 +456,7 @@ export function MediaUpload({
       <div className="text-xs text-gray-500 space-y-1">
         <p>• Photos: Automatically compressed to {maxImageSizeMB}MB max</p>
         <p>• Videos: Compressed if over 10MB (max {maxVideoSizeMB}MB)</p>
-        <p>• Maximum {maxFiles} files per assessment</p>
+        <p>• Maximum {maxFiles} files per survey</p>
       </div>
     </div>
   )

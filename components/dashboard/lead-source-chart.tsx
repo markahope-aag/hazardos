@@ -28,11 +28,13 @@ interface LeadSourceChartProps {
 
 // A small cycling palette — lead-source labels are free-text so we can't
 // hard-code colors per value. Stable color-per-label across renders by
-// hashing the source string to a palette index.
+// hashing the source string to a palette index. Leads with HazardOS
+// Orange and Navy so the first two sources inherit the brand voice,
+// then rotates through a complementary set.
 const PALETTE = [
-  '#2563eb', '#16a34a', '#f59e0b', '#db2777',
-  '#7c3aed', '#0891b2', '#dc2626', '#ca8a04',
-  '#65a30d', '#0284c7', '#be185d', '#9333ea',
+  '#ED6F3B', '#1F2937', '#F59E0B', '#059669',
+  '#0EA5E9', '#7C3AED', '#E11D48', '#475569',
+  '#CA8A04', '#0891B2', '#BE185D', '#9333EA',
 ]
 
 function colorFor(key: string): string {

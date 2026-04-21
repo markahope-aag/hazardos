@@ -150,14 +150,19 @@ export async function StatsCards({ filters }: StatsCardsProps) {
     return remaining > 0 ? sum + remaining : sum
   }, 0)
 
-  // ─── Jobs in period (filtered by hazard via survey IDs) ──────────────
+  // ─── Open jobs in period ────────────────────────────────────────────
+  // "Open" = work we still have in front of us — scheduled, actively
+  // being worked, or on hold. Completed / invoiced / paid / closed /
+  // cancelled are out. Hazard filter flows through via survey IDs.
+  const OPEN_JOB_STATUSES = ['scheduled', 'in_progress', 'on_hold']
+
   let jobsQuery = supabase
     .from('jobs')
     .select('*', { count: 'exact', head: true })
     .eq('organization_id', organizationId)
     .gte('scheduled_start_date', toIsoDate(range.start))
     .lte('scheduled_start_date', toIsoDate(range.end))
-    .neq('status', 'cancelled')
+    .in('status', OPEN_JOB_STATUSES)
 
   if (hazardActive) {
     if (!hasHazardMatches) {
@@ -173,7 +178,7 @@ export async function StatsCards({ filters }: StatsCardsProps) {
     .eq('organization_id', organizationId)
     .gte('scheduled_start_date', toIsoDate(range.previousStart))
     .lte('scheduled_start_date', toIsoDate(range.previousEnd))
-    .neq('status', 'cancelled')
+    .in('status', OPEN_JOB_STATUSES)
 
   if (hazardActive) {
     if (!hasHazardMatches) {
@@ -248,7 +253,7 @@ export async function StatsCards({ filters }: StatsCardsProps) {
   const stats = [
     {
       title: 'Revenue',
-      value: formatCurrency(currentRevenue),
+      value: formatCurrency(currentRevenue, false),
       icon: DollarSign,
       description: `Completed jobs ${range.label.toLowerCase()}`,
       trend: revenueTrend,
@@ -258,7 +263,7 @@ export async function StatsCards({ filters }: StatsCardsProps) {
     },
     {
       title: 'Outstanding AR',
-      value: formatCurrency(outstandingAR),
+      value: formatCurrency(outstandingAR, false),
       icon: FileText,
       description: 'Unpaid invoice balance',
       trend: arTrend,
@@ -268,10 +273,10 @@ export async function StatsCards({ filters }: StatsCardsProps) {
       href: `/invoices${buildFilterQuery(filters, { status: 'outstanding' })}`,
     },
     {
-      title: 'Jobs',
+      title: 'Open Jobs',
       value: (currentJobCount || 0).toString(),
       icon: Calendar,
-      description: `Scheduled ${range.label.toLowerCase()}`,
+      description: `Open in ${range.label.toLowerCase()}`,
       trend: jobsTrend,
       trendInverted: false,
       href: `/crm/jobs${buildFilterQuery(filters)}`,

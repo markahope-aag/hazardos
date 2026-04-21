@@ -58,14 +58,15 @@ export function RevenueChart() {
               <XAxis dataKey="month" />
               <YAxis width={72} tickFormatter={(value) => `$${value / 1000}k`} />
               <Tooltip
-                formatter={(value) => [formatCurrency(Number(value)), 'Revenue']}
+                formatter={(value) => [formatCurrency(Number(value), false), 'Revenue']}
               />
               <Line
                 type="monotone"
                 dataKey="revenue"
-                stroke="#2563eb"
+                stroke="#ED6F3B"
                 strokeWidth={2}
-                dot={{ r: 4 }}
+                dot={{ r: 4, fill: '#ED6F3B' }}
+                activeDot={{ r: 6, fill: '#ED6F3B' }}
               />
             </LineChart>
           </ResponsiveContainer>

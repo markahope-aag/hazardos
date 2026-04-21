@@ -22,14 +22,18 @@ interface JobsByStatusResponse {
   buckets: JobStatusBucket[]
 }
 
+// Brand-aligned semantic palette. HazardOS Orange (#ED6F3B) tags the
+// work-in-flight state, Navy (#1F2937) anchors the "billed" phase, and
+// emerald claims the happy "money in" ending. Paused / cancelled slide
+// into muted slate and deep red so they read as off-happy-path.
 const COLORS: Record<string, string> = {
-  scheduled: '#3b82f6',
-  in_progress: '#eab308',
-  completed: '#22c55e',
-  invoiced: '#a855f7',
-  paid: '#06b6d4',
-  cancelled: '#ef4444',
-  on_hold: '#f97316',
+  scheduled: '#F59E0B',
+  in_progress: '#ED6F3B',
+  completed: '#059669',
+  invoiced: '#1F2937',
+  paid: '#10B981',
+  cancelled: '#991B1B',
+  on_hold: '#64748B',
 }
 
 interface JobsByStatusProps {

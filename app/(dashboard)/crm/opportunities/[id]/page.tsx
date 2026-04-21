@@ -17,13 +17,15 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  ArrowLeft, Building2, User, MapPin, AlertCircle, DollarSign, Target,
+  ArrowLeft, Building2, User, MapPin, AlertCircle, DollarSign,
   TrendingUp, Calendar, Shield, Briefcase, History, CheckCircle, XCircle, Loader2,
+  AlertTriangle, FileText, Clipboard, ArrowRight,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import { formatCurrency } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
 
 const PROPERTY_LABELS: Record<string, string> = {
   residential_single_family: 'Residential (Single Family)',
@@ -46,6 +48,17 @@ const TRIGGER_LABELS: Record<string, string> = {
   voluntary: 'Voluntary',
 }
 
+// The DB enum value stays `assessment_scheduled` for history; the UI
+// reads "Survey Scheduled" so it matches the rest of the app.
+const OPPORTUNITY_STATUS_LABELS: Record<string, string> = {
+  new: 'New',
+  assessment_scheduled: 'Survey Scheduled',
+  estimate_sent: 'Estimate Sent',
+  won: 'Won',
+  lost: 'Lost',
+  no_decision: 'No Decision',
+}
+
 const LOSS_REASONS = ['price', 'competitor', 'no_decision', 'project_cancelled', 'timing', 'other']
 
 interface Props { params: Promise<{ id: string }> }
@@ -54,8 +67,10 @@ export default function OpportunityDetailPage({ params }: Props) {
   const { id } = use(params)
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<'overview' | 'assessment' | 'estimate' | 'activity' | 'jobs'>('overview')
   const [showLostModal, setShowLostModal] = useState(false)
+  const [showConvertModal, setShowConvertModal] = useState(false)
   const [lostForm, setLostForm] = useState({ reason: '', competitor: '', notes: '', followup_date: '' })
 
   const { data: opp, isLoading, error } = useQuery({
@@ -67,7 +82,7 @@ export default function OpportunityDetailPage({ params }: Props) {
         .select(`
           *,
           stage:pipeline_stages!stage_id(id, name, color, probability, stage_type),
-          customer:customers!customer_id(id, name, first_name, last_name, company_name, company_id)
+          customer:customers!customer_id(id, name, first_name, last_name, company_name, company_id, email, mobile_phone, office_phone)
         `)
         .eq('id', id)
         .single()
@@ -116,6 +131,85 @@ export default function OpportunityDetailPage({ params }: Props) {
     },
   })
 
+  // Convert this opportunity into a site survey. This is the hand-off
+  // point: once the work moves out of the CRM pipeline it lives as a
+  // survey until it's estimated / scheduled / invoiced. We seed the
+  // new survey with everything the opp already knows (customer, site,
+  // primary hazard, rough area, notes) so the field tech isn't
+  // re-typing anything they already told us during qualification.
+  const convertToSurvey = useMutation({
+    mutationFn: async () => {
+      if (!opp) throw new Error('Opportunity not loaded')
+      const supabase = createClient()
+
+      const { data: profile } = await supabase.auth.getUser()
+      if (!profile.user) throw new Error('Not authenticated')
+      const { data: me } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', profile.user.id)
+        .single()
+      if (!me?.organization_id) throw new Error('No organization')
+
+      const primaryHazard = (opp.hazard_types?.[0] as 'asbestos' | 'mold' | 'lead' | 'vermiculite' | 'other') || 'other'
+      const email = opp.customer?.email || null
+      const phone = opp.customer?.mobile_phone || opp.customer?.office_phone || null
+
+      const { data: newSurvey, error: surveyError } = await supabase
+        .from('site_surveys')
+        .insert({
+          organization_id: me.organization_id,
+          customer_id: opp.customer_id,
+          job_name: opp.name,
+          customer_name: contactName,
+          customer_email: email,
+          customer_phone: phone,
+          site_address: opp.service_address_line1 || '',
+          site_city: opp.service_city || '',
+          site_state: opp.service_state || '',
+          site_zip: opp.service_zip || '',
+          hazard_type: primaryHazard,
+          area_sqft: opp.estimated_affected_area_sqft || null,
+          year_built: opp.property_age || null,
+          notes: opp.description || null,
+          status: 'draft',
+        })
+        .select('id')
+        .single()
+
+      if (surveyError) throw surveyError
+
+      const { error: oppError } = await supabase
+        .from('opportunities')
+        .update({
+          created_from_assessment_id: newSurvey.id,
+          opportunity_status: 'assessment_scheduled',
+          assessment_date: new Date().toISOString().split('T')[0],
+        })
+        .eq('id', id)
+
+      if (oppError) throw oppError
+
+      return newSurvey.id
+    },
+    onSuccess: (newSurveyId) => {
+      queryClient.invalidateQueries({ queryKey: ['opportunity', id] })
+      setShowConvertModal(false)
+      toast({
+        title: 'Converted to survey',
+        description: 'The opportunity has been handed off to site surveys.',
+      })
+      router.push(`/site-surveys/${newSurveyId}`)
+    },
+    onError: (err: unknown) => {
+      toast({
+        title: 'Conversion failed',
+        description: err instanceof Error ? err.message : 'Please try again.',
+        variant: 'destructive',
+      })
+    },
+  })
+
   if (isLoading) {
     return <div className="space-y-6"><Skeleton className="h-8 w-64" /><Skeleton className="h-64 w-full" /></div>
   }
@@ -129,7 +223,7 @@ export default function OpportunityDetailPage({ params }: Props) {
 
   const tabs = [
     { id: 'overview' as const, label: 'Overview' },
-    { id: 'assessment' as const, label: 'Assessment' },
+    { id: 'assessment' as const, label: 'Survey' },
     { id: 'estimate' as const, label: 'Estimate' },
     { id: 'activity' as const, label: 'Activity' },
     { id: 'jobs' as const, label: 'Jobs' },
@@ -154,6 +248,17 @@ export default function OpportunityDetailPage({ params }: Props) {
         </div>
         {isOpen && (
           <div className="flex gap-2">
+            {!opp.created_from_assessment_id && (
+              <Button
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                onClick={() => setShowConvertModal(true)}
+                disabled={convertToSurvey.isPending}
+              >
+                <Clipboard className="h-4 w-4 mr-2" />
+                Convert to Survey
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            )}
             <Button variant="outline" className="text-green-600 border-green-300 hover:bg-green-50" onClick={() => markWon.mutate()} disabled={markWon.isPending}>
               <CheckCircle className="h-4 w-4 mr-2" />Won
             </Button>
@@ -172,7 +277,7 @@ export default function OpportunityDetailPage({ params }: Props) {
               {/* Stage & Status */}
               <div className="flex flex-wrap gap-2">
                 {opp.stage && <Badge style={{ backgroundColor: opp.stage.color, color: 'white' }} className="border-0">{opp.stage.name}</Badge>}
-                {opp.opportunity_status && <Badge variant="outline" className="capitalize">{opp.opportunity_status.replace(/_/g, ' ')}</Badge>}
+                {opp.opportunity_status && <Badge variant="outline">{OPPORTUNITY_STATUS_LABELS[opp.opportunity_status] || opp.opportunity_status.replace(/_/g, ' ')}</Badge>}
                 {opp.urgency && opp.urgency !== 'routine' && <Badge className={`border-0 ${URGENCY_COLORS[opp.urgency]}`}>{opp.urgency}</Badge>}
               </div>
 
@@ -285,44 +390,147 @@ export default function OpportunityDetailPage({ params }: Props) {
 
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              {/* Regulatory & Property Details */}
-              <Card>
-                <CardHeader><CardTitle className="text-base">Site Details</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                    {opp.regulatory_trigger && (
-                      <div><p className="text-muted-foreground">Regulatory Trigger</p><p className="font-medium flex items-center gap-1"><Shield className="h-3 w-3" />{TRIGGER_LABELS[opp.regulatory_trigger] || opp.regulatory_trigger}</p></div>
-                    )}
-                    {opp.property_age && (
-                      <div><p className="text-muted-foreground">Year Built</p><p className="font-medium">{opp.property_age}</p></div>
-                    )}
-                    {opp.estimated_affected_area_sqft && (
-                      <div><p className="text-muted-foreground">Est. Affected Area</p><p className="font-medium">{opp.estimated_affected_area_sqft.toLocaleString()} sq ft</p></div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Description — primary context for why this opportunity
+                  exists. Showing it first so the reader gets the "story"
+                  before drilling into attribution and site specifics. */}
+              {opp.description && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      Description
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{opp.description}</p>
+                  </CardContent>
+                </Card>
+              )}
 
-              {/* Key Dates */}
-              <Card>
-                <CardHeader><CardTitle className="text-base">Key Dates</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div><p className="text-muted-foreground">Assessment</p><p className="font-medium">{opp.assessment_date ? new Date(opp.assessment_date).toLocaleDateString() : '—'}</p></div>
-                    <div><p className="text-muted-foreground">Estimate Sent</p><p className="font-medium">{opp.estimate_sent_date ? new Date(opp.estimate_sent_date).toLocaleDateString() : '—'}</p></div>
-                    <div><p className="text-muted-foreground">Follow-up</p><p className={`font-medium ${opp.follow_up_date && new Date(opp.follow_up_date) < new Date() ? 'text-destructive' : ''}`}>{opp.follow_up_date ? new Date(opp.follow_up_date).toLocaleDateString() : '—'}</p></div>
-                    <div><p className="text-muted-foreground">Created</p><p className="font-medium">{new Date(opp.created_at).toLocaleDateString()}</p></div>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Hazards & Scope — the what-is-this-job snapshot.
+                  Pulled out of the sidebar so the hazards read as the
+                  headline fact, not a footnote. */}
+              {(opp.hazard_types?.length || opp.estimated_affected_area_sqft || opp.urgency || opp.regulatory_trigger || opp.property_age) && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                      Hazards & Scope
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {opp.hazard_types?.length > 0 && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-2">Hazard Types</p>
+                        <div className="flex flex-wrap gap-2">
+                          {opp.hazard_types.map((h: string) => (
+                            <Badge key={h} variant="secondary" className="capitalize">
+                              {h.replace(/_/g, ' ')}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                      {opp.urgency && (
+                        <div>
+                          <p className="text-muted-foreground">Urgency</p>
+                          <p className="font-medium capitalize">{opp.urgency}</p>
+                        </div>
+                      )}
+                      {opp.regulatory_trigger && (
+                        <div>
+                          <p className="text-muted-foreground">Regulatory Trigger</p>
+                          <p className="font-medium flex items-center gap-1">
+                            <Shield className="h-3 w-3" />
+                            {TRIGGER_LABELS[opp.regulatory_trigger] || opp.regulatory_trigger}
+                          </p>
+                        </div>
+                      )}
+                      {opp.estimated_affected_area_sqft && (
+                        <div>
+                          <p className="text-muted-foreground">Est. Affected Area</p>
+                          <p className="font-medium">{opp.estimated_affected_area_sqft.toLocaleString()} sq ft</p>
+                        </div>
+                      )}
+                      {opp.property_type && (
+                        <div>
+                          <p className="text-muted-foreground">Property Type</p>
+                          <p className="font-medium">{PROPERTY_LABELS[opp.property_type] || opp.property_type}</p>
+                        </div>
+                      )}
+                      {opp.property_age && (
+                        <div>
+                          <p className="text-muted-foreground">Year Built</p>
+                          <p className="font-medium">{opp.property_age}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-              {/* Attribution */}
+              {/* Contact & Site — who to call, where to go */}
+              {(opp.customer?.email || opp.customer?.mobile_phone || opp.customer?.office_phone || serviceAddr) && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      Contact & Site
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      {opp.customer?.email && (
+                        <div>
+                          <p className="text-muted-foreground">Email</p>
+                          <a href={`mailto:${opp.customer.email}`} className="font-medium hover:underline break-all">{opp.customer.email}</a>
+                        </div>
+                      )}
+                      {(opp.customer?.mobile_phone || opp.customer?.office_phone) && (
+                        <div>
+                          <p className="text-muted-foreground">Phone</p>
+                          <p className="font-medium">
+                            {opp.customer.mobile_phone ? (
+                              <a href={`tel:${opp.customer.mobile_phone}`} className="hover:underline">{opp.customer.mobile_phone}</a>
+                            ) : (
+                              <a href={`tel:${opp.customer.office_phone}`} className="hover:underline">{opp.customer.office_phone}</a>
+                            )}
+                          </p>
+                        </div>
+                      )}
+                      {serviceAddr && (
+                        <div className="md:col-span-2">
+                          <p className="text-muted-foreground">Service Address</p>
+                          <p className="font-medium flex items-start gap-1">
+                            <MapPin className="h-3 w-3 mt-1 flex-shrink-0" />
+                            {serviceAddr}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Attribution — how this opp found us */}
               {(opp.lead_source || opp.first_touch_source) && (
                 <Card>
-                  <CardHeader><CardTitle className="text-base">Attribution</CardTitle></CardHeader>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      Lead Source & Attribution
+                    </CardTitle>
+                  </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                      {opp.lead_source && <div><p className="text-muted-foreground">Lead Source</p><p className="font-medium">{opp.lead_source}</p>{opp.lead_source_detail && <p className="text-xs text-muted-foreground">{opp.lead_source_detail}</p>}</div>}
+                      {opp.lead_source && (
+                        <div>
+                          <p className="text-muted-foreground">Lead Source</p>
+                          <p className="font-medium capitalize">{opp.lead_source.replace(/_/g, ' ')}</p>
+                          {opp.lead_source_detail && <p className="text-xs text-muted-foreground">{opp.lead_source_detail}</p>}
+                        </div>
+                      )}
                       {opp.first_touch_source && <div><p className="text-muted-foreground">First Touch</p><p className="font-medium">{opp.first_touch_source}</p></div>}
                       {opp.last_touch_source && <div><p className="text-muted-foreground">Last Touch</p><p className="font-medium">{opp.last_touch_source}</p></div>}
                       {opp.converting_touch_source && <div><p className="text-muted-foreground">Converting Touch</p><p className="font-medium">{opp.converting_touch_source}</p></div>}
@@ -331,12 +539,23 @@ export default function OpportunityDetailPage({ params }: Props) {
                 </Card>
               )}
 
-              {opp.description && (
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Notes</CardTitle></CardHeader>
-                  <CardContent><p className="text-sm whitespace-pre-wrap">{opp.description}</p></CardContent>
-                </Card>
-              )}
+              {/* Key Dates — pipeline timeline */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    Key Dates
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div><p className="text-muted-foreground">Survey</p><p className="font-medium">{opp.assessment_date ? new Date(opp.assessment_date).toLocaleDateString() : '—'}</p></div>
+                    <div><p className="text-muted-foreground">Estimate Sent</p><p className="font-medium">{opp.estimate_sent_date ? new Date(opp.estimate_sent_date).toLocaleDateString() : '—'}</p></div>
+                    <div><p className="text-muted-foreground">Follow-up</p><p className={`font-medium ${opp.follow_up_date && new Date(opp.follow_up_date) < new Date() ? 'text-destructive' : ''}`}>{opp.follow_up_date ? new Date(opp.follow_up_date).toLocaleDateString() : '—'}</p></div>
+                    <div><p className="text-muted-foreground">Created</p><p className="font-medium">{new Date(opp.created_at).toLocaleDateString()}</p></div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 
@@ -344,15 +563,21 @@ export default function OpportunityDetailPage({ params }: Props) {
             <Card><CardContent className="p-6 text-center py-12">
               {opp.created_from_assessment_id ? (
                 <div>
-                  <p className="text-sm mb-4">This opportunity was created from an assessment.</p>
-                  <Button asChild><Link href={`/site-surveys/${opp.created_from_assessment_id}`}>View Assessment</Link></Button>
+                  <p className="text-sm mb-4">A site survey is linked to this opportunity.</p>
+                  <Button asChild><Link href={`/site-surveys/${opp.created_from_assessment_id}`}>View Survey</Link></Button>
                 </div>
               ) : (
                 <div>
-                  <Target className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No Assessment Linked</h3>
-                  <p className="text-muted-foreground mb-4">Schedule a site assessment for this opportunity</p>
-                  <Button asChild><Link href="/site-surveys/new">Schedule Assessment</Link></Button>
+                  <Clipboard className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No Survey Linked</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Convert this opportunity into a site survey to hand off fieldwork and scoping.
+                  </p>
+                  <Button onClick={() => setShowConvertModal(true)} disabled={convertToSurvey.isPending}>
+                    <Clipboard className="h-4 w-4 mr-2" />
+                    Convert to Survey
+                    <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
                 </div>
               )}
             </CardContent></Card>
@@ -441,6 +666,51 @@ export default function OpportunityDetailPage({ params }: Props) {
             <Button variant="destructive" onClick={() => markLost.mutate()} disabled={markLost.isPending}>
               {markLost.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Mark as Lost
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert-to-Survey confirmation. The wording is intentionally
+          direct about hand-off — once converted, the opp stays as the
+          paper trail in CRM but day-to-day management moves to the
+          survey. */}
+      <Dialog open={showConvertModal} onOpenChange={setShowConvertModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clipboard className="h-5 w-5 text-primary" />
+              Convert to Site Survey
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2 text-sm">
+            <p>
+              This will create a new site survey seeded with the customer, site address,
+              hazard type, and scope you&apos;ve captured here. The opportunity will stay
+              in the CRM for history, but day-to-day management moves to the survey.
+            </p>
+            <div className="rounded-md bg-muted p-3 space-y-1 text-xs">
+              <div><span className="text-muted-foreground">Customer: </span>{contactName}</div>
+              {serviceAddr && <div><span className="text-muted-foreground">Site: </span>{serviceAddr}</div>}
+              {opp.hazard_types?.length > 0 && (
+                <div>
+                  <span className="text-muted-foreground">Primary Hazard: </span>
+                  <span className="capitalize">{opp.hazard_types[0].replace(/_/g, ' ')}</span>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              After conversion you&apos;ll be taken to the new survey to schedule fieldwork.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConvertModal(false)} disabled={convertToSurvey.isPending}>
+              Cancel
+            </Button>
+            <Button onClick={() => convertToSurvey.mutate()} disabled={convertToSurvey.isPending}>
+              {convertToSurvey.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Convert to Survey
+              <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </DialogFooter>
         </DialogContent>

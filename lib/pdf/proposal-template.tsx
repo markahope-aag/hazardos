@@ -487,7 +487,7 @@ export function ProposalPDF({ data }: ProposalPDFProps) {
             in accordance with applicable federal, state, and local regulations including OSHA, EPA, and state
             environmental agency requirements. The customer is responsible for obtaining any necessary permits.
             Clearance testing is not included unless specifically listed above. Additional charges may apply if
-            conditions differ from those observed during the initial assessment.
+            conditions differ from those observed during the initial site survey.
           </Text>
         </View>
 

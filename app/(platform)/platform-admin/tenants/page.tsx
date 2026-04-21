@@ -64,7 +64,7 @@ export default async function TenantsPage() {
                     <div className="text-sm text-gray-600">0 / {org.max_users}</div>
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-gray-900">Monthly Assessments</div>
+                    <div className="text-sm font-medium text-gray-900">Monthly Surveys</div>
                     <div className="text-sm text-gray-600">0 / {org.max_assessments_per_month}</div>
                   </div>
                   <div>

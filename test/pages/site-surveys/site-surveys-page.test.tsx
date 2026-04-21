@@ -69,7 +69,7 @@ describe('SiteSurveysPage', () => {
 
   it('displays page description', () => {
     render(<SiteSurveysPage />)
-    expect(screen.getByText('Manage and review site survey assessments')).toBeInTheDocument()
+    expect(screen.getByText('Manage and review site surveys')).toBeInTheDocument()
   })
 
   it('displays mobile survey link', async () => {

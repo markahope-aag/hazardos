@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!assessment || !assessment.organizations) {
-      throw new SecureError('NOT_FOUND', 'Assessment or organization data not found')
+      throw new SecureError('NOT_FOUND', 'Survey or organization data not found')
     }
 
     const org = assessment.organizations

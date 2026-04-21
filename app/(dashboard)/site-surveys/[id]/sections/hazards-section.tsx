@@ -44,13 +44,13 @@ export function HazardsSection({ hazardAssessments, hazardType }: HazardsSection
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
-            Hazard Assessment
+            Hazards
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-4">
             <p className="text-muted-foreground mb-4">
-              No detailed hazard assessments documented.
+              No detailed hazards documented in this survey.
             </p>
             {hazardType && (
               <div>
