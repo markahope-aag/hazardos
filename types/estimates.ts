@@ -154,6 +154,11 @@ export interface Proposal {
   signer_ip: string | null
   signature_data: string | null
 
+  // Approval audit (for verbal-approval path recorded by an admin)
+  approval_method: 'digital_signature' | 'verbal' | null
+  verbal_approval_note: string | null
+  approved_by_user_id: string | null
+
   // Expiration
   valid_until: string | null
 

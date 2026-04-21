@@ -16,6 +16,7 @@ import {
   MapPin,
   Calendar,
   User,
+  Phone,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -35,6 +36,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Separator } from '@/components/ui/separator'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import { formatCurrency } from '@/lib/utils'
@@ -95,6 +107,10 @@ export default function EstimateDetailPage() {
   const [rejectNotes, setRejectNotes] = useState('')
   const [showRejectForm, setShowRejectForm] = useState(false)
   const [actionPending, setActionPending] = useState(false)
+  const [verbalDialogOpen, setVerbalDialogOpen] = useState(false)
+  const [verbalSignerName, setVerbalSignerName] = useState('')
+  const [verbalNote, setVerbalNote] = useState('')
+  const [verbalApprovedAt, setVerbalApprovedAt] = useState('')
 
   const estimateId = params.id as string
 
@@ -212,6 +228,74 @@ export default function EstimateDetailPage() {
     }
   }
 
+  const openVerbalApprovalDialog = () => {
+    // Pre-fill signer with a sensible guess from the customer record so
+    // the admin doesn't retype it for a call they just took.
+    const c = estimate?.customer
+    const presetName =
+      c?.company_name ||
+      [c?.first_name, c?.last_name].filter(Boolean).join(' ').trim() ||
+      c?.name ||
+      ''
+    setVerbalSignerName(presetName)
+    setVerbalNote('')
+    setVerbalApprovedAt('')
+    setVerbalDialogOpen(true)
+  }
+
+  const handleRecordVerbalApproval = async () => {
+    if (!pendingProposalId) return
+    if (!verbalSignerName.trim() || !verbalNote.trim()) {
+      toast({
+        title: 'Missing info',
+        description: 'Signer name and a note describing the call are required.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setActionPending(true)
+    try {
+      const response = await fetch(
+        `/api/proposals/${pendingProposalId}/record-verbal-approval`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            signer_name: verbalSignerName.trim(),
+            note: verbalNote.trim(),
+            approved_at: verbalApprovedAt
+              ? new Date(verbalApprovedAt).toISOString()
+              : undefined,
+          }),
+        },
+      )
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}))
+        throw new Error(
+          errBody?.error?.message || 'Failed to record verbal approval.',
+        )
+      }
+
+      toast({
+        title: 'Verbal approval recorded',
+        description: 'The estimate has been marked as accepted.',
+      })
+      setVerbalDialogOpen(false)
+      loadEstimate()
+    } catch (e) {
+      toast({
+        title: 'Error',
+        description:
+          e instanceof Error ? e.message : 'Failed to record verbal approval.',
+        variant: 'destructive',
+      })
+    } finally {
+      setActionPending(false)
+    }
+  }
+
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this estimate?')) return
 
@@ -249,6 +333,17 @@ export default function EstimateDetailPage() {
     awaitingLevel === 1 ? isAdminLike : awaitingLevel === 2 ? isOwnerLike : false
 
   const canEdit = estimate?.status === 'draft' || estimate?.status === 'pending_approval'
+
+  // "Record verbal approval" only makes sense when a proposal has been
+  // sent to the customer but they haven't signed yet. Pick the most
+  // recent sent/viewed proposal — in practice there's one at a time.
+  const pendingProposalId = (() => {
+    const pending = estimate?.proposals?.find(
+      (p) => p.status === 'sent' || p.status === 'viewed',
+    )
+    return pending?.id ?? null
+  })()
+  const canRecordVerbalApproval = isAdminLike && !!pendingProposalId
 
   // Group line items by type
   const groupedLineItems = estimate?.line_items?.reduce((acc, item) => {
@@ -343,6 +438,16 @@ export default function EstimateDetailPage() {
                 <FileText className="h-4 w-4 mr-2" />
                 Create Proposal
               </Link>
+            </Button>
+          )}
+          {canRecordVerbalApproval && (
+            <Button
+              variant="outline"
+              onClick={openVerbalApprovalDialog}
+              disabled={actionPending}
+            >
+              <Phone className="h-4 w-4 mr-2" />
+              Record Verbal Approval
             </Button>
           )}
           {canEdit && (
@@ -667,6 +772,80 @@ export default function EstimateDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={verbalDialogOpen} onOpenChange={setVerbalDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Record verbal approval</DialogTitle>
+            <DialogDescription>
+              Use this when the customer calls or confirms in person instead
+              of signing the emailed proposal. The estimate will move to
+              accepted, and the note below is kept as the audit record.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="verbal-signer">Who approved it?</Label>
+              <Input
+                id="verbal-signer"
+                value={verbalSignerName}
+                onChange={(e) => setVerbalSignerName(e.target.value)}
+                placeholder="Customer or authorized contact"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="verbal-note">Approval note *</Label>
+              <Textarea
+                id="verbal-note"
+                value={verbalNote}
+                onChange={(e) => setVerbalNote(e.target.value)}
+                placeholder="e.g. John called at 2:15pm and confirmed he's good to proceed. Said he's already emailed his insurance company."
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">
+                Required. Captures the who/when/what for this approval.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="verbal-date">
+                Approval date/time{' '}
+                <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <Input
+                id="verbal-date"
+                type="datetime-local"
+                value={verbalApprovedAt}
+                onChange={(e) => setVerbalApprovedAt(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave blank to use now. Set a past time if you're recording
+                after the fact.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setVerbalDialogOpen(false)}
+              disabled={actionPending}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleRecordVerbalApproval} disabled={actionPending}>
+              {actionPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle className="h-4 w-4 mr-2" />
+              )}
+              Record approval
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -48,6 +48,19 @@ export const signProposalSchema = z.object({
   signature_data: z.string().min(1, 'Signature is required'),
 })
 
+// Record verbal approval (admin-only)
+// Captures the customer's verbal approval when they call in instead of
+// signing via the portal link. `approved_at` is optional so admins can
+// backdate if the approval happened before they got to the computer.
+export const recordVerbalApprovalSchema = z.object({
+  signer_name: z.string().min(1, 'Signer name is required').max(255),
+  note: z
+    .string()
+    .min(1, 'A note is required (e.g. who called and when)')
+    .max(2000),
+  approved_at: z.string().datetime().optional(),
+})
+
 // Generate proposal
 export const generateProposalSchema = z.object({
   estimate_id: z.string().uuid('Invalid estimate ID'),

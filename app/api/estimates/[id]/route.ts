@@ -18,10 +18,11 @@ export const GET = createApiHandlerWithParams(
       .select(`
         *,
         site_survey:site_surveys(id, job_name, site_address, site_city, site_state, site_zip, hazard_type, status, customer_name),
-        customer:customers(id, company_name, name, email, phone),
+        customer:customers(id, first_name, last_name, company_name, name, email, phone),
         created_by_user:profiles!created_by(id, first_name, last_name, email),
         approved_by_user:profiles!approved_by(id, first_name, last_name, email),
-        line_items:estimate_line_items(*)
+        line_items:estimate_line_items(*),
+        proposals(id, status, sent_at, signed_at, signer_name, approval_method, verbal_approval_note)
       `)
       .eq('id', params.id)
       .eq('organization_id', context.profile.organization_id)
