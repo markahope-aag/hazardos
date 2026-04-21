@@ -9,37 +9,46 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/use-toast'
 import {
-  ArrowLeft,
-  Loader2,
-  Plus,
-  Trash2,
-  Truck,
-  CheckCircle,
-  ExternalLink,
-  MapPin,
-  Users,
-  Wrench,
-  Package,
-  Phone,
-  FileText,
+  ArrowLeft, Loader2, Plus, Trash2, Truck, CheckCircle,
+  ExternalLink, MapPin, Users, Wrench, Package, Phone,
+  FileText, Download, Mail,
 } from 'lucide-react'
-import type { ManifestSnapshot, ManifestVehicle } from '@/types/manifests'
+import type {
+  Manifest,
+  ManifestSnapshot,
+  ManifestVehicle,
+} from '@/types/manifests'
+import { generateManifestPDF } from '@/lib/services/manifest-pdf-generator'
 
-interface ManifestDetail {
-  id: string
-  manifest_number: string
-  status: 'draft' | 'issued'
-  notes: string | null
-  snapshot: ManifestSnapshot
-  issued_at: string | null
-  issued_by: string | null
-  created_at: string
-  updated_at: string
+interface ManifestDetail extends Manifest {
   job: { id: string; job_number: string | null; name: string | null } | null
   vehicles: ManifestVehicle[]
 }
+
+type CrewItem = ManifestSnapshot['crew'][number]
+type MaterialItem = ManifestSnapshot['materials'][number]
+type EquipmentItem = ManifestSnapshot['equipment'][number]
+type ExtraItem = ManifestSnapshot['extra_items'][number]
 
 export default function ManifestDetailPage({
   params,
@@ -48,11 +57,25 @@ export default function ManifestDetailPage({
 }) {
   const { id } = use(params)
   const { toast } = useToast()
+
   const [manifest, setManifest] = useState<ManifestDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+
+  // Edit-buffer state for every section — the draft-mode edits live here
+  // until the user clicks "Save changes", which PATCHes the snapshot.
   const [notes, setNotes] = useState('')
-  const [extraItems, setExtraItems] = useState<{ label: string; detail: string | null }[]>([])
+  const [crew, setCrew] = useState<CrewItem[]>([])
+  const [materials, setMaterials] = useState<MaterialItem[]>([])
+  const [equipment, setEquipment] = useState<EquipmentItem[]>([])
+  const [extraItems, setExtraItems] = useState<ExtraItem[]>([])
+
+  // Dialogs
+  const [showIssueConfirm, setShowIssueConfirm] = useState(false)
+  const [showEmailDialog, setShowEmailDialog] = useState(false)
+  const [emailTo, setEmailTo] = useState('')
+  const [emailMessage, setEmailMessage] = useState('')
+  const [emailing, setEmailing] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -61,8 +84,12 @@ export default function ManifestDetailPage({
       if (!res.ok) throw new Error('Failed to load manifest')
       const body = await res.json()
       setManifest(body.manifest)
+      const s: ManifestSnapshot = body.manifest.snapshot || {}
       setNotes(body.manifest.notes || '')
-      setExtraItems(body.manifest.snapshot?.extra_items || [])
+      setCrew(s.crew || [])
+      setMaterials(s.materials || [])
+      setEquipment(s.equipment || [])
+      setExtraItems(s.extra_items || [])
     } catch (err) {
       toast({
         title: 'Could not load manifest',
@@ -78,7 +105,7 @@ export default function ManifestDetailPage({
     load()
   }, [load])
 
-  const saveEdits = async () => {
+  const saveAll = async () => {
     if (!manifest) return
     setSaving(true)
     try {
@@ -87,14 +114,19 @@ export default function ManifestDetailPage({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           notes: notes.trim() || null,
-          snapshot: { extra_items: extraItems.filter((i) => i.label.trim()) },
+          snapshot: {
+            crew,
+            materials: materials.filter((m) => m.name.trim()),
+            equipment: equipment.filter((e) => e.name.trim()),
+            extra_items: extraItems.filter((i) => i.label.trim()),
+          },
         }),
       })
       if (!res.ok) {
         const b = await res.json().catch(() => ({}))
         throw new Error(b?.error?.message || 'Save failed')
       }
-      toast({ title: 'Manifest updated' })
+      toast({ title: 'Manifest saved' })
       load()
     } catch (err) {
       toast({
@@ -109,7 +141,6 @@ export default function ManifestDetailPage({
 
   const issueManifest = async () => {
     if (!manifest) return
-    if (!confirm('Issue this manifest? Once issued, it can no longer be edited.')) return
     setSaving(true)
     try {
       const res = await fetch(`/api/manifests/${id}/issue`, { method: 'POST' })
@@ -117,7 +148,11 @@ export default function ManifestDetailPage({
         const b = await res.json().catch(() => ({}))
         throw new Error(b?.error?.message || 'Failed to issue')
       }
-      toast({ title: 'Manifest issued' })
+      toast({
+        title: 'Manifest issued',
+        description: 'The manifest is locked and ready for dispatch.',
+      })
+      setShowIssueConfirm(false)
       load()
     } catch (err) {
       toast({
@@ -127,6 +162,74 @@ export default function ManifestDetailPage({
       })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const downloadPdf = () => {
+    if (!manifest) return
+    // Use the in-memory manifest so the crew sees exactly what's on
+    // screen, including any unsaved edits — same as hitting print.
+    const snapshotForPdf: ManifestSnapshot = {
+      ...manifest.snapshot,
+      crew,
+      materials,
+      equipment,
+      extra_items: extraItems,
+    }
+    const doc = generateManifestPDF(
+      {
+        ...manifest,
+        snapshot: snapshotForPdf,
+        notes: notes.trim() || null,
+      } as Manifest,
+      manifest.vehicles,
+    )
+    doc.save(`${manifest.manifest_number}.pdf`)
+  }
+
+  const sendEmail = async () => {
+    if (!manifest) return
+    const recipients = emailTo
+      .split(/[,\s]+/)
+      .map((r) => r.trim())
+      .filter(Boolean)
+    if (recipients.length === 0) {
+      toast({
+        title: 'Add at least one recipient',
+        variant: 'destructive',
+      })
+      return
+    }
+    setEmailing(true)
+    try {
+      const res = await fetch(`/api/manifests/${id}/email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: recipients,
+          message: emailMessage.trim() || undefined,
+        }),
+      })
+      if (!res.ok) {
+        const b = await res.json().catch(() => ({}))
+        throw new Error(b?.error?.message || 'Could not send')
+      }
+      const body = await res.json()
+      toast({
+        title: 'Manifest emailed',
+        description: `Sent to ${body.recipients} recipient${body.recipients === 1 ? '' : 's'}.`,
+      })
+      setShowEmailDialog(false)
+      setEmailTo('')
+      setEmailMessage('')
+    } catch (err) {
+      toast({
+        title: 'Could not send email',
+        description: err instanceof Error ? err.message : 'Try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setEmailing(false)
     }
   }
 
@@ -197,14 +300,18 @@ export default function ManifestDetailPage({
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={downloadPdf}>
+            <Download className="h-4 w-4 mr-2" />
+            Download PDF
+          </Button>
+          <Button variant="outline" onClick={() => setShowEmailDialog(true)}>
+            <Mail className="h-4 w-4 mr-2" />
+            Email
+          </Button>
           {isDraft && (
-            <Button onClick={issueManifest} disabled={saving}>
-              {saving ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <CheckCircle className="h-4 w-4 mr-2" />
-              )}
+            <Button onClick={() => setShowIssueConfirm(true)} disabled={saving}>
+              <CheckCircle className="h-4 w-4 mr-2" />
               Issue manifest
             </Button>
           )}
@@ -220,19 +327,19 @@ export default function ManifestDetailPage({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-1 text-sm">
-          <div className="font-medium">{s.site.address || 'No address'}</div>
+          <div className="font-medium">{s.site?.address || 'No address'}</div>
           <div className="text-muted-foreground">
-            {[s.site.city, s.site.state, s.site.zip].filter(Boolean).join(', ') || '—'}
+            {[s.site?.city, s.site?.state, s.site?.zip].filter(Boolean).join(', ') || '—'}
           </div>
-          {(s.site.gate_code || s.site.lockbox_code) && (
+          {(s.site?.gate_code || s.site?.lockbox_code) && (
             <div className="pt-2 grid grid-cols-2 gap-2">
-              {s.site.gate_code && (
+              {s.site?.gate_code && (
                 <div>
                   <div className="text-muted-foreground text-xs">Gate code</div>
                   <div className="font-mono">{s.site.gate_code}</div>
                 </div>
               )}
-              {s.site.lockbox_code && (
+              {s.site?.lockbox_code && (
                 <div>
                   <div className="text-muted-foreground text-xs">Lockbox</div>
                   <div className="font-mono">{s.site.lockbox_code}</div>
@@ -240,7 +347,7 @@ export default function ManifestDetailPage({
               )}
             </div>
           )}
-          {(s.site.contact_onsite_name || s.site.contact_onsite_phone) && (
+          {(s.site?.contact_onsite_name || s.site?.contact_onsite_phone) && (
             <div className="pt-2 text-sm flex items-center gap-2">
               <Phone className="h-3 w-3 text-muted-foreground" />
               <span>
@@ -262,14 +369,14 @@ export default function ManifestDetailPage({
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <div>
-            <div className="font-medium">{s.job.name || s.job.job_number}</div>
+            <div className="font-medium">{s.job?.name || s.job?.job_number}</div>
             <div className="text-muted-foreground">
-              {s.job.scheduled_start_date && `${new Date(s.job.scheduled_start_date).toLocaleDateString()}`}
-              {s.job.scheduled_start_time && ` at ${s.job.scheduled_start_time}`}
-              {s.job.estimated_duration_hours && ` · ~${s.job.estimated_duration_hours}h`}
+              {s.job?.scheduled_start_date && `${new Date(s.job.scheduled_start_date).toLocaleDateString()}`}
+              {s.job?.scheduled_start_time && ` at ${s.job.scheduled_start_time}`}
+              {s.job?.estimated_duration_hours && ` · ~${s.job.estimated_duration_hours}h`}
             </div>
           </div>
-          {s.job.hazard_types.length > 0 && (
+          {s.job?.hazard_types?.length ? (
             <div className="flex flex-wrap gap-1">
               {s.job.hazard_types.map((h) => (
                 <Badge key={h} variant="secondary" className="text-xs">
@@ -277,20 +384,20 @@ export default function ManifestDetailPage({
                 </Badge>
               ))}
             </div>
-          )}
+          ) : null}
           {s.estimate?.scope_of_work && (
             <div>
               <div className="text-muted-foreground text-xs mb-1">Scope</div>
               <div className="whitespace-pre-wrap">{s.estimate.scope_of_work}</div>
             </div>
           )}
-          {s.job.access_notes && (
+          {s.job?.access_notes && (
             <div>
               <div className="text-muted-foreground text-xs mb-1">Access</div>
               <div className="whitespace-pre-wrap">{s.job.access_notes}</div>
             </div>
           )}
-          {s.job.special_instructions && (
+          {s.job?.special_instructions && (
             <div>
               <div className="text-muted-foreground text-xs mb-1">Special instructions</div>
               <div className="whitespace-pre-wrap">{s.job.special_instructions}</div>
@@ -300,106 +407,220 @@ export default function ManifestDetailPage({
       </Card>
 
       {/* Crew */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Users className="h-4 w-4" />
-            Crew ({s.crew.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {s.crew.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No crew assigned. Add crew on the job, then regenerate the manifest.
-            </p>
+      <EditableListCard
+        title={`Crew (${crew.length})`}
+        icon={<Users className="h-4 w-4" />}
+        canEdit={isDraft}
+        items={crew}
+        onAdd={() =>
+          setCrew([
+            ...crew,
+            {
+              profile_id: null,
+              name: '',
+              role: null,
+              is_lead: false,
+              scheduled_start: null,
+              scheduled_end: null,
+            },
+          ])
+        }
+        onRemove={(i) => setCrew(crew.filter((_, j) => j !== i))}
+        renderRow={(c, i) =>
+          isDraft ? (
+            <div className="flex flex-wrap items-center gap-2 w-full">
+              <Input
+                value={c.name}
+                onChange={(e) => {
+                  const next = [...crew]
+                  next[i] = { ...c, name: e.target.value }
+                  setCrew(next)
+                }}
+                placeholder="Name"
+                className="max-w-[200px]"
+              />
+              <Input
+                value={c.role ?? ''}
+                onChange={(e) => {
+                  const next = [...crew]
+                  next[i] = { ...c, role: e.target.value || null }
+                  setCrew(next)
+                }}
+                placeholder="Role"
+                className="max-w-[140px]"
+              />
+              <label className="inline-flex items-center gap-1.5 text-xs">
+                <input
+                  type="checkbox"
+                  checked={c.is_lead}
+                  onChange={(e) => {
+                    const next = [...crew]
+                    next[i] = { ...c, is_lead: e.target.checked }
+                    setCrew(next)
+                  }}
+                />
+                Lead
+              </label>
+            </div>
           ) : (
-            <ul className="divide-y">
-              {s.crew.map((c, i) => (
-                <li key={`${c.profile_id}-${i}`} className="py-2 flex items-center justify-between text-sm">
-                  <div>
-                    <span className="font-medium">{c.name}</span>
-                    {c.role && <span className="text-muted-foreground"> · {c.role}</span>}
-                    {c.is_lead && (
-                      <Badge variant="outline" className="ml-2 text-xs">
-                        Lead
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {c.scheduled_start || ''}
-                    {c.scheduled_start && c.scheduled_end && ' – '}
-                    {c.scheduled_end || ''}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+            <div className="flex items-center justify-between w-full text-sm">
+              <span>
+                <span className="font-medium">{c.name}</span>
+                {c.role && <span className="text-muted-foreground"> · {c.role}</span>}
+                {c.is_lead && (
+                  <Badge variant="outline" className="ml-2 text-xs">Lead</Badge>
+                )}
+              </span>
+            </div>
+          )
+        }
+        emptyText="No crew assigned. Add crew below, or assign on the job and regenerate."
+      />
 
       {/* Materials */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Package className="h-4 w-4" />
-            Materials ({s.materials.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {s.materials.length === 0 ? (
-            <p className="text-sm text-muted-foreground">None listed.</p>
+      <EditableListCard
+        title={`Materials (${materials.length})`}
+        icon={<Package className="h-4 w-4" />}
+        canEdit={isDraft}
+        items={materials}
+        onAdd={() =>
+          setMaterials([
+            ...materials,
+            { name: '', type: null, quantity_estimated: null, unit: null, notes: null },
+          ])
+        }
+        onRemove={(i) => setMaterials(materials.filter((_, j) => j !== i))}
+        renderRow={(m, i) =>
+          isDraft ? (
+            <div className="flex flex-wrap items-center gap-2 w-full">
+              <Input
+                value={m.name}
+                onChange={(e) => {
+                  const next = [...materials]
+                  next[i] = { ...m, name: e.target.value }
+                  setMaterials(next)
+                }}
+                placeholder="Material"
+                className="flex-1 min-w-[160px]"
+              />
+              <Input
+                type="number"
+                value={m.quantity_estimated ?? ''}
+                onChange={(e) => {
+                  const next = [...materials]
+                  next[i] = {
+                    ...m,
+                    quantity_estimated: e.target.value === '' ? null : Number(e.target.value),
+                  }
+                  setMaterials(next)
+                }}
+                placeholder="Qty"
+                className="w-20"
+              />
+              <Input
+                value={m.unit ?? ''}
+                onChange={(e) => {
+                  const next = [...materials]
+                  next[i] = { ...m, unit: e.target.value || null }
+                  setMaterials(next)
+                }}
+                placeholder="Unit"
+                className="w-20"
+              />
+            </div>
           ) : (
-            <ul className="divide-y">
-              {s.materials.map((m, i) => (
-                <li key={`${m.name}-${i}`} className="py-2 text-sm flex items-center justify-between">
-                  <span>
-                    <span className="font-medium">{m.name}</span>
-                    {m.type && <span className="text-muted-foreground"> · {m.type}</span>}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {m.quantity_estimated ?? ''}
-                    {m.unit ? ` ${m.unit}` : ''}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+            <div className="flex items-center justify-between w-full text-sm">
+              <span>
+                <span className="font-medium">{m.name}</span>
+                {m.type && <span className="text-muted-foreground"> · {m.type}</span>}
+              </span>
+              <span className="text-muted-foreground">
+                {m.quantity_estimated ?? ''}
+                {m.unit ? ` ${m.unit}` : ''}
+              </span>
+            </div>
+          )
+        }
+        emptyText="None listed."
+      />
 
       {/* Equipment */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Wrench className="h-4 w-4" />
-            Equipment ({s.equipment.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {s.equipment.length === 0 ? (
-            <p className="text-sm text-muted-foreground">None listed.</p>
+      <EditableListCard
+        title={`Equipment (${equipment.length})`}
+        icon={<Wrench className="h-4 w-4" />}
+        canEdit={isDraft}
+        items={equipment}
+        onAdd={() =>
+          setEquipment([
+            ...equipment,
+            {
+              name: '',
+              type: null,
+              quantity: 1,
+              is_rental: false,
+              rental_start_date: null,
+              rental_end_date: null,
+              notes: null,
+            },
+          ])
+        }
+        onRemove={(i) => setEquipment(equipment.filter((_, j) => j !== i))}
+        renderRow={(e, i) =>
+          isDraft ? (
+            <div className="flex flex-wrap items-center gap-2 w-full">
+              <Input
+                value={e.name}
+                onChange={(ev) => {
+                  const next = [...equipment]
+                  next[i] = { ...e, name: ev.target.value }
+                  setEquipment(next)
+                }}
+                placeholder="Equipment"
+                className="flex-1 min-w-[160px]"
+              />
+              <Input
+                type="number"
+                value={e.quantity ?? 1}
+                onChange={(ev) => {
+                  const next = [...equipment]
+                  next[i] = { ...e, quantity: Number(ev.target.value) || 1 }
+                  setEquipment(next)
+                }}
+                className="w-20"
+                placeholder="Qty"
+              />
+              <label className="inline-flex items-center gap-1.5 text-xs">
+                <input
+                  type="checkbox"
+                  checked={e.is_rental}
+                  onChange={(ev) => {
+                    const next = [...equipment]
+                    next[i] = { ...e, is_rental: ev.target.checked }
+                    setEquipment(next)
+                  }}
+                />
+                Rental
+              </label>
+            </div>
           ) : (
-            <ul className="divide-y">
-              {s.equipment.map((e, i) => (
-                <li key={`${e.name}-${i}`} className="py-2 text-sm flex items-center justify-between">
-                  <span>
-                    <span className="font-medium">{e.name}</span>
-                    {e.type && <span className="text-muted-foreground"> · {e.type}</span>}
-                    {e.is_rental && (
-                      <Badge variant="outline" className="ml-2 text-xs">
-                        Rental
-                      </Badge>
-                    )}
-                  </span>
-                  <span className="text-muted-foreground">×{e.quantity}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+            <div className="flex items-center justify-between w-full text-sm">
+              <span>
+                <span className="font-medium">{e.name}</span>
+                {e.type && <span className="text-muted-foreground"> · {e.type}</span>}
+                {e.is_rental && (
+                  <Badge variant="outline" className="ml-2 text-xs">Rental</Badge>
+                )}
+              </span>
+              <span className="text-muted-foreground">×{e.quantity}</span>
+            </div>
+          )
+        }
+        emptyText="None listed."
+      />
 
-      {/* Vehicles */}
+      {/* Vehicles — remain server-backed with their own endpoint since
+          they have plate/driver/rental metadata that doesn't live on the
+          snapshot. */}
       <VehiclesSection
         manifestId={manifest.id}
         vehicles={manifest.vehicles}
@@ -408,67 +629,49 @@ export default function ManifestDetailPage({
       />
 
       {/* Extra items */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Plus className="h-4 w-4" />
-            Additional items
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-xs text-muted-foreground">
-            Items the crew needs that aren't already on the job record — PPE spares,
-            signage, manifests, badges, etc.
-          </p>
-          <div className="space-y-2">
-            {extraItems.map((item, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <Input
-                  placeholder="Label"
-                  value={item.label}
-                  onChange={(e) => {
-                    const next = [...extraItems]
-                    next[i] = { ...next[i], label: e.target.value }
-                    setExtraItems(next)
-                  }}
-                  disabled={!isDraft}
-                  className="max-w-[240px]"
-                />
-                <Input
-                  placeholder="Notes (optional)"
-                  value={item.detail || ''}
-                  onChange={(e) => {
-                    const next = [...extraItems]
-                    next[i] = { ...next[i], detail: e.target.value || null }
-                    setExtraItems(next)
-                  }}
-                  disabled={!isDraft}
-                  className="flex-1"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Remove item"
-                  disabled={!isDraft}
-                  onClick={() => setExtraItems(extraItems.filter((_, j) => j !== i))}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-          {isDraft && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setExtraItems([...extraItems, { label: '', detail: null }])}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add item
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+      <EditableListCard
+        title={`Additional items (${extraItems.length})`}
+        icon={<Plus className="h-4 w-4" />}
+        canEdit={isDraft}
+        items={extraItems}
+        onAdd={() => setExtraItems([...extraItems, { label: '', detail: null }])}
+        onRemove={(i) => setExtraItems(extraItems.filter((_, j) => j !== i))}
+        renderRow={(item, i) =>
+          isDraft ? (
+            <div className="flex items-start gap-2 w-full">
+              <Input
+                placeholder="Label"
+                value={item.label}
+                onChange={(e) => {
+                  const next = [...extraItems]
+                  next[i] = { ...item, label: e.target.value }
+                  setExtraItems(next)
+                }}
+                className="max-w-[240px]"
+              />
+              <Input
+                placeholder="Notes (optional)"
+                value={item.detail || ''}
+                onChange={(e) => {
+                  const next = [...extraItems]
+                  next[i] = { ...item, detail: e.target.value || null }
+                  setExtraItems(next)
+                }}
+                className="flex-1"
+              />
+            </div>
+          ) : (
+            <div className="flex items-start justify-between w-full text-sm">
+              <span className="font-medium">{item.label}</span>
+              {item.detail && (
+                <span className="text-muted-foreground text-xs">{item.detail}</span>
+              )}
+            </div>
+          )
+        }
+        emptyText="PPE spares, signage, permits — anything not already captured above."
+        helpText="Items the crew needs that aren't already on the estimate."
+      />
 
       {/* Dispatch notes + save */}
       <Card>
@@ -485,7 +688,7 @@ export default function ManifestDetailPage({
           />
           {isDraft && (
             <div className="flex justify-end">
-              <Button onClick={saveEdits} disabled={saving}>
+              <Button onClick={saveAll} disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                 Save changes
               </Button>
@@ -493,7 +696,137 @@ export default function ManifestDetailPage({
           )}
         </CardContent>
       </Card>
+
+      {/* Issue confirmation */}
+      <AlertDialog open={showIssueConfirm} onOpenChange={setShowIssueConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Issue this manifest?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Once issued, the manifest is locked. Crew, materials, equipment,
+              vehicles, and notes become read-only. You can still download or
+              email the PDF. Save any pending changes first — issuing uses the
+              last saved snapshot.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={issueManifest} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Issue manifest
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Email dialog */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Email manifest</DialogTitle>
+            <DialogDescription>
+              {manifest.manifest_number} will go out as a PDF attachment.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="email-to">Recipients</Label>
+              <Input
+                id="email-to"
+                value={emailTo}
+                onChange={(e) => setEmailTo(e.target.value)}
+                placeholder="crew@example.com, foreman@example.com"
+              />
+              <p className="text-xs text-muted-foreground">
+                Comma-separated. Up to 10 addresses.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-message">Message (optional)</Label>
+              <Textarea
+                id="email-message"
+                rows={4}
+                value={emailMessage}
+                onChange={(e) => setEmailMessage(e.target.value)}
+                placeholder="Short note to include in the email body."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowEmailDialog(false)}
+              disabled={emailing}
+            >
+              Cancel
+            </Button>
+            <Button onClick={sendEmail} disabled={emailing}>
+              {emailing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+              Send
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+}
+
+interface EditableListCardProps<T> {
+  title: string
+  icon?: React.ReactNode
+  canEdit: boolean
+  items: T[]
+  onAdd: () => void
+  onRemove: (index: number) => void
+  renderRow: (item: T, index: number) => React.ReactNode
+  emptyText: string
+  helpText?: string
+}
+
+function EditableListCard<T>({
+  title, icon, canEdit, items, onAdd, onRemove, renderRow,
+  emptyText, helpText,
+}: EditableListCardProps<T>) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="flex items-center gap-2 text-base">
+          {icon}
+          {title}
+        </CardTitle>
+        {canEdit && (
+          <Button variant="outline" size="sm" onClick={onAdd}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {helpText && <p className="text-xs text-muted-foreground">{helpText}</p>}
+        {items.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{emptyText}</p>
+        ) : (
+          <ul className="space-y-2">
+            {items.map((item, i) => (
+              <li key={i} className="flex items-start gap-2 py-1.5 border-b last:border-b-0">
+                <div className="flex-1 min-w-0">{renderRow(item, i)}</div>
+                {canEdit && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 flex-shrink-0"
+                    onClick={() => onRemove(i)}
+                    aria-label="Remove"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
@@ -562,7 +895,6 @@ function VehiclesSection({
   }
 
   const removeVehicle = async (vehicleId: string) => {
-    if (!confirm('Remove this vehicle from the manifest?')) return
     try {
       const res = await fetch(`/api/manifests/${manifestId}/vehicles/${vehicleId}`, {
         method: 'DELETE',
