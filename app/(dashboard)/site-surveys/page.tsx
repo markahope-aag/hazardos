@@ -221,9 +221,14 @@ export default function SiteSurveysPage() {
       s => s.status === 'scheduled' && s.scheduled_date && s.scheduled_date < today
     ).length
 
+    // Pipeline value: revenue sitting on open surveys that could still
+    // come in. A survey counts if it has an estimate and hasn't been
+    // cancelled or fully converted to a (non-cancelled) job yet. Jobs
+    // that materialize are tracked as won revenue elsewhere.
     const totalEstimateValue = surveys.reduce((sum, s) => {
+      if (s.status === 'cancelled') return sum
       const linkedJob = s.job?.[0]
-      if (!linkedJob || linkedJob.status === 'cancelled') return sum
+      if (linkedJob && linkedJob.status !== 'cancelled') return sum
       const est = s.estimate?.[0]
       return sum + (est?.total || 0)
     }, 0)
@@ -376,7 +381,7 @@ export default function SiteSurveysPage() {
             <div className="flex items-center gap-1.5">
               <DollarSign className="h-4 w-4 text-teal-600" />
               <div className="text-2xl font-bold text-teal-600">
-                ${surveyStats.totalEstimateValue.toLocaleString()}
+                ${Math.round(surveyStats.totalEstimateValue).toLocaleString()}
               </div>
             </div>
             <p className="text-sm text-muted-foreground">Est. Revenue</p>
