@@ -32,6 +32,8 @@ export default function TeamSettingsPage() {
   const [invitations, setInvitations] = useState<Invitation[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState('')
+  const [currentUserRole, setCurrentUserRole] = useState('')
 
   const loadData = useCallback(async () => {
     setIsLoading(true)
@@ -39,6 +41,8 @@ export default function TeamSettingsPage() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+
+      setCurrentUserId(user.id)
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -48,13 +52,16 @@ export default function TeamSettingsPage() {
 
       if (!profile?.organization_id) return
 
+      setCurrentUserRole(profile.role)
       setIsAdmin(['admin', 'tenant_owner', 'platform_admin', 'platform_owner'].includes(profile.role))
 
-      // Fetch team members
+      // Fetch team members (active only — deactivated users are hidden
+      // from the team list; their historical records stay untouched).
       const { data: membersData } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, email, role, last_login_at')
+        .select('id, first_name, last_name, email, role, last_login_at, is_active')
         .eq('organization_id', profile.organization_id)
+        .eq('is_active', true)
         .order('first_name')
 
       setMembers(membersData || [])
@@ -109,7 +116,13 @@ export default function TeamSettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <TeamMemberList members={members} />
+          <TeamMemberList
+            members={members}
+            currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
+            canManage={isAdmin}
+            onChanged={loadData}
+          />
         </CardContent>
       </Card>
 

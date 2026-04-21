@@ -7,8 +7,29 @@ import { AuthProvider, useMultiTenantAuth } from '@/components/providers/auth-pr
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { Home, FileText, Calculator, Calendar, Settings, DollarSign, LayoutGrid, Briefcase, MessageCircle } from 'lucide-react'
+import { Home, FileText, Calculator, Calendar, Settings, DollarSign, LayoutGrid, Briefcase, MessageCircle, type LucideIcon } from 'lucide-react'
 import LoginForm from '@/components/auth/login-form'
+
+// Single source of truth for main-nav order, labels, and active-matching.
+// Order here IS the display order — rearrange this array to reorder nav.
+interface MainNavItem {
+  href: string
+  label: string
+  icon: LucideIcon
+  match: (pathname: string) => boolean
+}
+
+const MAIN_NAV_ITEMS: MainNavItem[] = [
+  { href: '/', label: 'Dashboard', icon: Home, match: (p) => p === '/' },
+  { href: '/crm', label: 'CRM', icon: LayoutGrid, match: (p) => p.startsWith('/crm') },
+  { href: '/site-surveys', label: 'Surveys', icon: FileText, match: (p) => p.startsWith('/site-surveys') },
+  { href: '/estimates', label: 'Estimates', icon: Calculator, match: (p) => p.startsWith('/estimates') },
+  { href: '/jobs', label: 'Jobs', icon: Briefcase, match: (p) => p.startsWith('/jobs') },
+  { href: '/invoices', label: 'Invoices', icon: DollarSign, match: (p) => p.startsWith('/invoices') },
+  { href: '/calendar', label: 'Calendar', icon: Calendar, match: (p) => p.startsWith('/calendar') },
+  { href: '/messages', label: 'Messaging', icon: MessageCircle, match: (p) => p.startsWith('/messages') },
+  { href: '/settings', label: 'Settings', icon: Settings, match: (p) => p.startsWith('/settings') },
+]
 
 function InlineLogin() {
   return (
@@ -136,122 +157,24 @@ function DashboardLayoutInner({
       <nav className="border-b bg-white" aria-label="Main navigation">
         <div className="container">
           <div className="flex space-x-8 overflow-x-auto">
-            <Link
-              href="/crm"
-              aria-current={pathname.startsWith('/crm') ? 'page' : undefined}
-              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
-                pathname.startsWith('/crm')
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <LayoutGrid className="h-4 w-4" />
-              <span>CRM</span>
-            </Link>
-
-            <Link
-              href="/"
-              aria-current={pathname === '/' ? 'page' : undefined}
-              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
-                pathname === '/'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Home className="h-4 w-4" />
-              <span>Dashboard</span>
-            </Link>
-
-            <Link
-              href="/site-surveys"
-              aria-current={pathname.startsWith('/site-surveys') ? 'page' : undefined}
-              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
-                pathname.startsWith('/site-surveys')
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <FileText className="h-4 w-4" />
-              <span>Site Surveys</span>
-            </Link>
-
-            <Link
-              href="/estimates"
-              aria-current={pathname.startsWith('/estimates') ? 'page' : undefined}
-              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
-                pathname.startsWith('/estimates')
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Calculator className="h-4 w-4" />
-              <span>Estimates</span>
-            </Link>
-
-            <Link
-              href="/invoices"
-              aria-current={pathname.startsWith('/invoices') ? 'page' : undefined}
-              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
-                pathname.startsWith('/invoices')
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <DollarSign className="h-4 w-4" />
-              <span>Invoices</span>
-            </Link>
-
-            <Link
-              href="/jobs"
-              aria-current={pathname?.startsWith('/jobs') ? 'page' : undefined}
-              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
-                pathname?.startsWith('/jobs')
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Briefcase className="h-4 w-4" />
-              <span>Jobs</span>
-            </Link>
-
-            <Link
-              href="/calendar"
-              aria-current={pathname.startsWith('/calendar') ? 'page' : undefined}
-              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
-                pathname.startsWith('/calendar')
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Calendar className="h-4 w-4" />
-              <span>Calendar</span>
-            </Link>
-
-            <Link
-              href="/messages"
-              aria-current={pathname.startsWith('/messages') ? 'page' : undefined}
-              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
-                pathname.startsWith('/messages')
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <MessageCircle className="h-4 w-4" />
-              <span>Messages</span>
-            </Link>
-
-            <Link
-              href="/settings"
-              aria-current={pathname.startsWith('/settings') ? 'page' : undefined}
-              className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
-                pathname.startsWith('/settings')
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Settings className="h-4 w-4" />
-              <span>Settings</span>
-            </Link>
+            {MAIN_NAV_ITEMS.map((item) => {
+              const isActive = item.match(pathname)
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
+                    isActive
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.label}</span>
+                </Link>
+              )
+            })}
           </div>
         </div>
       </nav>
