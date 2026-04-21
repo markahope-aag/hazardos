@@ -62,12 +62,8 @@ describe('PricingSettingsPage', () => {
     expect(await screen.findByText('Configure rates and costs for estimates')).toBeInTheDocument()
   })
 
-  it('displays back link to settings', async () => {
-    render(<PricingSettingsPage />)
-    const links = await screen.findAllByRole('link')
-    const backLink = links.find(link => link.getAttribute('href') === '/settings')
-    expect(backLink).toBeInTheDocument()
-  })
+  // Back link removed — the Settings sidebar now provides navigation
+  // between subsections, so the per-page back link is redundant.
 
   it('displays general tab by default', async () => {
     render(<PricingSettingsPage />)

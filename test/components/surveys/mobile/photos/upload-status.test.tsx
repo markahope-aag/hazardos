@@ -13,6 +13,9 @@ vi.mock('@/lib/hooks/use-online-status', () => ({
 vi.mock('@/lib/stores/photo-queue-store', () => ({
   usePhotoQueueStore: () => ({
     retryFailed: vi.fn(),
+    getPhotosForSurvey: () => [],
+    removePhoto: vi.fn(),
+    queue: [],
   }),
 }))
 

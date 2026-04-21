@@ -10,6 +10,7 @@ vi.mock('@/lib/stores/survey-store', () => ({
   useSurveyStore: () => ({
     addPhoto: mockAddPhoto,
     currentSurveyId: 'survey-123',
+    organizationId: 'org-123',
   }),
 }))
 

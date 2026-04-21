@@ -11,7 +11,7 @@ import { ROLES } from '@/lib/auth/roles'
  * forcing the helper to grow a generic. Same permissions as the parent:
  * TENANT_MANAGE roles only.
  */
-async function loadContext(request: NextRequest) {
+async function loadContext(_request: NextRequest) {
   const supabase = await createClient()
   const {
     data: { user },

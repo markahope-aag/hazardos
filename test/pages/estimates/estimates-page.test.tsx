@@ -61,7 +61,7 @@ describe('EstimatesPage', () => {
 
   it('displays stats cards', () => {
     render(<EstimatesPage />)
-    expect(screen.getByText('Total Estimates')).toBeInTheDocument()
+    expect(screen.getByText('Open Estimates')).toBeInTheDocument()
     expect(screen.getByText('Win Rate')).toBeInTheDocument()
   })
 
