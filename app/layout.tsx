@@ -43,8 +43,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* SVG first so modern browsers use the crisp vector; PNG
+            fallbacks cover older browsers and specific size requests. */}
+        <link rel="icon" type="image/svg+xml" href="/logos/favicon-32.svg" />
         <link rel="icon" type="image/png" sizes="32x32" href="/logos/favicon-32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/logos/favicon-16.png" />
         <link rel="shortcut icon" href="/logos/favicon-32.png" />
+        {/* iOS home-screen icon. We ship icon-192-color, which iOS
+            happily scales to whatever size the home screen needs. No
+            180×180 master in the brand drop. */}
         <link rel="apple-touch-icon" sizes="192x192" href="/logos/icon-192-color.png" />
         <link rel="icon" type="image/png" sizes="192x192" href="/logos/icon-192-color.png" />
         <link rel="icon" type="image/png" sizes="512x512" href="/logos/icon-512-color.png" />

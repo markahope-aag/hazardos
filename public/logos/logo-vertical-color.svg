@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 672 656" shape-rendering="geometricPrecision">
+    <svg x="168" y="40" width="336" height="336" viewBox="0 0 512 512">
+  <polygon points="344.78,41.66 470.34,167.22 470.34,344.78 344.78,470.34 167.22,470.34 41.66,344.78 41.66,167.22 167.22,41.66" fill="#1F2937" stroke="#FF6B35" stroke-width="28" stroke-linejoin="miter"/>
+  
+    <rect x="156" y="146" width="40" height="220" fill="#FFFFFF"/>
+    <rect x="316" y="146" width="40" height="220" fill="#FFFFFF"/>
+    <rect x="156" y="246" width="200" height="24" fill="#FFFFFF"/>
+  
+</svg>
+    <svg x="0" y="436" width="672" height="180" viewBox="0 0 672 180">
+    <text x="0" y="140" text-anchor="start" font-family="'Geist Mono','IBM Plex Mono',ui-monospace,Menlo,monospace" font-weight="700" font-size="140" letter-spacing="0">
+      <tspan fill="#1F2937">HAZARD</tspan><tspan fill="#FF6B35">OS</tspan>
+    </text>
+  </svg>
+  </svg>

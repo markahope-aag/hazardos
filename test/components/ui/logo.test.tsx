@@ -3,12 +3,12 @@ import { render, screen } from '@testing-library/react'
 import { Logo, LogoHorizontal, LogoVertical, LogoIcon } from '@/components/ui/logo'
 
 describe('Logo Component', () => {
-  it('should render with default props', () => {
+  it('should render with default props (SVG)', () => {
     render(<Logo />)
 
     const image = screen.getByAltText('HazardOS')
     expect(image).toBeInTheDocument()
-    expect(image).toHaveAttribute('src', '/logos/logo-horizontal-color.png')
+    expect(image).toHaveAttribute('src', '/logos/logo-horizontal-color.svg')
     expect(image).toHaveStyle({ height: '32px', width: 'auto' })
   })
 
@@ -16,35 +16,42 @@ describe('Logo Component', () => {
     render(<Logo variant="horizontal" />)
 
     const image = screen.getByAltText('HazardOS')
-    expect(image).toHaveAttribute('src', '/logos/logo-horizontal-color.png')
-    expect(image).toHaveStyle({ height: '32px' }) // md size for horizontal
+    expect(image).toHaveAttribute('src', '/logos/logo-horizontal-color.svg')
+    expect(image).toHaveStyle({ height: '32px' })
   })
 
   it('should render vertical variant', () => {
     render(<Logo variant="vertical" />)
 
     const image = screen.getByAltText('HazardOS')
-    expect(image).toHaveAttribute('src', '/logos/logo-vertical-color.png')
-    expect(image).toHaveStyle({ height: '48px' }) // md size for vertical
+    expect(image).toHaveAttribute('src', '/logos/logo-vertical-color.svg')
+    expect(image).toHaveStyle({ height: '48px' })
   })
 
-  it('should render icon variant', () => {
+  it('should render icon variant as 512 SVG', () => {
     render(<Logo variant="icon" />)
 
     const image = screen.getByAltText('HazardOS')
-    expect(image).toHaveAttribute('src', '/logos/icon-512-color.png')
-    expect(image).toHaveStyle({ height: '32px' }) // md size for icon
+    expect(image).toHaveAttribute('src', '/logos/icon-512-color.svg')
+    expect(image).toHaveStyle({ height: '32px' })
   })
 
-  it('should render with different colors', () => {
+  it('should render with different colors (SVG)', () => {
     const colors = ['color', 'bw', 'white'] as const
 
     colors.forEach((color) => {
       const { unmount } = render(<Logo color={color} />)
       const image = screen.getByAltText('HazardOS')
-      expect(image).toHaveAttribute('src', `/logos/logo-horizontal-${color}.png`)
+      expect(image).toHaveAttribute('src', `/logos/logo-horizontal-${color}.svg`)
       unmount()
     })
+  })
+
+  it('should honor format="png" when asked (email/PDF consumers)', () => {
+    render(<Logo format="png" />)
+
+    const image = screen.getByAltText('HazardOS')
+    expect(image).toHaveAttribute('src', '/logos/logo-horizontal-color.png')
   })
 
   it('should render with different sizes', () => {
@@ -115,34 +122,34 @@ describe('Logo Component', () => {
     )
 
     const image = screen.getByAltText('HazardOS')
-    expect(image).toHaveAttribute('src', '/logos/logo-vertical-bw.png')
+    expect(image).toHaveAttribute('src', '/logos/logo-vertical-bw.svg')
     expect(image).toHaveStyle({ height: '64px', width: 'auto' })
     expect(image).toHaveClass('custom-class')
   })
 })
 
 describe('Logo Convenience Components', () => {
-  it('should render LogoHorizontal correctly', () => {
+  it('should render LogoHorizontal correctly (SVG)', () => {
     render(<LogoHorizontal color="white" size="lg" />)
 
     const image = screen.getByAltText('HazardOS')
-    expect(image).toHaveAttribute('src', '/logos/logo-horizontal-white.png')
+    expect(image).toHaveAttribute('src', '/logos/logo-horizontal-white.svg')
     expect(image).toHaveStyle({ height: '40px' })
   })
 
-  it('should render LogoVertical correctly', () => {
+  it('should render LogoVertical correctly (SVG)', () => {
     render(<LogoVertical color="bw" size="sm" />)
 
     const image = screen.getByAltText('HazardOS')
-    expect(image).toHaveAttribute('src', '/logos/logo-vertical-bw.png')
+    expect(image).toHaveAttribute('src', '/logos/logo-vertical-bw.svg')
     expect(image).toHaveStyle({ height: '32px' })
   })
 
-  it('should render LogoIcon correctly', () => {
+  it('should render LogoIcon correctly (SVG)', () => {
     render(<LogoIcon color="color" size="xl" />)
 
     const image = screen.getByAltText('HazardOS')
-    expect(image).toHaveAttribute('src', '/logos/icon-512-color.png')
+    expect(image).toHaveAttribute('src', '/logos/icon-512-color.svg')
     expect(image).toHaveStyle({ height: '48px' })
   })
 
@@ -157,7 +164,7 @@ describe('Logo Convenience Components', () => {
     render(<LogoIcon />)
 
     const image = screen.getByAltText('HazardOS')
-    expect(image).toHaveAttribute('src', '/logos/icon-512-color.png')
+    expect(image).toHaveAttribute('src', '/logos/icon-512-color.svg')
   })
 })
 
@@ -177,7 +184,7 @@ describe('Logo Edge Cases', () => {
     })
   })
 
-  it('should handle all color and variant combinations', () => {
+  it('should handle all color and variant combinations (SVG)', () => {
     const variants = ['horizontal', 'vertical', 'icon'] as const
     const colors = ['color', 'bw', 'white'] as const
 
@@ -187,8 +194,8 @@ describe('Logo Edge Cases', () => {
         const image = screen.getByAltText('HazardOS')
 
         const expectedSrc = variant === 'icon'
-          ? `/logos/icon-512-${color}.png`
-          : `/logos/logo-${variant}-${color}.png`
+          ? `/logos/icon-512-${color}.svg`
+          : `/logos/logo-${variant}-${color}.svg`
 
         expect(image).toHaveAttribute('src', expectedSrc)
         unmount()
@@ -197,19 +204,16 @@ describe('Logo Edge Cases', () => {
   })
 
   it('should maintain consistent dimensions via inline styles', () => {
-    // Icon variant
     const { unmount: unmount1 } = render(<Logo variant="icon" />)
     const iconImage = screen.getByAltText('HazardOS')
     expect(iconImage).toHaveStyle({ height: '32px', width: 'auto' })
     unmount1()
 
-    // Horizontal variant
     const { unmount: unmount2 } = render(<Logo variant="horizontal" />)
     const horizontalImage = screen.getByAltText('HazardOS')
     expect(horizontalImage).toHaveStyle({ height: '32px', width: 'auto' })
     unmount2()
 
-    // Vertical variant
     const { unmount: unmount3 } = render(<Logo variant="vertical" />)
     const verticalImage = screen.getByAltText('HazardOS')
     expect(verticalImage).toHaveStyle({ height: '48px', width: 'auto' })

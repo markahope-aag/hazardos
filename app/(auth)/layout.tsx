@@ -11,7 +11,7 @@ export default function AuthLayout({
             <div className="flex justify-center mb-4 px-8">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/logos/logo-vertical-color.png"
+                src="/logos/logo-vertical-color.svg"
                 alt="HazardOS"
                 className="max-h-[140px] w-auto object-contain"
               />
