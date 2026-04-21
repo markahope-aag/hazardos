@@ -26,20 +26,37 @@ interface SurveyFiltersProps {
   className?: string
 }
 
+/**
+ * The four view presets surface a sensible default (Open) for the 99% case
+ * while keeping historical surveys one click away. Presets act like a
+ * high-level filter; the granular status enum isn't exposed directly —
+ * the detail-page badge still shows the exact status per row.
+ */
+export const SURVEY_VIEW_OPTIONS = [
+  { value: 'open', label: 'Open surveys' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'converted', label: 'Converted' },
+  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'all', label: 'All surveys' },
+] as const
+
+export type SurveyView = (typeof SURVEY_VIEW_OPTIONS)[number]['value']
+
 export function SurveyFilters({ className }: SurveyFiltersProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { organization } = useMultiTenantAuth()
 
   const [search, setSearch] = useState(searchParams.get('search') || '')
-  const [status, setStatus] = useState(searchParams.get('status') || 'all')
+  const [view, setView] = useState<SurveyView>(
+    (searchParams.get('view') as SurveyView) || 'open',
+  )
   const [technician, setTechnician] = useState(searchParams.get('technician') || 'all')
   const [dateFrom, setDateFrom] = useState(searchParams.get('from') || '')
   const [dateTo, setDateTo] = useState(searchParams.get('to') || '')
   const [technicians, setTechnicians] = useState<Technician[]>([])
   const [showAdvanced, setShowAdvanced] = useState(false)
 
-  // Load technicians
   useEffect(() => {
     async function loadTechnicians() {
       if (!organization?.id) return
@@ -57,13 +74,12 @@ export function SurveyFilters({ className }: SurveyFiltersProps) {
     loadTechnicians()
   }, [organization?.id])
 
-  // Update URL params on filter change
   const updateFilters = (newFilters: Record<string, string>) => {
     const params = new URLSearchParams()
 
-    const currentFilters = {
+    const currentFilters: Record<string, string> = {
       search,
-      status,
+      view,
       technician,
       from: dateFrom,
       to: dateTo,
@@ -71,9 +87,12 @@ export function SurveyFilters({ className }: SurveyFiltersProps) {
     }
 
     Object.entries(currentFilters).forEach(([key, value]) => {
-      if (value && value !== 'all') {
-        params.set(key, value)
-      }
+      if (!value) return
+      // 'all' for technician means "unset"; 'open' is the view default,
+      // so neither needs to stamp the URL.
+      if (key === 'technician' && value === 'all') return
+      if (key === 'view' && value === 'open') return
+      params.set(key, value)
     })
 
     router.push(`/site-surveys?${params.toString()}`)
@@ -86,7 +105,7 @@ export function SurveyFilters({ className }: SurveyFiltersProps) {
 
   const handleClearFilters = () => {
     setSearch('')
-    setStatus('all')
+    setView('open')
     setTechnician('all')
     setDateFrom('')
     setDateTo('')
@@ -101,13 +120,11 @@ export function SurveyFilters({ className }: SurveyFiltersProps) {
   }
 
   const hasActiveFilters =
-    search || status !== 'all' || technician !== 'all' || dateFrom || dateTo
+    !!search || view !== 'open' || technician !== 'all' || !!dateFrom || !!dateTo
 
   return (
     <div className={`space-y-4 ${className || ''}`}>
-      {/* Main filters row */}
       <div className="flex flex-col sm:flex-row gap-4">
-        {/* Search */}
         <form onSubmit={handleSearchSubmit} className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
@@ -119,31 +136,26 @@ export function SurveyFilters({ className }: SurveyFiltersProps) {
           />
         </form>
 
-        {/* Status filter */}
         <Select
-          value={status}
+          value={view}
           onValueChange={(value) => {
-            setStatus(value)
-            updateFilters({ status: value })
+            const next = value as SurveyView
+            setView(next)
+            updateFilters({ view: next })
           }}
         >
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Status" />
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectValue placeholder="View" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="scheduled">Scheduled</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="submitted">Submitted</SelectItem>
-            <SelectItem value="reviewed">Reviewed</SelectItem>
-            <SelectItem value="estimated">Estimated</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
+            {SURVEY_VIEW_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
-        {/* Technician filter */}
         <Select
           value={technician}
           onValueChange={(value) => {
@@ -164,7 +176,6 @@ export function SurveyFilters({ className }: SurveyFiltersProps) {
           </SelectContent>
         </Select>
 
-        {/* Advanced filters toggle */}
         <Button
           variant="outline"
           onClick={() => setShowAdvanced(!showAdvanced)}
@@ -175,7 +186,6 @@ export function SurveyFilters({ className }: SurveyFiltersProps) {
         </Button>
       </div>
 
-      {/* Advanced filters */}
       {showAdvanced && (
         <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted rounded-lg">
           <div className="flex-1 space-y-2">
@@ -203,7 +213,6 @@ export function SurveyFilters({ className }: SurveyFiltersProps) {
         </div>
       )}
 
-      {/* Active filters indicator */}
       {hasActiveFilters && (
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Active filters:</span>

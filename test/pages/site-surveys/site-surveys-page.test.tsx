@@ -79,9 +79,11 @@ describe('SiteSurveysPage', () => {
 
   it('displays stats cards', async () => {
     render(<SiteSurveysPage />)
-    expect(await screen.findByText('Total')).toBeInTheDocument()
+    expect(await screen.findByText('Total Open')).toBeInTheDocument()
     expect(await screen.findByText('Scheduled')).toBeInTheDocument()
-    expect(await screen.findByText('In Progress')).toBeInTheDocument()
+    expect(await screen.findByText('Completed')).toBeInTheDocument()
+    expect(await screen.findByText('Awaiting Review')).toBeInTheDocument()
+    expect(await screen.findByText('Converted')).toBeInTheDocument()
   })
 
   it('displays empty state when no surveys', async () => {

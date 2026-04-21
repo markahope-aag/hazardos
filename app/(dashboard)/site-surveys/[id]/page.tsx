@@ -271,6 +271,22 @@ export default function SurveyDetailPage() {
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
+      ) : survey.status === 'cancelled' ? (
+        <div className="rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm space-y-1">
+          <div className="flex items-center gap-2 font-medium text-orange-900">
+            Survey cancelled
+            {survey.cancelled_at && (
+              <span className="text-xs font-normal text-orange-700">
+                · {new Date(survey.cancelled_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+          {survey.cancellation_reason && (
+            <div className="text-orange-800 whitespace-pre-wrap">
+              {survey.cancellation_reason}
+            </div>
+          )}
+        </div>
       ) : survey.status === 'completed' || survey.status === 'reviewed' ? (
         <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm">
           <Calculator className="h-4 w-4 text-blue-600 shrink-0" />

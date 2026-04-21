@@ -80,19 +80,49 @@ export default function SiteSurveysPage() {
   // Parse search params
   const filters = useMemo(() => ({
     search: searchParams.get('search') || '',
-    status: searchParams.get('status') || 'all',
+    view: (searchParams.get('view') || 'open') as
+      'open' | 'completed' | 'converted' | 'cancelled' | 'all',
     technician: searchParams.get('technician') || 'all',
     from: searchParams.get('from') || '',
     to: searchParams.get('to') || '',
   }), [searchParams])
 
   const displayedSurveys = useMemo(() => {
-    if (!isEstimatePickerMode) return surveys
-    return surveys.filter(s =>
-      (ESTIMATE_ELIGIBLE_STATUSES as readonly string[]).includes(s.status) &&
-      (s.estimate?.length ?? 0) === 0
-    )
-  }, [surveys, isEstimatePickerMode])
+    if (isEstimatePickerMode) {
+      return surveys.filter(s =>
+        (ESTIMATE_ELIGIBLE_STATUSES as readonly string[]).includes(s.status) &&
+        (s.estimate?.length ?? 0) === 0
+      )
+    }
+
+    // View preset semantics:
+    //   open       — still in the pipeline (not converted, not cancelled,
+    //                and survey itself hasn't been closed as 'completed')
+    //   completed  — terminal 'completed' status (closed, work done)
+    //   converted  — has an estimate linked or status = 'estimated'
+    //   cancelled  — status = 'cancelled'
+    //   all        — show everything
+    const hasEstimate = (s: SurveyWithRelations) => (s.estimate?.length ?? 0) > 0
+    switch (filters.view) {
+      case 'all':
+        return surveys
+      case 'completed':
+        return surveys.filter(s => s.status === 'completed')
+      case 'converted':
+        return surveys.filter(s => s.status === 'estimated' || hasEstimate(s))
+      case 'cancelled':
+        return surveys.filter(s => s.status === 'cancelled')
+      case 'open':
+      default:
+        return surveys.filter(
+          s =>
+            s.status !== 'cancelled' &&
+            s.status !== 'completed' &&
+            s.status !== 'estimated' &&
+            !hasEstimate(s),
+        )
+    }
+  }, [surveys, isEstimatePickerMode, filters.view])
 
   const loadSurveys = useCallback(async () => {
     if (!organization?.id) return
@@ -126,10 +156,9 @@ export default function SiteSurveysPage() {
         .eq('organization_id', organization.id)
         .order('created_at', { ascending: false })
 
-      // Apply filters
-      if (filters.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status)
-      }
+      // View-preset filtering lives in displayedSurveys (client-side)
+      // since two of the presets (Converted, Open) depend on whether an
+      // estimate row exists on the embed, not just the survey status.
       if (filters.technician && filters.technician !== 'all') {
         query = query.eq('assigned_to', filters.technician)
       }
@@ -406,14 +435,14 @@ export default function SiteSurveysPage() {
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {isEstimatePickerMode
                 ? 'No surveys ready to estimate'
-                : filters.search || filters.status !== 'all'
+                : filters.search || filters.view !== 'open'
                   ? 'No surveys found'
                   : 'No surveys yet'}
             </h3>
             <p className="text-muted-foreground mb-4">
               {isEstimatePickerMode
                 ? 'Estimates are generated from completed surveys. Complete a survey, then return here.'
-                : filters.search || filters.status !== 'all'
+                : filters.search || filters.view !== 'open'
                   ? 'Try adjusting your search or filters'
                   : 'Get started by scheduling your first site survey'}
             </p>
@@ -424,7 +453,7 @@ export default function SiteSurveysPage() {
                   Back to Estimates
                 </Button>
               </Link>
-            ) : !filters.search && filters.status === 'all' ? (
+            ) : !filters.search && filters.view === 'open' ? (
               <CreateSurveyButton onCreated={loadSurveys} />
             ) : null}
           </CardContent>

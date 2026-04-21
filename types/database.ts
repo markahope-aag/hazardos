@@ -655,6 +655,9 @@ export interface Database {
           technician_notes: string | null
           started_at: string | null
           submitted_at: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
         }
         Insert: {
           id?: string
