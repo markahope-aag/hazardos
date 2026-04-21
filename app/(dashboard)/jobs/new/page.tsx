@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
+import { TimeSelect } from '@/components/ui/time-select'
 import {
   Popover,
   PopoverContent,
@@ -308,10 +309,9 @@ export default function NewJobPage() {
 
                 <div className="space-y-2">
                   <Label>Start Time</Label>
-                  <Input
-                    type="time"
+                  <TimeSelect
                     value={formData.scheduled_start_time}
-                    onChange={(e) => setFormData(prev => ({ ...prev, scheduled_start_time: e.target.value }))}
+                    onChange={(v) => setFormData(prev => ({ ...prev, scheduled_start_time: v }))}
                   />
                 </div>
               </div>

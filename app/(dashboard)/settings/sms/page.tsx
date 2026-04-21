@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2, MessageSquare, Clock, Bell, Shield, Phone, Save, AlertTriangle } from 'lucide-react';
+import { TimeSelect } from '@/components/ui/time-select';
 import { logger, formatError } from '@/lib/utils/logger';
 import type { OrganizationSmsSettings } from '@/types/sms';
 
@@ -297,18 +298,16 @@ export default function SmsSettingsPage() {
             <div className="grid grid-cols-3 gap-4 pt-4 border-t">
               <div>
                 <Label>Start Time</Label>
-                <Input
-                  type="time"
-                  value={settings.quiet_hours_start}
-                  onChange={(e) => updateSetting('quiet_hours_start', e.target.value)}
+                <TimeSelect
+                  value={settings.quiet_hours_start ?? ''}
+                  onChange={(v) => updateSetting('quiet_hours_start', v)}
                 />
               </div>
               <div>
                 <Label>End Time</Label>
-                <Input
-                  type="time"
-                  value={settings.quiet_hours_end}
-                  onChange={(e) => updateSetting('quiet_hours_end', e.target.value)}
+                <TimeSelect
+                  value={settings.quiet_hours_end ?? ''}
+                  onChange={(v) => updateSetting('quiet_hours_end', v)}
                 />
               </div>
               <div>

@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { CustomerCombobox } from '@/components/customers/customer-combobox'
+import { TimeSelect } from '@/components/ui/time-select'
 import { Plus, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { logger, formatError } from '@/lib/utils/logger'
@@ -162,15 +163,19 @@ function CreateSurveyForm({ onSuccess }: { onSuccess: () => void }) {
       onSuccess()
     } catch (error) {
       logger.error(
-        { 
+        {
           error: formatError(error, 'SURVEY_CREATE_ERROR'),
           organizationId: organization?.id
         },
         'Error creating survey'
       )
+      const message =
+        (error as { message?: string; details?: string; hint?: string } | null)?.message ||
+        (error as { details?: string } | null)?.details ||
+        'Failed to schedule survey. Please try again.'
       toast({
-        title: 'Error',
-        description: 'Failed to schedule survey. Please try again.',
+        title: 'Could not schedule survey',
+        description: message,
         variant: 'destructive',
       })
     } finally {
@@ -210,20 +215,18 @@ function CreateSurveyForm({ onSuccess }: { onSuccess: () => void }) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="time-start">Start Time</Label>
-          <Input
+          <TimeSelect
             id="time-start"
-            type="time"
             value={scheduledTimeStart}
-            onChange={(e) => setScheduledTimeStart(e.target.value)}
+            onChange={setScheduledTimeStart}
           />
         </div>
         <div className="space-y-2">
           <Label htmlFor="time-end">End Time</Label>
-          <Input
+          <TimeSelect
             id="time-end"
-            type="time"
             value={scheduledTimeEnd}
-            onChange={(e) => setScheduledTimeEnd(e.target.value)}
+            onChange={setScheduledTimeEnd}
           />
         </div>
       </div>

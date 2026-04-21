@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { TimeSelect } from '@/components/ui/time-select'
 import {
   Select,
   SelectContent,
@@ -374,21 +375,19 @@ export function PropertySection() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="hoursStart" className="text-xs">Start</Label>
-                <Input
+                <TimeSelect
                   id="hoursStart"
-                  type="time"
                   value={property.occupiedHoursStart || ''}
-                  onChange={(e) => updateProperty({ occupiedHoursStart: e.target.value })}
+                  onChange={(v) => updateProperty({ occupiedHoursStart: v })}
                   className="min-h-[48px]"
                 />
               </div>
               <div>
                 <Label htmlFor="hoursEnd" className="text-xs">End</Label>
-                <Input
+                <TimeSelect
                   id="hoursEnd"
-                  type="time"
                   value={property.occupiedHoursEnd || ''}
-                  onChange={(e) => updateProperty({ occupiedHoursEnd: e.target.value })}
+                  onChange={(v) => updateProperty({ occupiedHoursEnd: v })}
                   className="min-h-[48px]"
                 />
               </div>
