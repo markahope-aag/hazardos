@@ -127,7 +127,7 @@ export class PropertiesService {
         .order('created_at', { ascending: false }),
       this.supabase
         .from('jobs')
-        .select('id, job_number, status, created_at, start_date')
+        .select('id, job_number, status, created_at, scheduled_start_date')
         .eq('property_id', id)
         .order('created_at', { ascending: false }),
     ])
