@@ -21,8 +21,8 @@ export default async function JobDetailPage({
     .select(`
       *,
       customer:customers!customer_id(*),
-      proposal:proposals(id, proposal_number, total),
-      estimate:estimates(id, estimate_number),
+      proposal:proposals(id, proposal_number),
+      estimate:estimates(id, estimate_number, total),
       site_survey:site_surveys(id),
       crew:job_crew(
         *,
@@ -43,6 +43,13 @@ export default async function JobDetailPage({
     .single()
 
   if (error || !job) {
+    // notFound() renders a bare 404 and swallows the underlying reason.
+    // Log it so a missing column / bad FK hint / RLS denial surfaces in
+    // the server logs next time, instead of the user staring at an
+    // unexplained 404.
+    if (error) {
+      console.error('[jobs/[id]] fetch failed', { id, error })
+    }
     notFound()
   }
 
