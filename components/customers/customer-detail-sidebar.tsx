@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -18,6 +19,8 @@ import {
   User,
 } from 'lucide-react'
 import CustomerStatusBadge from './customer-status-badge'
+import { EmailComposeDialog } from './email-compose-dialog'
+import { useToast } from '@/components/ui/use-toast'
 import type { Customer } from '@/types/database'
 
 const CONTACT_ROLE_LABELS: Record<string, string> = {
@@ -67,6 +70,21 @@ export function CustomerDetailSidebar({
   onLogCallClick,
   onFollowUpClick,
 }: Props) {
+  const { toast } = useToast()
+  const [composeOpen, setComposeOpen] = useState(false)
+
+  const openCompose = () => {
+    if (!customer.email) {
+      toast({
+        title: 'No email on file',
+        description: 'Add an email address to this contact before sending.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setComposeOpen(true)
+  }
+
   return (
     <div className="space-y-4">
       <Card>
@@ -214,12 +232,12 @@ export function CustomerDetailSidebar({
           variant="outline"
           size="sm"
           className="flex flex-col items-center gap-1 h-auto py-3"
-          asChild
+          onClick={openCompose}
+          disabled={!customer.email}
+          title={customer.email ? `Email ${customer.email}` : 'No email on file'}
         >
-          <a href={customer.email ? `mailto:${customer.email}` : '#'}>
-            <Mail className="h-4 w-4" />
-            <span className="text-xs">Send Email</span>
-          </a>
+          <Mail className="h-4 w-4" />
+          <span className="text-xs">Send Email</span>
         </Button>
         <Button
           variant="outline"
@@ -282,6 +300,14 @@ export function CustomerDetailSidebar({
           </Button>
         )}
       </div>
+
+      <EmailComposeDialog
+        open={composeOpen}
+        onOpenChange={setComposeOpen}
+        contactId={customer.id}
+        contactName={displayName}
+        contactEmail={customer.email}
+      />
     </div>
   )
 }

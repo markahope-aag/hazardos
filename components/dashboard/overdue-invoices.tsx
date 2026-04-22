@@ -5,6 +5,7 @@ import { AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils';
+import { DEFAULT_TIMEZONE, todayIso } from '@/lib/timezone';
 
 // Re-export error boundary wrapper
 export { OverdueInvoicesErrorBoundary } from './error-wrappers';
@@ -25,7 +26,21 @@ interface Invoice {
 export async function OverdueInvoices() {
   const supabase = await createClient();
 
-  const today = new Date().toISOString().split('T')[0];
+  // "Today" has to be the org's clock, not the server's — otherwise a
+  // late-evening render in a west-of-UTC tenant treats midnight UTC as
+  // tomorrow and silently hides the invoice that became overdue today.
+  const { data: { user } } = await supabase.auth.getUser()
+  let tz = DEFAULT_TIMEZONE
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization:organizations!profiles_organization_id_fkey(timezone)')
+      .eq('id', user.id)
+      .single()
+    const org = Array.isArray(profile?.organization) ? profile?.organization[0] : profile?.organization
+    if (org?.timezone) tz = org.timezone
+  }
+  const today = todayIso(tz);
 
   const { data: invoices } = await supabase
     .from('invoices')

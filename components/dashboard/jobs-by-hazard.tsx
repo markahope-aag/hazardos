@@ -11,7 +11,7 @@ import {
   Legend,
 } from '@/components/charts/recharts-lazy'
 import { Cell } from 'recharts'
-import type { DashboardFilters } from '@/lib/dashboard/filters'
+import { type DashboardFilters, getShortPeriodLabel } from '@/lib/dashboard/filters'
 
 interface HazardBucket {
   hazard: string
@@ -114,7 +114,7 @@ export function JobsByHazard({ filters }: JobsByHazardProps) {
         <div>
           <CardTitle>Jobs by Hazard</CardTitle>
           <p className="text-xs text-muted-foreground mt-1">
-            Click a bar to filter the dashboard to that hazard
+            {getShortPeriodLabel(filters.period)} · click a slice to filter the dashboard
           </p>
         </div>
         <div className="text-right">

@@ -14,6 +14,15 @@ const updateSchema = z.object({
   city: z.string().max(120).optional().or(z.literal('')),
   state: z.string().max(40).optional().or(z.literal('')),
   zip: z.string().max(20).optional().or(z.literal('')),
+  // IANA timezone string. Validated as non-empty; the actual list is
+  // open-ended (date-fns-tz accepts any IANA zone) so we don't pin it
+  // to our US-only UI picker.
+  timezone: z.string().min(1).max(80).optional(),
+  // Email sender customization. Domain setup is handled separately at
+  // /api/organizations/me/email-domain; these two fields are free-form
+  // display concerns.
+  email_from_name: z.string().max(120).optional().or(z.literal('')),
+  email_reply_to: z.string().email().optional().or(z.literal('')),
 })
 
 // Returns the caller's own organization record.
@@ -22,7 +31,7 @@ export const GET = createApiHandler(
   async (_request, context) => {
     const { data, error } = await context.supabase
       .from('organizations')
-      .select('id, name, email, phone, website, license_number, address, city, state, zip')
+      .select('id, name, email, phone, website, license_number, address, city, state, zip, timezone, email_from_name, email_reply_to, email_domain, email_domain_status')
       .eq('id', context.profile.organization_id)
       .single()
     if (error) throw error

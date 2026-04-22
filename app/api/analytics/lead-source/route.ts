@@ -37,13 +37,15 @@ export const GET = createApiHandler(
     const range = getPeriodRange(period)
     const hazardDb = hazardFilterToDbValue(hazardFilter)
 
-    // 1) jobs in the period
+    // 1) jobs active during the period (overlap filter — see jobs-by-status
+    // for rationale). Was filtering on scheduled_start_date, which hid
+    // every completed job whose start date fell before the window.
     const { data: jobs, error: jobsError } = await context.supabase
       .from('jobs')
       .select('id, site_survey_id')
       .eq('organization_id', context.profile.organization_id)
-      .gte('scheduled_start_date', range.start.toISOString().split('T')[0])
-      .lte('scheduled_start_date', range.end.toISOString().split('T')[0])
+      .lte('created_at', range.end.toISOString())
+      .or(`actual_end_at.is.null,actual_end_at.gte.${range.start.toISOString()}`)
       .neq('status', 'cancelled')
     if (jobsError) throw jobsError
 

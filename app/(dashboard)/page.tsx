@@ -127,17 +127,19 @@ export default async function DashboardPage({
         </Suspense>
       </UpcomingJobsErrorBoundary>
 
-      {/* Charts Row */}
+      {/* Revenue trend paired with Lead Sources — the "where is money
+          coming from and where are leads coming from" row. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RevenueChart />
-        <JobsByStatus filters={filters} />
+        <LeadSourceChart filters={filters} />
       </div>
 
-      {/* Hazard breakdown — click a slice to filter the rest of the dashboard */}
-      <JobsByHazard filters={filters} />
-
-      {/* Lead sources */}
-      <LeadSourceChart filters={filters} />
+      {/* Jobs breakdowns — by status and by hazard, side by side. Click a
+          hazard slice to filter the rest of the dashboard. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <JobsByStatus filters={filters} />
+        <JobsByHazard filters={filters} />
+      </div>
 
       {/* Secondary row: what needs money in, what happened recently */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

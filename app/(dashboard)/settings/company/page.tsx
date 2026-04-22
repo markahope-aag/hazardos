@@ -5,8 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
-import { Loader2, Save, Building } from 'lucide-react'
+import { Loader2, Save, Building, Clock } from 'lucide-react'
+import { DEFAULT_TIMEZONE, US_TIMEZONE_OPTIONS } from '@/lib/timezone'
 
 interface CompanyForm {
   name: string
@@ -18,6 +22,7 @@ interface CompanyForm {
   city: string
   state: string
   zip: string
+  timezone: string
 }
 
 const EMPTY: CompanyForm = {
@@ -30,6 +35,7 @@ const EMPTY: CompanyForm = {
   city: '',
   state: '',
   zip: '',
+  timezone: DEFAULT_TIMEZONE,
 }
 
 export default function CompanyProfilePage() {
@@ -55,6 +61,7 @@ export default function CompanyProfilePage() {
           city: org.city || '',
           state: org.state || '',
           zip: org.zip || '',
+          timezone: org.timezone || DEFAULT_TIMEZONE,
         })
       } catch (e) {
         toast({
@@ -232,6 +239,43 @@ export default function CompanyProfilePage() {
                 <Label htmlFor="zip">ZIP</Label>
                 <Input id="zip" value={form.zip} onChange={(e) => update('zip', e.target.value)} />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Locale
+            </CardTitle>
+            <CardDescription>
+              Your local timezone drives every date on the dashboard, schedule,
+              and reports — "today", "upcoming jobs", date pickers, and
+              period windows are all computed here.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="max-w-md">
+              <Label htmlFor="timezone">Timezone</Label>
+              <Select
+                value={form.timezone}
+                onValueChange={(v) => update('timezone', v)}
+              >
+                <SelectTrigger id="timezone">
+                  <SelectValue placeholder="Select your timezone" />
+                </SelectTrigger>
+                <SelectContent>
+                  {US_TIMEZONE_OPTIONS.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-2">
+                Currently set to <code className="font-mono">{form.timezone}</code>.
+              </p>
             </div>
           </CardContent>
         </Card>

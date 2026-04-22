@@ -9,8 +9,11 @@ import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { MapPin, Search, ChevronLeft, ChevronRight, Users, Briefcase } from 'lucide-react'
-import { useProperties } from '@/lib/hooks/use-properties'
+import {
+  MapPin, Search, ChevronLeft, ChevronRight, Users, Briefcase,
+  ArrowUp, ArrowDown, ArrowUpDown,
+} from 'lucide-react'
+import { useProperties, type PropertiesSortKey, type PropertiesSortDir } from '@/lib/hooks/use-properties'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 
 const PAGE_SIZE = 25
@@ -18,11 +21,33 @@ const PAGE_SIZE = 25
 export default function PropertiesPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [sortBy, setSortBy] = useState<PropertiesSortKey>('recent')
+  const [sortDir, setSortDir] = useState<PropertiesSortDir>('desc')
   const debounced = useDebouncedValue(search, 300)
 
+  // Clicking the same column toggles asc/desc. Clicking a different
+  // column starts from the sensible default for that column's type
+  // (A→Z for text, highest-first for counts).
+  const toggleSort = (key: PropertiesSortKey) => {
+    if (sortBy === key) {
+      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortBy(key)
+      setSortDir(key === 'jobs' || key === 'recent' ? 'desc' : 'asc')
+    }
+    setPage(1)
+  }
+
+  const sortIcon = (key: PropertiesSortKey) => {
+    if (sortBy !== key) return <ArrowUpDown className="h-3 w-3 text-gray-300" />
+    return sortDir === 'asc'
+      ? <ArrowUp className="h-3 w-3 text-primary" />
+      : <ArrowDown className="h-3 w-3 text-primary" />
+  }
+
   const queryOptions = useMemo(
-    () => ({ search: debounced, page, pageSize: PAGE_SIZE }),
-    [debounced, page],
+    () => ({ search: debounced, page, pageSize: PAGE_SIZE, sortBy, sortDir }),
+    [debounced, page, sortBy, sortDir],
   )
 
   const { data: properties = [], isLoading, error } = useProperties(queryOptions)
@@ -86,10 +111,37 @@ export default function PropertiesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Address</TableHead>
-                  <TableHead>City / State</TableHead>
+                  <TableHead>
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('address')}
+                      className="flex items-center gap-1.5 font-medium hover:text-primary transition-colors"
+                    >
+                      Address
+                      {sortIcon('address')}
+                    </button>
+                  </TableHead>
+                  <TableHead>
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('city')}
+                      className="flex items-center gap-1.5 font-medium hover:text-primary transition-colors"
+                    >
+                      City / State
+                      {sortIcon('city')}
+                    </button>
+                  </TableHead>
                   <TableHead className="text-right">Contacts</TableHead>
-                  <TableHead className="text-right">Jobs</TableHead>
+                  <TableHead className="text-right">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('jobs')}
+                      className="inline-flex items-center gap-1.5 font-medium hover:text-primary transition-colors"
+                    >
+                      Jobs
+                      {sortIcon('jobs')}
+                    </button>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

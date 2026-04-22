@@ -10,7 +10,7 @@ import {
   Legend,
 } from '@/components/charts/recharts-lazy'
 import { Cell } from 'recharts'
-import type { DashboardFilters } from '@/lib/dashboard/filters'
+import { type DashboardFilters, getShortPeriodLabel } from '@/lib/dashboard/filters'
 
 interface LeadSourceBucket {
   source: string
@@ -101,7 +101,10 @@ export function LeadSourceChart({ filters }: LeadSourceChartProps) {
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <div>
           <CardTitle>Lead Sources</CardTitle>
-          <p className="text-xs text-muted-foreground mt-1">Where your jobs are coming from</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Where your jobs are coming from · {getShortPeriodLabel(filters.period)}
+            {filters.hazardType !== 'all' && ` · ${filters.hazardType} only`}
+          </p>
         </div>
         <div className="text-right">
           <div className="text-3xl font-bold leading-none">{total}</div>

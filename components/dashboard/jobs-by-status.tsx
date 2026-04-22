@@ -10,7 +10,7 @@ import {
   Tooltip,
 } from '@/components/charts/recharts-lazy'
 import { Cell } from 'recharts'
-import type { DashboardFilters } from '@/lib/dashboard/filters'
+import { type DashboardFilters, getShortPeriodLabel } from '@/lib/dashboard/filters'
 
 interface JobStatusBucket {
   status: string
@@ -82,7 +82,8 @@ export function JobsByStatus({ filters }: JobsByStatusProps) {
       <CardHeader className="pb-2">
         <CardTitle>Jobs by Status</CardTitle>
         <p className="text-xs text-muted-foreground mt-1">
-          {filters.hazardType === 'all' ? 'All hazard types' : `${filters.hazardType} only`}
+          {getShortPeriodLabel(filters.period)} ·{' '}
+          {filters.hazardType === 'all' ? 'all hazards' : `${filters.hazardType} only`}
         </p>
       </CardHeader>
       <CardContent>

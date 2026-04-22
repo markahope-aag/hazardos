@@ -26,12 +26,15 @@ export const GET = createApiHandler(
     const period = (query.period ?? 'month') as DashboardPeriod
     const range = getPeriodRange(period)
 
+    // Overlap filter — see note in jobs-by-status route. A job counts
+    // for the period if it was active during the window, not only if
+    // it was scheduled to start inside it.
     const { data: jobs, error } = await context.supabase
       .from('jobs')
       .select('id, site_survey_id, site_survey:site_surveys(hazard_type)')
       .eq('organization_id', context.profile.organization_id)
-      .gte('scheduled_start_date', range.start.toISOString().split('T')[0])
-      .lte('scheduled_start_date', range.end.toISOString().split('T')[0])
+      .lte('created_at', range.end.toISOString())
+      .or(`actual_end_at.is.null,actual_end_at.gte.${range.start.toISOString()}`)
       .neq('status', 'cancelled')
 
     if (error) throw error

@@ -6,6 +6,7 @@ import { formatCurrency, cn } from '@/lib/utils'
 import {
   DashboardFilters,
   getPeriodRange,
+  getShortPeriodLabel,
   computeTrend,
   buildFilterQuery,
   hazardFilterToDbValue,
@@ -250,12 +251,14 @@ export async function StatsCards({ filters }: StatsCardsProps) {
   const winRateTrend = computeTrend(currentWinRate, previousWinRate)
   const arTrend = computeTrend(outstandingAR, previousOutstandingAR)
 
+  const shortLabel = getShortPeriodLabel(filters.period)
+
   const stats = [
     {
       title: 'Revenue',
       value: formatCurrency(currentRevenue, false),
       icon: DollarSign,
-      description: `Completed jobs ${range.label.toLowerCase()}`,
+      description: `Completed jobs · ${shortLabel}`,
       trend: revenueTrend,
       // Up-arrow = good (default polarity).
       trendInverted: false,
@@ -265,7 +268,10 @@ export async function StatsCards({ filters }: StatsCardsProps) {
       title: 'Outstanding AR',
       value: formatCurrency(outstandingAR, false),
       icon: FileText,
-      description: 'Unpaid invoice balance',
+      // AR is a running balance, not date-scoped, but the trend arrow
+      // compares against the same period's prior window — so the card
+      // spells out what the % delta is measuring.
+      description: `Unpaid balance · trend vs prior ${shortLabel}`,
       trend: arTrend,
       // Falling AR is healthy (customers are paying); rising AR is a
       // collections problem. Flip polarity so the arrow color reflects that.
@@ -276,7 +282,7 @@ export async function StatsCards({ filters }: StatsCardsProps) {
       title: 'Open Jobs',
       value: (currentJobCount || 0).toString(),
       icon: Calendar,
-      description: `Open in ${range.label.toLowerCase()}`,
+      description: `Scheduled · in progress · on hold — ${shortLabel}`,
       trend: jobsTrend,
       trendInverted: false,
       href: `/crm/jobs${buildFilterQuery(filters)}`,
@@ -285,7 +291,7 @@ export async function StatsCards({ filters }: StatsCardsProps) {
       title: 'Win Rate',
       value: `${currentWinRate}%`,
       icon: TrendingUp,
-      description: `${currentProposalsWon} of ${currentProposalsSent} proposals`,
+      description: `${currentProposalsWon} of ${currentProposalsSent} proposals · ${shortLabel}`,
       trend: winRateTrend,
       trendInverted: false,
       // /sales/win-loss is the wins/losses report; there is no top-level

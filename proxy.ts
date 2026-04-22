@@ -13,7 +13,10 @@ import { updateSession } from './lib/supabase/middleware'
 import { corsMiddleware } from './lib/middleware/cors'
 
 const AUTH_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password']
-const PUBLIC_ROUTES = [...AUTH_ROUTES, '/auth/callback', '/onboard']
+// /api/webhooks/* is provider-to-server (Resend, Stripe, etc.) — no
+// session cookies present, so the dashboard redirect must not fire.
+// Webhook handlers authenticate the call internally via signature check.
+const PUBLIC_ROUTES = [...AUTH_ROUTES, '/auth/callback', '/onboard', '/api/webhooks']
 
 export async function proxy(request: NextRequest) {
   // Handle CORS first (short-circuits for OPTIONS requests)

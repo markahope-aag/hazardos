@@ -9,18 +9,23 @@ import type {
   PropertyContactUpdate,
 } from '@/types/database'
 
+export type PropertiesSortKey = 'recent' | 'address' | 'city' | 'jobs'
+export type PropertiesSortDir = 'asc' | 'desc'
+
 interface UsePropertiesOptions {
   search?: string
   page?: number
   pageSize?: number
+  sortBy?: PropertiesSortKey
+  sortDir?: PropertiesSortDir
 }
 
 export function useProperties(options: UsePropertiesOptions = {}) {
   const { organization } = useMultiTenantAuth()
-  const { search, page = 1, pageSize = 25 } = options
+  const { search, page = 1, pageSize = 25, sortBy, sortDir } = options
 
   return useQuery({
-    queryKey: ['properties', organization?.id, search, page, pageSize],
+    queryKey: ['properties', organization?.id, search, page, pageSize, sortBy, sortDir],
     queryFn: async () => {
       if (!organization?.id) throw new Error('No organization found')
       const offset = (page - 1) * pageSize
@@ -28,6 +33,8 @@ export function useProperties(options: UsePropertiesOptions = {}) {
         search: search || undefined,
         limit: pageSize,
         offset,
+        sortBy,
+        sortDir,
       })
     },
     enabled: !!organization?.id,

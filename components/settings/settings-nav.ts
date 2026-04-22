@@ -9,6 +9,7 @@ import {
   Webhook,
   Bell,
   MessageSquare,
+  Mail,
   Shield,
   Palette,
   type LucideIcon,
@@ -57,6 +58,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
   {
     label: 'Communications',
     items: [
+      { href: '/settings/email', label: 'Email', icon: Mail },
       { href: '/settings/notifications', label: 'Notifications', icon: Bell },
       { href: '/settings/sms', label: 'SMS', icon: MessageSquare },
     ],

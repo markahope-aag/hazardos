@@ -34,6 +34,24 @@ export const PERIOD_OPTIONS: Array<{ value: DashboardPeriod; label: string }> = 
   { value: 'ytd', label: 'Year to Date' },
 ]
 
+/**
+ * Short lowercase label for inline subtitles ("Open in this month", "YTD").
+ * Use this when the period label appears in a sentence fragment alongside
+ * a metric description, not as a standalone heading.
+ */
+export function getShortPeriodLabel(period: DashboardPeriod): string {
+  switch (period) {
+    case 'week':
+      return 'this week'
+    case 'month':
+      return 'this month'
+    case 'quarter':
+      return 'this quarter'
+    case 'ytd':
+      return 'YTD'
+  }
+}
+
 export const HAZARD_TYPE_OPTIONS: Array<{ value: DashboardHazardType; label: string }> = [
   { value: 'all', label: 'All Hazards' },
   { value: 'asbestos', label: 'Asbestos' },

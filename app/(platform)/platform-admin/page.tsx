@@ -137,12 +137,20 @@ export default async function PlatformAdminPage() {
               <div className="text-xs text-gray-600">Configure platform-wide settings</div>
             </a>
             
-            <a 
-              href="/platform-admin/usage" 
+            <a
+              href="/platform-admin/usage"
               className="block p-3 rounded-md border border-gray-200 hover:border-primary hover:bg-primary/5 transition-colors"
             >
               <div className="font-medium text-sm">Usage Analytics</div>
               <div className="text-xs text-gray-600">View tenant usage and analytics</div>
+            </a>
+
+            <a
+              href="/platform-admin/email-deliverability"
+              className="block p-3 rounded-md border border-gray-200 hover:border-primary hover:bg-primary/5 transition-colors"
+            >
+              <div className="font-medium text-sm">Email Deliverability</div>
+              <div className="text-xs text-gray-600">Per-tenant bounce &amp; complaint rates</div>
             </a>
           </CardContent>
         </Card>

@@ -40,8 +40,13 @@ export class PropertiesService {
       search?: string
       limit?: number
       offset?: number
+      sortBy?: 'recent' | 'address' | 'city' | 'jobs'
+      sortDir?: 'asc' | 'desc'
     } = {}
   ): Promise<PropertyWithCounts[]> {
+    const sortBy = options.sortBy ?? 'recent'
+    const sortDir = options.sortDir ?? (sortBy === 'recent' || sortBy === 'jobs' ? 'desc' : 'asc')
+
     let query = this.supabase
       .from('properties')
       .select(
@@ -56,19 +61,38 @@ export class PropertiesService {
       )
     }
 
-    query = query.order('updated_at', { ascending: false })
-
-    if (options.limit) {
-      query = query.limit(options.limit)
+    // Server-side sort for address/city/recent; jobs sort has to happen
+    // client-side because PostgREST can't order by an aggregate count
+    // on an embedded resource without a view or RPC. For that case we
+    // pull a wider batch and sort in memory below.
+    if (sortBy === 'address') {
+      query = query.order('address_line1', { ascending: sortDir === 'asc' })
+    } else if (sortBy === 'city') {
+      query = query
+        .order('city', { ascending: sortDir === 'asc', nullsFirst: false })
+        .order('address_line1', { ascending: true })
+    } else if (sortBy === 'recent') {
+      query = query.order('updated_at', { ascending: sortDir === 'asc' })
     }
-    if (options.offset) {
-      query = query.range(options.offset, options.offset + (options.limit || 25) - 1)
+
+    if (sortBy === 'jobs') {
+      // Client-side sort path. Cap the pull at 500 to keep the in-memory
+      // sort bounded — beyond that, a denormalized job_count column or
+      // RPC becomes the right move.
+      query = query.limit(500)
+    } else {
+      if (options.limit) {
+        query = query.limit(options.limit)
+      }
+      if (options.offset) {
+        query = query.range(options.offset, options.offset + (options.limit || 25) - 1)
+      }
     }
 
     const { data, error } = await query
     if (error) throw new Error(`Failed to list properties: ${error.message}`)
 
-    return (data || []).map((row) => {
+    const mapped: PropertyWithCounts[] = (data || []).map((row) => {
       const contacts = Array.isArray((row as Record<string, unknown>).property_contacts)
         ? ((row as Record<string, unknown>).property_contacts as Array<{ is_current: boolean }>)
         : []
@@ -85,6 +109,21 @@ export class PropertiesService {
         job_count: jobs.length,
       }
     })
+
+    if (sortBy === 'jobs') {
+      const dir = sortDir === 'asc' ? 1 : -1
+      mapped.sort((a, b) => {
+        const delta = (a.job_count - b.job_count) * dir
+        if (delta !== 0) return delta
+        // Tiebreak on address so ordering is stable within the same count.
+        return (a.address_line1 || '').localeCompare(b.address_line1 || '')
+      })
+      const offset = options.offset ?? 0
+      const limit = options.limit ?? 25
+      return mapped.slice(offset, offset + limit)
+    }
+
+    return mapped
   }
 
   static async getProperty(id: string): Promise<Property | null> {

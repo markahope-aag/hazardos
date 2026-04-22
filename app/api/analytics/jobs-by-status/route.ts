@@ -44,12 +44,21 @@ export const GET = createApiHandler(
       surveyIdFilter = (surveys || []).map((s) => s.id)
     }
 
+    // Overlap filter: a job counts for the period if it was active at
+    // any point during the window. Before this the query was scoped to
+    // `scheduled_start_date BETWEEN start AND end` — which silently
+    // excluded every completed or in-progress job whose start date fell
+    // before the window, so the chart read as "only scheduled jobs."
+    //
+    // Active-during-period = created before the window ends AND still
+    // open OR finished after the window began. Cancelled jobs still
+    // count here because the status breakdown is meant to show them.
     let jobsQuery = context.supabase
       .from('jobs')
       .select('status')
       .eq('organization_id', context.profile.organization_id)
-      .gte('scheduled_start_date', range.start.toISOString().split('T')[0])
-      .lte('scheduled_start_date', range.end.toISOString().split('T')[0])
+      .lte('created_at', range.end.toISOString())
+      .or(`actual_end_at.is.null,actual_end_at.gte.${range.start.toISOString()}`)
 
     if (surveyIdFilter !== null) {
       if (surveyIdFilter.length === 0) {

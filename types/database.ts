@@ -189,6 +189,14 @@ export interface Database {
           email: string | null
           website: string | null
           license_number: string | null
+          timezone: string
+          email_from_name: string | null
+          email_reply_to: string | null
+          email_domain: string | null
+          email_domain_status: 'pending' | 'verified' | 'failed' | null
+          email_domain_provider_id: string | null
+          email_domain_records: unknown | null // JSONB
+          email_domain_verified_at: string | null
           status: OrganizationStatus
           subscription_tier: SubscriptionTier
           trial_ends_at: string | null
@@ -211,6 +219,14 @@ export interface Database {
           email?: string | null
           website?: string | null
           license_number?: string | null
+          timezone?: string
+          email_from_name?: string | null
+          email_reply_to?: string | null
+          email_domain?: string | null
+          email_domain_status?: 'pending' | 'verified' | 'failed' | null
+          email_domain_provider_id?: string | null
+          email_domain_records?: unknown | null
+          email_domain_verified_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -225,8 +241,82 @@ export interface Database {
           email?: string | null
           website?: string | null
           license_number?: string | null
+          timezone?: string
+          email_from_name?: string | null
+          email_reply_to?: string | null
+          email_domain?: string | null
+          email_domain_status?: 'pending' | 'verified' | 'failed' | null
+          email_domain_provider_id?: string | null
+          email_domain_records?: unknown | null
+          email_domain_verified_at?: string | null
           created_at?: string
           updated_at?: string
+        }
+      }
+      email_sends: {
+        Row: {
+          id: string
+          organization_id: string
+          sent_by: string | null
+          to_email: string
+          cc: string[] | null
+          bcc: string[] | null
+          reply_to: string | null
+          from_email: string
+          from_name: string | null
+          subject: string
+          provider: string
+          provider_message_id: string | null
+          status: 'queued' | 'sent' | 'delivered' | 'bounced' | 'complained' | 'failed'
+          error_message: string | null
+          sent_at: string | null
+          delivered_at: string | null
+          bounced_at: string | null
+          complained_at: string | null
+          first_opened_at: string | null
+          last_opened_at: string | null
+          open_count: number
+          first_clicked_at: string | null
+          click_count: number
+          related_entity_type: string | null
+          related_entity_id: string | null
+          tags: string[] | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          sent_by?: string | null
+          to_email: string
+          cc?: string[] | null
+          bcc?: string[] | null
+          reply_to?: string | null
+          from_email: string
+          from_name?: string | null
+          subject: string
+          provider?: string
+          provider_message_id?: string | null
+          status?: 'queued' | 'sent' | 'delivered' | 'bounced' | 'complained' | 'failed'
+          error_message?: string | null
+          sent_at?: string | null
+          related_entity_type?: string | null
+          related_entity_id?: string | null
+          tags?: string[] | null
+        }
+        Update: {
+          status?: 'queued' | 'sent' | 'delivered' | 'bounced' | 'complained' | 'failed'
+          error_message?: string | null
+          sent_at?: string | null
+          delivered_at?: string | null
+          bounced_at?: string | null
+          complained_at?: string | null
+          first_opened_at?: string | null
+          last_opened_at?: string | null
+          open_count?: number
+          first_clicked_at?: string | null
+          click_count?: number
+          provider_message_id?: string | null
         }
       }
       profiles: {

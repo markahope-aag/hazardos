@@ -41,7 +41,13 @@ export function RevenueChart() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Revenue (Last 6 Months)</CardTitle>
+        <CardTitle>Revenue Trend</CardTitle>
+        {/* Intentionally independent of the dashboard period filter —
+            trend reads better with a stable 6-month rolling window than
+            it does snapping back and forth with the filter. */}
+        <p className="text-xs text-muted-foreground mt-1">
+          Completed jobs · last 6 months
+        </p>
       </CardHeader>
       <CardContent>
         {loading ? (
