@@ -135,6 +135,7 @@ export default function OpportunitiesPage() {
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="new">New</SelectItem>
               <SelectItem value="assessment_scheduled">Survey Scheduled</SelectItem>
+              <SelectItem value="survey_completed">Survey Completed</SelectItem>
               <SelectItem value="estimate_sent">Estimate Sent</SelectItem>
               <SelectItem value="won">Won</SelectItem>
               <SelectItem value="lost">Lost</SelectItem>

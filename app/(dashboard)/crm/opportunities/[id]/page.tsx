@@ -53,6 +53,7 @@ const TRIGGER_LABELS: Record<string, string> = {
 const OPPORTUNITY_STATUS_LABELS: Record<string, string> = {
   new: 'New',
   assessment_scheduled: 'Survey Scheduled',
+  survey_completed: 'Survey Completed',
   estimate_sent: 'Estimate Sent',
   won: 'Won',
   lost: 'Lost',
