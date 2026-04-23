@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import {
-  AlertTriangle, Check, Clock, Copy, Globe, Loader2, Mail, RefreshCw, Save, Trash2, XCircle,
+  AlertTriangle, Check, Clock, Copy, Globe, Loader2, Mail, RefreshCw, Save, Send, Trash2, XCircle,
 } from 'lucide-react'
 
 interface DnsRecord {
@@ -54,6 +54,8 @@ export default function EmailSettingsPage() {
   const [submittingDomain, setSubmittingDomain] = useState(false)
   const [refreshingDomain, setRefreshingDomain] = useState(false)
   const [removingDomain, setRemovingDomain] = useState(false)
+  const [testRecipient, setTestRecipient] = useState('')
+  const [sendingTest, setSendingTest] = useState(false)
 
   const loadSettings = useCallback(async () => {
     try {
@@ -211,6 +213,34 @@ export default function EmailSettingsPage() {
     }
   }
 
+  const handleSendTest = async () => {
+    setSendingTest(true)
+    try {
+      const res = await fetch('/api/organizations/me/email-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(testRecipient ? { to: testRecipient.trim() } : {}),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.error?.message || 'Test send failed')
+      }
+      const data = await res.json()
+      toast({
+        title: 'Test email sent',
+        description: `Delivered to ${data.to} from ${data.sender.fromEmail}`,
+      })
+    } catch (e) {
+      toast({
+        title: 'Test send failed',
+        description: e instanceof Error ? e.message : 'Unknown error',
+        variant: 'destructive',
+      })
+    } finally {
+      setSendingTest(false)
+    }
+  }
+
   const copyToClipboard = async (value: string, label: string) => {
     try {
       await navigator.clipboard.writeText(value)
@@ -306,6 +336,45 @@ export default function EmailSettingsPage() {
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving…</>
               ) : (
                 <><Save className="h-4 w-4 mr-2" /> Save</>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Test send — proves the whole stack (API key, from-address
+          resolution, DNS / DKIM) end-to-end without having to create
+          a contact and click through the composer. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Send className="h-5 w-5" />
+            Send a Test Email
+          </CardTitle>
+          <CardDescription>
+            Fires a real send through the Resend pipeline so you can check
+            the inbox, verify DKIM/SPF pass, and confirm the audit row
+            flips from <code className="font-mono text-xs">sent</code> to{' '}
+            <code className="font-mono text-xs">delivered</code>.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+            <div className="flex-1">
+              <Label htmlFor="test_to">Recipient (optional)</Label>
+              <Input
+                id="test_to"
+                type="email"
+                value={testRecipient}
+                onChange={(e) => setTestRecipient(e.target.value)}
+                placeholder="Defaults to your account email"
+              />
+            </div>
+            <Button onClick={handleSendTest} disabled={sendingTest}>
+              {sendingTest ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending…</>
+              ) : (
+                <><Send className="h-4 w-4 mr-2" /> Send Test</>
               )}
             </Button>
           </div>
