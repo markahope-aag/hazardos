@@ -5,31 +5,32 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Activity, Plus, Pencil, Trash2, ArrowRightLeft, Send, CheckCircle, DollarSign,
-  MessageSquare, Phone,
+  MessageSquare, Phone, Mail, MessageCircle, AlertTriangle,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 
-interface ActivityLogEntry {
+interface FeedEntry {
   id: string
-  user_id: string | null
-  user_name: string | null
-  action: string
-  entity_type: string
-  entity_id: string
+  source: 'activity' | 'sms' | 'email'
+  kind: string
+  at: string
+  actor: string | null
+  entity_type: string | null
+  entity_id: string | null
   entity_name: string | null
-  old_values: Record<string, unknown> | null
-  new_values: Record<string, unknown> | null
-  description: string | null
-  created_at: string
+  title: string
+  subtitle: string | null
+  body: string | null
+  meta: Record<string, unknown> | null
 }
 
 // Three shapes the feed can run in:
 //   - entityType+entityId — activity for one specific row
 //   - customerId — aggregate across a contact (contact + surveys/estimates/
-//     proposals/opps/jobs all owned by that contact)
+//     proposals/opps/jobs all owned by that contact) + SMS + email
 //   - companyId — aggregate across a company (company + its contacts and
 //     everything those contacts own, plus jobs/opps keyed directly to the
-//     company)
+//     company) + SMS + email
 type Props = {
   title?: string
   limit?: number
@@ -40,6 +41,7 @@ type Props = {
 )
 
 const ACTION_ICON: Record<string, typeof Activity> = {
+  // activity_log kinds
   created: Plus,
   updated: Pencil,
   deleted: Trash2,
@@ -49,6 +51,10 @@ const ACTION_ICON: Record<string, typeof Activity> = {
   paid: DollarSign,
   note: MessageSquare,
   call: Phone,
+  email_sent: Mail,
+  // sms/email unified kinds
+  sms_outbound: MessageCircle,
+  sms_inbound: MessageCircle,
 }
 
 const ACTION_TINT: Record<string, string> = {
@@ -61,9 +67,15 @@ const ACTION_TINT: Record<string, string> = {
   paid: 'bg-emerald-50 text-emerald-700',
   note: 'bg-amber-50 text-amber-700',
   call: 'bg-sky-50 text-sky-700',
+  email_sent: 'bg-orange-50 text-orange-700',
+  sms_outbound: 'bg-violet-50 text-violet-700',
+  sms_inbound: 'bg-pink-50 text-pink-700',
 }
 
-function describeChanges(oldValues: Record<string, unknown> | null, newValues: Record<string, unknown> | null): string | null {
+function describeChanges(
+  oldValues: Record<string, unknown> | null | undefined,
+  newValues: Record<string, unknown> | null | undefined,
+): string | null {
   if (!newValues) return null
   const keys = Object.keys(newValues).filter((k) => k !== 'updated_at' && k !== 'id')
   if (keys.length === 0) return null
@@ -85,13 +97,32 @@ function formatValue(v: unknown): string {
   return JSON.stringify(v).slice(0, 40)
 }
 
+function emailStatusLabel(status: string | undefined): { label: string; tone: 'neutral' | 'ok' | 'warn' | 'bad' } {
+  switch (status) {
+    case 'delivered': return { label: 'Delivered', tone: 'ok' }
+    case 'sent': return { label: 'Sent', tone: 'neutral' }
+    case 'bounced': return { label: 'Bounced', tone: 'bad' }
+    case 'complained': return { label: 'Marked as spam', tone: 'bad' }
+    case 'failed': return { label: 'Failed', tone: 'bad' }
+    case 'queued': return { label: 'Queued', tone: 'neutral' }
+    default: return { label: status || 'Unknown', tone: 'neutral' }
+  }
+}
+
+const STATUS_TONE: Record<string, string> = {
+  neutral: 'text-gray-500',
+  ok: 'text-emerald-600',
+  warn: 'text-amber-600',
+  bad: 'text-red-600',
+}
+
 export default function EntityActivityFeed(props: Props) {
   const { title = 'Activity', limit } = props
   const entityType = 'entityType' in props ? props.entityType : undefined
   const entityId = 'entityId' in props ? props.entityId : undefined
   const customerId = 'customerId' in props ? props.customerId : undefined
   const companyId = 'companyId' in props ? props.companyId : undefined
-  const [entries, setEntries] = useState<ActivityLogEntry[]>([])
+  const [entries, setEntries] = useState<FeedEntry[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -142,41 +173,100 @@ export default function EntityActivityFeed(props: Props) {
           <div className="text-sm text-muted-foreground">No activity recorded yet.</div>
         ) : (
           <ul className="space-y-3">
-            {entries.map((e) => {
-              const Icon = ACTION_ICON[e.action] || Activity
-              const tint = ACTION_TINT[e.action] || 'bg-gray-100 text-gray-700'
-              const diff = e.action === 'updated' ? describeChanges(e.old_values, e.new_values) : null
-              return (
-                <li key={e.id} className="flex items-start gap-3">
-                  <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${tint}`}>
-                    <Icon className="h-3.5 w-3.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm text-gray-900">
-                      <span className="font-medium">{e.user_name || 'System'}</span>{' '}
-                      <span className="text-gray-600">{humanAction(e.action)}</span>
-                      {e.entity_name && (
-                        <>
-                          {' '}
-                          <span className="font-medium">{e.entity_name}</span>
-                        </>
-                      )}
-                      {e.description && <span className="text-gray-600"> — {e.description}</span>}
-                    </div>
-                    {diff && (
-                      <div className="text-xs text-gray-500 mt-0.5 truncate">{diff}</div>
-                    )}
-                    <div className="text-xs text-gray-400 mt-0.5">
-                      {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
-                    </div>
-                  </div>
-                </li>
-              )
-            })}
+            {entries.map((e) => (
+              <FeedItem key={e.id} entry={e} />
+            ))}
           </ul>
         )}
       </CardContent>
     </Card>
+  )
+}
+
+function FeedItem({ entry }: { entry: FeedEntry }) {
+  const Icon = ACTION_ICON[entry.kind] || Activity
+  const tint = ACTION_TINT[entry.kind] || 'bg-gray-100 text-gray-700'
+
+  return (
+    <li className="flex items-start gap-3">
+      <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${tint}`}>
+        <Icon className="h-3.5 w-3.5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        {entry.source === 'activity' && <ActivityBody entry={entry} />}
+        {entry.source === 'sms' && <SmsBody entry={entry} />}
+        {entry.source === 'email' && <EmailBody entry={entry} />}
+        <div className="text-xs text-gray-400 mt-0.5">
+          {formatDistanceToNow(new Date(entry.at), { addSuffix: true })}
+        </div>
+      </div>
+    </li>
+  )
+}
+
+function ActivityBody({ entry }: { entry: FeedEntry }) {
+  const meta = entry.meta as { old_values?: Record<string, unknown>; new_values?: Record<string, unknown> } | null
+  const diff =
+    entry.kind === 'updated' ? describeChanges(meta?.old_values, meta?.new_values) : null
+
+  return (
+    <>
+      <div className="text-sm text-gray-900">
+        <span className="font-medium">{entry.actor || 'System'}</span>{' '}
+        <span className="text-gray-600">{humanAction(entry.kind)}</span>
+        {entry.entity_name && (
+          <>
+            {' '}
+            <span className="font-medium">{entry.entity_name}</span>
+          </>
+        )}
+      </div>
+      {diff && (
+        <div className="text-xs text-gray-500 mt-0.5 truncate">{diff}</div>
+      )}
+    </>
+  )
+}
+
+function SmsBody({ entry }: { entry: FeedEntry }) {
+  const meta = entry.meta as { status?: string; direction?: string } | null
+  const failed = meta?.status === 'failed' || meta?.status === 'undelivered'
+  return (
+    <>
+      <div className="text-sm text-gray-900 flex items-center gap-2">
+        <span className="font-medium">{entry.title}</span>
+        {failed && (
+          <span className="inline-flex items-center gap-1 text-xs text-red-600">
+            <AlertTriangle className="h-3 w-3" />
+            {meta?.status}
+          </span>
+        )}
+      </div>
+      {entry.body && (
+        <div className="text-sm text-gray-700 mt-0.5 italic">&ldquo;{entry.body}&rdquo;</div>
+      )}
+    </>
+  )
+}
+
+function EmailBody({ entry }: { entry: FeedEntry }) {
+  const meta = entry.meta as
+    | { status?: string; open_count?: number; bounced_at?: string | null }
+    | null
+  const status = emailStatusLabel(meta?.status)
+  const opens = meta?.open_count ?? 0
+
+  return (
+    <>
+      <div className="text-sm text-gray-900">
+        <span className="font-medium">{entry.title}</span>
+      </div>
+      <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
+        {entry.subtitle && <span>{entry.subtitle}</span>}
+        <span className={STATUS_TONE[status.tone]}>· {status.label}</span>
+        {opens > 0 && <span className="text-gray-500">· Opened {opens}×</span>}
+      </div>
+    </>
   )
 }
 
@@ -191,6 +281,7 @@ function humanAction(action: string): string {
     case 'paid': return 'recorded payment on'
     case 'note': return 'added a note to'
     case 'call': return 'logged a call on'
+    case 'email_sent': return 'sent email about'
     default: return action
   }
 }

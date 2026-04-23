@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
 import { NotificationService } from '@/lib/services/notification-service'
+import { EmailService } from '@/lib/services/email/email-service'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type {
@@ -654,39 +655,36 @@ export class ApprovalService {
       return
     }
 
-    const resendApiKey = process.env.RESEND_API_KEY
-    if (!resendApiKey) return
-
     try {
-      const { Resend } = await import('resend')
-      const resend = new Resend(resendApiKey)
-
       const { data: org } = await supabase
         .from('organizations')
-        .select('name, email')
+        .select('name')
         .eq('id', estimate.organization_id)
         .single()
-      const fromEmail = org?.email || 'noreply@hazardos.app'
       const orgName = org?.name || 'HazardOS'
       const recipientName = customer.name || [customer.first_name, customer.last_name].filter(Boolean).join(' ') || 'Valued Customer'
 
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
       const portalUrl = `${appUrl}/portal/proposal/${proposal.access_token}`
 
-      await resend.emails.send({
-        from: `${orgName} <${fromEmail}>`,
-        to: customer.email,
-        subject: `Proposal ${proposal.proposal_number} - ${orgName}`,
-        html: `
-          <h1>Proposal ${proposal.proposal_number}</h1>
-          <p>Dear ${recipientName},</p>
-          <p>Please review your proposal by clicking the link below:</p>
-          <p><a href="${portalUrl}" style="background-color: #FF6B35; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">View Proposal</a></p>
-          <p>This link will expire on ${new Date(proposal.access_token_expires_at).toLocaleDateString()}.</p>
-          <p>Thank you for your business!</p>
-          <p>${orgName}</p>
-        `,
-      })
+      await EmailService.send(
+        estimate.organization_id,
+        {
+          to: customer.email,
+          subject: `Proposal ${proposal.proposal_number} - ${orgName}`,
+          html: `
+            <h1>Proposal ${proposal.proposal_number}</h1>
+            <p>Dear ${recipientName},</p>
+            <p>Please review your proposal by clicking the link below:</p>
+            <p><a href="${portalUrl}" style="background-color: #FF6B35; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">View Proposal</a></p>
+            <p>This link will expire on ${new Date(proposal.access_token_expires_at).toLocaleDateString()}.</p>
+            <p>Thank you for your business!</p>
+            <p>${orgName}</p>
+          `,
+          tags: ['proposal'],
+          relatedEntity: { type: 'proposal', id: proposal.id },
+        },
+      )
 
       await supabase
         .from('proposals')

@@ -229,10 +229,12 @@ describe('Analytics API', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              gte: vi.fn().mockReturnValue({
-                lte: vi.fn().mockResolvedValue({
-                  data: mockPayments,
-                  error: null
+              in: vi.fn().mockReturnValue({
+                gte: vi.fn().mockReturnValue({
+                  lte: vi.fn().mockResolvedValue({
+                    data: mockPayments,
+                    error: null
+                  })
                 })
               })
             })
@@ -288,10 +290,12 @@ describe('Analytics API', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              gte: vi.fn().mockReturnValue({
-                lte: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: { message: 'Permission denied for relation payments', code: '42501' }
+              in: vi.fn().mockReturnValue({
+                gte: vi.fn().mockReturnValue({
+                  lte: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: { message: 'Permission denied for relation jobs', code: '42501' }
+                  })
                 })
               })
             })
@@ -333,10 +337,12 @@ describe('Analytics API', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              gte: vi.fn().mockReturnValue({
-                lte: vi.fn().mockResolvedValue({
-                  data: [],
-                  error: null
+              in: vi.fn().mockReturnValue({
+                gte: vi.fn().mockReturnValue({
+                  lte: vi.fn().mockResolvedValue({
+                    data: [],
+                    error: null
+                  })
                 })
               })
             })

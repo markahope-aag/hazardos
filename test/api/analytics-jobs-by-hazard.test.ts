@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
-// Create a chainable query builder mock
+// Create a chainable query builder mock. Route now uses .or() for the
+// overlap filter (active during period) instead of BETWEEN on scheduled
+// dates, so the mock has to chain that too.
 function createQueryBuilder() {
   const builder: any = {
     select: vi.fn(() => builder),
@@ -9,6 +11,8 @@ function createQueryBuilder() {
     gte: vi.fn(() => builder),
     lte: vi.fn(() => builder),
     neq: vi.fn(() => builder),
+    or: vi.fn(() => builder),
+    in: vi.fn(() => builder),
     order: vi.fn(() => builder),
     then: vi.fn((resolve) => {
       resolve({ data: [], error: null })

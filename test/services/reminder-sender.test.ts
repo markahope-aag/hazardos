@@ -4,9 +4,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // declared via vi.hoisted() rather than regular `const` — otherwise the
 // hoisted factory runs before the module-level declaration and blows up
 // with "Cannot access 'x' before initialization".
-const { smsSendMock, resendSendMock } = vi.hoisted(() => ({
+const { smsSendMock, emailSendMock } = vi.hoisted(() => ({
   smsSendMock: vi.fn(),
-  resendSendMock: vi.fn(),
+  emailSendMock: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -19,11 +19,12 @@ vi.mock('@/lib/services/sms-service', () => ({
   },
 }))
 
-vi.mock('resend', () => ({
-  // Use a class so `new Resend(...)` in the sender works; a plain vi.fn
-  // implementation isn't invokable with `new` in this Vitest version.
-  Resend: class MockResend {
-    emails = { send: resendSendMock }
+// reminder-sender now sends through EmailService instead of calling
+// Resend directly; mock the service so tests don't need a service-role
+// key or a live Resend connection.
+vi.mock('@/lib/services/email/email-service', () => ({
+  EmailService: {
+    send: emailSendMock,
   },
 }))
 
@@ -103,13 +104,15 @@ describe('sendReminderRow', () => {
       },
     })
     vi.mocked(createClient).mockResolvedValue(supabase as unknown as never)
-    resendSendMock.mockResolvedValue({ data: { id: 'msg1' } })
+    emailSendMock.mockResolvedValue({ auditId: 'a1', providerMessageId: 'msg1' })
 
     const result = await sendReminderRow('r1')
     expect(result).toEqual({ sent: true })
-    expect(resendSendMock).toHaveBeenCalledTimes(1)
+    expect(emailSendMock).toHaveBeenCalledTimes(1)
 
-    const email = resendSendMock.mock.calls[0][0]
+    // EmailService.send(orgId, input, options) — the payload the
+    // reminder sender built is the second arg.
+    const email = emailSendMock.mock.calls[0][1]
     // Critical assertions: no internal fields in the payload.
     const serialized = JSON.stringify(email)
     expect(serialized).not.toMatch(/internal_notes/i)
@@ -156,7 +159,7 @@ describe('sendReminderRow', () => {
 
     expect(result.sent).toBe(false)
     expect(result.skipped).toBe('opted_out')
-    expect(resendSendMock).not.toHaveBeenCalled()
+    expect(emailSendMock).not.toHaveBeenCalled()
     // The row should have been cancelled, not just left pending — so the
     // cron won't retry it forever.
     const cancelUpdate = (supabase.__updates as Record<string, unknown>[]).find(
@@ -277,6 +280,6 @@ describe('sendReminderRow', () => {
 
     expect(result.sent).toBe(false)
     expect(result.skipped).toBe('unknown_template')
-    expect(resendSendMock).not.toHaveBeenCalled()
+    expect(emailSendMock).not.toHaveBeenCalled()
   })
 })

@@ -2,10 +2,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { OverdueInvoices } from '@/components/dashboard/overdue-invoices'
 
-// Mock the Supabase client
+// Mock the Supabase client. Component resolves the org's timezone via
+// auth.getUser() + a profile lookup before the invoice query, so the mock
+// has to support both call paths.
 const mockSupabaseClient = {
+  auth: {
+    getUser: vi.fn(() =>
+      Promise.resolve({ data: { user: { id: 'user-1' } }, error: null }),
+    ),
+  },
   from: vi.fn().mockReturnThis(),
   select: vi.fn().mockReturnThis(),
+  eq: vi.fn().mockReturnThis(),
+  single: vi.fn(() =>
+    Promise.resolve({ data: { organization: { timezone: 'America/Chicago' } }, error: null }),
+  ),
   lt: vi.fn().mockReturnThis(),
   gt: vi.fn().mockReturnThis(),
   not: vi.fn().mockReturnThis(),
@@ -15,6 +26,11 @@ const mockSupabaseClient = {
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => mockSupabaseClient),
+}))
+
+vi.mock('@/lib/timezone', () => ({
+  DEFAULT_TIMEZONE: 'America/Chicago',
+  todayIso: vi.fn(() => '2026-01-15'),
 }))
 
 // Mock date-fns
@@ -360,7 +376,9 @@ describe('OverdueInvoices', () => {
       balance_due,
       customer:customers(company_name, name)
     `)
-    expect(mockSupabaseClient.lt).toHaveBeenCalledWith('due_date', '2024-01-15')
+    // Component now resolves "today" through the org timezone (mocked
+    // to return 2026-01-15 in this suite).
+    expect(mockSupabaseClient.lt).toHaveBeenCalledWith('due_date', '2026-01-15')
     expect(mockSupabaseClient.gt).toHaveBeenCalledWith('balance_due', 0)
     expect(mockSupabaseClient.not).toHaveBeenCalledWith('status', 'in', '("paid","void")')
     expect(mockSupabaseClient.order).toHaveBeenCalledWith('due_date', { ascending: true })

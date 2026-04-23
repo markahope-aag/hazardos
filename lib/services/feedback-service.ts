@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
+import { EmailService } from '@/lib/services/email/email-service'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type {
@@ -246,17 +247,12 @@ export class FeedbackService {
     const email = recipientEmail || customer?.email
     if (!email) throw new SecureError('VALIDATION_ERROR', 'No recipient email', 'email')
 
-    // Send email via Resend (if configured)
-    const resendApiKey = process.env.RESEND_API_KEY
-    if (resendApiKey) {
-      try {
-        const { Resend } = await import('resend')
-        const resend = new Resend(resendApiKey)
+    try {
+      const surveyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/feedback/${survey.access_token}`
 
-        const surveyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/feedback/${survey.access_token}`
-
-        await resend.emails.send({
-          from: `${organization?.name || 'HazardOS'} <feedback@${process.env.RESEND_DOMAIN || 'resend.dev'}>`,
+      await EmailService.send(
+        survey.organization_id,
+        {
           to: email,
           subject: `How was your experience? - ${job?.job_number}`,
           html: `
@@ -269,16 +265,18 @@ export class FeedbackService {
             <p>Thank you for your time!</p>
             <p>Best regards,<br>${organization?.name}</p>
           `,
-        })
-      } catch (emailError) {
-        log.error(
-          { 
-            error: formatError(emailError, 'FEEDBACK_EMAIL_ERROR'),
-            surveyId: surveyId
-          },
-          'Failed to send feedback email'
-        )
-      }
+          tags: ['feedback'],
+          relatedEntity: job?.id ? { type: 'job', id: job.id } : undefined,
+        },
+      )
+    } catch (emailError) {
+      log.error(
+        {
+          error: formatError(emailError, 'FEEDBACK_EMAIL_ERROR'),
+          surveyId: surveyId,
+        },
+        'Failed to send feedback email',
+      )
     }
 
     // Update survey status

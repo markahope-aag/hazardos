@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { SmsService } from '@/lib/services/sms-service'
+import { EmailService } from '@/lib/services/email/email-service'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 
 const log = createServiceLogger('reminder-sender')
@@ -157,14 +158,15 @@ export async function sendReminderRow(rowId: string): Promise<ReminderSendResult
 
   const reminderRow = row as ReminderRow & { status: string }
 
-  // Grab the org name once for friendly sender identity.
+  // Grab the org name for template rendering. The email sender identity
+  // is resolved inside EmailService (verified-domain or shared-domain
+  // fallback) so we don't read org.email here anymore.
   const { data: org } = await supabase
     .from('organizations')
-    .select('name, email')
+    .select('name')
     .eq('id', reminderRow.organization_id)
     .single()
   const orgName = org?.name || 'HazardOS'
-  const orgEmail = org?.email || 'noreply@hazardos.app'
 
   const content = renderTemplate(reminderRow.template_slug, reminderRow.template_variables, orgName)
   if (!content) {
@@ -212,21 +214,30 @@ export async function sendReminderRow(rowId: string): Promise<ReminderSendResult
         return { sent: false, skipped: 'opted_out' }
       }
 
-      const apiKey = process.env.RESEND_API_KEY
-      if (!apiKey) {
-        await markStatus(reminderRow.id, 'failed', 'RESEND_API_KEY not configured')
-        return { sent: false, error: 'RESEND_API_KEY not configured' }
+      try {
+        await EmailService.send(
+          reminderRow.organization_id,
+          {
+            to,
+            subject: content.subject,
+            text: content.text,
+            html: content.html,
+            tags: ['reminder', reminderRow.template_slug],
+            // Prefer the underlying job/entity when we have one — the
+            // unified feed threads the reminder onto that entity's
+            // timeline. Falls back to the customer for generic nudges.
+            relatedEntity: reminderRow.related_type
+              ? { type: reminderRow.related_type, id: reminderRow.related_id }
+              : customerId
+              ? { type: 'customer', id: customerId }
+              : undefined,
+          },
+        )
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        await markStatus(reminderRow.id, 'failed', msg)
+        return { sent: false, error: msg }
       }
-
-      const { Resend } = await import('resend')
-      const resend = new Resend(apiKey)
-      await resend.emails.send({
-        from: `${orgName} <${orgEmail}>`,
-        to,
-        subject: content.subject,
-        text: content.text,
-        html: content.html,
-      })
 
       await markStatus(reminderRow.id, 'sent')
       return { sent: true }

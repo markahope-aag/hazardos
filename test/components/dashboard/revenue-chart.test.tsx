@@ -88,7 +88,7 @@ describe('RevenueChart', () => {
 
     render(<RevenueChart />)
     
-    expect(screen.getByText('Revenue (Last 6 Months)')).toBeInTheDocument()
+    expect(screen.getByText('Revenue Trend')).toBeInTheDocument()
   })
 
   it('should show loading state initially', () => {
@@ -162,7 +162,7 @@ describe('RevenueChart', () => {
       // Line should use revenue dataKey and blue stroke
       const line = screen.getByTestId('line')
       expect(line).toHaveAttribute('data-key', 'revenue')
-      expect(line).toHaveStyle({ stroke: '#2563eb' })
+      expect(line).toHaveStyle({ stroke: '#ED6F3B' })
 
       // X-axis should use month dataKey
       const xAxis = screen.getByTestId('x-axis')

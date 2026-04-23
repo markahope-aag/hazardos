@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { EmailService } from '@/lib/services/email/email-service'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
@@ -316,33 +317,29 @@ export class NotificationService {
       .eq('id', organizationId)
       .single()
 
-    // Send email via Resend (if configured)
-    const resendApiKey = process.env.RESEND_API_KEY
-    if (!resendApiKey) return
-
     try {
-      const { Resend } = await import('resend')
-      const resend = new Resend(resendApiKey)
-
       const actionButton = input.action_url
         ? `<p style="margin-top: 20px;"><a href="${process.env.NEXT_PUBLIC_APP_URL}${input.action_url}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px;">${input.action_label || 'View Details'}</a></p>`
         : ''
 
-      await resend.emails.send({
-        from: `${organization?.name || 'HazardOS'} <notifications@${process.env.RESEND_DOMAIN || 'resend.dev'}>`,
-        to: userProfile.email,
-        subject: input.title,
-        html: `
-          <h1>${input.title}</h1>
-          ${input.message ? `<p>${input.message}</p>` : ''}
-          ${actionButton}
-          <hr style="margin-top: 30px; border: none; border-top: 1px solid #e5e7eb;" />
-          <p style="font-size: 12px; color: #6b7280;">
-            This notification was sent from ${organization?.name || 'HazardOS'}.
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/settings/notifications">Manage notification settings</a>
-          </p>
-        `,
-      })
+      await EmailService.send(
+        organizationId,
+        {
+          to: userProfile.email,
+          subject: input.title,
+          html: `
+            <h1>${input.title}</h1>
+            ${input.message ? `<p>${input.message}</p>` : ''}
+            ${actionButton}
+            <hr style="margin-top: 30px; border: none; border-top: 1px solid #e5e7eb;" />
+            <p style="font-size: 12px; color: #6b7280;">
+              This notification was sent from ${organization?.name || 'HazardOS'}.
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/settings/notifications">Manage notification settings</a>
+            </p>
+          `,
+          tags: ['notification', input.type],
+        },
+      )
 
       log.info(
         {

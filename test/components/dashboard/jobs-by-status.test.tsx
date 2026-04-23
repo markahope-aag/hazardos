@@ -91,7 +91,7 @@ describe('JobsByStatus', () => {
       expect(mockFetch).toHaveBeenCalled()
     })
     const url = mockFetch.mock.calls[0][0] as string
-    expect(url).toContain('period=month')
+    expect(url).toContain('period=ytd')
     expect(url).not.toContain('hazard_type')
   })
 })

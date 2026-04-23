@@ -111,7 +111,7 @@ describe('StatsCards', () => {
     render(await StatsCards({ filters: DEFAULT_FILTERS }))
     expect(screen.getByText('Revenue')).toBeInTheDocument()
     expect(screen.getByText('Outstanding AR')).toBeInTheDocument()
-    expect(screen.getByText('Jobs')).toBeInTheDocument()
+    expect(screen.getByText('Open Jobs')).toBeInTheDocument()
     expect(screen.getByText('Win Rate')).toBeInTheDocument()
   })
 

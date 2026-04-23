@@ -24,6 +24,23 @@ vi.mock('resend', () => ({
   }),
 }))
 
+// EmailService now owns the send — mock it so the test doesn't need
+// SUPABASE_SERVICE_ROLE_KEY and a live Resend connection.
+vi.mock('@/lib/services/email/email-service', () => ({
+  EmailService: {
+    send: vi.fn().mockResolvedValue({
+      auditId: 'audit-123',
+      providerMessageId: 'email-123',
+    }),
+  },
+  resolveSender: vi.fn().mockResolvedValue({
+    fromEmail: 'tenant@send.hazardos.app',
+    fromName: 'Tenant',
+    replyTo: null,
+    usingVerifiedDomain: false,
+  }),
+}))
+
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
 

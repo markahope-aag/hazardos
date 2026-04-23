@@ -3,6 +3,7 @@ import { Activity } from '@/lib/services/activity-service'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { SmsService } from '@/lib/services/sms-service'
 import { InvoicesService } from '@/lib/services/invoices-service'
+import { EmailService } from '@/lib/services/email/email-service'
 import { formatCurrency } from '@/lib/utils'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type { Invoice } from '@/types/invoices'
@@ -190,19 +191,11 @@ export class InvoiceDeliveryService {
       zip: string | null
       website: string | null
     } | null,
-    _organizationId: string,
+    organizationId: string,
   ): Promise<void> {
-    const resendApiKey = process.env.RESEND_API_KEY
-    if (!resendApiKey) {
-      throw new SecureError('BAD_REQUEST', 'Email service not configured (RESEND_API_KEY missing)')
-    }
-
     if (!customer.email) {
       throw new SecureError('VALIDATION_ERROR', 'Customer has no email address', 'email')
     }
-
-    const { Resend } = await import('resend')
-    const resend = new Resend(resendApiKey)
 
     const customerName = customer.company_name || customer.name || 'Customer'
     const companyName = organization?.name || 'HazardOS'
@@ -266,12 +259,16 @@ export class InvoiceDeliveryService {
       </div>
     `
 
-    await resend.emails.send({
-      from: `${companyName} <invoices@${process.env.RESEND_DOMAIN || 'resend.dev'}>`,
-      to: customer.email,
-      subject: `Invoice ${invoice.invoice_number} from ${companyName} - ${formatCurrency(invoice.balance_due)} Due`,
-      html: emailHtml,
-    })
+    await EmailService.send(
+      organizationId,
+      {
+        to: customer.email,
+        subject: `Invoice ${invoice.invoice_number} from ${companyName} - ${formatCurrency(invoice.balance_due)} Due`,
+        html: emailHtml,
+        tags: ['invoice'],
+        relatedEntity: { type: 'invoice', id: invoice.id },
+      },
+    )
 
     log.info(
       { operation: 'sendInvoiceEmail', invoiceId: invoice.id, customerEmail: customer.email },

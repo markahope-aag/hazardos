@@ -2,10 +2,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { UpcomingJobs } from '@/components/dashboard/upcoming-jobs'
 
-// Mock the Supabase client
+// Mock the Supabase client. Component resolves the org timezone via
+// auth.getUser() + a profile lookup before the jobs query, and uses
+// .in() + .order() chains with `nullsFirst: false`.
 const mockSupabaseClient = {
+  auth: {
+    getUser: vi.fn(() =>
+      Promise.resolve({ data: { user: { id: 'user-1' } }, error: null }),
+    ),
+  },
   from: vi.fn().mockReturnThis(),
   select: vi.fn().mockReturnThis(),
+  eq: vi.fn().mockReturnThis(),
+  single: vi.fn(() =>
+    Promise.resolve({ data: { organization: { timezone: 'America/Chicago' } }, error: null }),
+  ),
+  in: vi.fn().mockReturnThis(),
   gte: vi.fn().mockReturnThis(),
   lte: vi.fn().mockReturnThis(),
   neq: vi.fn().mockReturnThis(),
@@ -17,12 +29,12 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => mockSupabaseClient),
 }))
 
-// Mock date-fns
+// Mock date-fns. `format` is still used inline for display; the tz
+// helpers come from date-fns-tz and call formatInTimeZone.
 vi.mock('date-fns', () => ({
   format: vi.fn((date: Date, formatStr: string) => {
-    if (formatStr === 'EEE, MMM d') {
-      return 'Mon, Jan 15'
-    }
+    if (formatStr === 'EEE, MMM d') return 'Mon, Jan 15'
+    if (formatStr === 'yyyy-MM-dd') return '2026-01-15'
     return date.toISOString()
   }),
   addDays: vi.fn((date: Date, days: number) => {
@@ -30,6 +42,17 @@ vi.mock('date-fns', () => ({
     result.setDate(result.getDate() + days)
     return result
   }),
+}))
+
+vi.mock('date-fns-tz', () => ({
+  formatInTimeZone: vi.fn((_date: Date, _tz: string, _fmt: string) => 'Mon, Jan 15'),
+  toZonedTime: vi.fn((d: Date) => d),
+}))
+
+vi.mock('@/lib/timezone', () => ({
+  DEFAULT_TIMEZONE: 'America/Chicago',
+  todayIso: vi.fn(() => '2026-01-15'),
+  isoDateOffset: vi.fn(() => '2026-02-14'),
 }))
 
 // Mock Next.js Link
@@ -102,7 +125,7 @@ describe('UpcomingJobs', () => {
 
     render(await UpcomingJobs())
 
-    expect(screen.getByText('No jobs scheduled')).toBeInTheDocument()
+    expect(screen.getByText(/No jobs scheduled in the next 30 days/i)).toBeInTheDocument()
   })
 
   it('should render job entries with customer company names', async () => {
@@ -380,9 +403,11 @@ describe('UpcomingJobs', () => {
       status,
       customer:customers!customer_id(company_name, name)
     `)
-    expect(mockSupabaseClient.gte).toHaveBeenCalledWith('scheduled_start_date', '2024-01-15')
-    expect(mockSupabaseClient.lte).toHaveBeenCalledWith('scheduled_start_date', '2024-01-22')
-    expect(mockSupabaseClient.neq).toHaveBeenCalledWith('status', 'cancelled')
+    // Window is now 30 days (from mocked todayIso → isoDateOffset),
+    // status is filtered to the open set via .in() instead of .neq().
+    expect(mockSupabaseClient.in).toHaveBeenCalledWith('status', ['scheduled', 'in_progress'])
+    expect(mockSupabaseClient.gte).toHaveBeenCalledWith('scheduled_start_date', '2026-01-15')
+    expect(mockSupabaseClient.lte).toHaveBeenCalledWith('scheduled_start_date', '2026-02-14')
     expect(mockSupabaseClient.order).toHaveBeenCalledWith('scheduled_start_date', { ascending: true })
     expect(mockSupabaseClient.limit).toHaveBeenCalledWith(5)
   })
@@ -394,7 +419,7 @@ describe('UpcomingJobs', () => {
 
     render(await UpcomingJobs())
 
-    expect(screen.getByText('No jobs scheduled')).toBeInTheDocument()
+    expect(screen.getByText(/No jobs scheduled in the next 30 days/i)).toBeInTheDocument()
   })
 
   it('should render calendar and map pin icons', async () => {

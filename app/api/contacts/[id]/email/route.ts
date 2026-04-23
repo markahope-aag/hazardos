@@ -9,9 +9,9 @@ import { EmailService } from '@/lib/services/email/email-service'
  *
  * Send an ad-hoc email to a contact. Pre-resolves the contact's email
  * address so clients can just hand us the contact id, validates that
- * the contact belongs to the caller's org, and threads the send onto
- * the contact's activity timeline via the email_sends.related_entity_*
- * columns + an activity_log entry.
+ * the contact belongs to the caller's org, and tags the send with
+ * related_entity so the unified activity feed can thread it into the
+ * contact's timeline.
  */
 
 const bodySchema = z.object({
@@ -82,26 +82,10 @@ export const POST = createApiHandlerWithParams(
       { sentBy: context.user.id },
     )
 
-    // Thread the email into the contact's activity timeline so it shows
-    // up alongside calls, SMS, and other interactions.
-    const contactName =
-      [contact.first_name, contact.last_name].filter(Boolean).join(' ') ||
-      contact.name ||
-      contact.email
-    await context.supabase.from('activity_log').insert({
-      organization_id: context.profile.organization_id,
-      user_id: context.user.id,
-      action: 'email_sent',
-      entity_type: 'customer',
-      entity_id: contact.id,
-      entity_name: contactName,
-      description: `Sent email: ${body.subject}`,
-      new_values: {
-        subject: body.subject,
-        to: contact.email,
-        audit_id: result.auditId,
-      },
-    })
+    // The email_sends row already carries everything the contact's
+    // activity feed needs — no separate activity_log write required.
+    // EntityActivityFeed reads email_sends directly and renders it
+    // alongside activity_log and sms_messages.
 
     return NextResponse.json({
       ok: true,

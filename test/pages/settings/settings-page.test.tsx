@@ -15,6 +15,7 @@ vi.mock('lucide-react', () => ({
   Webhook: () => <div data-testid="icon-webhook" />,
   Bell: () => <div data-testid="icon-bell" />,
   MessageSquare: () => <div data-testid="icon-msg" />,
+  Mail: () => <div data-testid="icon-mail" />,
   Shield: () => <div data-testid="icon-shield" />,
   Palette: () => <div data-testid="icon-palette" />,
 }))
@@ -50,6 +51,7 @@ describe('SettingsPage (landing)', () => {
     expect(screen.getByText('API Keys')).toBeInTheDocument()
     expect(screen.getByText('Webhooks')).toBeInTheDocument()
     // Communications
+    expect(screen.getByText('Email')).toBeInTheDocument()
     expect(screen.getByText('Notifications')).toBeInTheDocument()
     expect(screen.getByText('SMS')).toBeInTheDocument()
     // Account
@@ -70,6 +72,7 @@ describe('SettingsPage (landing)', () => {
         '/settings/integrations',
         '/settings/api',
         '/settings/webhooks',
+        '/settings/email',
         '/settings/notifications',
         '/settings/sms',
         '/settings/security',
