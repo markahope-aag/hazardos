@@ -257,6 +257,7 @@ export interface CreateJobInput {
   proposal_id?: string
   estimate_id?: string
   opportunity_id?: string
+  site_survey_id?: string
   customer_id: string
   // Assigned technician is required end-to-end — every job has a crew
   // lead on the docket.
@@ -286,6 +287,9 @@ export interface CreateJobFromProposalInput {
 export interface UpdateJobInput {
   name?: string
   status?: JobStatus
+  assigned_to?: string
+  site_survey_id?: string | null
+  hazard_types?: string[]
   scheduled_start_date?: string
   scheduled_start_time?: string
   scheduled_end_date?: string

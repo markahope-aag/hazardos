@@ -72,7 +72,12 @@ async function fetchActivityLogRows(
     entity_type: row.entity_type,
     entity_id: row.entity_id,
     entity_name: row.entity_name,
-    title: row.description || humanAction(row.action),
+    // Rich title for child-entity activity so the job feed doesn't
+    // just read "Created" / "Updated" with no context.
+    title:
+      row.description ||
+      formatChildActivityTitle(row.entity_type, row.action) ||
+      humanAction(row.action),
     subtitle: null,
     body: null,
     meta: {
@@ -80,6 +85,25 @@ async function fetchActivityLogRows(
       new_values: row.new_values,
     },
   }))
+}
+
+/**
+ * Produce a friendly title for auto-tracked activity on child rows —
+ * `job_note`, `document`, `job_crew`, `change_order`, etc. Returns null
+ * when we don't have a specific phrasing, so the caller falls back to
+ * the generic "Created/Updated/Deleted".
+ */
+function formatChildActivityTitle(entityType: string, action: string): string | null {
+  const VERBS: Record<string, { created: string; updated: string; deleted: string }> = {
+    job_note: { created: 'Note added', updated: 'Note edited', deleted: 'Note removed' },
+    document: { created: 'Document uploaded', updated: 'Document updated', deleted: 'Document removed' },
+    job_crew: { created: 'Crew member assigned', updated: 'Crew assignment updated', deleted: 'Crew member removed' },
+    change_order: { created: 'Change order created', updated: 'Change order updated', deleted: 'Change order deleted' },
+    payment: { created: 'Payment recorded', updated: 'Payment updated', deleted: 'Payment removed' },
+  }
+  const entry = VERBS[entityType]
+  if (!entry) return null
+  return entry[action as keyof typeof entry] ?? null
 }
 
 async function fetchSmsRows(
@@ -284,6 +308,25 @@ export const GET = createApiHandler(
       pairs = [[query.entity_type, query.entity_id]]
       if (query.entity_type === 'customer') {
         customerIds = [query.entity_id]
+      }
+      // A job's activity feed should also show activity on its child
+      // rows — notes, documents, crew, change orders. The auto-activity
+      // trigger logs those with entity_type='job_note' / 'document' /
+      // 'job_crew' / 'change_order' and their own row id, so without
+      // expanding the scope the job's feed looks empty even though the
+      // team just swapped two crew members and left three notes.
+      if (query.entity_type === 'job') {
+        const jobId = query.entity_id
+        const [notes, docs, crew, changeOrders] = await Promise.all([
+          context.supabase.from('job_notes').select('id').eq('job_id', jobId),
+          context.supabase.from('job_documents').select('id').eq('job_id', jobId),
+          context.supabase.from('job_crew').select('id').eq('job_id', jobId),
+          context.supabase.from('job_change_orders').select('id').eq('job_id', jobId),
+        ])
+        for (const row of notes.data || []) pairs.push(['job_note', row.id as string])
+        for (const row of docs.data || []) pairs.push(['document', row.id as string])
+        for (const row of crew.data || []) pairs.push(['job_crew', row.id as string])
+        for (const row of changeOrders.data || []) pairs.push(['change_order', row.id as string])
       }
     } else {
       // Recent feed across the org — pull the most recent activity_log

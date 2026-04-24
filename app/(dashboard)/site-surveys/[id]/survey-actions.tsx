@@ -203,7 +203,7 @@ export function SurveyActions({ survey, onStatusChange }: SurveyActionsProps) {
           {survey.status === 'draft' && (
             <DropdownMenuItem onClick={() => updateStatus('scheduled')}>
               <CheckCircle className="h-4 w-4 mr-2 text-blue-600" />
-              Mark as Scheduled
+              Mark Visit as Scheduled
             </DropdownMenuItem>
           )}
 

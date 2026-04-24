@@ -20,6 +20,11 @@ export type SurveyStatus =
   | 'completed'
   | 'cancelled'
 
+// Labels are worded to make clear the survey statuses refer to the
+// *inspection visit*, not a remediation job. Two separate entities
+// both use "scheduled" on their own calendars; spelling it out as
+// "Visit Scheduled" here removes the ambiguity without touching the
+// DB enum.
 const statusConfig: Record<SurveyStatus, {
   label: string
   className: string
@@ -31,17 +36,17 @@ const statusConfig: Record<SurveyStatus, {
     icon: FileText,
   },
   scheduled: {
-    label: 'Scheduled',
+    label: 'Visit Scheduled',
     className: 'bg-blue-100 text-blue-700 hover:bg-blue-100',
     icon: Calendar,
   },
   in_progress: {
-    label: 'In Progress',
+    label: 'Visit In Progress',
     className: 'bg-indigo-100 text-indigo-700 hover:bg-indigo-100',
     icon: PlayCircle,
   },
   submitted: {
-    label: 'Submitted',
+    label: 'Submitted for Review',
     className: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100',
     icon: CheckCircle,
   },
@@ -51,12 +56,12 @@ const statusConfig: Record<SurveyStatus, {
     icon: ClipboardCheck,
   },
   estimated: {
-    label: 'Estimated',
+    label: 'Estimate Generated',
     className: 'bg-purple-100 text-purple-700 hover:bg-purple-100',
     icon: FileText,
   },
   quoted: {
-    label: 'Quoted',
+    label: 'Quote Sent',
     className: 'bg-cyan-100 text-cyan-700 hover:bg-cyan-100',
     icon: FileText,
   },

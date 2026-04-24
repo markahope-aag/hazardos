@@ -57,11 +57,18 @@ export default function NewJobPage() {
   const [loadingCustomers, setLoadingCustomers] = useState(true)
   const [customers, setCustomers] = useState<Customer[]>([])
   const [technicians, setTechnicians] = useState<Array<{ id: string; name: string; role: string }>>([])
+  const [surveys, setSurveys] = useState<Array<{
+    id: string
+    job_name: string
+    scheduled_date: string | null
+    status: string
+  }>>([])
 
   const [formData, setFormData] = useState({
     customer_id: customerId || '',
     proposal_id: proposalId || '',
     opportunity_id: opportunityId || '',
+    site_survey_id: '',
     assigned_to: '',
     scheduled_start_date: defaultDate ? new Date(defaultDate) : new Date(),
     scheduled_end_date: undefined as Date | undefined,
@@ -153,6 +160,33 @@ export default function NewJobPage() {
     }))
   }, [customerId, customers])
 
+  // Pull this customer's surveys so the picker only offers realistic
+  // candidates (instead of every survey in the org). There's no REST
+  // endpoint for the surveys list yet, so we query Supabase directly
+  // — RLS keeps results org-scoped.
+  useEffect(() => {
+    if (!formData.customer_id) {
+      setSurveys([])
+      return
+    }
+    async function load() {
+      try {
+        const { createClient } = await import('@/lib/supabase/client')
+        const supabase = createClient()
+        const { data } = await supabase
+          .from('site_surveys')
+          .select('id, job_name, scheduled_date, status')
+          .eq('customer_id', formData.customer_id)
+          .order('created_at', { ascending: false })
+          .limit(100)
+        setSurveys((data || []) as typeof surveys)
+      } catch {
+        // ignore — picker stays empty
+      }
+    }
+    load()
+  }, [formData.customer_id])
+
   const selectedCustomer = customers.find(c => c.id === formData.customer_id)
 
   const handleSelectCustomer = (value: string) => {
@@ -176,6 +210,14 @@ export default function NewJobPage() {
 
     if (!formData.customer_id) {
       toast({ title: 'Error', description: 'Please select a customer', variant: 'destructive' })
+      return
+    }
+    if (!formData.name.trim()) {
+      toast({
+        title: 'Job name required',
+        description: 'Give the job a short name — it prints on the manifest and appears on the calendar.',
+        variant: 'destructive',
+      })
       return
     }
     if (!formData.job_address) {
@@ -209,6 +251,7 @@ export default function NewJobPage() {
             customer_id: formData.customer_id,
             estimate_id: estimateId || undefined,
             opportunity_id: formData.opportunity_id || undefined,
+            site_survey_id: formData.site_survey_id || undefined,
             assigned_to: formData.assigned_to,
             scheduled_start_date: format(formData.scheduled_start_date, 'yyyy-MM-dd'),
             scheduled_end_date: formData.scheduled_end_date
@@ -471,12 +514,50 @@ export default function NewJobPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Job Name (Optional)</Label>
+                <Label>Job Name *</Label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g., Kitchen Renovation - Phase 1"
+                  required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Shows on the calendar, manifest, and every customer-facing document.
+                </p>
+              </div>
+
+              {/* Link the job to its originating site survey. The list
+                  is scoped to the selected customer so crews can't
+                  accidentally pick another customer's survey. */}
+              <div className="space-y-2">
+                <Label>Linked Site Survey</Label>
+                <select
+                  value={formData.site_survey_id}
+                  onChange={(e) =>
+                    setFormData(prev => ({ ...prev, site_survey_id: e.target.value }))
+                  }
+                  disabled={!formData.customer_id}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">
+                    {formData.customer_id
+                      ? surveys.length === 0
+                        ? 'No surveys on this customer yet'
+                        : '(not linked)'
+                      : 'Pick a customer first'}
+                  </option>
+                  {surveys.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.job_name}
+                      {s.scheduled_date ? ` — ${new Date(s.scheduled_date).toLocaleDateString()}` : ''}
+                      {' · '}
+                      {s.status}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Carries site + hazard context from the survey into the job. Optional.
+                </p>
               </div>
 
               <div className="space-y-2">

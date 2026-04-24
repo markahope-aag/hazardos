@@ -71,8 +71,10 @@ describe('Job Validation Schemas', () => {
   describe('createJobSchema', () => {
     const validJob = {
       customer_id: '550e8400-e29b-41d4-a716-446655440000',
-      // Assigned technician is now part of the minimum valid payload.
+      // Assigned technician + name are now part of the minimum valid
+      // payload — both required at the schema level.
       assigned_to: '550e8400-e29b-41d4-a716-446655440099',
+      name: 'Test job',
       scheduled_start_date: '2026-02-15',
       job_address: '123 Main Street'
     }

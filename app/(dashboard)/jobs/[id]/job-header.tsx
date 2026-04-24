@@ -46,6 +46,12 @@ export function JobHeader({ job }: JobHeaderProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
+  // Confirm-before-transition dialogs — these status moves are a pain
+  // to undo (reminders cancel, calendar events update, completion
+  // workflows kick off) so a quick "are you sure" is cheaper than the
+  // ad-hoc rollback work users did when they mis-clicked.
+  const [showStartDialog, setShowStartDialog] = useState(false)
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [generatingManifest, setGeneratingManifest] = useState(false)
 
   const generateManifest = async () => {
@@ -57,8 +63,18 @@ export function JobHeader({ job }: JobHeaderProps) {
         body: JSON.stringify({ job_id: job.id }),
       })
       if (!res.ok) {
+        // API error envelope is { error: "string", type: "...", field?: "..." } —
+        // previous code read body.error.message (treating error as an
+        // object), which was always undefined, so every failure showed
+        // the generic fallback instead of the real reason.
         const body = await res.json().catch(() => ({}))
-        throw new Error(body?.error?.message || 'Failed to generate manifest')
+        const reason =
+          typeof body?.error === 'string'
+            ? body.error
+            : typeof body?.error?.message === 'string'
+            ? body.error.message
+            : null
+        throw new Error(reason || `Failed to generate manifest (${res.status})`)
       }
       const body = await res.json()
       toast({
@@ -136,13 +152,13 @@ export function JobHeader({ job }: JobHeaderProps) {
 
         <div className="flex gap-2">
           {job.status === 'scheduled' && (
-            <Button onClick={() => updateStatus('in_progress')} disabled={loading}>
+            <Button onClick={() => setShowStartDialog(true)} disabled={loading}>
               <Play className="h-4 w-4 mr-2" />
               Start Job
             </Button>
           )}
           {job.status === 'in_progress' && (
-            <Button onClick={() => updateStatus('completed')} disabled={loading}>
+            <Button onClick={() => setShowCompleteDialog(true)} disabled={loading}>
               <CheckCircle className="h-4 w-4 mr-2" />
               Complete Job
             </Button>
@@ -214,6 +230,55 @@ export function JobHeader({ job }: JobHeaderProps) {
             <AlertDialogCancel>Keep Job</AlertDialogCancel>
             <AlertDialogAction onClick={cancelJob} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Cancel Job
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showStartDialog} onOpenChange={setShowStartDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start this job now?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Marks the job as in-progress. Pending reminders stop, the calendar
+              event updates, and the crew can begin logging time. You can still
+              move it back to Scheduled from the status dropdown if needed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Not yet</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowStartDialog(false)
+                updateStatus('in_progress')
+              }}
+            >
+              Start Job
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark this job complete?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This closes out the job and unlocks invoice creation. If the crew
+              is still on site, hold off until they&apos;re done — reopening a
+              completed job is possible but kicks off a few downstream
+              resets (reminders, calendar, workflow triggers).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Not yet</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowCompleteDialog(false)
+                updateStatus('completed')
+              }}
+            >
+              Complete Job
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -14,17 +14,19 @@ describe('SurveyStatusBadge Component', () => {
 
   it('should render scheduled status', () => {
     render(<SurveyStatusBadge status="scheduled" />)
-    expect(screen.getByText('Scheduled')).toBeInTheDocument()
+    // "Visit Scheduled" rather than plain "Scheduled" so it doesn't
+    // read as the job being scheduled.
+    expect(screen.getByText('Visit Scheduled')).toBeInTheDocument()
   })
 
   it('should render in_progress status', () => {
     render(<SurveyStatusBadge status="in_progress" />)
-    expect(screen.getByText('In Progress')).toBeInTheDocument()
+    expect(screen.getByText('Visit In Progress')).toBeInTheDocument()
   })
 
   it('should render submitted status', () => {
     render(<SurveyStatusBadge status="submitted" />)
-    expect(screen.getByText('Submitted')).toBeInTheDocument()
+    expect(screen.getByText('Submitted for Review')).toBeInTheDocument()
   })
 
   it('should render reviewed status', () => {
@@ -34,12 +36,12 @@ describe('SurveyStatusBadge Component', () => {
 
   it('should render estimated status', () => {
     render(<SurveyStatusBadge status="estimated" />)
-    expect(screen.getByText('Estimated')).toBeInTheDocument()
+    expect(screen.getByText('Estimate Generated')).toBeInTheDocument()
   })
 
   it('should render quoted status', () => {
     render(<SurveyStatusBadge status="quoted" />)
-    expect(screen.getByText('Quoted')).toBeInTheDocument()
+    expect(screen.getByText('Quote Sent')).toBeInTheDocument()
   })
 
   it('should render completed status', () => {
@@ -80,14 +82,14 @@ describe('SurveyStatusBadge Component', () => {
 
   it('should have correct styling for scheduled', () => {
     render(<SurveyStatusBadge status="scheduled" />)
-    expect(screen.getByText('Scheduled')).toHaveClass('bg-blue-100')
-    expect(screen.getByText('Scheduled')).toHaveClass('text-blue-700')
+    expect(screen.getByText('Visit Scheduled')).toHaveClass('bg-blue-100')
+    expect(screen.getByText('Visit Scheduled')).toHaveClass('text-blue-700')
   })
 
   it('should have correct styling for in_progress', () => {
     render(<SurveyStatusBadge status="in_progress" />)
-    expect(screen.getByText('In Progress')).toHaveClass('bg-indigo-100')
-    expect(screen.getByText('In Progress')).toHaveClass('text-indigo-700')
+    expect(screen.getByText('Visit In Progress')).toHaveClass('bg-indigo-100')
+    expect(screen.getByText('Visit In Progress')).toHaveClass('text-indigo-700')
   })
 
   it('should have correct styling for completed', () => {

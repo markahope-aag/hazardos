@@ -56,8 +56,17 @@ interface JobNotesProps {
     id: string
     job_number?: string
     status?: string
+    // Needed to scope photo uploads under the correct org path so the
+    // storage RLS policy (first folder segment = org id) passes.
+    organization_id: string
   }
   notes?: JobNote[]
+}
+
+interface NoteAttachment {
+  url: string
+  filename: string
+  type: string
 }
 
 const noteIcons = {
@@ -80,19 +89,80 @@ export function JobNotes({ job, notes = [] }: JobNotesProps) {
     content: '',
     is_internal: true,
   })
+  // Photo notes can attach one or more images. Stored in job_notes.attachments
+  // JSONB as {url, filename, type}; uploaded to the job-documents bucket
+  // before the note itself is POSTed so a failed upload doesn't leave an
+  // orphaned empty note.
+  const [photoFiles, setPhotoFiles] = useState<File[]>([])
+  const [uploadingPhotos, setUploadingPhotos] = useState(false)
+
+  const resetForm = () => {
+    setNoteForm({ note_type: 'general', content: '', is_internal: true })
+    setPhotoFiles([])
+  }
 
   const handleAddNote = async () => {
-    if (!noteForm.content.trim()) {
+    const isPhoto = noteForm.note_type === 'photo'
+    if (!isPhoto && !noteForm.content.trim()) {
       toast({ title: 'Error', description: 'Please enter note content', variant: 'destructive' })
+      return
+    }
+    if (isPhoto && photoFiles.length === 0 && !noteForm.content.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Attach at least one photo or add a caption.',
+        variant: 'destructive',
+      })
       return
     }
 
     setLoading(true)
     try {
+      // Upload the photo files first; a note without content requires
+      // at least one attachment to reach the API successfully because
+      // the content field is required. We substitute a caption fallback
+      // when empty.
+      let attachments: Array<{ url: string; filename: string; type: string }> = []
+      if (isPhoto && photoFiles.length > 0) {
+        setUploadingPhotos(true)
+        const { createClient } = await import('@/lib/supabase/client')
+        const supabase = createClient()
+        const results = await Promise.all(
+          photoFiles.map(async (file) => {
+            const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+            const path = `${job.organization_id}/jobs/${job.id}/notes/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+            const { error: uploadError } = await supabase.storage
+              .from('job-documents')
+              .upload(path, file, { contentType: file.type || 'image/jpeg', upsert: false })
+            if (uploadError) throw new Error(uploadError.message)
+            const { data: urlData } = supabase.storage
+              .from('job-documents')
+              .getPublicUrl(path)
+            return {
+              url: urlData.publicUrl,
+              filename: file.name,
+              type: file.type || 'image/jpeg',
+            }
+          }),
+        )
+        attachments = results
+        setUploadingPhotos(false)
+      }
+
+      const content =
+        noteForm.content.trim() ||
+        (isPhoto && photoFiles.length > 0
+          ? `${photoFiles.length} photo${photoFiles.length === 1 ? '' : 's'}`
+          : '')
+
       const response = await fetch(`/api/jobs/${job.id}/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(noteForm),
+        body: JSON.stringify({
+          ...noteForm,
+          content,
+          attachments: attachments.length > 0 ? attachments : undefined,
+        }),
       })
 
       if (!response.ok) {
@@ -102,7 +172,7 @@ export function JobNotes({ job, notes = [] }: JobNotesProps) {
 
       toast({ title: 'Success', description: 'Note added successfully' })
       setShowAddDialog(false)
-      setNoteForm({ note_type: 'general', content: '', is_internal: true })
+      resetForm()
       router.refresh()
     } catch (error) {
       toast({
@@ -112,6 +182,7 @@ export function JobNotes({ job, notes = [] }: JobNotesProps) {
       })
     } finally {
       setLoading(false)
+      setUploadingPhotos(false)
     }
   }
 
@@ -181,12 +252,41 @@ export function JobNotes({ job, notes = [] }: JobNotesProps) {
                     </SelectContent>
                   </Select>
                 </div>
+                {/* Photo notes get an image picker. Multiple photos
+                    can be attached to one note — useful when an issue
+                    needs several angles to explain. */}
+                {noteForm.note_type === 'photo' && (
+                  <div className="space-y-2">
+                    <Label>Photos</Label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) =>
+                        setPhotoFiles(Array.from(e.target.files || []))
+                      }
+                      className="block w-full text-sm text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border file:border-border file:bg-background file:text-foreground file:text-sm file:font-medium hover:file:bg-accent"
+                    />
+                    {photoFiles.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {photoFiles.length} photo{photoFiles.length === 1 ? '' : 's'} selected ·{' '}
+                        {(photoFiles.reduce((s, f) => s + f.size, 0) / 1024 / 1024).toFixed(1)} MB
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div className="space-y-2">
-                  <Label>Content</Label>
+                  <Label>
+                    {noteForm.note_type === 'photo' ? 'Caption / description' : 'Content'}
+                  </Label>
                   <Textarea
                     value={noteForm.content}
                     onChange={(e) => setNoteForm(prev => ({ ...prev, content: e.target.value }))}
-                    placeholder="Enter your note..."
+                    placeholder={
+                      noteForm.note_type === 'photo'
+                        ? 'Describe what the photo shows…'
+                        : 'Enter your note...'
+                    }
                     rows={4}
                   />
                 </div>
@@ -202,12 +302,12 @@ export function JobNotes({ job, notes = [] }: JobNotesProps) {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                <Button variant="outline" onClick={() => { setShowAddDialog(false); resetForm() }}>
                   Cancel
                 </Button>
-                <Button onClick={handleAddNote} disabled={loading}>
-                  {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Add Note
+                <Button onClick={handleAddNote} disabled={loading || uploadingPhotos}>
+                  {(loading || uploadingPhotos) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {uploadingPhotos ? 'Uploading…' : 'Add Note'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -256,6 +356,47 @@ export function JobNotes({ job, notes = [] }: JobNotesProps) {
                       </Button>
                     </div>
                     <p className="text-sm whitespace-pre-wrap">{note.content}</p>
+                    {(() => {
+                      // JobNote's base type doesn't include the JSONB
+                      // attachments column yet; cast here rather than
+                      // extending the shared type for this one read.
+                      const attachments = (note as unknown as { attachments?: NoteAttachment[] })
+                        .attachments
+                      if (!Array.isArray(attachments) || attachments.length === 0) return null
+                      return (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                          {attachments.map((att, i) => {
+                            const isImage = att.type?.startsWith('image/')
+                            return isImage ? (
+                              <a
+                                key={i}
+                                href={att.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block aspect-square overflow-hidden rounded-md border hover:opacity-90"
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={att.url}
+                                  alt={att.filename || 'Photo attachment'}
+                                  className="w-full h-full object-cover"
+                                />
+                              </a>
+                            ) : (
+                              <a
+                                key={i}
+                                href={att.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-3 py-2 rounded-md border text-xs hover:bg-accent truncate"
+                              >
+                                {att.filename || 'Attachment'}
+                              </a>
+                            )
+                          })}
+                        </div>
+                      )
+                    })()}
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>{note.profile?.full_name || 'Unknown'}</span>
                       <span>•</span>

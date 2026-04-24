@@ -36,7 +36,10 @@ export const GET = createApiHandler(
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
-    allowedRoles: ROLES.TENANT_MANAGE,
+    // Estimators also generate manifests in the wild — TENANT_MANAGE
+    // excluded them and left estimator accounts with a generic
+    // "Forbidden" that read as "the system is broken."
+    allowedRoles: ROLES.TENANT_WRITE,
     bodySchema: createManifestSchema,
   },
   async (_request, context, body) => {

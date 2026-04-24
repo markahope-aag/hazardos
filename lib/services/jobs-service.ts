@@ -99,6 +99,7 @@ export class JobsService {
         estimate_id: input.estimate_id,
         proposal_id: input.proposal_id,
         opportunity_id: input.opportunity_id,
+        site_survey_id: input.site_survey_id,
         assigned_to: input.assigned_to,
         name: input.name,
         scheduled_start_date: input.scheduled_start_date,

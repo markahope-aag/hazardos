@@ -79,42 +79,94 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
   const [showRemoveDialog, setShowRemoveDialog] = useState(false)
   const [selectedMember, setSelectedMember] = useState<CrewMember | null>(null)
 
-  const [assignForm, setAssignForm] = useState({
-    profile_id: '',
+  // Multi-select crew assignment: users can check off several people,
+  // pick a shared role, and optionally designate one of the selected
+  // members as the lead.
+  const [assignForm, setAssignForm] = useState<{
+    profile_ids: string[]
+    role: string
+    lead_profile_id: string
+  }>({
+    profile_ids: [],
     role: 'worker',
-    is_lead: false,
+    lead_profile_id: '',
   })
 
   const assignedProfileIds = crew.map(c => c.profile_id)
   const unassignedCrew = availableCrew.filter(c => !assignedProfileIds.includes(c.id))
 
+  const toggleMemberSelected = (id: string) => {
+    setAssignForm(prev => {
+      const has = prev.profile_ids.includes(id)
+      const next = has
+        ? prev.profile_ids.filter(x => x !== id)
+        : [...prev.profile_ids, id]
+      return {
+        ...prev,
+        profile_ids: next,
+        // If the user drops the member who was flagged lead, clear it.
+        lead_profile_id: has && prev.lead_profile_id === id ? '' : prev.lead_profile_id,
+      }
+    })
+  }
+
   const handleAssign = async () => {
-    if (!assignForm.profile_id) {
-      toast({ title: 'Error', description: 'Please select a crew member', variant: 'destructive' })
+    if (assignForm.profile_ids.length === 0) {
+      toast({ title: 'Error', description: 'Select at least one crew member', variant: 'destructive' })
       return
     }
 
     setLoading(true)
     try {
-      const response = await fetch(`/api/jobs/${job.id}/crew`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(assignForm),
-      })
+      const results = await Promise.allSettled(
+        assignForm.profile_ids.map((profileId) =>
+          fetch(`/api/jobs/${job.id}/crew`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              profile_id: profileId,
+              role: assignForm.role,
+              is_lead: assignForm.lead_profile_id === profileId,
+            }),
+          }).then(async (res) => {
+            if (!res.ok) {
+              const body = await res.json().catch(() => ({}))
+              throw new Error(body?.error || body?.message || 'Failed')
+            }
+            return res.json()
+          }),
+        ),
+      )
 
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to assign crew member')
+      const failed = results.filter((r) => r.status === 'rejected')
+      const succeeded = results.length - failed.length
+
+      if (failed.length === 0) {
+        toast({
+          title:
+            succeeded === 1
+              ? 'Crew member assigned'
+              : `${succeeded} crew members assigned`,
+        })
+      } else if (succeeded > 0) {
+        toast({
+          title: `${succeeded} assigned, ${failed.length} failed`,
+          description:
+            (failed[0] as PromiseRejectedResult).reason?.message ||
+            'Retry the failed members from the dialog.',
+          variant: 'destructive',
+        })
+      } else {
+        throw (failed[0] as PromiseRejectedResult).reason
       }
 
-      toast({ title: 'Success', description: 'Crew member assigned to job' })
       setShowAssignDialog(false)
-      setAssignForm({ profile_id: '', role: 'worker', is_lead: false })
+      setAssignForm({ profile_ids: [], role: 'worker', lead_profile_id: '' })
       router.refresh()
     } catch (error) {
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to assign crew member',
+        description: error instanceof Error ? error.message : 'Failed to assign crew',
         variant: 'destructive',
       })
     } finally {
@@ -165,34 +217,48 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
                   Assign Crew
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>Assign Crew Member</DialogTitle>
+                  <DialogTitle>Assign Crew</DialogTitle>
                   <DialogDescription>
-                    Add a crew member to this job.
+                    Pick one or more team members. All selected members get the
+                    same role; you can designate one of them as the crew lead.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label>Crew Member</Label>
-                    <Select
-                      value={assignForm.profile_id}
-                      onValueChange={(value) => setAssignForm(prev => ({ ...prev, profile_id: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select crew member" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {unassignedCrew.map(member => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.full_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>Crew Members</Label>
+                    <div className="max-h-64 overflow-y-auto rounded-md border divide-y">
+                      {unassignedCrew.length === 0 ? (
+                        <p className="p-3 text-sm text-muted-foreground">
+                          Everyone on the team is already assigned.
+                        </p>
+                      ) : (
+                        unassignedCrew.map((member) => {
+                          const checked = assignForm.profile_ids.includes(member.id)
+                          return (
+                            <label
+                              key={member.id}
+                              className="flex items-center gap-3 px-3 py-2 hover:bg-accent cursor-pointer"
+                            >
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={() => toggleMemberSelected(member.id)}
+                              />
+                              <span className="text-sm">{member.full_name}</span>
+                            </label>
+                          )
+                        })
+                      )}
+                    </div>
+                    {assignForm.profile_ids.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {assignForm.profile_ids.length} selected
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Role</Label>
+                    <Label>Role (applies to all selected)</Label>
                     <Select
                       value={assignForm.role}
                       onValueChange={(value) => setAssignForm(prev => ({ ...prev, role: value }))}
@@ -209,22 +275,44 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="is_lead"
-                      checked={assignForm.is_lead}
-                      onCheckedChange={(checked) => setAssignForm(prev => ({ ...prev, is_lead: !!checked }))}
-                    />
-                    <Label htmlFor="is_lead">Designate as crew lead</Label>
-                  </div>
+                  {assignForm.profile_ids.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Crew Lead (optional)</Label>
+                      <Select
+                        value={assignForm.lead_profile_id}
+                        onValueChange={(value) =>
+                          setAssignForm(prev => ({
+                            ...prev,
+                            lead_profile_id: value === '__none__' ? '' : value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="No lead" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">No lead</SelectItem>
+                          {assignForm.profile_ids.map((pid) => {
+                            const m = unassignedCrew.find((x) => x.id === pid)
+                            if (!m) return null
+                            return (
+                              <SelectItem key={pid} value={pid}>
+                                {m.full_name}
+                              </SelectItem>
+                            )
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setShowAssignDialog(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleAssign} disabled={loading}>
+                  <Button onClick={handleAssign} disabled={loading || assignForm.profile_ids.length === 0}>
                     {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Assign
+                    Assign {assignForm.profile_ids.length > 1 ? `${assignForm.profile_ids.length} Members` : 'Crew'}
                   </Button>
                 </DialogFooter>
               </DialogContent>
