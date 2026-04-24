@@ -24,6 +24,31 @@ interface FeedEntry {
   meta: Record<string, unknown> | null
 }
 
+// Splits the feed into what salespeople usually care about
+// (back-and-forth with the client) vs what auditors and admins care
+// about (who edited what on the record). Notes and logged calls count
+// as communications even though they come from activity_log, because
+// from a "what did we talk about?" lens they belong in that group.
+const COMMUNICATION_KINDS = new Set([
+  'sms_outbound',
+  'sms_inbound',
+  'email_sent',
+  'note',
+  'call',
+])
+
+type FilterMode = 'communications' | 'changes' | 'all'
+
+const FILTER_OPTIONS: Array<{ value: FilterMode; label: string }> = [
+  { value: 'communications', label: 'Communications' },
+  { value: 'changes', label: 'Changes' },
+  { value: 'all', label: 'All' },
+]
+
+function categorizeEntry(entry: FeedEntry): 'communications' | 'changes' {
+  return COMMUNICATION_KINDS.has(entry.kind) ? 'communications' : 'changes'
+}
+
 // Three shapes the feed can run in:
 //   - entityType+entityId — activity for one specific row
 //   - customerId — aggregate across a contact (contact + surveys/estimates/
@@ -124,6 +149,9 @@ export default function EntityActivityFeed(props: Props) {
   const companyId = 'companyId' in props ? props.companyId : undefined
   const [entries, setEntries] = useState<FeedEntry[]>([])
   const [loading, setLoading] = useState(true)
+  // Default to Communications so the feed reads as a conversation log
+  // first. Users who want record-edit history can switch modes.
+  const [filter, setFilter] = useState<FilterMode>('communications')
 
   useEffect(() => {
     let cancelled = false
@@ -154,13 +182,58 @@ export default function EntityActivityFeed(props: Props) {
     }
   }, [entityType, entityId, customerId, companyId, limit])
 
+  const counts = {
+    communications: entries.filter((e) => categorizeEntry(e) === 'communications').length,
+    changes: entries.filter((e) => categorizeEntry(e) === 'changes').length,
+    all: entries.length,
+  }
+
+  const visibleEntries =
+    filter === 'all' ? entries : entries.filter((e) => categorizeEntry(e) === filter)
+
+  const emptyMessage =
+    filter === 'communications'
+      ? 'No emails, texts, notes, or calls recorded yet.'
+      : filter === 'changes'
+      ? 'No record changes logged yet.'
+      : 'No activity recorded yet.'
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Activity className="h-4 w-4" />
-          {title}
-        </CardTitle>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Activity className="h-4 w-4" />
+            {title}
+          </CardTitle>
+          {!loading && entries.length > 0 && (
+            <div className="flex items-center gap-1 text-xs" role="tablist" aria-label="Activity filter">
+              {FILTER_OPTIONS.map((opt) => {
+                const count = counts[opt.value]
+                const active = filter === opt.value
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setFilter(opt.value)}
+                    className={`px-2.5 py-1 rounded-md border transition-colors ${
+                      active
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background text-muted-foreground border-border hover:bg-accent'
+                    }`}
+                  >
+                    {opt.label}
+                    <span className={`ml-1.5 ${active ? 'opacity-90' : 'opacity-60'}`}>
+                      {count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -169,11 +242,11 @@ export default function EntityActivityFeed(props: Props) {
               <Skeleton key={i} className="h-10 w-full" />
             ))}
           </div>
-        ) : entries.length === 0 ? (
-          <div className="text-sm text-muted-foreground">No activity recorded yet.</div>
+        ) : visibleEntries.length === 0 ? (
+          <div className="text-sm text-muted-foreground">{emptyMessage}</div>
         ) : (
           <ul className="space-y-3">
-            {entries.map((e) => (
+            {visibleEntries.map((e) => (
               <FeedItem key={e.id} entry={e} />
             ))}
           </ul>

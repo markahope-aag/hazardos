@@ -386,6 +386,7 @@ export interface Database {
           service_zip: string | null
           // Relationship
           account_owner_id: string | null
+          primary_contact_id: string | null
           account_status: AccountStatus
           customer_since: string | null
           preferred_contact_method: string | null
@@ -442,6 +443,7 @@ export interface Database {
           service_state?: string | null
           service_zip?: string | null
           account_owner_id?: string | null
+          primary_contact_id?: string | null
           account_status?: AccountStatus
           customer_since?: string | null
           preferred_contact_method?: string | null
@@ -483,6 +485,7 @@ export interface Database {
           service_state?: string | null
           service_zip?: string | null
           account_owner_id?: string | null
+          primary_contact_id?: string | null
           account_status?: AccountStatus
           customer_since?: string | null
           preferred_contact_method?: string | null

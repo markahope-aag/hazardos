@@ -18,12 +18,17 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
 import { useCompany, useUpdateCompany } from '@/lib/hooks/use-companies'
+import { PrimaryContactPicker } from '@/components/companies/primary-contact-picker'
 
 interface CompanyForm {
   name: string
   industry: string
   company_type: string
   account_status: string
+  // Nullable FK — the picker handles both the "has a primary" and
+  // "cleared" states. Kept out of the simple "empty string → null"
+  // sweep at submit time because it's already the right shape.
+  primary_contact_id: string | null
   primary_email: string
   primary_phone: string
   website: string
@@ -45,6 +50,7 @@ const EMPTY: CompanyForm = {
   industry: '',
   company_type: '',
   account_status: '',
+  primary_contact_id: null,
   primary_email: '',
   primary_phone: '',
   website: '',
@@ -98,6 +104,7 @@ export default function EditCompanyPage() {
       industry: company.industry || '',
       company_type: company.company_type || '',
       account_status: company.account_status || '',
+      primary_contact_id: company.primary_contact_id || null,
       primary_email: company.primary_email || company.email || '',
       primary_phone: company.primary_phone || company.phone || '',
       website: company.website || '',
@@ -127,11 +134,16 @@ export default function EditCompanyPage() {
       return
     }
 
-    const updates: Record<string, unknown> = { name: form.name.trim() }
+    const updates: Record<string, unknown> = {
+      name: form.name.trim(),
+      // Already null-or-uuid; pass through without the empty-string
+      // coercion below.
+      primary_contact_id: form.primary_contact_id,
+    }
     // Include every other field, converting empty strings to null so
     // users can clear values they previously set.
-    for (const [key, value] of Object.entries(form) as [keyof CompanyForm, string][]) {
-      if (key === 'name') continue
+    for (const [key, value] of Object.entries(form) as [keyof CompanyForm, unknown][]) {
+      if (key === 'name' || key === 'primary_contact_id') continue
       updates[key] = value === '' ? null : value
     }
 
@@ -236,6 +248,18 @@ export default function EditCompanyPage() {
             <CardTitle>Contact</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <Label htmlFor="primary_contact">Primary contact</Label>
+              <PrimaryContactPicker
+                companyId={companyId}
+                value={form.primary_contact_id}
+                onChange={(id) => update('primary_contact_id', id)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                The person we default to when reaching out to this company. Pick from
+                contacts already linked to this company.
+              </p>
+            </div>
             <div>
               <Label htmlFor="primary_email">Primary email</Label>
               <Input
@@ -325,16 +349,25 @@ export default function EditCompanyPage() {
 // Small helper so billing + service blocks don't duplicate 15 lines of
 // TSX each. `prefix` must match one of the field name prefixes in the
 // CompanyForm type.
+//
+// Address fields are always strings (never the nullable `primary_contact_id`),
+// so StringKeys narrows `keyof CompanyForm` to just those entries. Without
+// this narrowing the Input `value={...}` throws because CompanyForm now has
+// a string | null member.
+type StringKeys = {
+  [K in keyof CompanyForm]: CompanyForm[K] extends string ? K : never
+}[keyof CompanyForm]
+
 function AddressFields({
   form,
   update,
   prefix,
 }: {
   form: CompanyForm
-  update: <K extends keyof CompanyForm>(key: K, value: CompanyForm[K]) => void
+  update: (key: StringKeys, value: string) => void
   prefix: 'billing_' | 'service_'
 }) {
-  const k = (suffix: string) => (`${prefix}${suffix}`) as keyof CompanyForm
+  const k = (suffix: string) => (`${prefix}${suffix}`) as StringKeys
   return (
     <>
       <div>
