@@ -8,17 +8,73 @@ import { SecureError } from '@/lib/utils/secure-error-handler'
 const log = createServiceLogger('PhotoUploadService')
 const STORAGE_BUCKET = 'survey-photos'
 const MAX_CONCURRENT_UPLOADS = 2
-const RETRY_DELAY_MS = 2000
+// Exponential backoff: 2s → 4s → 8s (cap). Transient network blips are
+// the most common cause of the raw-fetch TypeError we see in the wild,
+// and a quick second attempt usually succeeds. Previously fixed 2s.
+const RETRY_DELAYS_MS = [2000, 4000, 8000]
 
 /**
- * Upload a single photo to Supabase Storage
+ * Turn a data URL back into a Blob without `fetch()`. Some browsers (and
+ * some proxies between the browser and us) throw "TypeError: Failed to
+ * fetch" on very large data URLs even when the content is valid. Parsing
+ * the base64 directly bypasses that and keeps the upload path off the
+ * browser's fetch connection pool.
+ */
+function dataUrlToBlob(dataUrl: string): Blob {
+  const commaIdx = dataUrl.indexOf(',')
+  if (!dataUrl.startsWith('data:') || commaIdx < 0) {
+    throw new Error('Photo data is no longer available on this device — recapture it.')
+  }
+  const header = dataUrl.slice(5, commaIdx) // e.g. "image/jpeg;base64"
+  const [mimeType = 'image/jpeg', encoding] = header.split(';')
+  const data = dataUrl.slice(commaIdx + 1)
+  const binary =
+    encoding === 'base64' ? atob(data) : decodeURIComponent(data)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return new Blob([bytes], { type: mimeType })
+}
+
+/**
+ * Upload a single photo to Supabase Storage. Errors bubble up with
+ * messages that point at the actual failure (auth, quota, network) so
+ * the UI can surface something more useful than "Failed to fetch".
  */
 export async function uploadPhotoToStorage(photo: QueuedPhoto): Promise<string> {
+  if (!photo.organizationId || !photo.surveyId) {
+    throw new SecureError(
+      'BAD_REQUEST',
+      'Photo is missing organization or survey context — reopen the survey and recapture.',
+    )
+  }
+
   const supabase = createClient()
 
-  // Convert data URL or blob URL to blob
-  const response = await fetch(photo.localUri)
-  const blob = await response.blob()
+  // Confirm there's still an authenticated session. If the token has
+  // silently expired the upload request hits the storage endpoint with
+  // no credentials and Supabase returns a bare 403 that the SDK surfaces
+  // as a vague network error.
+  const { data: session } = await supabase.auth.getSession()
+  if (!session.session) {
+    throw new SecureError('UNAUTHORIZED', 'Your session expired — sign in again and retry.')
+  }
+
+  let blob: Blob
+  try {
+    if (photo.localUri.startsWith('data:')) {
+      blob = dataUrlToBlob(photo.localUri)
+    } else {
+      // blob: or http: URL (e.g. survive reload cases that use object URLs)
+      const response = await fetch(photo.localUri)
+      if (!response.ok) {
+        throw new Error(`Could not read photo data (${response.status})`)
+      }
+      blob = await response.blob()
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    throw new SecureError('BAD_REQUEST', `Couldn't read photo from device: ${msg}`)
+  }
 
   // Determine file extension from MIME type
   const mimeType = blob.type || 'image/jpeg'
@@ -28,16 +84,43 @@ export async function uploadPhotoToStorage(photo: QueuedPhoto): Promise<string> 
   // Org ID as first folder segment enables org-scoped RLS on storage.objects
   const path = `${photo.organizationId}/surveys/${photo.surveyId}/${photo.category}/${photo.id}.${extension}`
 
-  // Upload to Supabase Storage
-  const { error } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .upload(path, blob, {
-      contentType: mimeType,
-      upsert: true,
-    })
+  // Upload to Supabase Storage. Catch TypeError separately — that's the
+  // "Failed to fetch" bucket (CORS, DNS, connection drop) vs the
+  // structured-error bucket (RLS denial, bad bucket, quota).
+  let uploadError: unknown = null
+  try {
+    const { error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(path, blob, {
+        contentType: mimeType,
+        upsert: true,
+      })
+    uploadError = error
+  } catch (err) {
+    uploadError = err
+  }
 
-  if (error) {
-    throw new SecureError('BAD_REQUEST', `Upload failed: ${error.message}`)
+  if (uploadError) {
+    const msg = uploadError instanceof Error ? uploadError.message : String(uploadError)
+    if (/failed to fetch|network|load failed/i.test(msg)) {
+      throw new SecureError(
+        'BAD_REQUEST',
+        'Network error reaching storage — check your connection and try again.',
+      )
+    }
+    if (/row-level security|rls|unauthori[sz]ed|forbidden|403/i.test(msg)) {
+      throw new SecureError(
+        'BAD_REQUEST',
+        "You don't have permission to upload to this survey. Sign out and back in, or contact an admin.",
+      )
+    }
+    if (/payload too large|file size|413|exceeded/i.test(msg)) {
+      throw new SecureError(
+        'BAD_REQUEST',
+        'Photo is too large even after compression — reduce resolution and retry.',
+      )
+    }
+    throw new SecureError('BAD_REQUEST', `Upload failed: ${msg}`)
   }
 
   // Get public URL
@@ -87,19 +170,20 @@ export async function processPhotoQueue(): Promise<void> {
         store.incrementRetryCount(photo.id)
         store.updatePhotoStatus(photo.id, 'failed', null, errorMessage)
 
-        // If we hit max retries, don't try again immediately
-        if (store.queue.find((p) => p.id === photo.id)?.retryCount || 0 >= 3) {
+        // Previous version had a precedence bug — `x || 0 >= 3`
+        // parses as `x || (0 >= 3)` = `x || false`, so the max-retries
+        // branch effectively never fired. This uses explicit grouping.
+        const retryCount =
+          store.queue.find((p) => p.id === photo.id)?.retryCount ?? 0
+        if (retryCount >= RETRY_DELAYS_MS.length) {
           log.error(
-            { 
-              photoId: photo.id,
-              errorMessage,
-              retryCount: store.queue.find((p) => p.id === photo.id)?.retryCount
-            },
-            'Photo failed after max retries'
+            { photoId: photo.id, errorMessage, retryCount },
+            'Photo failed after max retries',
           )
         } else {
-          // Wait before retrying
-          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+          // Exponential backoff between retries within the same batch.
+          const delay = RETRY_DELAYS_MS[Math.min(retryCount, RETRY_DELAYS_MS.length - 1)]
+          await new Promise((resolve) => setTimeout(resolve, delay))
         }
       }
     }

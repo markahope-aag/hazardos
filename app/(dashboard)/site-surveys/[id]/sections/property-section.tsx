@@ -1,7 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Building, MapPin, Calendar, User, Phone, Mail } from 'lucide-react'
+import { Building, MapPin, Calendar, User, Phone, Mail, ExternalLink } from 'lucide-react'
 import type { SiteSurvey, SurveyEnvironmentInfo } from '@/types/database'
 
 interface PropertySectionProps {
@@ -101,7 +102,16 @@ export function PropertySection({ survey }: PropertySectionProps) {
               <div>
                 <label className="text-sm text-muted-foreground">Customer</label>
                 <p className="font-medium">
-                  {survey.customer.company_name || survey.customer.name}
+                  {/* Link back to the contact record — the survey is a
+                      snapshot in time but the contact is the source of
+                      truth for ongoing communication and job history. */}
+                  <Link
+                    href={`/crm/contacts/${survey.customer.id}`}
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    {survey.customer.company_name || survey.customer.name}
+                    <ExternalLink className="h-3 w-3 opacity-70" />
+                  </Link>
                 </p>
               </div>
               {survey.customer.email && (

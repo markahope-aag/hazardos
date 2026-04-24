@@ -189,9 +189,20 @@ export const usePhotoQueueStore = create<PhotoQueueState>()(
     {
       name: 'hazardos-photo-upload-queue',
       storage: createJSONStorage(() => localStorage),
-      // Don't persist isProcessing state
+      // Persist only metadata for *uploaded* photos — we need their
+      // remote URLs and categorization to finish the survey form, and
+      // their size is already bounded. Pending / uploading / failed
+      // rows carry the full base64 `localUri`, which at 4 photos can
+      // blow past the 5–10 MB localStorage quota, silently truncate
+      // the persisted blob, and leave the upload queue in a state
+      // where every retry fails with "Failed to fetch" (the string
+      // parses as invalid data: URL). Losing a pending photo on
+      // refresh is annoying but recoverable — corrupting the whole
+      // queue is not.
       partialize: (state) => ({
-        queue: state.queue,
+        queue: state.queue
+          .filter((p) => p.status === 'uploaded')
+          .map((p) => ({ ...p, localUri: '' })),
       }),
     }
   )
