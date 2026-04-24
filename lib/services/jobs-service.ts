@@ -98,6 +98,8 @@ export class JobsService {
         customer_id: input.customer_id,
         estimate_id: input.estimate_id,
         proposal_id: input.proposal_id,
+        opportunity_id: input.opportunity_id,
+        assigned_to: input.assigned_to,
         name: input.name,
         scheduled_start_date: input.scheduled_start_date,
         scheduled_start_time: input.scheduled_start_time,
@@ -163,6 +165,7 @@ export class JobsService {
     const job = await JobsService.create({
       proposal_id: input.proposal_id,
       customer_id: proposal.customer_id,
+      assigned_to: input.assigned_to,
       scheduled_start_date: input.scheduled_start_date,
       scheduled_start_time: input.scheduled_start_time,
       estimated_duration_hours: input.estimated_duration_hours,

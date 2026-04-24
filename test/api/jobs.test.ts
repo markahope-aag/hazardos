@@ -173,6 +173,8 @@ describe('Jobs API', () => {
   describe('POST /api/jobs', () => {
     const validJobData = {
       customer_id: '550e8400-e29b-41d4-a716-446655440000',
+      // Assigned technician is now required on job create.
+      assigned_to: '550e8400-e29b-41d4-a716-446655440099',
       scheduled_start_date: '2026-02-01',
       job_address: '123 Test St',
       job_city: 'Test City',

@@ -14,9 +14,11 @@ export default async function PipelinePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // Kanban shows every opportunity so closed ones stay visible in their
+  // Won / Lost columns; metrics stay scoped to open pipeline only.
   const [stages, opportunitiesResult, metrics] = await Promise.all([
     PipelineService.getStages(),
-    PipelineService.getOpportunities(),
+    PipelineService.getOpportunities({ includeClosed: true, limit: 1000 }),
     PipelineService.getPipelineMetrics(),
   ])
 

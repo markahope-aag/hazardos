@@ -284,9 +284,9 @@ describe('PipelineKanban', () => {
       render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       const links = screen.getAllByRole('link')
-      expect(links.find(link => link.getAttribute('href') === '/pipeline/opp_001')).toBeInTheDocument()
-      expect(links.find(link => link.getAttribute('href') === '/pipeline/opp_002')).toBeInTheDocument()
-      expect(links.find(link => link.getAttribute('href') === '/pipeline/opp_003')).toBeInTheDocument()
+      expect(links.find(link => link.getAttribute('href') === '/crm/opportunities/opp_001')).toBeInTheDocument()
+      expect(links.find(link => link.getAttribute('href') === '/crm/opportunities/opp_002')).toBeInTheDocument()
+      expect(links.find(link => link.getAttribute('href') === '/crm/opportunities/opp_003')).toBeInTheDocument()
     })
   })
 

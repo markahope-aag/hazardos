@@ -256,7 +256,11 @@ export interface ScheduledReminder {
 export interface CreateJobInput {
   proposal_id?: string
   estimate_id?: string
+  opportunity_id?: string
   customer_id: string
+  // Assigned technician is required end-to-end — every job has a crew
+  // lead on the docket.
+  assigned_to: string
   scheduled_start_date: string
   scheduled_start_time?: string
   scheduled_end_date?: string
@@ -273,6 +277,7 @@ export interface CreateJobInput {
 
 export interface CreateJobFromProposalInput {
   proposal_id: string
+  assigned_to: string
   scheduled_start_date: string
   scheduled_start_time?: string
   estimated_duration_hours?: number

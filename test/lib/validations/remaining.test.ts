@@ -241,16 +241,19 @@ describe('pipeline validations', () => {
       expect(result.success).toBe(false)
     })
 
-    it('validates probability range', () => {
+    it('rejects negative estimated_value', () => {
+      // `probability` moved off the opportunity schema — probability is
+      // read from the linked stage now, not set per-opp. The replacement
+      // range-check here is estimated_value, which is what the UI sends.
       const valid = createOpportunitySchema.safeParse({
         ...validOpportunity,
-        probability: 50,
+        estimated_value: 5000,
       })
       expect(valid.success).toBe(true)
 
       const invalid = createOpportunitySchema.safeParse({
         ...validOpportunity,
-        probability: 150,
+        estimated_value: -100,
       })
       expect(invalid.success).toBe(false)
     })

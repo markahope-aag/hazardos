@@ -100,6 +100,7 @@ describe('Jobs From Proposal API', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           proposal_id: PROPOSAL_UUID,
+          assigned_to: '550e8400-e29b-41d4-a716-446655440055',
           scheduled_start_date: '2026-03-01',
         }),
       })
@@ -158,6 +159,7 @@ describe('Jobs From Proposal API', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           proposal_id: PROPOSAL_UUID_2,
+          assigned_to: '550e8400-e29b-41d4-a716-446655440055',
           scheduled_start_date: '2026-03-15',
         }),
       })
@@ -200,6 +202,7 @@ describe('Jobs From Proposal API', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           proposal_id: PROPOSAL_UUID,
+          assigned_to: '550e8400-e29b-41d4-a716-446655440055',
           scheduled_start_date: '2026-03-01',
         }),
       })
@@ -244,6 +247,7 @@ describe('Jobs From Proposal API', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           proposal_id: NONEXISTENT_UUID,
+          assigned_to: '550e8400-e29b-41d4-a716-446655440055',
           scheduled_start_date: '2026-03-01',
         }),
       })
@@ -261,6 +265,7 @@ describe('Jobs From Proposal API', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           proposal_id: PROPOSAL_UUID,
+          assigned_to: '550e8400-e29b-41d4-a716-446655440055',
           scheduled_start_date: 'invalid-date',
         }),
       })

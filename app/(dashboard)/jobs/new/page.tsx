@@ -43,26 +43,37 @@ export default function NewJobPage() {
   const proposalId = searchParams.get('proposal_id')
   const customerId = searchParams.get('customer_id')
   const estimateId = searchParams.get('estimate_id')
+  const opportunityId = searchParams.get('opportunity_id')
   const defaultDate = searchParams.get('date')
+  // Pre-populated address pieces when coming in from an opportunity or
+  // estimate. The form still lets users edit these.
+  const jobAddressParam = searchParams.get('job_address')
+  const jobCityParam = searchParams.get('job_city')
+  const jobStateParam = searchParams.get('job_state')
+  const jobZipParam = searchParams.get('job_zip')
+  const nameParam = searchParams.get('name')
 
   const [loading, setLoading] = useState(false)
   const [loadingCustomers, setLoadingCustomers] = useState(true)
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [technicians, setTechnicians] = useState<Array<{ id: string; name: string; role: string }>>([])
 
   const [formData, setFormData] = useState({
     customer_id: customerId || '',
     proposal_id: proposalId || '',
+    opportunity_id: opportunityId || '',
+    assigned_to: '',
     scheduled_start_date: defaultDate ? new Date(defaultDate) : new Date(),
     scheduled_end_date: undefined as Date | undefined,
     scheduled_start_time: '',
     estimated_duration_hours: '',
-    job_address: '',
-    job_city: '',
-    job_state: '',
-    job_zip: '',
+    job_address: jobAddressParam || '',
+    job_city: jobCityParam || '',
+    job_state: jobStateParam || '',
+    job_zip: jobZipParam || '',
     access_notes: '',
     special_instructions: '',
-    name: '',
+    name: nameParam || '',
   })
 
   useEffect(() => {
@@ -84,8 +95,63 @@ export default function NewJobPage() {
         setLoadingCustomers(false)
       }
     }
+    async function fetchTechnicians() {
+      try {
+        // Everyone on the team who can actually work a job. Admins /
+        // tenant owners also land in the list — small shops often have
+        // one person wearing all three hats.
+        const response = await fetch('/api/team')
+        if (!response.ok) return
+        const data = await response.json()
+        const members = (data.members || data.profiles || data || []) as Array<{
+          id: string
+          full_name?: string
+          first_name?: string
+          last_name?: string
+          role?: string
+          is_active?: boolean
+        }>
+        setTechnicians(
+          members
+            .filter((m) => m.is_active !== false)
+            .filter((m) =>
+              !m.role || ['technician', 'estimator', 'admin', 'tenant_owner'].includes(m.role),
+            )
+            .map((m) => ({
+              id: m.id,
+              role: m.role || 'technician',
+              name:
+                m.full_name ||
+                [m.first_name, m.last_name].filter(Boolean).join(' ') ||
+                'Unnamed',
+            })),
+        )
+      } catch (error) {
+        logger.error(
+          { error: formatError(error, 'TECHNICIANS_FETCH_ERROR') },
+          'Failed to fetch technicians',
+        )
+      }
+    }
     fetchCustomers()
+    fetchTechnicians()
   }, [])
+
+  // Auto-fill address from the pre-selected customer when the form
+  // opens with ?customer_id set and the query params didn't already
+  // supply an address (e.g. old opportunities without service_*).
+  useEffect(() => {
+    if (!customerId || !customers.length) return
+    const customer = customers.find((c) => c.id === customerId)
+    if (!customer) return
+    setFormData((prev) => ({
+      ...prev,
+      job_address: prev.job_address || customer.address_line1 || '',
+      job_city: prev.job_city || customer.city || '',
+      job_state: prev.job_state || customer.state || '',
+      job_zip: prev.job_zip || customer.zip || '',
+    }))
+  }, [customerId, customers])
 
   const selectedCustomer = customers.find(c => c.id === formData.customer_id)
 
@@ -116,6 +182,14 @@ export default function NewJobPage() {
       toast({ title: 'Error', description: 'Please enter a job address', variant: 'destructive' })
       return
     }
+    if (!formData.assigned_to) {
+      toast({
+        title: 'Assign a technician',
+        description: 'Every job needs a technician assigned before it can be scheduled.',
+        variant: 'destructive',
+      })
+      return
+    }
 
     setLoading(true)
 
@@ -124,6 +198,7 @@ export default function NewJobPage() {
       const body = proposalId
         ? {
             proposal_id: proposalId,
+            assigned_to: formData.assigned_to,
             scheduled_start_date: format(formData.scheduled_start_date, 'yyyy-MM-dd'),
             scheduled_start_time: formData.scheduled_start_time || undefined,
             estimated_duration_hours: formData.estimated_duration_hours
@@ -133,6 +208,8 @@ export default function NewJobPage() {
         : {
             customer_id: formData.customer_id,
             estimate_id: estimateId || undefined,
+            opportunity_id: formData.opportunity_id || undefined,
+            assigned_to: formData.assigned_to,
             scheduled_start_date: format(formData.scheduled_start_date, 'yyyy-MM-dd'),
             scheduled_end_date: formData.scheduled_end_date
               ? format(formData.scheduled_end_date, 'yyyy-MM-dd')
@@ -235,6 +312,36 @@ export default function NewJobPage() {
               <CardTitle>Scheduling</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Technician is required — every job needs a crew lead
+                  before it goes on the schedule. The API also enforces
+                  this; the UI validation is the faster feedback loop. */}
+              <div className="space-y-2">
+                <Label>Assigned Technician *</Label>
+                <select
+                  value={formData.assigned_to}
+                  onChange={(e) => setFormData(prev => ({ ...prev, assigned_to: e.target.value }))}
+                  required
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Select a technician…</option>
+                  {technicians.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                      {t.role !== 'technician' ? ` (${t.role.replace(/_/g, ' ')})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {technicians.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    No technicians on the team yet. Add one in{' '}
+                    <Link href="/settings/team" className="text-primary hover:underline">
+                      Settings → Team
+                    </Link>
+                    .
+                  </p>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Date *</Label>

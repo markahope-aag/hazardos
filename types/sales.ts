@@ -206,6 +206,16 @@ export interface CreateOpportunityInput {
   estimated_value?: number
   expected_close_date?: string
   owner_id?: string
+  hazard_types?: string[]
+  urgency?: string
+  property_type?: string
+  property_age?: number
+  regulatory_trigger?: string
+  estimated_affected_area_sqft?: number
+  service_address_line1?: string
+  service_city?: string
+  service_state?: string
+  service_zip?: string
 }
 
 export interface UpdateOpportunityInput {
@@ -218,6 +228,16 @@ export interface UpdateOpportunityInput {
   loss_reason?: string
   loss_notes?: string
   competitor?: string
+  hazard_types?: string[]
+  urgency?: string
+  property_type?: string
+  property_age?: number
+  regulatory_trigger?: string
+  estimated_affected_area_sqft?: number
+  service_address_line1?: string
+  service_city?: string
+  service_state?: string
+  service_zip?: string
 }
 
 export interface MoveOpportunityInput {

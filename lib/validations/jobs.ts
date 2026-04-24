@@ -16,6 +16,10 @@ export const createJobSchema = z.object({
   customer_id: z.string().uuid('Invalid customer ID'),
   proposal_id: z.string().uuid().optional(),
   estimate_id: z.string().uuid().optional(),
+  opportunity_id: z.string().uuid().optional(),
+  // Assigned technician is now required at the API layer too — the UI
+  // validation is faster feedback but this is the hard enforcement.
+  assigned_to: z.string().uuid('A technician must be assigned'),
   name: z.string().min(1).max(255).optional(),
   scheduled_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)'),
   scheduled_start_time: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format (HH:MM)').optional(),
@@ -33,6 +37,7 @@ export const createJobSchema = z.object({
 // Update job input
 export const updateJobSchema = z.object({
   name: z.string().min(1).max(255).optional(),
+  assigned_to: z.string().uuid().optional(),
   scheduled_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   scheduled_start_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   scheduled_end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -50,6 +55,7 @@ export const updateJobSchema = z.object({
 // Create job from proposal
 export const createJobFromProposalSchema = z.object({
   proposal_id: z.string().uuid('Invalid proposal ID'),
+  assigned_to: z.string().uuid('A technician must be assigned'),
   scheduled_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
   scheduled_start_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   estimated_duration_hours: z.number().positive().optional(),

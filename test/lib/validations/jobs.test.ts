@@ -56,6 +56,7 @@ describe('jobStatusSchema', () => {
 describe('createJobSchema', () => {
   const validJob = {
     customer_id: '550e8400-e29b-41d4-a716-446655440000',
+    assigned_to: '550e8400-e29b-41d4-a716-446655440099',
     scheduled_start_date: '2024-01-15',
     job_address: '123 Main St',
   }
@@ -161,6 +162,7 @@ describe('createJobFromProposalSchema', () => {
   it('accepts valid input', () => {
     const result = createJobFromProposalSchema.safeParse({
       proposal_id: '550e8400-e29b-41d4-a716-446655440000',
+      assigned_to: '550e8400-e29b-41d4-a716-446655440099',
       scheduled_start_date: '2024-01-15',
     })
     expect(result.success).toBe(true)

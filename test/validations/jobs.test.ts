@@ -71,6 +71,8 @@ describe('Job Validation Schemas', () => {
   describe('createJobSchema', () => {
     const validJob = {
       customer_id: '550e8400-e29b-41d4-a716-446655440000',
+      // Assigned technician is now part of the minimum valid payload.
+      assigned_to: '550e8400-e29b-41d4-a716-446655440099',
       scheduled_start_date: '2026-02-15',
       job_address: '123 Main Street'
     }
@@ -174,6 +176,7 @@ describe('Job Validation Schemas', () => {
     it('should accept valid proposal with start date', () => {
       const result = createJobFromProposalSchema.safeParse({
         proposal_id: '550e8400-e29b-41d4-a716-446655440000',
+        assigned_to: '550e8400-e29b-41d4-a716-446655440099',
         scheduled_start_date: '2026-02-15'
       })
       expect(result.success).toBe(true)
@@ -181,6 +184,7 @@ describe('Job Validation Schemas', () => {
 
     it('should require proposal_id', () => {
       const result = createJobFromProposalSchema.safeParse({
+        assigned_to: '550e8400-e29b-41d4-a716-446655440099',
         scheduled_start_date: '2026-02-15'
       })
       expect(result.success).toBe(false)
@@ -188,7 +192,8 @@ describe('Job Validation Schemas', () => {
 
     it('should require scheduled_start_date', () => {
       const result = createJobFromProposalSchema.safeParse({
-        proposal_id: '550e8400-e29b-41d4-a716-446655440000'
+        proposal_id: '550e8400-e29b-41d4-a716-446655440000',
+        assigned_to: '550e8400-e29b-41d4-a716-446655440099'
       })
       expect(result.success).toBe(false)
     })

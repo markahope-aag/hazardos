@@ -208,7 +208,7 @@ function OpportunityCard({ opportunity, isDragging }: OpportunityCardProps) {
       )}
     >
       <CardContent className="p-3">
-        <Link href={`/pipeline/${opportunity.id}`} className="block">
+        <Link href={`/crm/opportunities/${opportunity.id}`} className="block">
           <p className="font-medium text-sm truncate hover:text-primary">
             {opportunity.name}
           </p>
@@ -216,10 +216,24 @@ function OpportunityCard({ opportunity, isDragging }: OpportunityCardProps) {
         <p className="text-xs text-muted-foreground truncate">
           {customerName}
         </p>
-        {opportunity.estimated_value && (
+        {/* Hazard chips help triage at a glance — an asbestos abatement
+            in negotiation reads very differently from a mold remediation
+            stuck in proposal. */}
+        {Array.isArray(opportunity.hazard_types) && opportunity.hazard_types.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {opportunity.hazard_types.map((h) => (
+              <Badge key={h} variant="secondary" className="text-xs capitalize">
+                {h}
+              </Badge>
+            ))}
+          </div>
+        )}
+        {opportunity.estimated_value ? (
           <p className="text-sm font-medium mt-2">
             {formatCurrency(opportunity.estimated_value, false)}
           </p>
+        ) : (
+          <p className="text-xs text-muted-foreground italic mt-2">No estimate yet</p>
         )}
         {opportunity.expected_close_date && (
           <p className="text-xs text-muted-foreground mt-1">

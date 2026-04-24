@@ -77,6 +77,13 @@ export class PipelineService {
     stageId?: string
     limit?: number
     offset?: number
+    /**
+     * When true, include won/lost opportunities too — the kanban
+     * expects them so they stay in the Won / Lost columns after
+     * closing. Defaults to false so metrics and default list views
+     * still show only open pipeline.
+     */
+    includeClosed?: boolean
   }): Promise<{ opportunities: Opportunity[]; total: number; limit: number; offset: number }> {
     const supabase = await createClient()
 
@@ -91,8 +98,11 @@ export class PipelineService {
         customer:customers!customer_id(id, name, first_name, last_name, company_name),
         owner:profiles!owner_id(id, full_name)
       `, { count: 'exact' })
-      .is('outcome', null)
       .order('updated_at', { ascending: false })
+
+    if (!options?.includeClosed) {
+      query = query.is('outcome', null)
+    }
 
     if (options?.stageId) {
       query = query.eq('stage_id', options.stageId)
@@ -176,6 +186,18 @@ export class PipelineService {
         weighted_value: weighted,
         expected_close_date: input.expected_close_date || null,
         owner_id: input.owner_id || user.id,
+        // Hazard + site scoping — previously missing from the insert
+        // so the form's hazard selection got silently dropped.
+        hazard_types: input.hazard_types || null,
+        urgency: input.urgency || null,
+        property_type: input.property_type || null,
+        property_age: input.property_age || null,
+        regulatory_trigger: input.regulatory_trigger || null,
+        estimated_affected_area_sqft: input.estimated_affected_area_sqft || null,
+        service_address_line1: input.service_address_line1 || null,
+        service_city: input.service_city || null,
+        service_state: input.service_state || null,
+        service_zip: input.service_zip || null,
       })
       .select()
       .single()
@@ -202,10 +224,46 @@ export class PipelineService {
     if (input.loss_reason !== undefined) updateData.loss_reason = input.loss_reason
     if (input.loss_notes !== undefined) updateData.loss_notes = input.loss_notes
     if (input.competitor !== undefined) updateData.competitor = input.competitor
+    if (input.hazard_types !== undefined) updateData.hazard_types = input.hazard_types
+    if (input.urgency !== undefined) updateData.urgency = input.urgency
+    if (input.property_type !== undefined) updateData.property_type = input.property_type
+    if (input.property_age !== undefined) updateData.property_age = input.property_age
+    if (input.regulatory_trigger !== undefined) updateData.regulatory_trigger = input.regulatory_trigger
+    if (input.estimated_affected_area_sqft !== undefined) {
+      updateData.estimated_affected_area_sqft = input.estimated_affected_area_sqft
+    }
+    if (input.service_address_line1 !== undefined) updateData.service_address_line1 = input.service_address_line1
+    if (input.service_city !== undefined) updateData.service_city = input.service_city
+    if (input.service_state !== undefined) updateData.service_state = input.service_state
+    if (input.service_zip !== undefined) updateData.service_zip = input.service_zip
 
     // Handle stage change separately
     if (input.stage_id !== undefined) {
       return this.moveOpportunity(id, input.stage_id)
+    }
+
+    // Keep weighted_value in sync when estimated_value changes — previously
+    // the column went stale on every edit, which is why the Weighted Value
+    // metric drifted away from reality over time.
+    if (input.estimated_value !== undefined) {
+      const { data: current } = await supabase
+        .from('opportunities')
+        .select('stage_id, probability_pct')
+        .eq('id', id)
+        .single()
+      if (current) {
+        const { data: stage } = await supabase
+          .from('pipeline_stages')
+          .select('probability')
+          .eq('id', current.stage_id)
+          .single()
+        const probability =
+          typeof current.probability_pct === 'number'
+            ? current.probability_pct
+            : stage?.probability ?? 0
+        updateData.weighted_value =
+          input.estimated_value != null ? (input.estimated_value * probability) / 100 : null
+      }
     }
 
     const { data, error } = await supabase

@@ -19,7 +19,7 @@ import {
 import {
   ArrowLeft, Building2, User, MapPin, AlertCircle, DollarSign,
   TrendingUp, Calendar, Shield, Briefcase, History, CheckCircle, XCircle, Loader2,
-  AlertTriangle, FileText, Clipboard, ArrowRight,
+  AlertTriangle, FileText, Clipboard, ArrowRight, Pencil,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
@@ -247,27 +247,35 @@ export default function OpportunityDetailPage({ params }: Props) {
             <p className="text-sm text-muted-foreground">{contactName}{opp.customer?.company_name ? ` · ${opp.customer.company_name}` : ''}</p>
           </div>
         </div>
-        {isOpen && (
-          <div className="flex gap-2">
-            {!opp.created_from_assessment_id && (
-              <Button
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                onClick={() => setShowConvertModal(true)}
-                disabled={convertToSurvey.isPending}
-              >
-                <Clipboard className="h-4 w-4 mr-2" />
-                Convert to Survey
-                <ArrowRight className="h-4 w-4 ml-1" />
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href={`/crm/opportunities/${opp.id}/edit`}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
+            </Link>
+          </Button>
+          {isOpen && (
+            <>
+              {!opp.created_from_assessment_id && (
+                <Button
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  onClick={() => setShowConvertModal(true)}
+                  disabled={convertToSurvey.isPending}
+                >
+                  <Clipboard className="h-4 w-4 mr-2" />
+                  Convert to Survey
+                  <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              )}
+              <Button variant="outline" className="text-green-600 border-green-300 hover:bg-green-50" onClick={() => markWon.mutate()} disabled={markWon.isPending}>
+                <CheckCircle className="h-4 w-4 mr-2" />Won
               </Button>
-            )}
-            <Button variant="outline" className="text-green-600 border-green-300 hover:bg-green-50" onClick={() => markWon.mutate()} disabled={markWon.isPending}>
-              <CheckCircle className="h-4 w-4 mr-2" />Won
-            </Button>
-            <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={() => setShowLostModal(true)}>
-              <XCircle className="h-4 w-4 mr-2" />Lost
-            </Button>
-          </div>
-        )}
+              <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={() => setShowLostModal(true)}>
+                <XCircle className="h-4 w-4 mr-2" />Lost
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
@@ -620,7 +628,28 @@ export default function OpportunityDetailPage({ params }: Props) {
                   <Briefcase className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium mb-2">Ready for Job Creation</h3>
                   <p className="text-muted-foreground mb-4">This opportunity was won — create a job to begin work</p>
-                  <Button asChild><Link href="/jobs/new">Create Job</Link></Button>
+                  {/* Pre-populate customer + service address so the job
+                      form doesn't make the user retype what we already
+                      know. Falls back to the customer's default address
+                      if the opp never got a site-specific one. */}
+                  <Button asChild>
+                    <Link
+                      href={{
+                        pathname: '/jobs/new',
+                        query: {
+                          customer_id: opp.customer_id,
+                          opportunity_id: opp.id,
+                          ...(opp.service_address_line1 && { job_address: opp.service_address_line1 }),
+                          ...(opp.service_city && { job_city: opp.service_city }),
+                          ...(opp.service_state && { job_state: opp.service_state }),
+                          ...(opp.service_zip && { job_zip: opp.service_zip }),
+                          ...(opp.name && { name: opp.name }),
+                        },
+                      }}
+                    >
+                      Create Job
+                    </Link>
+                  </Button>
                 </div>
               ) : (
                 <div>
