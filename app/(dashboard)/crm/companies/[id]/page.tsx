@@ -10,10 +10,12 @@ import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import {
   ArrowLeft, Building2, Users, Mail, Phone, MapPin, Globe, AlertCircle,
-  DollarSign, Target, ExternalLink, Edit, User,
+  DollarSign, Target, ExternalLink, Edit, User, Star, Briefcase,
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useCompany, useUpdateCompany } from '@/lib/hooks/use-companies'
 import { useCustomers } from '@/lib/hooks/use-customers'
+import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import EntityActivityFeed from '@/components/activity/entity-activity-feed'
 import CompanyJobsList from '@/components/companies/company-jobs-list'
@@ -59,6 +61,45 @@ export default function CompanyDetailPage({ params }: Props) {
   const { data: company, isLoading, error } = useCompany(id)
   const { data: allContacts = [] } = useCustomers({ pageSize: 100 })
   const contacts = allContacts.filter((c: { company_id: string | null }) => c.company_id === id)
+
+  // "Open" = work the crew still has in front of them. Separate from
+  // company.total_jobs_completed (kept in sync by DB trigger) so the
+  // two counts tell you current workload vs. historical delivery.
+  const OPEN_JOB_STATUSES = ['scheduled', 'in_progress', 'on_hold']
+  const { data: openJobCount = 0 } = useQuery({
+    queryKey: ['company-open-jobs', id],
+    enabled: !!id,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const supabase = createClient()
+      const { count } = await supabase
+        .from('jobs')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', id)
+        .in('status', OPEN_JOB_STATUSES)
+      return count ?? 0
+    },
+  })
+
+  // Resolve the primary contact in its own query — the FK was just
+  // added, older rows have it null, and we want to show the full name
+  // + role without re-fetching the whole customers list.
+  const primaryContactId = company?.primary_contact_id ?? null
+  const { data: primaryContact = null } = useQuery({
+    queryKey: ['company-primary-contact', primaryContactId],
+    enabled: !!primaryContactId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      if (!primaryContactId) return null
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('customers')
+        .select('id, name, first_name, last_name, title, email, mobile_phone, office_phone, phone, contact_role')
+        .eq('id', primaryContactId)
+        .single()
+      return data
+    },
+  })
   const [activeTab, setActiveTab] = useState<'overview' | 'contacts' | 'opportunities' | 'jobs' | 'activity'>('overview')
   const [editingNotes, setEditingNotes] = useState(false)
   const [notesValue, setNotesValue] = useState('')
@@ -222,6 +263,92 @@ export default function CompanyDetailPage({ params }: Props) {
             </CardContent>
           </Card>
 
+          {/* Primary Contact — the person we default to when reaching
+              out. Set in Edit; rendered here so it's one glance away. */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Star className="h-4 w-4" />
+                Primary Contact
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm">
+              {primaryContact ? (
+                <div className="space-y-2">
+                  <div>
+                    <Link
+                      href={`/crm/contacts/${primaryContact.id}`}
+                      className="font-medium hover:underline"
+                    >
+                      {[primaryContact.first_name, primaryContact.last_name].filter(Boolean).join(' ') ||
+                        primaryContact.name ||
+                        'Unnamed contact'}
+                    </Link>
+                    {primaryContact.title && (
+                      <p className="text-xs text-muted-foreground">{primaryContact.title}</p>
+                    )}
+                    {primaryContact.contact_role && (
+                      <p className="text-xs text-muted-foreground">
+                        {ROLE_LABELS[primaryContact.contact_role] || primaryContact.contact_role}
+                      </p>
+                    )}
+                  </div>
+                  {primaryContact.email && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                      <a href={`mailto:${primaryContact.email}`} className="hover:underline truncate">
+                        {primaryContact.email}
+                      </a>
+                    </div>
+                  )}
+                  {(primaryContact.mobile_phone || primaryContact.office_phone || primaryContact.phone) && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                      <a
+                        href={`tel:${primaryContact.mobile_phone || primaryContact.office_phone || primaryContact.phone}`}
+                        className="hover:underline"
+                      >
+                        {primaryContact.mobile_phone || primaryContact.office_phone || primaryContact.phone}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground">
+                  No primary contact set.{' '}
+                  <Link
+                    href={`/crm/companies/${company.id}/edit`}
+                    className="text-primary hover:underline"
+                  >
+                    Choose one
+                  </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Workload — separate from the historical financial summary
+              because "how much are we on the hook for right now" is a
+              different question than "how much have we delivered." */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Briefcase className="h-4 w-4" />
+                Jobs
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Open</span>
+                <span className="font-medium">{openJobCount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Completed</span>
+                <span className="font-medium">{company.total_jobs_completed || 0}</span>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Financial Summary */}
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><DollarSign className="h-4 w-4" />Financial</CardTitle></CardHeader>
@@ -229,10 +356,6 @@ export default function CompanyDetailPage({ params }: Props) {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Lifetime Value</span>
                 <span className="font-bold text-base">{formatCurrency(company.lifetime_value || 0, false)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Jobs Completed</span>
-                <span className="font-medium">{company.total_jobs_completed || 0}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Avg Job Value</span>
