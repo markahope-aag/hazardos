@@ -1,9 +1,11 @@
 # HazardOS User Guide
 
-**Complete guide for end users of the HazardOS environmental remediation management platform**
+**Guide for people using the HazardOS environmental remediation platform** (office staff, estimators, and field crews).
 
-> **Last Updated**: February 1, 2026
-> **Version**: 0.1.0
+> **Last updated:** April 29, 2026  
+> **App version:** 0.1.0
+
+Screen names and menus match the current app. If your organization uses custom branding, labels may look slightly different, but navigation is the same.
 
 ---
 
@@ -11,14 +13,18 @@
 
 1. [Getting Started](#getting-started)
 2. [Dashboard Overview](#dashboard-overview)
-3. [Managing Customers](#managing-customers)
-4. [Creating and Managing Site Surveys](#creating-and-managing-site-surveys)
-5. [Proposals and Estimates](#proposals-and-estimates)
-6. [Job Scheduling and Management](#job-scheduling-and-management)
-7. [Invoicing](#invoicing)
-8. [Using the Customer Portal](#using-the-customer-portal)
-9. [Mobile Features](#mobile-features)
-10. [Tips and Best Practices](#tips-and-best-practices)
+3. [How navigation works](#how-navigation-works)
+4. [CRM: Contacts, companies, and pipeline](#crm-contacts-companies-and-pipeline)
+5. [Creating and Managing Site Surveys](#creating-and-managing-site-surveys)
+6. [Proposals and Estimates](#proposals-and-estimates)
+7. [Job Scheduling and Management](#job-scheduling-and-management)
+8. [Invoicing](#invoicing)
+9. [Manifests](#manifests)
+10. [Messaging](#messaging)
+11. [Notifications](#notifications)
+12. [Using the Customer Portal](#using-the-customer-portal)
+13. [Mobile Features](#mobile-features)
+14. [Tips and Best Practices](#tips-and-best-practices)
 
 ---
 
@@ -54,23 +60,13 @@ Your access level depends on your assigned role:
 | **Technician** | Execute jobs | Job completion, time tracking |
 | **Viewer** | Read-only access | Reports, viewing data |
 
-#### Updating Your Profile
+#### Profile and account settings
 
-1. Click your **profile icon** in the top-right corner
-2. Select **Profile Settings**
-3. Update your information:
-   - Full name
-   - Phone number
-   - Avatar photo
-4. Click **Save Changes**
+1. Click your **name or avatar** in the top-right to open the user menu.
+2. Choose **Profile** or **Settings** — both go to **Settings**, where the sidebar lists every section (company, team, billing, security, and more).
+3. Update **company profile**, **team**, **security** (password and session-related options), **notifications**, **email**, **SMS**, and other options from the sidebar.
 
-#### Changing Your Password
-
-1. Click your **profile icon**
-2. Select **Change Password**
-3. Enter your current password
-4. Enter and confirm your new password
-5. Click **Update Password**
+Password changes live under **Settings → Security** (not a separate item on the user menu).
 
 ---
 
@@ -78,68 +74,62 @@ Your access level depends on your assigned role:
 
 ### Main Dashboard
 
-When you log in, you will see the main dashboard with key metrics:
+When you log in, you land on the **Dashboard** with filters at the top and widgets below. Typical widgets include:
 
-#### Dashboard Widgets
+- **Key metrics** (stats cards) — revenue, jobs, and related KPIs for the period you select.
+- **Upcoming jobs** — what is scheduled next.
+- **Revenue** trend and **lead sources** — where work and leads come from.
+- **Jobs by status** and **jobs by hazard** — breakdowns you can use to spot bottlenecks; hazard charts can tie into dashboard filters where supported.
+- **Overdue invoices** — accounts receivable that need attention.
+- **Recent activity** — latest actions in your organization.
 
-**Jobs by Status**
-- Visual breakdown of active jobs
-- Quick status overview:
-  - Scheduled (Blue)
-  - In Progress (Orange)
-  - On Hold (Gray)
-  - Completed (Green)
-  - Cancelled (Red)
-
-**Revenue Chart**
-- Monthly revenue tracking
-- Year-over-year comparison
-- Revenue goals and actuals
-
-**Recent Activity**
-- Latest system updates
-- Recent customer interactions
-- Job status changes
-- Team activities
-
-**Quick Actions**
-- New Site Survey
-- New Customer
-- View Calendar
-- Create Estimate
-- Generate Invoice
-
-### Navigation
-
-The main navigation menu provides access to all features:
-
-- **Dashboard**: Home screen with overview
-- **Customers**: Customer relationship management
-- **Site Surveys**: Field assessment forms
-- **Estimates**: Pricing and quotes
-- **Jobs**: Active project management
-- **Calendar**: Scheduling and appointments
-- **Invoices**: Billing and payments
-- **Settings**: Organization configuration
+Use the **filter bar** (period, hazard type, etc.) to focus the dashboard on a specific time range or type of work.
 
 ---
 
-## Managing Customers
+## How navigation works
 
-### Customer List
+### Main menu (always available)
 
-Access your customer database:
+The top navigation includes:
 
-1. Click **Customers** in the main navigation
-2. View your customer list with key information:
+| Item | Purpose |
+|------|---------|
+| **Dashboard** | Home metrics and widgets |
+| **CRM** | Sales pipeline: properties, **Contacts**, **Companies**, **Opportunities**, **Pipeline** (Kanban), **Jobs** (CRM context) |
+| **Surveys** | Site survey list and mobile field workflow |
+| **Estimates** | Estimates and pricing workflows |
+| **Jobs** | Job list and job detail (operations view) |
+| **Manifests** | Hazardous waste manifest tracking |
+| **Invoices** | Customer invoicing |
+| **Calendar** | Scheduling |
+| **Messaging** | Customer messaging threads |
+| **Settings** | Organization, team, billing, integrations, email, SMS, notifications, security, branding |
+
+### CRM mode
+
+When you open **CRM**, the screen switches to a dedicated **CRM** layout: a dark banner at the top and tabs for **Properties**, **Contacts**, **Companies**, **Opportunities**, **Pipeline**, and **Jobs**. The main menu is hidden while you are inside CRM so you can focus on sales work. Use **Back to Main Menu** to return to the standard navigation.
+
+---
+
+## CRM: Contacts, companies, and pipeline
+
+The database still uses the internal name `customers` in a few places, but the product treats these records as **contacts** (people) and **companies** (accounts). Day-to-day work starts in **CRM**.
+
+### Contact list
+
+Open the contact database:
+
+1. Click **CRM** in the main navigation, then **Contacts** (or go to `/crm/contacts`).
+2. View your **contact list** with key information:
    - Name and company
    - Contact information
    - Status (Lead, Prospect, Customer, Inactive)
    - Recent activity
 
-#### Filtering Customers
+#### Filtering contacts
 
-Use filters to find specific customers:
+Use filters to find specific people:
 
 **By Status**:
 - Lead: Initial contact, not yet qualified
@@ -147,38 +137,27 @@ Use filters to find specific customers:
 - Customer: Active or past customer
 - Inactive: No longer active
 
-**By Source**:
-- Referral
-- Website
-- Advertising
-- Cold Call
-- Trade Show
-- Other
+**By source** (typical values in the app):
+- Phone, Website, Mail, Referral, Other
 
-**Search**: Type name, email, or phone number in the search box
+**Search**: Use the search box to find names, email, or phone.
 
-### Adding a New Customer
+> **Note:** You may also see a **Customers** route in bookmarks (`/customers`). It shows the same contact records; **CRM → Contacts** is the primary path.
 
-1. Click **New Customer** button
-2. Fill in the customer information form:
+### Adding a new contact
 
-**Required Fields**:
-- Name (First and last name)
-- Status (Lead, Prospect, Customer, Inactive)
+1. From **CRM → Contacts**, click **New** (or equivalent) to open the contact form.
+2. Choose **Residential** or **Commercial**. Commercial flows can tie the person to a **company** record.
+3. Complete the form. The app expects a real **street address** and related fields for most contacts (used for jobs and documents).
 
-**Optional Fields**:
-- Company name
-- Email address
-- Phone number
-- Address (Street, City, State, ZIP)
-- Source (How they found you)
-- Notes
+**Common fields**:
+- First and last name (used to build the display name)
+- Status: Lead, Prospect, Customer, or Inactive
+- Contact role (optional): e.g. Decision maker, Billing, Site contact, Property manager, Influencer, Other
+- Phones, email, preferred contact method
+- Lead source and marketing / SMS opt-in where your admin enables them
 
-3. **Marketing Consent**:
-   - Check if customer agreed to receive marketing communications
-   - Record consent date automatically
-
-4. Click **Save Customer**
+4. Save the record.
 
 ### Viewing Customer Details
 
@@ -240,238 +219,20 @@ Update customer status as they progress through your sales funnel:
 
 **Best Practice**: Set customers to "Inactive" status instead of deleting them to preserve historical data.
 
-### Managing Customer Contacts
+### Companies and opportunities
 
-HazardOS allows you to maintain multiple contacts per customer, perfect for enterprise customers with different decision-makers, billing contacts, and on-site coordinators.
+- **CRM → Companies** — Business accounts (especially for commercial work). Companies are usually created in context when you add or convert commercial contacts.
+- **CRM → Opportunities** — Deals linked to contacts (and optionally companies). Track stage, value, hazards, and related site surveys.
+- **CRM → Pipeline** — Kanban view of opportunities across your organization’s pipeline stages.
+- **CRM → Properties** — Properties tied to your sales and job workflow where your org uses that model.
 
-#### Viewing Customer Contacts
+Use **CRM → Jobs** for pipeline-centric job lists; use the main **Jobs** menu for the broader operations view—both connect to the same underlying jobs.
 
-1. Open customer details page
-2. Navigate to **Contacts** tab
-3. View all contacts for this customer
+### Additional people on an account
 
-**Contact Card Display**:
-- Contact name with role badge
-- Star icon for primary contact
-- Job title
-- Email and phone numbers (clickable)
-- Notes about the contact
+Some accounts store **extra people** (e.g. additional `customer_contacts`) when your workflow uses them. If your screen shows a **Contacts** tab or sub-contacts on a detail page, use the actions there (add, edit, set primary). **Contact roles** in the app align with fields such as: Decision maker, Influencer, Billing, Property manager, Site contact, and Other—not the informal “Primary / Scheduling” labels used in older documentation.
 
-**Role Badges**:
-- Primary (Blue) - Main point of contact
-- Billing (Green) - Receives invoices
-- Site (Orange) - On-site coordinator
-- Scheduling (Purple) - Appointment scheduling
-- General (Gray) - General purpose
-
-#### Adding a New Contact
-
-1. Open customer details
-2. Go to **Contacts** tab
-3. Click **Add Contact** button
-4. Fill in the contact form:
-
-**Required Fields**:
-- Name (required)
-
-**Optional Fields**:
-- Title (e.g., "Project Manager")
-- Email address
-- Phone number
-- Mobile number
-- Role (dropdown):
-  - Primary - Main point of contact
-  - Billing - Invoices and payments
-  - Site - On-site contact for jobs
-  - Scheduling - Appointment scheduling
-  - General - General contact
-- Preferred Contact Method (dropdown):
-  - Email
-  - Phone
-  - Mobile
-  - Any
-- Set as Primary Contact (checkbox)
-- Notes (internal notes about the contact)
-
-5. Click **Add Contact**
-
-**First Contact Behavior**:
-- First contact added is automatically set as primary
-- Primary contact information syncs to customer record
-- Customer name, email, and phone updated from primary contact
-
-#### Editing a Contact
-
-1. Open customer details
-2. Go to **Contacts** tab
-3. Click the **menu** (three dots) on the contact card
-4. Select **Edit**
-5. Update the contact information
-6. Click **Save Changes**
-
-#### Setting a Primary Contact
-
-The primary contact is the main point of contact and their information syncs to the customer record.
-
-**To Change Primary Contact**:
-1. Open customer details
-2. Go to **Contacts** tab
-3. Find the contact you want to set as primary
-4. Click the **menu** (three dots) on their card
-5. Select **Set as Primary**
-
-**What Happens**:
-- Previous primary contact is automatically demoted
-- New primary contact highlighted with star icon
-- Customer record updated with new primary contact info
-- Activity logged for the change
-
-#### Deleting a Contact
-
-1. Open customer details
-2. Go to **Contacts** tab
-3. Click the **menu** (three dots) on the contact card
-4. Select **Delete**
-5. Confirm deletion
-
-**Primary Contact Deletion**:
-- If you delete the primary contact, another contact is automatically promoted
-- Promotion priority: primary role → billing → site → scheduling → oldest contact
-- Customer record updated with new primary contact info
-
-#### Contact Roles Explained
-
-**Primary Contact**:
-- Main decision-maker
-- Receives proposals and important communications
-- Only one primary contact per customer
-- Information syncs to customer record
-
-**Billing Contact**:
-- Receives invoices and payment reminders
-- Handles financial matters
-- Can have multiple billing contacts
-- Invoices sent to all billing contacts
-
-**Site Contact**:
-- On-site coordinator during job execution
-- Receives job scheduling notifications
-- Can have multiple site contacts
-- Job notifications sent to relevant site contacts
-
-**Scheduling Contact**:
-- Handles appointment scheduling
-- Receives calendar updates and reminders
-- Can have multiple scheduling contacts
-- Appointment confirmations sent to scheduling contacts
-
-**General Contact**:
-- No specific role
-- Can be used for additional contacts
-- Receives standard customer communications
-
-#### Communication Preferences
-
-Each contact can specify their preferred contact method:
-
-**Email**:
-- Prefers email communication
-- Good for detailed information
-- Allows for documentation trail
-
-**Phone**:
-- Prefers phone calls
-- Good for urgent matters
-- Direct communication
-
-**Mobile**:
-- Prefers mobile/SMS
-- Good for quick updates
-- On-the-go communication
-
-**Any**:
-- No preference
-- Use any available method
-
-#### Use Cases
-
-**Enterprise Customer Example**:
-```
-Customer: Acme Corporation
-
-Contact 1: John Smith (Primary, Scheduling)
-- Title: Project Manager
-- Email: john@acme.com
-- Phone: (555) 123-4567
-- Preferred: Email
-- Handles: Project coordination, scheduling
-
-Contact 2: Jane Doe (Billing)
-- Title: Accounts Payable Manager
-- Email: ap@acme.com
-- Phone: (555) 234-5678
-- Preferred: Email
-- Handles: Invoices and payments
-
-Contact 3: Bob Wilson (Site)
-- Title: Facilities Manager
-- Email: bob@acme.com
-- Mobile: (555) 345-6789
-- Preferred: Mobile
-- Handles: On-site coordination during jobs
-```
-
-**Residential Customer Example**:
-```
-Customer: Smith Residence
-
-Contact 1: Mary Smith (Primary)
-- Email: mary@example.com
-- Phone: (555) 123-4567
-- Main decision maker
-
-Contact 2: John Smith (General)
-- Email: john@example.com
-- Mobile: (555) 987-6543
-- Backup contact
-```
-
-#### Contact Activity Tracking
-
-All contact actions are logged:
-- Contact created
-- Contact updated
-- Contact deleted
-- Contact set as primary
-
-View contact activity in the customer's activity timeline.
-
-#### Tips for Managing Contacts
-
-**Best Practices**:
-- Add all relevant contacts upfront
-- Keep contact information current
-- Use appropriate roles for each contact
-- Note communication preferences
-- Add context in the notes field
-
-**Communication Strategy**:
-- Send proposals to primary contact
-- Send invoices to billing contacts
-- Send job notifications to site contacts
-- Send appointment confirmations to scheduling contacts
-
-**Data Quality**:
-- Verify email addresses before sending important communications
-- Test phone numbers periodically
-- Update titles when contacts change roles
-- Remove inactive contacts
-
-**Enterprise Customers**:
-- Map organizational structure
-- Identify decision-makers vs. influencers
-- Note reporting relationships
-- Track preferred communication channels
+**Preferred contact method** options include email, phone, text, and mail where enabled.
 
 ---
 
@@ -483,7 +244,7 @@ Site surveys (formerly called assessments) are field inspection forms used to co
 
 #### Desktop Method
 
-1. Click **Site Surveys** in the navigation
+1. Click **Surveys** in the main navigation (site surveys)
 2. Click **New Survey** button
 3. Fill out the survey form:
 
@@ -517,7 +278,7 @@ Site surveys (formerly called assessments) are field inspection forms used to co
 Optimized for field use:
 
 1. Open HazardOS on your mobile device
-2. Tap **Site Surveys**
+2. Tap **Surveys**
 3. Tap **New Survey** (camera icon)
 4. Use the mobile wizard:
    - Step 1: Property Info
@@ -590,16 +351,20 @@ The mobile survey wizard is designed for quick, efficient field data collection:
 - Show hazard materials clearly
 - Include before/after contexts
 
-### Survey Status Workflow
+### Survey status workflow
 
-Surveys progress through these statuses:
+Surveys use statuses such as:
 
-1. **Draft**: Survey in progress, not submitted
-2. **Submitted**: Survey complete, ready for review
-3. **Estimated**: Estimate created from survey
-4. **Quoted**: Proposal sent to customer
-5. **Scheduled**: Job scheduled from survey
-6. **Completed**: Job completed
+- **Draft** — Work in progress.
+- **Scheduled** / **In progress** — Visit timing and field work.
+- **Submitted** — Ready for office review.
+- **Reviewed** — Reviewed internally.
+- **Estimated** — Linked to an estimate or pricing step.
+- **Quoted** — Proposal/quote stage where applicable.
+- **Completed** — Closed out as a survey record.
+- **Cancelled** — Will not proceed.
+
+The **Surveys** list can group rows as **open**, **completed**, **converted** (e.g. tied to an estimate), or **cancelled** to match how your team works the pipeline.
 
 ### Scheduling Site Surveys
 
@@ -1150,6 +915,32 @@ If QuickBooks integration is enabled:
 
 ---
 
+## Manifests
+
+Use **Manifests** in the main menu to track **hazardous waste manifests** and related shipment details for jobs that require that compliance trail. Open the list to add or open a manifest, attach vehicles or documentation as your workflow defines, and use email actions on a manifest when your team sends paperwork to transporters or regulators.
+
+Exact fields and steps follow your organization’s process; your admin configures integrations and templates elsewhere in **Settings**.
+
+---
+
+## Messaging
+
+**Messaging** (`/messages`) is for **SMS-style conversations** with customers where your org has enabled SMS (see **Settings → SMS**). You can open a thread by customer to read and send messages, subject to TCPA consent and your internal policies.
+
+This is separate from **in-app notifications** (bell icon) and separate from **email** sent from proposals or invoices.
+
+---
+
+## Notifications
+
+- **In-app:** Click the **bell** in the header to see alerts (job updates, approvals, billing issues, feedback, etc.). Unread items show a badge; the list refreshes periodically while the app is open.
+- **Settings:** Go to **Settings → Notifications** to turn **in-app**, **email**, and (where available) **push** preferences on or off **per notification type**.
+- **Email:** When email is enabled for a type, many alerts also send a message through your organization’s email configuration (**Settings → Email**).
+
+Browser **push** preferences may appear in settings; full mobile-style push depends on your device and how your organization deploys the app. See [NOTIFICATIONS.md](./NOTIFICATIONS.md) for technical detail.
+
+---
+
 ## Using the Customer Portal
 
 ### Customer Feedback Surveys
@@ -1196,30 +987,11 @@ After job completion, customers receive feedback surveys:
   - HomeAdvisor
   - Angi
 
-### Viewing Customer Feedback
+### Viewing responses inside HazardOS
 
-**Feedback Dashboard**:
-1. Go to **Dashboard** → **Customer Feedback**
-2. View metrics:
-   - Average ratings
-   - NPS score
-   - Response rate
-   - Approved testimonials
+Customers use a **public link** (`/feedback/...`) that does not require them to log in. Inside the app, your team may see new feedback through **in-app notifications** (bell), **email** alerts if enabled, and any **reports** or job-related screens your organization uses. There is not a single “Customer Feedback” tile on the home dashboard—use notifications, **Reports** (if configured), and job/CRM context to follow up.
 
-**Individual Feedback**:
-1. Click **Feedback** tab
-2. View all responses
-3. Filter by:
-   - Rating
-   - Date
-   - Job type
-   - Customer
-
-**Using Testimonials**:
-- Approve testimonials for public use
-- Display on website
-- Share on social media
-- Include in proposals
+**Testimonials** — When customers grant permission, use your internal approval or marketing workflow (and **Settings → Notifications** for `testimonial_pending`–style alerts if enabled) before quoting them publicly.
 
 ---
 
@@ -1230,11 +1002,12 @@ After job completion, customers receive feedback surveys:
 HazardOS is built mobile-first for field technicians and estimators:
 
 **Key Mobile Features**:
-- Responsive design adapts to screen size
-- Touch-friendly buttons and controls
-- Simplified navigation for mobile
-- Offline capability (PWA)
-- Quick actions and shortcuts
+- Responsive layout for phones and tablets
+- Touch-friendly controls
+- **Surveys** mobile wizard for field capture
+- **PWA** install for a home-screen shortcut (optional)
+
+Offline behavior depends on what the browser has cached and what you have already opened; treat online access as required for syncing new work to the server.
 
 ### Installing as Mobile App (PWA)
 
@@ -1253,42 +1026,23 @@ HazardOS is built mobile-first for field technicians and estimators:
 5. HazardOS icon appears on home screen
 
 **Benefits of PWA**:
-- Works offline
-- Faster loading
-- Native app feel
-- Push notifications
-- No app store required
+- Home-screen icon and full-screen feel
+- Often faster repeat visits (cached assets)
+- No app store install required
 
-### Offline Functionality
+**Push:** Browser push for HazardOS is limited by platform support and product settings; the **bell** in the web app is the reliable in-app notification surface.
 
-When internet connection is unavailable:
+### Offline and connectivity
 
-**What Works Offline**:
-- View previously loaded data
-- Create new site surveys (saved locally)
-- Take photos for surveys
-- View job details
-- Add time entries
-
-**What Requires Internet**:
-- Loading new data
-- Syncing changes
-- Uploading photos
-- Sending emails
-- Generating PDFs
-
-**Automatic Sync**:
-- Changes saved locally first
-- Synced automatically when online
-- Status indicator shows sync state
-- Notification when sync complete
+- **Fully offline** operation is not guaranteed for all features—assume you need a connection to **submit** surveys, **upload** media, **send** email, or **refresh** lists.
+- If you lose signal while in the field, keep working where the product allows drafts or queued uploads; reconnect to **sync** as soon as possible.
 
 ### Mobile Survey Workflow
 
 Optimized for field efficiency:
 
 1. **Arrive at site**
-2. Open HazardOS mobile app
+2. Open HazardOS in the browser (or from your home screen if you installed the PWA)
 3. Tap **New Survey**
 4. Quick info entry:
    - Customer selection (typeahead)
@@ -1533,10 +1287,10 @@ For technicians on job sites:
 ### Common Questions
 
 **Q: Can I use HazardOS offline?**
-A: Yes, as a PWA it works offline. Changes sync when you're back online.
+A: Partially. The PWA can cache some assets and previously viewed pages, but you should plan on having connectivity to submit surveys, upload photos, and sync data reliably.
 
 **Q: How do I add team members?**
-A: Admins can add users in Settings → Team Members.
+A: Organization admins use **Settings → Team Members** (and invitations, if your org uses them).
 
 **Q: Can I export my data?**
 A: Yes, most reports can be exported to CSV or PDF.
@@ -1553,8 +1307,8 @@ A: Better to mark as "Inactive" to preserve historical data.
 **Q: How do I reschedule a job?**
 A: Open job details, click Edit, update schedule, or drag in calendar.
 
-**Q: Can I customize invoice templates?**
-A: Yes, admins can customize in Settings → Invoice Templates.
+**Q: Can I customize how invoices look?**
+A: Branding and document behavior are controlled under **Settings** (e.g. company profile and branding). Specific template options depend on your organization’s configuration.
 
 **Q: Is my data backed up?**
 A: Yes, daily automated backups by Supabase.
@@ -1564,25 +1318,19 @@ A: Yes, login on any device. Changes sync automatically.
 
 ---
 
-## Keyboard Shortcuts
+## Keyboard and browser shortcuts
 
-Speed up your workflow with keyboard shortcuts:
-
-| Action | Windows/Linux | Mac |
-|--------|--------------|-----|
-| New Customer | Ctrl + N | Cmd + N |
-| New Site Survey | Ctrl + S | Cmd + S |
-| Search | Ctrl + K | Cmd + K |
-| Save | Ctrl + S | Cmd + S |
-| Close Dialog | Esc | Esc |
-| Navigate Forward | Ctrl + → | Cmd + → |
-| Navigate Back | Ctrl + ← | Cmd + ← |
+HazardOS does not ship a global shortcut map inside the app. Your **browser** shortcuts apply (for example, **Esc** often closes dialogs built with accessible components). Use the **Tab** key to move between fields in forms.
 
 ---
 
 ## Glossary
 
-**Assessment**: Former term for Site Survey
+**Assessment**: Legacy term for **site survey**
+
+**CRM**: **Customer relationship management** area in the app (**CRM** menu): contacts, companies, opportunities, pipeline, and CRM-scoped jobs
+
+**Contact**: A person record (stored internally as `customer` in some APIs)—see **CRM → Contacts**
 
 **Containment Level**: The level of isolation required for hazardous material work
 
@@ -1606,8 +1354,7 @@ Speed up your workflow with keyboard shortcuts:
 
 ---
 
-**Document Version**: 1.0
-**Last Review**: February 1, 2026
-**Next Review**: March 1, 2026
+**Document version:** 1.1  
+**Last review:** April 29, 2026
 
-**Need Help?** Contact mark.hope@asymmetric.pro
+**Need help?** Contact your organization admin or **mark.hope@asymmetric.pro** for product support.

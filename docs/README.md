@@ -10,20 +10,24 @@
 - **[Migration Guide](./MIGRATION-GUIDE.md)** - Database setup and migration instructions
 
 ### 📋 Product & Requirements
+- **[User Guide](./USER-GUIDE.md)** - End-user documentation (navigation, CRM, surveys, jobs, settings)
 - **[Project Overview](./HazardOS-Project-Overview.md)** - Vision, business model, and strategic goals
 - **[Product Requirements Document (PRD)](./HazardOS-PRD.md)** - Detailed feature specifications
 - **[Site Assessment Requirements](./HazardOS-Site-Assessment-Requirements.md)** - Field assessment specifications
 - **[Site Survey UI Specification](./hazardos-site-survey-ui-spec.md)** - Mobile form design and UX
 
 ### 🏗️ Technical Architecture
+- **[Architecture Overview](./ARCHITECTURE-OVERVIEW.md)** - Concise system shape, stacks, and module map (start here)
 - **[Architecture Guide](./architecture.md)** - System architecture and design decisions
 - **[Multi-Tenant Setup](./MULTI_TENANT_SETUP.md)** - Architecture and configuration guide
 - **[Database Setup Checklist](./DATABASE-SETUP-CHECKLIST.md)** - Step-by-step database verification
 - **[Deployment Guide](./DEPLOYMENT.md)** - Complete production deployment guide
 - **[Site Survey Terminology Update](./SITE-SURVEY-TERMINOLOGY-UPDATE.md)** - Migration from "Assessments" to "Site Surveys"
 - **[Email & SMS Guide](./EMAIL-SMS-GUIDE.md)** - Email audit and SMS implementation guide (Resend + Twilio)
+- **[Notifications](./NOTIFICATIONS.md)** - In-app bell, email alerts, preferences, API (distinct from SMS)
 
 ### 🗄️ Database
+- **[Database Structure](./DATABASE-STRUCTURE.md)** - Schema overview: tenants, CRM, surveys, jobs, integrations (start here)
 - **[Database Migrations](./database/README.md)** - SQL migration files and documentation (legacy)
 - **[Migration Guide](./MIGRATION-GUIDE.md)** - How to run database migrations
 - **[Structure Verification](./database/11-site-survey-structure-verification.sql)** - Database health check queries
