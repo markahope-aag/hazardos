@@ -166,7 +166,15 @@ export interface SurveyHazardAssessments {
 
 export interface SurveyPhotoMetadata {
   id: string
+  // Either:
+  //   - data: URL (legacy mobile photos, base64-embedded — render directly), or
+  //   - storage public URL (legacy fallback only — private bucket means
+  //     these don't load and `path` should be present instead).
+  // For new uploads `path` is the source of truth; `url` may be empty.
   url: string
+  // Storage object path inside the survey-photos bucket. New uploads
+  // always populate this; render code should sign it on the fly.
+  path?: string | null
   category: string
   location: string
   caption: string

@@ -3,8 +3,21 @@ import { z } from 'zod'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
-import { generateManifestPDFBase64 } from '@/lib/services/manifest-pdf-generator'
-import type { Manifest, ManifestVehicle } from '@/types/manifests'
+import {
+  generateManifestPDFBase64,
+  type ManifestMediaItem,
+} from '@/lib/services/manifest-pdf-generator'
+import type { Manifest, ManifestSnapshot, ManifestVehicle } from '@/types/manifests'
+import type { SurveyPhotoMetadata } from '@/types/database'
+
+const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 // 24h — recipient may open later
+const MAX_PDF_PHOTO_EMBEDS = 6
+
+function isVideoItem(m: SurveyPhotoMetadata): boolean {
+  if (m.mediaType === 'video') return true
+  if (m.mimeType?.startsWith('video/')) return true
+  return /\.(mp4|mov|webm|m4v|ogv)(\?|$)/i.test(m.url || m.path || '')
+}
 
 const emailManifestSchema = z.object({
   to: z.array(z.string().email()).min(1, 'At least one recipient is required').max(10),
@@ -44,9 +57,94 @@ export const POST = createApiHandlerWithParams(
       )
     }
 
+    // Pull the source survey's media so the field team gets photos and
+    // videos in the PDF, the same way the in-app gallery does.
+    const surveyId = (manifest.snapshot as ManifestSnapshot | null)?.job?.site_survey_id
+    let media: ManifestMediaItem[] = []
+    if (surveyId) {
+      const { data: survey } = await context.supabase
+        .from('site_surveys')
+        .select('photo_metadata')
+        .eq('id', surveyId)
+        .eq('organization_id', context.profile.organization_id)
+        .single()
+      const raw: SurveyPhotoMetadata[] =
+        (survey?.photo_metadata as SurveyPhotoMetadata[] | null) ?? []
+
+      const images = raw.filter((m) => !isVideoItem(m))
+      const videos = raw.filter(isVideoItem)
+      const toEmbed = images.slice(0, MAX_PDF_PHOTO_EMBEDS)
+      const toLink = images.slice(MAX_PDF_PHOTO_EMBEDS)
+
+      // Sign every path that has one.
+      const allPaths = raw.map((m) => m.path).filter((p): p is string => !!p)
+      const signedByPath: Record<string, string> = {}
+      if (allPaths.length > 0) {
+        const { data: signed } = await context.supabase.storage
+          .from('survey-photos')
+          .createSignedUrls(allPaths, SIGNED_URL_TTL_SECONDS)
+        for (const item of signed || []) {
+          if (item.path && item.signedUrl) signedByPath[item.path] = item.signedUrl
+        }
+      }
+
+      const resolveUrl = (m: SurveyPhotoMetadata): string =>
+        (m.path && signedByPath[m.path]) ||
+        (m.url?.startsWith('data:') ? m.url : m.url) ||
+        ''
+
+      // Fetch image bytes server-side and convert to base64 data URLs so
+      // jsPDF can embed them. Failures fall through to a text link.
+      const embedded: ManifestMediaItem[] = await Promise.all(
+        toEmbed.map(async (m) => {
+          const url = resolveUrl(m)
+          let dataUrl: string | null = null
+          if (url) {
+            try {
+              const res = await fetch(url)
+              if (res.ok) {
+                const buf = Buffer.from(await res.arrayBuffer())
+                const mime = res.headers.get('content-type') || m.mimeType || 'image/jpeg'
+                dataUrl = `data:${mime};base64,${buf.toString('base64')}`
+              }
+            } catch (err) {
+              context.log.warn(
+                { err, path: m.path },
+                'Failed to inline survey photo for PDF',
+              )
+            }
+          }
+          return {
+            kind: 'image' as const,
+            label: m.caption || 'Photo',
+            caption: m.caption || null,
+            url,
+            dataUrl,
+          }
+        }),
+      )
+
+      media = [
+        ...embedded,
+        ...toLink.map((m) => ({
+          kind: 'image' as const,
+          label: m.caption || 'Photo',
+          caption: m.caption || null,
+          url: resolveUrl(m),
+        })),
+        ...videos.map((m) => ({
+          kind: 'video' as const,
+          label: m.caption || 'Video',
+          caption: m.caption || null,
+          url: resolveUrl(m),
+        })),
+      ].filter((item) => item.url)
+    }
+
     const pdfBase64 = generateManifestPDFBase64(
       manifest as Manifest,
       (manifest.vehicles || []) as ManifestVehicle[],
+      media,
     )
 
     const { data: org } = await context.supabase

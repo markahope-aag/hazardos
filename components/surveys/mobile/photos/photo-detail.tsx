@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,7 +19,8 @@ import {
 } from '@/components/ui/dialog'
 import { useSurveyStore } from '@/lib/stores/survey-store'
 import { PhotoData, PhotoCategory, PHOTO_REQUIREMENTS } from '@/lib/stores/survey-types'
-import { Trash2, MapPin, Calendar } from 'lucide-react'
+import { getSignedSurveyMediaUrl } from '@/lib/services/photo-upload-service'
+import { Trash2, MapPin, Calendar, Loader2 } from 'lucide-react'
 
 interface PhotoDetailProps {
   photo: PhotoData | null
@@ -28,6 +30,28 @@ interface PhotoDetailProps {
 
 export function PhotoDetail({ photo, open, onClose }: PhotoDetailProps) {
   const { updatePhoto, removePhoto } = useSurveyStore()
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!photo) {
+      setResolvedUrl(null)
+      return
+    }
+    if (photo.dataUrl?.startsWith('data:')) {
+      setResolvedUrl(photo.dataUrl)
+      return
+    }
+    if (photo.path) {
+      let cancelled = false
+      getSignedSurveyMediaUrl(photo.path).then((url) => {
+        if (!cancelled) setResolvedUrl(url)
+      })
+      return () => {
+        cancelled = true
+      }
+    }
+    setResolvedUrl(photo.dataUrl || null)
+  }, [photo])
 
   if (!photo) return null
 
@@ -65,10 +89,10 @@ export function PhotoDetail({ photo, open, onClose }: PhotoDetailProps) {
         <div className="space-y-4">
           {/* Media Preview */}
           <div className="relative aspect-[4/3] rounded-lg overflow-hidden bg-muted">
-            {photo.dataUrl ? (
+            {resolvedUrl ? (
               isVideo ? (
                 <video
-                  src={photo.dataUrl}
+                  src={resolvedUrl}
                   controls
                   playsInline
                   preload="metadata"
@@ -77,14 +101,14 @@ export function PhotoDetail({ photo, open, onClose }: PhotoDetailProps) {
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={photo.dataUrl}
+                  src={resolvedUrl}
                   alt={photo.caption || 'Survey photo'}
                   className="w-full h-full object-contain"
                 />
               )
             ) : (
               <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                No {mediaLabel} available
+                <Loader2 className="w-6 h-6 animate-spin" />
               </div>
             )}
           </div>

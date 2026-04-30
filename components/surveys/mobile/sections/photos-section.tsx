@@ -10,21 +10,26 @@ export function PhotosSection() {
   const { formData } = useSurveyStore()
   const photos = formData.photos.photos
 
-  // Calculate completion status
   const completionStatus = useMemo(() => {
-    const totalPhotos = photos.length
-    const exteriorCount = photos.filter((p: { category: string }) => p.category === 'exterior').length
+    const totalItems = photos.length
+    const exteriorCount = photos.filter(
+      (p) => p.category === 'exterior' && p.mediaType !== 'video',
+    ).length
     const exteriorRequired = PHOTO_REQUIREMENTS.exterior.required
     const exteriorComplete = exteriorCount >= exteriorRequired
+    const videoCount = photos.filter((p) => p.mediaType === 'video').length
 
     return {
-      totalPhotos,
+      totalItems,
+      videoCount,
       exteriorCount,
       exteriorRequired,
       exteriorComplete,
       allRequired: exteriorComplete,
     }
   }, [photos])
+
+  const photoCount = completionStatus.totalItems - completionStatus.videoCount
 
   return (
     <div className="space-y-6">
@@ -33,9 +38,16 @@ export function PhotosSection() {
         <div className="flex items-center gap-3">
           <Camera className="w-6 h-6 text-muted-foreground" />
           <div className="flex-1">
-            <h3 className="font-semibold">Photo Documentation</h3>
+            <h3 className="font-semibold">Photos &amp; Videos</h3>
             <p className="text-sm text-muted-foreground">
-              {completionStatus.totalPhotos} photo{completionStatus.totalPhotos !== 1 ? 's' : ''} captured
+              {photoCount} photo{photoCount !== 1 ? 's' : ''}
+              {completionStatus.videoCount > 0 && (
+                <>
+                  {' · '}
+                  {completionStatus.videoCount} video
+                  {completionStatus.videoCount !== 1 ? 's' : ''}
+                </>
+              )}
             </p>
           </div>
           {completionStatus.allRequired ? (
@@ -56,18 +68,27 @@ export function PhotosSection() {
         )}
       </div>
 
-      {/* Photo Tips */}
+      {/* Capture Tips */}
       <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
-        <h4 className="font-semibold text-blue-800 mb-2">Photo Tips</h4>
+        <h4 className="font-semibold text-blue-800 mb-2">Capture Tips</h4>
         <ul className="text-sm text-blue-700 space-y-1">
           <li>• Capture all 4 sides of the building exterior</li>
           <li>• Include close-ups of any hazardous materials</li>
           <li>• Document utility access points and shutoffs</li>
           <li>• Add captions to help identify locations later</li>
         </ul>
+
+        <h4 className="font-semibold text-blue-800 mt-3 mb-2">Recording Video</h4>
+        <ul className="text-sm text-blue-700 space-y-1">
+          <li>• Tap a capture button below — your camera opens in photo mode</li>
+          <li>• Swipe to <strong>Video</strong> mode (or tap the Video tab) before recording</li>
+          <li>• Use video for walkthroughs and context a single photo can&apos;t show</li>
+          <li>• You must be online to upload video — photos can wait until later</li>
+          <li>• Keep clips under 250 MB; shoot at standard (not 4K) for shorter files</li>
+        </ul>
       </div>
 
-      {/* Photo Gallery by Category */}
+      {/* Gallery by Category */}
       <PhotoGallery />
     </div>
   )

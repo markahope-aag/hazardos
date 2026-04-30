@@ -12,6 +12,10 @@ const MAX_CONCURRENT_UPLOADS = 2
 // the most common cause of the raw-fetch TypeError we see in the wild,
 // and a quick second attempt usually succeeds. Previously fixed 2s.
 const RETRY_DELAYS_MS = [2000, 4000, 8000]
+// Signed URL TTL — long enough for a survey-detail session without
+// burning through the signing service. Browser caches the rendered
+// media for the same TTL.
+const SIGNED_URL_TTL_SECONDS = 60 * 60 * 8 // 8 hours
 
 /**
  * Turn a data URL back into a Blob without `fetch()`. Some browsers (and
@@ -36,10 +40,16 @@ function dataUrlToBlob(dataUrl: string): Blob {
 }
 
 /**
- * Upload an arbitrary blob to the survey-photos bucket and return the
- * public URL. Used by the desktop drag-drop flow and the mobile video
- * direct-upload path; the photo-queue path goes through
- * {@link uploadPhotoToStorage} so it can persist retry state.
+ * Upload an arbitrary blob to the survey-photos bucket. Returns the
+ * storage path (the source of truth for the saved metadata) and a
+ * signed URL the caller can use immediately for previewing the upload.
+ *
+ * Used by the desktop drag-drop flow and the mobile video direct-upload
+ * path; the queued photo path goes through {@link uploadPhotoToStorage}
+ * so it can persist retry state.
+ *
+ * The bucket is private; getPublicUrl() returns 400 in the browser. Only
+ * signed URLs (or authenticated requests) work for reads.
  */
 export async function uploadSurveyMediaBlob({
   organizationId,
@@ -55,7 +65,7 @@ export async function uploadSurveyMediaBlob({
   mediaId: string
   blob: Blob
   mimeType: string
-}): Promise<string> {
+}): Promise<{ path: string; signedUrl: string }> {
   const supabase = createClient()
   const { data: session } = await supabase.auth.getSession()
   if (!session.session) {
@@ -89,10 +99,61 @@ export async function uploadSurveyMediaBlob({
     throw new SecureError('BAD_REQUEST', `Upload failed: ${msg}`)
   }
 
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path)
-  return publicUrl
+  const { data: signed, error: signErr } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
+
+  if (signErr || !signed?.signedUrl) {
+    throw new SecureError(
+      'BAD_REQUEST',
+      `Upload succeeded but URL signing failed: ${signErr?.message || 'unknown error'}`,
+    )
+  }
+
+  return { path, signedUrl: signed.signedUrl }
+}
+
+/**
+ * Generate a fresh signed URL for an existing storage path. Returns null
+ * on failure rather than throwing — the caller usually wants to render
+ * a placeholder, not crash the gallery.
+ */
+export async function getSignedSurveyMediaUrl(path: string): Promise<string | null> {
+  if (!path) return null
+  const supabase = createClient()
+  const { data, error } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
+  if (error || !data?.signedUrl) {
+    log.warn({ path, error: error?.message }, 'Failed to sign survey media URL')
+    return null
+  }
+  return data.signedUrl
+}
+
+/**
+ * Batch sign multiple paths in one round trip. Falls back to per-item
+ * signing for any that fail.
+ */
+export async function getSignedSurveyMediaUrls(
+  paths: string[],
+): Promise<Record<string, string>> {
+  const result: Record<string, string> = {}
+  if (paths.length === 0) return result
+  const supabase = createClient()
+  const { data, error } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS)
+  if (error || !data) {
+    log.warn({ error: error?.message, count: paths.length }, 'Batch sign failed')
+    return result
+  }
+  for (const item of data) {
+    if (item.path && item.signedUrl) {
+      result[item.path] = item.signedUrl
+    }
+  }
+  return result
 }
 
 /**

@@ -219,7 +219,7 @@ export function PhotoCapture({
           const mediaId = `media-${Date.now()}-${nanoid(9)}`
           const mimeType = file.type || 'video/mp4'
 
-          const remoteUrl = await uploadSurveyMediaBlob({
+          const { path, signedUrl } = await uploadSurveyMediaBlob({
             organizationId,
             surveyId: currentSurveyId,
             category,
@@ -228,11 +228,13 @@ export function PhotoCapture({
             mimeType,
           })
 
-          // Record the uploaded video in survey state so it shows up in
-          // the gallery and gets included in photo_metadata on save.
+          // Record the uploaded video in survey state. The signed URL
+          // is for in-wizard preview only; persistence uses `path`,
+          // which is re-signed on render so the URL never goes stale.
           addPhoto({
             blob: null,
-            dataUrl: remoteUrl,
+            dataUrl: signedUrl,
+            path,
             timestamp,
             gpsCoordinates,
             category,
@@ -265,6 +267,7 @@ export function PhotoCapture({
         const photoId = addPhoto({
           blob,
           dataUrl,
+          path: null,
           timestamp,
           gpsCoordinates,
           category,

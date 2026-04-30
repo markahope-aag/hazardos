@@ -40,22 +40,34 @@ export function mapStoreToDb(
   const allHazardTypes = hazards.areas.flatMap((a) => a.hazards.map((h) => h.hazard_type))
   const primaryHazardType = allHazardTypes[0] || 'other'
 
-  // Map photos to metadata format
+  // Map photos to metadata format. We save either:
+  //   - `path`: items uploaded to storage (videos, desktop uploads) —
+  //     render signs on the fly, so we don't persist the (expiring)
+  //     signed URL.
+  //   - `url`: data: URLs (legacy mobile-captured photos that embed
+  //     base64 inline) or full HTTP URLs.
+  // Legacy rows can have either; new uploads always carry path.
   const photoMetadata = photos.photos
-    .filter((p) => p.dataUrl)
-    .map((p) => ({
-      id: p.id,
-      url: p.dataUrl || '',
-      category: p.category,
-      area_id: p.area_id || null,
-      location: p.location,
-      caption: p.caption,
-      gpsCoordinates: p.gpsCoordinates,
-      timestamp: p.timestamp,
-      mediaType: p.mediaType,
-      mimeType: p.mimeType,
-      fileSize: p.fileSize,
-    }))
+    .filter((p) => p.dataUrl || p.path)
+    .map((p) => {
+      const isDataUrl = p.dataUrl?.startsWith('data:') ?? false
+      return {
+        id: p.id,
+        // Persist data URLs as-is; for storage-backed items leave
+        // `url` empty so we don't save signed URLs that will expire.
+        url: isDataUrl ? p.dataUrl || '' : '',
+        path: p.path || null,
+        category: p.category,
+        area_id: p.area_id || null,
+        location: p.location,
+        caption: p.caption,
+        gpsCoordinates: p.gpsCoordinates,
+        timestamp: p.timestamp,
+        mediaType: p.mediaType,
+        mimeType: p.mimeType,
+        fileSize: p.fileSize,
+      }
+    })
 
   return {
     organization_id: organizationId,
@@ -159,6 +171,7 @@ export function mapDbToStore(db: Record<string, unknown>): Partial<SurveyStoreSt
     id: (p.id as string) || '',
     blob: null,
     dataUrl: (p.url as string) || '',
+    path: (p.path as string) || null,
     timestamp: (p.timestamp as string) || '',
     gpsCoordinates: p.gpsCoordinates as PhotoData['gpsCoordinates'],
     category: (p.category as PhotoData['category']) || 'other',

@@ -1,14 +1,34 @@
 import jsPDF from 'jspdf'
 import type { Manifest, ManifestVehicle, ManifestSnapshot } from '@/types/manifests'
 
+export interface ManifestMediaItem {
+  kind: 'image' | 'video'
+  label: string
+  /** Caption / location, shown beneath the thumbnail or beside the URL. */
+  caption?: string | null
+  /** Signed URL — used as a tappable link in the PDF. */
+  url: string
+  /**
+   * Pre-fetched data URL for image embedding. If absent, the item is
+   * rendered as a text link only. Videos always render as text links
+   * since PDFs can't play video.
+   */
+  dataUrl?: string | null
+}
+
 /**
  * Generate a print-ready manifest PDF from the frozen snapshot + any
  * attached vehicles. Works in both Node (for email attachments) and
  * the browser (for direct download).
+ *
+ * `media` is optional — when provided, image thumbnails (up to 6) are
+ * embedded on a "Site Media" page and video URLs are listed as tappable
+ * links so the field crew can review the survey on the way to the job.
  */
 export function generateManifestPDF(
   manifest: Manifest,
   vehicles: ManifestVehicle[] = [],
+  media: ManifestMediaItem[] = [],
 ): jsPDF {
   const doc = new jsPDF()
   const pageW = doc.internal.pageSize.getWidth()
@@ -236,6 +256,104 @@ export function generateManifestPDF(
     y += 4
   }
 
+  // --- Site media ----------------------------------------------------
+  // Embeds up to 6 photo thumbnails (3-up grid). Anything beyond that —
+  // and all videos — render as tappable URL links, so the crew can pull
+  // them up on a phone PDF reader on the way to the job.
+  const photos = media.filter((m) => m.kind === 'image' && m.dataUrl)
+  const videos = media.filter((m) => m.kind === 'video')
+  const overflowPhotos = media.filter((m) => m.kind === 'image' && !m.dataUrl)
+  const MAX_EMBED = 6
+
+  if (photos.length > 0 || videos.length > 0 || overflowPhotos.length > 0) {
+    heading(`SITE MEDIA (${media.length})`)
+    const embeddable = photos.slice(0, MAX_EMBED)
+
+    if (embeddable.length > 0) {
+      const cols = 3
+      const gutter = 4
+      const cellW = (contentW - gutter * (cols - 1)) / cols
+      const cellH = cellW * 0.75 // 4:3
+      const captionH = 5
+
+      for (let i = 0; i < embeddable.length; i++) {
+        const col = i % cols
+        const row = Math.floor(i / cols)
+        if (col === 0) {
+          ensureSpace(cellH + captionH + 4)
+        }
+        const x = margin + col * (cellW + gutter)
+        const cellY = y + row * (cellH + captionH + 4)
+
+        const item = embeddable[i]
+        try {
+          // jsPDF auto-detects format from the data URL prefix.
+          doc.addImage(item.dataUrl as string, x, cellY, cellW, cellH)
+        } catch {
+          doc.setDrawColor(220)
+          doc.rect(x, cellY, cellW, cellH)
+          doc.setFontSize(8)
+          doc.setTextColor(150)
+          doc.text('Image unavailable', x + cellW / 2, cellY + cellH / 2, {
+            align: 'center',
+          })
+          doc.setTextColor(0)
+        }
+
+        doc.setFontSize(8)
+        doc.setTextColor(80)
+        const caption = (item.caption || item.label).slice(0, 60)
+        doc.text(caption, x, cellY + cellH + 4)
+        doc.setTextColor(0)
+        doc.setFontSize(10)
+      }
+
+      const totalRows = Math.ceil(embeddable.length / cols)
+      y += totalRows * (cellH + captionH + 4) + 4
+    }
+
+    const linkLines = [
+      ...overflowPhotos.map((m) => ({
+        prefix: `Photo · ${m.caption || m.label}`,
+        url: m.url,
+      })),
+      ...videos.map((m) => ({
+        prefix: `Video · ${m.caption || m.label}`,
+        url: m.url,
+      })),
+    ]
+
+    if (linkLines.length > 0) {
+      ensureSpace(8)
+      doc.setFontSize(9)
+      doc.setTextColor(80)
+      doc.text(
+        videos.length > 0
+          ? 'Tap to view videos and additional photos:'
+          : 'Tap to view additional photos:',
+        margin,
+        y,
+      )
+      y += 5
+      doc.setFontSize(9)
+      for (const line of linkLines) {
+        ensureSpace(5)
+        const wrapped = doc.splitTextToSize(line.prefix, contentW)
+        doc.setTextColor(0)
+        doc.text(wrapped, margin, y)
+        y += wrapped.length * 4
+        doc.setTextColor(60, 90, 200)
+        // jsPDF's textWithLink wraps text in an annotation rectangle.
+        doc.textWithLink(line.url, margin, y, { url: line.url })
+        y += 6
+      }
+      doc.setTextColor(0)
+      doc.setFontSize(10)
+    }
+
+    y += 2
+  }
+
   // --- Dispatch notes ------------------------------------------------
   if (manifest.notes) {
     heading('DISPATCH NOTES')
@@ -258,16 +376,18 @@ export function generateManifestPDF(
 export function generateManifestPDFBlob(
   manifest: Manifest,
   vehicles: ManifestVehicle[] = [],
+  media: ManifestMediaItem[] = [],
 ): Blob {
-  const doc = generateManifestPDF(manifest, vehicles)
+  const doc = generateManifestPDF(manifest, vehicles, media)
   return doc.output('blob')
 }
 
 export function generateManifestPDFBase64(
   manifest: Manifest,
   vehicles: ManifestVehicle[] = [],
+  media: ManifestMediaItem[] = [],
 ): string {
-  const doc = generateManifestPDF(manifest, vehicles)
+  const doc = generateManifestPDF(manifest, vehicles, media)
   // jsPDF's datauristring returns "data:application/pdf;filename=...;base64,XXX"
   // — we want the raw base64 for Resend attachments.
   const uri = doc.output('datauristring')

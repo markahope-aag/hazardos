@@ -31,18 +31,58 @@ import { useToast } from '@/components/ui/use-toast'
 import {
   ArrowLeft, Loader2, Plus, Trash2, Truck, CheckCircle,
   ExternalLink, MapPin, Users, Wrench, Package, Phone,
-  FileText, Download, Mail,
+  FileText, Download, Mail, Camera, Play, Image as ImageIcon, Video,
 } from 'lucide-react'
 import type {
   Manifest,
   ManifestSnapshot,
   ManifestVehicle,
 } from '@/types/manifests'
-import { generateManifestPDF } from '@/lib/services/manifest-pdf-generator'
+import type { SurveyPhotoMetadata } from '@/types/database'
+import {
+  generateManifestPDF,
+  type ManifestMediaItem,
+} from '@/lib/services/manifest-pdf-generator'
+import { getSignedSurveyMediaUrls } from '@/lib/services/photo-upload-service'
+
+const MAX_PDF_PHOTO_EMBEDS = 6
+const PDF_PHOTO_MAX_DIM = 800
+
+/**
+ * Fetch a remote image and return a JPEG data URL no larger than
+ * PDF_PHOTO_MAX_DIM on the long edge. Keeps embedded PDFs from
+ * ballooning when the original is multi-megapixel.
+ */
+async function fetchImageAsDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const blob = await res.blob()
+    const bitmap = await createImageBitmap(blob)
+    const scale = Math.min(1, PDF_PHOTO_MAX_DIM / Math.max(bitmap.width, bitmap.height))
+    const w = Math.max(1, Math.round(bitmap.width * scale))
+    const h = Math.max(1, Math.round(bitmap.height * scale))
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return null
+    ctx.drawImage(bitmap, 0, 0, w, h)
+    return canvas.toDataURL('image/jpeg', 0.7)
+  } catch {
+    return null
+  }
+}
 
 interface ManifestDetail extends Manifest {
   job: { id: string; job_number: string | null; name: string | null } | null
   vehicles: ManifestVehicle[]
+}
+
+function isVideoMedia(m: SurveyPhotoMetadata): boolean {
+  if (m.mediaType === 'video') return true
+  if (m.mimeType?.startsWith('video/')) return true
+  return /\.(mp4|mov|webm|m4v|ogv)(\?|$)/i.test(m.url || m.path || '')
 }
 
 type CrewItem = ManifestSnapshot['crew'][number]
@@ -59,6 +99,9 @@ export default function ManifestDetailPage({
   const { toast } = useToast()
 
   const [manifest, setManifest] = useState<ManifestDetail | null>(null)
+  const [surveyMedia, setSurveyMedia] = useState<SurveyPhotoMetadata[]>([])
+  const [signedByPath, setSignedByPath] = useState<Record<string, string>>({})
+  const [previewMedia, setPreviewMedia] = useState<SurveyPhotoMetadata | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -90,6 +133,18 @@ export default function ManifestDetailPage({
       setMaterials(s.materials || [])
       setEquipment(s.equipment || [])
       setExtraItems(s.extra_items || [])
+      const incomingMedia: SurveyPhotoMetadata[] = body.surveyMedia || []
+      setSurveyMedia(incomingMedia)
+
+      // Pre-sign all storage-backed media for the gallery so thumbnails
+      // render without per-card round-trips.
+      const paths = incomingMedia.map((m) => m.path).filter((p): p is string => !!p)
+      if (paths.length > 0) {
+        const signed = await getSignedSurveyMediaUrls(paths)
+        setSignedByPath(signed)
+      } else {
+        setSignedByPath({})
+      }
     } catch (err) {
       toast({
         title: 'Could not load manifest',
@@ -165,26 +220,78 @@ export default function ManifestDetailPage({
     }
   }
 
-  const downloadPdf = () => {
+  const [generatingPdf, setGeneratingPdf] = useState(false)
+
+  const downloadPdf = async () => {
     if (!manifest) return
-    // Use the in-memory manifest so the crew sees exactly what's on
-    // screen, including any unsaved edits — same as hitting print.
-    const snapshotForPdf: ManifestSnapshot = {
-      ...manifest.snapshot,
-      crew,
-      materials,
-      equipment,
-      extra_items: extraItems,
+    setGeneratingPdf(true)
+    try {
+      // Pre-resolve the first MAX_PDF_PHOTO_EMBEDS image thumbnails to
+      // data URLs so jsPDF can embed them. Anything beyond the cap, plus
+      // every video, becomes a tappable URL link in the PDF.
+      const imageMedia = surveyMedia.filter((m) => !isVideoMedia(m))
+      const videoMedia = surveyMedia.filter((m) => isVideoMedia(m))
+      const toEmbed = imageMedia.slice(0, MAX_PDF_PHOTO_EMBEDS)
+      const toLink = imageMedia.slice(MAX_PDF_PHOTO_EMBEDS)
+
+      const embedItems: ManifestMediaItem[] = await Promise.all(
+        toEmbed.map(async (m) => {
+          const url =
+            (m.path && signedByPath[m.path]) ||
+            (m.url?.startsWith('data:') ? m.url : m.url) ||
+            ''
+          const dataUrl = url ? await fetchImageAsDataUrl(url) : null
+          return {
+            kind: 'image' as const,
+            label: m.caption || 'Photo',
+            caption: m.caption || null,
+            url,
+            dataUrl,
+          }
+        }),
+      )
+
+      const linkOnlyItems: ManifestMediaItem[] = [
+        ...toLink.map((m) => ({
+          kind: 'image' as const,
+          label: m.caption || 'Photo',
+          caption: m.caption || null,
+          url:
+            (m.path && signedByPath[m.path]) ||
+            m.url ||
+            '',
+        })),
+        ...videoMedia.map((m) => ({
+          kind: 'video' as const,
+          label: m.caption || 'Video',
+          caption: m.caption || null,
+          url:
+            (m.path && signedByPath[m.path]) ||
+            m.url ||
+            '',
+        })),
+      ]
+
+      const snapshotForPdf: ManifestSnapshot = {
+        ...manifest.snapshot,
+        crew,
+        materials,
+        equipment,
+        extra_items: extraItems,
+      }
+      const doc = generateManifestPDF(
+        {
+          ...manifest,
+          snapshot: snapshotForPdf,
+          notes: notes.trim() || null,
+        } as Manifest,
+        manifest.vehicles,
+        [...embedItems, ...linkOnlyItems].filter((m) => m.url),
+      )
+      doc.save(`${manifest.manifest_number}.pdf`)
+    } finally {
+      setGeneratingPdf(false)
     }
-    const doc = generateManifestPDF(
-      {
-        ...manifest,
-        snapshot: snapshotForPdf,
-        notes: notes.trim() || null,
-      } as Manifest,
-      manifest.vehicles,
-    )
-    doc.save(`${manifest.manifest_number}.pdf`)
   }
 
   const sendEmail = async () => {
@@ -301,9 +408,13 @@ export default function ManifestDetailPage({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={downloadPdf}>
-            <Download className="h-4 w-4 mr-2" />
-            Download PDF
+          <Button variant="outline" onClick={downloadPdf} disabled={generatingPdf}>
+            {generatingPdf ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            {generatingPdf ? 'Building…' : 'Download PDF'}
           </Button>
           <Button variant="outline" onClick={() => setShowEmailDialog(true)}>
             <Mail className="h-4 w-4 mr-2" />
@@ -405,6 +516,85 @@ export default function ManifestDetailPage({
           )}
         </CardContent>
       </Card>
+
+      {/* Site media — read-only here. Photos/videos are managed on the
+          source survey; this is the field-team preview. */}
+      {surveyMedia.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Camera className="h-4 w-4" />
+              Site media ({surveyMedia.length})
+            </CardTitle>
+            {s.job?.site_survey_id && (
+              <Link
+                href={`/site-surveys/${s.job.site_survey_id}`}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+              >
+                Manage on survey
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+            )}
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+              {surveyMedia.map((m) => {
+                const isVid = isVideoMedia(m)
+                const url = m.path
+                  ? signedByPath[m.path]
+                  : m.url?.startsWith('data:')
+                    ? m.url
+                    : m.url
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className="group relative aspect-square rounded-lg overflow-hidden bg-muted"
+                    onClick={() => setPreviewMedia(m)}
+                  >
+                    {url ? (
+                      isVid ? (
+                        <video
+                          src={url}
+                          muted
+                          playsInline
+                          preload="metadata"
+                          className="w-full h-full object-cover bg-black"
+                        />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={url}
+                          alt={m.caption || 'Survey media'}
+                          className="w-full h-full object-cover"
+                        />
+                      )
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                        Loading…
+                      </div>
+                    )}
+                    {isVid && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="bg-black/60 rounded-full p-2">
+                          <Play className="h-4 w-4 text-white fill-white" />
+                        </div>
+                      </div>
+                    )}
+                    <div className="absolute top-1 left-1 bg-black/60 rounded px-1.5 py-0.5">
+                      {isVid ? (
+                        <Video className="h-3 w-3 text-white" />
+                      ) : (
+                        <ImageIcon className="h-3 w-3 text-white" />
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Crew */}
       <EditableListCard
@@ -718,6 +908,56 @@ export default function ManifestDetailPage({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Media preview */}
+      <Dialog open={!!previewMedia} onOpenChange={(o) => !o && setPreviewMedia(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogTitle className="sr-only">
+            {previewMedia?.caption || 'Site media'}
+          </DialogTitle>
+          {previewMedia && (() => {
+            const url = previewMedia.path
+              ? signedByPath[previewMedia.path]
+              : previewMedia.url
+            const isVid = isVideoMedia(previewMedia)
+            return (
+              <div className="space-y-3">
+                <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
+                  {url ? (
+                    isVid ? (
+                      <video
+                        src={url}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="w-full h-full"
+                      />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={url}
+                        alt={previewMedia.caption || 'Survey media'}
+                        className="w-full h-full object-contain"
+                      />
+                    )
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white/70">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  )}
+                </div>
+                {(previewMedia.caption || previewMedia.location) && (
+                  <p className="text-center text-sm text-muted-foreground">
+                    {previewMedia.caption}
+                    {previewMedia.location && previewMedia.caption && ' · '}
+                    {previewMedia.location}
+                  </p>
+                )}
+              </div>
+            )
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* Email dialog */}
       <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>

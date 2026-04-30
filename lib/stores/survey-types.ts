@@ -22,7 +22,7 @@ export const SECTION_LABELS: Record<SurveySection, string> = {
   access: 'Access',
   environment: 'Environment',
   hazards: 'Areas & Hazards',
-  photos: 'Photos',
+  photos: 'Photos & Videos',
   review: 'Review',
 }
 
@@ -339,6 +339,10 @@ export interface PhotoData {
   id: string
   blob: Blob | null
   dataUrl: string | null
+  // Storage object path within the survey-photos bucket. Set when an
+  // item has been uploaded to remote storage; the render path uses it
+  // to generate signed URLs.
+  path: string | null
   timestamp: string
   gpsCoordinates: {
     latitude: number

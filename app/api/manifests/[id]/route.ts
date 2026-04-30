@@ -4,10 +4,14 @@ import { updateManifestSchema } from '@/lib/validations/manifests'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
 import type { ManifestSnapshot } from '@/types/manifests'
+import type { SurveyPhotoMetadata } from '@/types/database'
 
 /**
  * GET /api/manifests/[id]
- * Detail view + associated vehicles.
+ * Detail view + associated vehicles + the linked survey's media so the
+ * crew has site context on the way to the job. Media is loaded live
+ * (not snapshotted) so any photos the office adds after issuance still
+ * show up for the field team.
  */
 export const GET = createApiHandlerWithParams(
   { rateLimit: 'general' },
@@ -27,7 +31,19 @@ export const GET = createApiHandlerWithParams(
       throw new SecureError('NOT_FOUND', 'Manifest not found')
     }
 
-    return NextResponse.json({ manifest: data })
+    let surveyMedia: SurveyPhotoMetadata[] | null = null
+    const surveyId = (data.snapshot as ManifestSnapshot | null)?.job?.site_survey_id
+    if (surveyId) {
+      const { data: survey } = await context.supabase
+        .from('site_surveys')
+        .select('photo_metadata')
+        .eq('id', surveyId)
+        .eq('organization_id', context.profile.organization_id)
+        .single()
+      surveyMedia = (survey?.photo_metadata as SurveyPhotoMetadata[] | null) ?? null
+    }
+
+    return NextResponse.json({ manifest: data, surveyMedia })
   },
 )
 

@@ -23,7 +23,7 @@ export async function buildManifestSnapshotFromJob(
       job_address, job_city, job_state, job_zip,
       access_notes, special_instructions,
       gate_code, lockbox_code, contact_onsite_name, contact_onsite_phone,
-      customer_id, estimate_id,
+      customer_id, estimate_id, site_survey_id,
       customer:customers!customer_id(id, name, company_name, email, phone),
       estimate:estimates(id, estimate_number, total, scope_of_work),
       crew:job_crew(
@@ -127,6 +127,7 @@ export async function buildManifestSnapshotFromJob(
       hazard_types: Array.isArray(job.hazard_types) ? job.hazard_types : [],
       access_notes: job.access_notes ?? null,
       special_instructions: job.special_instructions ?? null,
+      site_survey_id: job.site_survey_id ?? null,
     },
     customer: customer
       ? {

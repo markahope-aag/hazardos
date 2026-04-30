@@ -29,6 +29,10 @@ export interface ManifestSnapshot {
     hazard_types: string[]
     access_notes: string | null
     special_instructions: string | null
+    // ID of the source site survey, when the job was generated from one.
+    // Used to surface the survey's photos and videos on the manifest so
+    // the field team has site context on the way to the job.
+    site_survey_id: string | null
   }
 
   customer: {

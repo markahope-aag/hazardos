@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { nanoid } from 'nanoid'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +17,11 @@ import { Camera, MapPin, Calendar, Upload, Download, Trash2, Loader2, Play, Imag
 import { useToast } from '@/components/ui/use-toast'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import { createClient } from '@/lib/supabase/client'
-import { uploadSurveyMediaBlob } from '@/lib/services/photo-upload-service'
+import {
+  uploadSurveyMediaBlob,
+  getSignedSurveyMediaUrls,
+  getSignedSurveyMediaUrl,
+} from '@/lib/services/photo-upload-service'
 import { logger, formatError } from '@/lib/utils/logger'
 import { cn } from '@/lib/utils'
 import type { SurveyPhotoMetadata } from '@/types/database'
@@ -48,8 +52,7 @@ const MAX_VIDEO_SIZE_MB = 250
 function isVideo(media: SurveyPhotoMetadata): boolean {
   if (media.mediaType === 'video') return true
   if (media.mimeType?.startsWith('video/')) return true
-  // Fall back to URL extension for legacy rows that pre-date mediaType.
-  return /\.(mp4|mov|webm|m4v|ogv)(\?|$)/i.test(media.url)
+  return /\.(mp4|mov|webm|m4v|ogv)(\?|$)/i.test(media.url || media.path || '')
 }
 
 function formatBytes(bytes?: number | null): string {
@@ -59,18 +62,24 @@ function formatBytes(bytes?: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function downloadUrl(url: string, suggestedName: string) {
-  // Anchor with `download` attribute. Cross-origin blob URLs would
-  // ignore this and just navigate, but the survey-photos bucket serves
-  // from the same Supabase project so the hint is honored.
-  const a = document.createElement('a')
-  a.href = url
-  a.download = suggestedName
-  a.target = '_blank'
-  a.rel = 'noopener'
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
+/**
+ * Resolve the URL we should hand to <img>/<video> for an item:
+ *  - Items with a storage path get a fresh signed URL from the cache.
+ *  - Items with a data: URL render directly (legacy mobile photos).
+ *  - Items with an HTTP url fall back to that URL — works only for the
+ *    long-tail of legacy uploads in public buckets, expected to 4xx for
+ *    the survey-photos bucket. Better than rendering nothing while the
+ *    user reviews older surveys.
+ */
+function resolveMediaUrl(
+  item: SurveyPhotoMetadata,
+  signedByPath: Record<string, string>,
+): string | null {
+  if (item.path && signedByPath[item.path]) {
+    return signedByPath[item.path]
+  }
+  if (item.url?.startsWith('data:')) return item.url
+  return item.url || null
 }
 
 export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
@@ -82,8 +91,40 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<SurveyPhotoMetadata | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [signedByPath, setSignedByPath] = useState<Record<string, string>>({})
 
-  const items = media ?? []
+  // Memoize the array reference so dependent hooks are stable across
+  // renders when `media` is the same logical list (parent passes a new
+  // ?? [] reference on each render).
+  const items = useMemo<SurveyPhotoMetadata[]>(() => media ?? [], [media])
+
+  // Keep a stable list of paths that need signing so the effect doesn't
+  // refire on every parent render.
+  const pathsKey = useMemo(
+    () =>
+      items
+        .map((m) => m.path)
+        .filter((p): p is string => !!p)
+        .sort()
+        .join('|'),
+    [items],
+  )
+
+  useEffect(() => {
+    const paths = items.map((m) => m.path).filter((p): p is string => !!p)
+    if (paths.length === 0) {
+      setSignedByPath({})
+      return
+    }
+    let cancelled = false
+    getSignedSurveyMediaUrls(paths).then((map) => {
+      if (!cancelled) setSignedByPath(map)
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathsKey])
 
   const handleFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -123,7 +164,7 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
           const mediaId = `media-${Date.now()}-${nanoid(9)}`
           const mimeType = file.type || (isVideoFile ? 'video/mp4' : 'image/jpeg')
 
-          const remoteUrl = await uploadSurveyMediaBlob({
+          const { path } = await uploadSurveyMediaBlob({
             organizationId: organization.id,
             surveyId,
             category: UPLOAD_CATEGORY,
@@ -134,7 +175,8 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
 
           newMetadata.push({
             id: mediaId,
-            url: remoteUrl,
+            url: '',
+            path,
             category: UPLOAD_CATEGORY,
             location: '',
             caption: file.name,
@@ -154,9 +196,6 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
       }
 
       if (newMetadata.length > 0) {
-        // Re-read the current photo_metadata first instead of trusting
-        // the prop, so we don't clobber a concurrent edit (or photos
-        // captured by a surveyor that just synced).
         const { data: latest, error: readErr } = await supabase
           .from('site_surveys')
           .select('photo_metadata')
@@ -214,7 +253,6 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
     const supabase = createClient()
 
     try {
-      // Pull current metadata fresh, drop the target, write back.
       const { data: latest, error: readErr } = await supabase
         .from('site_surveys')
         .select('photo_metadata')
@@ -233,13 +271,19 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
 
       if (writeErr) throw writeErr
 
-      // Best-effort storage cleanup. The bucket path is encoded in the
-      // public URL — pull the path off after `/object/public/<bucket>/`.
-      const match = pendingDelete.url.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)$/)
-      if (match) {
-        const path = decodeURIComponent(match[1].split('?')[0])
-        await supabase.storage.from('survey-photos').remove([path]).catch((err) => {
-          logger.warn({ error: formatError(err, 'STORAGE_DELETE_WARN'), path }, 'Could not remove storage object')
+      // Best-effort storage cleanup. Prefer the path we stored at upload
+      // time; otherwise extract it from the URL for legacy rows.
+      const targetPath =
+        pendingDelete.path ||
+        pendingDelete.url
+          .match(/\/storage\/v1\/object\/(?:public|sign)\/[^/]+\/([^?]+)/)?.[1]
+
+      if (targetPath) {
+        await supabase.storage.from('survey-photos').remove([decodeURIComponent(targetPath)]).catch((err) => {
+          logger.warn(
+            { error: formatError(err, 'STORAGE_DELETE_WARN'), path: targetPath },
+            'Could not remove storage object',
+          )
         })
       }
 
@@ -258,6 +302,42 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
       setIsDeleting(false)
     }
   }, [pendingDelete, surveyId, onChange, toast])
+
+  const handleDownload = useCallback(async (item: SurveyPhotoMetadata) => {
+    const isVid = isVideo(item)
+    const ext = item.mimeType
+      ? item.mimeType.split('/')[1] || (isVid ? 'mp4' : 'jpg')
+      : isVid ? 'mp4' : 'jpg'
+    const safeBase = (item.caption || `survey-media-${item.id}`)
+      .replace(/[^a-z0-9_\- .]/gi, '_')
+      .slice(0, 80)
+    const filename = safeBase.match(/\.[a-z0-9]+$/i)
+      ? safeBase
+      : `${safeBase}.${ext.replace('jpeg', 'jpg').replace('quicktime', 'mov')}`
+
+    // Need a fresh signed URL for download (the cached one might be stale).
+    const downloadUrl = item.path
+      ? (await getSignedSurveyMediaUrl(item.path)) || item.url
+      : item.url
+
+    if (!downloadUrl) {
+      toast({
+        title: 'Download failed',
+        description: 'Could not generate a download URL for this file.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const a = document.createElement('a')
+    a.href = downloadUrl
+    a.download = filename
+    a.target = '_blank'
+    a.rel = 'noopener'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }, [toast])
 
   // Drag-drop handlers
   const onDragEnter = (e: React.DragEvent) => {
@@ -278,7 +358,6 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
     }
   }
 
-  // Group by category for display.
   const grouped = items.reduce(
     (acc, m) => {
       const cat = m.category || 'other'
@@ -288,6 +367,8 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
     },
     {} as Record<string, SurveyPhotoMetadata[]>,
   )
+
+  const selectedUrl = selected ? resolveMediaUrl(selected, signedByPath) : null
 
   return (
     <>
@@ -366,27 +447,34 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                     {group.map((m) => {
                       const itemIsVideo = isVideo(m)
+                      const url = resolveMediaUrl(m, signedByPath)
                       return (
                         <div
                           key={m.id}
                           className="group relative aspect-square cursor-pointer rounded-lg overflow-hidden bg-muted"
                           onClick={() => setSelected(m)}
                         >
-                          {itemIsVideo ? (
-                            <video
-                              src={m.url}
-                              muted
-                              playsInline
-                              preload="metadata"
-                              className="w-full h-full object-cover bg-black"
-                            />
+                          {url ? (
+                            itemIsVideo ? (
+                              <video
+                                src={url}
+                                muted
+                                playsInline
+                                preload="metadata"
+                                className="w-full h-full object-cover bg-black"
+                              />
+                            ) : (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={url}
+                                alt={m.caption || `Media ${m.id}`}
+                                className="w-full h-full object-cover"
+                              />
+                            )
                           ) : (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={m.url}
-                              alt={m.caption || `Media ${m.id}`}
-                              className="w-full h-full object-cover"
-                            />
+                            <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                              Loading…
+                            </div>
                           )}
                           {itemIsVideo && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -432,21 +520,27 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
           {selected && (
             <div className="space-y-4">
               <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-                {isVideo(selected) ? (
-                  <video
-                    src={selected.url}
-                    controls
-                    playsInline
-                    preload="metadata"
-                    className="w-full h-full"
-                  />
+                {selectedUrl ? (
+                  isVideo(selected) ? (
+                    <video
+                      src={selectedUrl}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="w-full h-full"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={selectedUrl}
+                      alt={selected.caption || 'Survey media'}
+                      className="w-full h-full object-contain"
+                    />
+                  )
                 ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={selected.url}
-                    alt={selected.caption || 'Survey media'}
-                    className="w-full h-full object-contain"
-                  />
+                  <div className="w-full h-full flex items-center justify-center text-white/70">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
                 )}
               </div>
 
@@ -480,21 +574,7 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => {
-                    const isVid = isVideo(selected)
-                    const ext = selected.mimeType
-                      ? selected.mimeType.split('/')[1] || (isVid ? 'mp4' : 'jpg')
-                      : isVid
-                        ? 'mp4'
-                        : 'jpg'
-                    const safeName = (selected.caption || `survey-media-${selected.id}`)
-                      .replace(/[^a-z0-9_\- .]/gi, '_')
-                      .slice(0, 80)
-                    const filename = safeName.match(/\.[a-z0-9]+$/i)
-                      ? safeName
-                      : `${safeName}.${ext.replace('jpeg', 'jpg').replace('quicktime', 'mov')}`
-                    downloadUrl(selected.url, filename)
-                  }}
+                  onClick={() => handleDownload(selected)}
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Download
