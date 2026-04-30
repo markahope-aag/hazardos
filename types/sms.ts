@@ -28,6 +28,12 @@ export interface OrganizationSmsSettings {
   quiet_hours_start: string;
   quiet_hours_end: string;
   timezone: string;
+  /**
+   * Optional short brand string (≤24 chars). When set, outbound SMS
+   * bodies are auto-prefixed with `[<prefix>] ` unless the body already
+   * starts with the prefix (so a user manually typing it doesn't double up).
+   */
+  sms_brand_prefix: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -98,4 +104,5 @@ export interface SmsSettingsUpdateInput {
   twilio_account_sid?: string;
   twilio_auth_token?: string;
   twilio_phone_number?: string;
+  sms_brand_prefix?: string | null;
 }

@@ -2,12 +2,22 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
-import { MessageCircle, Search, ArrowRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { MessageCircle, Search, ArrowRight, Plus } from 'lucide-react'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
+import { CustomerCombobox } from '@/components/customers/customer-combobox'
 
 interface Conversation {
   customer_id: string | null
@@ -21,10 +31,13 @@ interface Conversation {
 }
 
 export default function MessagesPage() {
+  const router = useRouter()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const debounced = useDebouncedValue(search, 300)
+  const [composeOpen, setComposeOpen] = useState(false)
+  const [composePick, setComposePick] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -51,11 +64,17 @@ export default function MessagesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-        <p className="text-gray-600 mt-1">
-          All SMS conversations with your customers. Unread counts reflect inbound messages received since your last reply.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
+          <p className="text-gray-600 mt-1">
+            All SMS conversations with your customers. Unread counts reflect inbound messages received since your last reply.
+          </p>
+        </div>
+        <Button onClick={() => setComposeOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          New message
+        </Button>
       </div>
 
       <div className="relative max-w-md">
@@ -67,6 +86,37 @@ export default function MessagesPage() {
           className="pl-9"
         />
       </div>
+
+      <Dialog
+        open={composeOpen}
+        onOpenChange={(o) => {
+          setComposeOpen(o)
+          if (!o) setComposePick('')
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>New message</DialogTitle>
+            <DialogDescription>
+              Pick a contact to start a thread. If they haven&apos;t opted in to SMS, the
+              thread page will say so before you send.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <CustomerCombobox
+              value={composePick}
+              onValueChange={(id) => {
+                if (id) {
+                  setComposeOpen(false)
+                  setComposePick('')
+                  router.push(`/messages/${id}`)
+                }
+              }}
+              placeholder="Search contacts…"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardContent className="p-0">

@@ -45,6 +45,7 @@ export default function SmsSettingsPage() {
     twilio_account_sid: '',
     twilio_auth_token: '',
     twilio_phone_number: '',
+    sms_brand_prefix: null,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -330,6 +331,53 @@ export default function SmsSettingsPage() {
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Branding */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <MessageSquare className="h-5 w-5 text-indigo-500" />
+            <div>
+              <CardTitle>Branding</CardTitle>
+              <CardDescription>
+                Auto-prefix outbound SMS so customers know who&apos;s texting them.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <Label>Brand prefix</Label>
+            <Input
+              type="text"
+              maxLength={24}
+              placeholder="e.g., Acme Remediation"
+              value={settings.sms_brand_prefix ?? ''}
+              onChange={(e) =>
+                updateSetting(
+                  'sms_brand_prefix',
+                  e.target.value.length > 0 ? e.target.value : null,
+                )
+              }
+            />
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-muted-foreground">
+                Wrapped as <code className="font-mono">[prefix]</code> at the start of every
+                outbound message.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {(settings.sms_brand_prefix ?? '').length}/24
+              </p>
+            </div>
+            {settings.sms_brand_prefix && settings.sms_brand_prefix.trim() && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Preview: <span className="font-mono">[{settings.sms_brand_prefix.trim()}] </span>
+                Your appointment is confirmed for tomorrow at 9 AM.
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
 

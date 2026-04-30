@@ -90,7 +90,10 @@ export class SmsService {
       throw new SecureError('BAD_REQUEST', 'Twilio credentials not configured. Please add your Twilio Account SID, Auth Token, and Phone Number in Settings → SMS.');
     }
 
-    // Create message record
+    const finalBody = this.applyBrandPrefix(input.body, settings.sms_brand_prefix);
+
+    // Create message record. Persist the final (prefixed) body so the
+    // in-app conversation thread shows exactly what the customer saw.
     const { data: message, error: insertError } = await supabase
       .from('sms_messages')
       .insert({
@@ -98,7 +101,7 @@ export class SmsService {
         customer_id: input.customer_id,
         to_phone: normalizedPhone,
         message_type: input.message_type,
-        body: input.body,
+        body: finalBody,
         related_entity_type: input.related_entity_type,
         related_entity_id: input.related_entity_id,
         status: 'queued',
@@ -111,7 +114,7 @@ export class SmsService {
     // Send via Twilio
     try {
       const twilioMessage = await client.messages.create({
-        body: input.body,
+        body: finalBody,
         from: fromNumber,
         to: normalizedPhone,
         statusCallback: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/twilio/status`,
@@ -445,6 +448,25 @@ export class SmsService {
     }
 
     return null;
+  }
+
+  /**
+   * Prepend the org's brand prefix to an outbound SMS body, unless the
+   * body already starts with the prefix (in any casing). Returns the
+   * input unchanged if no prefix is configured.
+   */
+  private static applyBrandPrefix(body: string, prefix: string | null | undefined): string {
+    const trimmed = (prefix || '').trim();
+    if (!trimmed) return body;
+    const wrapped = `[${trimmed}] `;
+    const lower = body.toLowerCase();
+    if (lower.startsWith(wrapped.toLowerCase())) return body;
+    // Also catch the un-bracketed form so "Acme: hi" doesn't become
+    // "[Acme] Acme: hi" if the user types the brand name themselves.
+    if (lower.startsWith(`${trimmed.toLowerCase()}:`) || lower.startsWith(`${trimmed.toLowerCase()} `)) {
+      return body;
+    }
+    return wrapped + body;
   }
 
   private static isQuietHours(settings: OrganizationSmsSettings): boolean {

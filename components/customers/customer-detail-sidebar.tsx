@@ -243,6 +243,25 @@ export function CustomerDetailSidebar({
           variant="outline"
           size="sm"
           className="flex flex-col items-center gap-1 h-auto py-3"
+          asChild
+          disabled={!customer.mobile_phone && !customer.phone}
+          title={
+            !customer.mobile_phone && !customer.phone
+              ? 'No phone on file'
+              : customer.opted_into_sms === false
+                ? 'Contact has not opted in to SMS'
+                : 'Open SMS thread'
+          }
+        >
+          <Link href={`/messages/${customer.id}`}>
+            <MessageSquare className="h-4 w-4" />
+            <span className="text-xs">Send SMS</span>
+          </Link>
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex flex-col items-center gap-1 h-auto py-3"
           onClick={onFollowUpClick}
         >
           <CalendarPlus className="h-4 w-4" />

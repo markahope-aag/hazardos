@@ -70,6 +70,7 @@ export const updateSmsSettingsSchema = z.object({
   twilio_account_sid: z.string().max(100).optional(),
   twilio_auth_token: z.string().max(100).optional(),
   twilio_phone_number: z.string().max(20).optional(),
+  sms_brand_prefix: z.string().trim().max(24).nullable().optional(),
 })
 
 // Export types
