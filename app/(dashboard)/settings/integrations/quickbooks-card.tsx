@@ -96,11 +96,11 @@ export function QuickBooksCard({ integration }: QuickBooksCardProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Building2 className="h-6 w-6 text-green-600" />
+            <div className="p-1.5 bg-green-100 rounded-md flex-shrink-0">
+              <Building2 className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base">
                 QuickBooks Online
                 {isConnected ? (
                   <Badge variant="default" className="bg-green-500">

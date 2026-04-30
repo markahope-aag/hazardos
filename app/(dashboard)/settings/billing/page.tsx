@@ -19,6 +19,16 @@ export default async function BillingSettingsPage() {
 
   if (!profile?.organization_id) redirect('/onboard')
 
+  // Orgs on a custom/manual billing arrangement have the in-app
+  // billing flow turned off; bounce them back to settings home.
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('billing_managed_externally')
+    .eq('id', profile.organization_id)
+    .single()
+
+  if (org?.billing_managed_externally) redirect('/settings')
+
   // Get subscription
   const { data: subscriptionData } = await supabase
     .from('organization_subscriptions')

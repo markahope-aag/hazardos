@@ -110,11 +110,11 @@ export function GoogleCalendarCard({ integration }: GoogleCalendarCardProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Calendar className="h-6 w-6 text-blue-600" />
+            <div className="p-1.5 bg-blue-100 rounded-md flex-shrink-0">
+              <Calendar className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base">
                 Google Calendar
                 {isConnected ? (
                   <Badge variant="default" className="bg-green-500">

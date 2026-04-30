@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -10,6 +11,10 @@ import { SETTINGS_NAV } from './settings-nav'
 // components can import it without touching this 'use client' boundary.
 export { SETTINGS_NAV } from './settings-nav'
 
+interface SettingsSidebarProps {
+  hiddenHrefs?: readonly string[]
+}
+
 function isActive(pathname: string, href: string): boolean {
   // Exact match first — so /settings doesn't collapse into every item.
   if (pathname === href) return true
@@ -17,8 +22,17 @@ function isActive(pathname: string, href: string): boolean {
   return pathname.startsWith(href + '/')
 }
 
-export function SettingsSidebar() {
+export function SettingsSidebar({ hiddenHrefs }: SettingsSidebarProps = {}) {
   const pathname = usePathname()
+
+  const filteredNav = useMemo(() => {
+    if (!hiddenHrefs || hiddenHrefs.length === 0) return SETTINGS_NAV
+    const hidden = new Set(hiddenHrefs)
+    return SETTINGS_NAV.map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !hidden.has(item.href)),
+    })).filter((group) => group.items.length > 0)
+  }, [hiddenHrefs])
 
   return (
     <nav
@@ -26,7 +40,7 @@ export function SettingsSidebar() {
       className="w-full lg:w-64 lg:flex-shrink-0 lg:sticky lg:top-20 lg:self-start"
     >
       <div className="space-y-6">
-        {SETTINGS_NAV.map((group) => (
+        {filteredNav.map((group) => (
           <div key={group.label}>
             <div className="px-3 mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {group.label}

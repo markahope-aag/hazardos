@@ -16,10 +16,21 @@ export const updateTeamMemberSchema = z
   .object({
     first_name: z.string().trim().max(100).optional(),
     last_name: z.string().trim().max(100).optional(),
+    phone: z
+      .string()
+      .trim()
+      .max(40)
+      .regex(/^[\d\s+()\-.]*$/, 'Invalid phone number')
+      .optional()
+      .nullable(),
     role: assignableRoleSchema.optional(),
   })
   .refine(
-    (v) => v.first_name !== undefined || v.last_name !== undefined || v.role !== undefined,
+    (v) =>
+      v.first_name !== undefined ||
+      v.last_name !== undefined ||
+      v.phone !== undefined ||
+      v.role !== undefined,
     { message: 'At least one field must be provided' },
   )
 

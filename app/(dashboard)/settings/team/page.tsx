@@ -14,6 +14,7 @@ interface TeamMember {
   first_name: string | null
   last_name: string | null
   email: string | null
+  phone: string | null
   role: string
   last_login_at: string | null
 }
@@ -59,7 +60,7 @@ export default function TeamSettingsPage() {
       // from the team list; their historical records stay untouched).
       const { data: membersData } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, email, role, last_login_at, is_active')
+        .select('id, first_name, last_name, email, phone, role, last_login_at, is_active')
         .eq('organization_id', profile.organization_id)
         .eq('is_active', true)
         .order('first_name')

@@ -93,13 +93,14 @@ export const PATCH = createApiHandlerWithParams(
     const update: Record<string, unknown> = {}
     if (body.first_name !== undefined) update.first_name = body.first_name
     if (body.last_name !== undefined) update.last_name = body.last_name
+    if (body.phone !== undefined) update.phone = body.phone
     if (body.role !== undefined) update.role = body.role
 
     const { data, error } = await context.supabase
       .from('profiles')
       .update(update)
       .eq('id', params.id)
-      .select('id, first_name, last_name, email, role, last_login_at, is_active')
+      .select('id, first_name, last_name, email, phone, role, last_login_at, is_active')
       .single()
 
     if (error) throwDbError(error, 'update team member')

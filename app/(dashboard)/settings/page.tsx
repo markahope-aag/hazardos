@@ -1,11 +1,37 @@
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { SETTINGS_NAV } from '@/components/settings/settings-nav'
+import { createClient } from '@/lib/supabase/server'
 
 // Landing page for /settings. The sidebar is the primary navigation;
 // this page just gives a quick pointer into every section for users
 // who land here without a subsection in mind.
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let hidden = new Set<string>()
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single()
+    if (profile?.organization_id) {
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('billing_managed_externally')
+        .eq('id', profile.organization_id)
+        .single()
+      if (org?.billing_managed_externally) hidden = new Set(['/settings/billing'])
+    }
+  }
+
+  const groups = SETTINGS_NAV.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !hidden.has(item.href)),
+  })).filter((group) => group.items.length > 0)
+
   return (
     <div className="space-y-8">
       <div>
@@ -17,7 +43,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {SETTINGS_NAV.map((group) => (
+      {groups.map((group) => (
         <section key={group.label} className="space-y-3">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {group.label}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Table,
   TableBody,
@@ -51,6 +51,9 @@ import {
   KeyRound,
   UserMinus,
   Loader2,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 
@@ -59,8 +62,64 @@ interface TeamMember {
   first_name: string | null
   last_name: string | null
   email: string | null
+  phone: string | null
   role: string
   last_login_at: string | null
+}
+
+type SortColumn = 'name' | 'email' | 'phone' | 'role' | 'last_login_at'
+type SortDirection = 'asc' | 'desc'
+
+const ROLE_ORDER: Record<string, number> = {
+  tenant_owner: 0,
+  admin: 1,
+  estimator: 2,
+  technician: 3,
+  viewer: 4,
+}
+
+function memberFullName(m: TeamMember): string {
+  return [m.first_name, m.last_name].filter(Boolean).join(' ').trim()
+}
+
+function compareMembers(
+  a: TeamMember,
+  b: TeamMember,
+  column: SortColumn,
+  direction: SortDirection,
+): number {
+  const dir = direction === 'asc' ? 1 : -1
+
+  const compareStrings = (av: string, bv: string) => {
+    const aEmpty = av === ''
+    const bEmpty = bv === ''
+    if (aEmpty && !bEmpty) return 1
+    if (!aEmpty && bEmpty) return -1
+    return av.localeCompare(bv) * dir
+  }
+
+  switch (column) {
+    case 'name':
+      return compareStrings(memberFullName(a).toLowerCase(), memberFullName(b).toLowerCase())
+    case 'email':
+      return compareStrings((a.email ?? '').toLowerCase(), (b.email ?? '').toLowerCase())
+    case 'phone':
+      return compareStrings(a.phone ?? '', b.phone ?? '')
+    case 'role': {
+      const ar = ROLE_ORDER[a.role] ?? 99
+      const br = ROLE_ORDER[b.role] ?? 99
+      return (ar - br) * dir
+    }
+    case 'last_login_at': {
+      // Never-logged-in goes last regardless of direction.
+      const at = a.last_login_at ? new Date(a.last_login_at).getTime() : null
+      const bt = b.last_login_at ? new Date(b.last_login_at).getTime() : null
+      if (at === null && bt === null) return 0
+      if (at === null) return 1
+      if (bt === null) return -1
+      return (at - bt) * dir
+    }
+  }
 }
 
 interface TeamMemberListProps {
@@ -112,12 +171,43 @@ export function TeamMemberList({
   const [editTarget, setEditTarget] = useState<TeamMember | null>(null)
   const [editFirstName, setEditFirstName] = useState('')
   const [editLastName, setEditLastName] = useState('')
+  const [editPhone, setEditPhone] = useState('')
   const [editRole, setEditRole] = useState('')
   const [saving, setSaving] = useState(false)
 
   const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null)
   const [resetTarget, setResetTarget] = useState<TeamMember | null>(null)
   const [actionPending, setActionPending] = useState(false)
+
+  const [sortColumn, setSortColumn] = useState<SortColumn>('name')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+
+  const sortedMembers = useMemo(() => {
+    return [...members].sort((a, b) => compareMembers(a, b, sortColumn, sortDirection))
+  }, [members, sortColumn, sortDirection])
+
+  const handleSort = (column: SortColumn) => {
+    if (column === sortColumn) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortColumn(column)
+      setSortDirection('asc')
+    }
+  }
+
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (column !== sortColumn) {
+      return <ArrowUpDown className="h-3.5 w-3.5 ml-1 inline opacity-40" />
+    }
+    return sortDirection === 'asc' ? (
+      <ArrowUp className="h-3.5 w-3.5 ml-1 inline" />
+    ) : (
+      <ArrowDown className="h-3.5 w-3.5 ml-1 inline" />
+    )
+  }
+
+  const sortableHeaderClass =
+    'cursor-pointer select-none hover:text-foreground transition-colors'
 
   const isOwnerLike =
     currentUserRole === 'tenant_owner' ||
@@ -137,6 +227,7 @@ export function TeamMemberList({
     setEditTarget(m)
     setEditFirstName(m.first_name ?? '')
     setEditLastName(m.last_name ?? '')
+    setEditPhone(m.phone ?? '')
     setEditRole(m.role)
   }
 
@@ -150,6 +241,7 @@ export function TeamMemberList({
         body: JSON.stringify({
           first_name: editFirstName.trim() || null,
           last_name: editLastName.trim() || null,
+          phone: editPhone.trim() || null,
           role: editRole !== editTarget.role ? editRole : undefined,
         }),
       })
@@ -248,25 +340,94 @@ export function TeamMemberList({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Last Login</TableHead>
+            <TableHead
+              className={sortableHeaderClass}
+              onClick={() => handleSort('name')}
+              aria-sort={
+                sortColumn === 'name'
+                  ? sortDirection === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              Name
+              <SortIcon column="name" />
+            </TableHead>
+            <TableHead
+              className={sortableHeaderClass}
+              onClick={() => handleSort('email')}
+              aria-sort={
+                sortColumn === 'email'
+                  ? sortDirection === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              Email
+              <SortIcon column="email" />
+            </TableHead>
+            <TableHead
+              className={sortableHeaderClass}
+              onClick={() => handleSort('phone')}
+              aria-sort={
+                sortColumn === 'phone'
+                  ? sortDirection === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              Phone
+              <SortIcon column="phone" />
+            </TableHead>
+            <TableHead
+              className={sortableHeaderClass}
+              onClick={() => handleSort('role')}
+              aria-sort={
+                sortColumn === 'role'
+                  ? sortDirection === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              Role
+              <SortIcon column="role" />
+            </TableHead>
+            <TableHead
+              className={sortableHeaderClass}
+              onClick={() => handleSort('last_login_at')}
+              aria-sort={
+                sortColumn === 'last_login_at'
+                  ? sortDirection === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              Last Login
+              <SortIcon column="last_login_at" />
+            </TableHead>
             {canManage && <TableHead className="w-10" />}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {members.map((member) => {
+          {sortedMembers.map((member) => {
             const actionable = canActOn(member)
             return (
               <TableRow key={member.id}>
                 <TableCell className="font-medium">
-                  {[member.first_name, member.last_name].filter(Boolean).join(' ') || 'Unknown'}
+                  {memberFullName(member) || 'Unknown'}
                   {member.id === currentUserId && (
                     <span className="ml-2 text-xs text-muted-foreground">(you)</span>
                   )}
                 </TableCell>
                 <TableCell>{member.email || '—'}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {member.phone || '—'}
+                </TableCell>
                 <TableCell>
                   <Badge variant={roleBadgeVariant[member.role] || 'outline'}>
                     {formatRole(member.role)}
@@ -347,6 +508,17 @@ export function TeamMemberList({
                   onChange={(e) => setEditLastName(e.target.value)}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">Phone</Label>
+              <Input
+                id="edit-phone"
+                type="tel"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                placeholder="(555) 555-5555"
+              />
             </div>
 
             <div className="space-y-2">

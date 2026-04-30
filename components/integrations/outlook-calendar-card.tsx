@@ -93,11 +93,11 @@ export function OutlookCalendarCard({ integration }: OutlookCalendarCardProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-sky-100 rounded-lg">
-              <CalendarDays className="h-6 w-6 text-sky-600" />
+            <div className="p-1.5 bg-sky-100 rounded-md flex-shrink-0">
+              <CalendarDays className="h-5 w-5 text-sky-600" />
             </div>
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base">
                 Outlook Calendar
                 {isConnected ? (
                   <Badge variant="default" className="bg-green-500">

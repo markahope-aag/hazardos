@@ -135,11 +135,11 @@ export function MailchimpCard({ integration }: MailchimpCardProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <Mail className="h-6 w-6 text-yellow-600" />
+            <div className="p-1.5 bg-yellow-100 rounded-md flex-shrink-0">
+              <Mail className="h-5 w-5 text-yellow-600" />
             </div>
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base">
                 Mailchimp
                 {isConnected ? (
                   <Badge variant="default" className="bg-green-500">

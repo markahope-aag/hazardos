@@ -241,6 +241,7 @@ export interface Database {
           email_domain_provider_id?: string | null
           email_domain_records?: unknown | null
           email_domain_verified_at?: string | null
+          billing_managed_externally?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -263,6 +264,7 @@ export interface Database {
           email_domain_provider_id?: string | null
           email_domain_records?: unknown | null
           email_domain_verified_at?: string | null
+          billing_managed_externally?: boolean
           created_at?: string
           updated_at?: string
         }

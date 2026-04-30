@@ -72,7 +72,7 @@ export class WhiteLabelService {
 
     const { data, error } = await supabase
       .from('custom_domains')
-      .select('id, organization_id, domain, verification_token, dns_records, is_verified, verified_at, ssl_status, ssl_expires_at, created_at, updated_at')
+      .select('id, organization_id, domain, verification_token, dns_records, is_verified, verified_at, ssl_status, created_at, updated_at')
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
 
@@ -120,7 +120,7 @@ export class WhiteLabelService {
 
     const { data: domain } = await supabase
       .from('custom_domains')
-      .select('id, organization_id, domain, verification_token, dns_records, is_verified, verified_at, ssl_status, ssl_expires_at, created_at, updated_at')
+      .select('id, organization_id, domain, verification_token, dns_records, is_verified, verified_at, ssl_status, created_at, updated_at')
       .eq('id', domainId)
       .single();
 
