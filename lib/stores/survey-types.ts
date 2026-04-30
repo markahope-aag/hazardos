@@ -333,6 +333,8 @@ export type PhotoCategory =
   | 'utility_access'
   | 'other'
 
+export type MediaType = 'image' | 'video'
+
 export interface PhotoData {
   id: string
   blob: Blob | null
@@ -346,6 +348,9 @@ export interface PhotoData {
   area_id: string | null // links photo to a specific area
   location: string
   caption: string
+  mediaType: MediaType
+  mimeType: string | null
+  fileSize: number | null
 }
 
 export interface PhotosData {

@@ -5,7 +5,7 @@ import { Building, AlertTriangle, Camera, FileText, Truck } from 'lucide-react'
 import { PropertySection } from './sections/property-section'
 import { AccessSection } from './sections/access-section'
 import { HazardsSection } from './sections/hazards-section'
-import { PhotosSection } from './sections/photos-section'
+import { MediaSection } from './sections/media-section'
 import { NotesSection } from './sections/notes-section'
 import type { SiteSurvey, SurveyHazardAssessments, SurveyPhotoMetadata } from '@/types/database'
 
@@ -25,13 +25,14 @@ interface SurveyDetailTabsProps {
       email: string
     } | null
   }
+  onSurveyChange: () => void
 }
 
-export function SurveyDetailTabs({ survey }: SurveyDetailTabsProps) {
+export function SurveyDetailTabs({ survey, onSurveyChange }: SurveyDetailTabsProps) {
   const hazardAssessments = survey.hazard_assessments as SurveyHazardAssessments | null
   const photoMetadata = survey.photo_metadata as SurveyPhotoMetadata[] | null
   const hazardCount = hazardAssessments?.types?.length || 0
-  const photoCount = photoMetadata?.length || 0
+  const mediaCount = photoMetadata?.length || 0
 
   return (
     <Tabs defaultValue="property" className="space-y-4">
@@ -53,12 +54,12 @@ export function SurveyDetailTabs({ survey }: SurveyDetailTabsProps) {
             </span>
           )}
         </TabsTrigger>
-        <TabsTrigger value="photos" className="gap-2">
+        <TabsTrigger value="media" className="gap-2">
           <Camera className="h-4 w-4" />
-          <span className="hidden sm:inline">Photos</span>
-          {photoCount > 0 && (
+          <span className="hidden sm:inline">Media</span>
+          {mediaCount > 0 && (
             <span className="ml-1 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
-              {photoCount}
+              {mediaCount}
             </span>
           )}
         </TabsTrigger>
@@ -80,8 +81,12 @@ export function SurveyDetailTabs({ survey }: SurveyDetailTabsProps) {
         <HazardsSection hazardAssessments={hazardAssessments} hazardType={survey.hazard_type} />
       </TabsContent>
 
-      <TabsContent value="photos">
-        <PhotosSection photos={photoMetadata} />
+      <TabsContent value="media">
+        <MediaSection
+          surveyId={survey.id}
+          media={photoMetadata}
+          onChange={onSurveyChange}
+        />
       </TabsContent>
 
       <TabsContent value="notes">

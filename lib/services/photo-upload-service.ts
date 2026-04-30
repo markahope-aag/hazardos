@@ -36,6 +36,66 @@ function dataUrlToBlob(dataUrl: string): Blob {
 }
 
 /**
+ * Upload an arbitrary blob to the survey-photos bucket and return the
+ * public URL. Used by the desktop drag-drop flow and the mobile video
+ * direct-upload path; the photo-queue path goes through
+ * {@link uploadPhotoToStorage} so it can persist retry state.
+ */
+export async function uploadSurveyMediaBlob({
+  organizationId,
+  surveyId,
+  category,
+  mediaId,
+  blob,
+  mimeType,
+}: {
+  organizationId: string
+  surveyId: string
+  category: string
+  mediaId: string
+  blob: Blob
+  mimeType: string
+}): Promise<string> {
+  const supabase = createClient()
+  const { data: session } = await supabase.auth.getSession()
+  if (!session.session) {
+    throw new SecureError('UNAUTHORIZED', 'Your session expired — sign in again and retry.')
+  }
+
+  const rawExt = (mimeType.split('/')[1] || 'bin')
+    .replace('jpeg', 'jpg')
+    .replace('quicktime', 'mov')
+    .replace(/[^a-z0-9]/gi, '')
+  const path = `${organizationId}/surveys/${surveyId}/${category}/${mediaId}.${rawExt}`
+
+  const { error } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(path, blob, { contentType: mimeType, upsert: true })
+
+  if (error) {
+    const msg = error.message || 'Upload failed'
+    if (/payload too large|file size|413|exceeded/i.test(msg)) {
+      throw new SecureError(
+        'BAD_REQUEST',
+        'File is too large — max 250 MB per upload.',
+      )
+    }
+    if (/mime|content[- ]type/i.test(msg)) {
+      throw new SecureError(
+        'BAD_REQUEST',
+        'That file type is not allowed — upload an image or video.',
+      )
+    }
+    throw new SecureError('BAD_REQUEST', `Upload failed: ${msg}`)
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path)
+  return publicUrl
+}
+
+/**
  * Upload a single photo to Supabase Storage. Errors bubble up with
  * messages that point at the actual failure (auth, quota, network) so
  * the UI can surface something more useful than "Failed to fetch".
@@ -76,9 +136,17 @@ export async function uploadPhotoToStorage(photo: QueuedPhoto): Promise<string> 
     throw new SecureError('BAD_REQUEST', `Couldn't read photo from device: ${msg}`)
   }
 
-  // Determine file extension from MIME type
-  const mimeType = blob.type || 'image/jpeg'
-  const extension = mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg'
+  // Determine file extension from MIME type. Use the queued fileType
+  // first (set at capture time) and fall back to the blob's type, since
+  // some browsers strip the type from a Blob reconstructed from a data
+  // URL. Default to image/jpeg for the legacy photo path.
+  const mimeType = photo.fileType || blob.type || 'image/jpeg'
+  const rawExt = mimeType.split('/')[1] || 'bin'
+  // jpeg → jpg, quicktime → mov for human-readable filenames in storage.
+  const extension = rawExt
+    .replace('jpeg', 'jpg')
+    .replace('quicktime', 'mov')
+    .replace(/[^a-z0-9]/gi, '')
 
   // Generate storage path: {orgId}/surveys/{surveyId}/{category}/{photoId}.{ext}
   // Org ID as first folder segment enables org-scoped RLS on storage.objects

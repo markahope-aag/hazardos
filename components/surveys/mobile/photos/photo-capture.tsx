@@ -1,20 +1,26 @@
 'use client'
 
 import { useRef, useState, useCallback } from 'react'
+import { nanoid } from 'nanoid'
 import { Button } from '@/components/ui/button'
 import { useSurveyStore } from '@/lib/stores/survey-store'
 import { usePhotoQueueStore } from '@/lib/stores/photo-queue-store'
-import { processPhotoQueue } from '@/lib/services/photo-upload-service'
+import {
+  processPhotoQueue,
+  uploadSurveyMediaBlob,
+} from '@/lib/services/photo-upload-service'
 import { PhotoCategory } from '@/lib/stores/survey-types'
 import { Camera, Loader2, ImagePlus, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logger, formatError } from '@/lib/utils/logger'
 
-// Image compression settings
 const MAX_IMAGE_WIDTH = 1920
 const MAX_IMAGE_HEIGHT = 1920
 const JPEG_QUALITY = 0.8
 const MAX_FILE_SIZE_MB = 2
+// Mirrors the storage bucket cap. Anything above this would be rejected
+// by Supabase anyway — refusing client-side gives a clearer message.
+const MAX_VIDEO_SIZE_MB = 250
 
 interface PhotoCaptureProps {
   category: PhotoCategory
@@ -23,10 +29,6 @@ interface PhotoCaptureProps {
   className?: string
 }
 
-/**
- * Compress an image file to reduce size for upload
- * Uses canvas to resize and re-encode as JPEG
- */
 async function compressImage(file: File): Promise<{ dataUrl: string; blob: Blob }> {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -39,7 +41,6 @@ async function compressImage(file: File): Promise<{ dataUrl: string; blob: Blob 
     }
 
     img.onload = () => {
-      // Calculate new dimensions while maintaining aspect ratio
       let { width, height } = img
 
       if (width > MAX_IMAGE_WIDTH) {
@@ -52,14 +53,11 @@ async function compressImage(file: File): Promise<{ dataUrl: string; blob: Blob 
         height = MAX_IMAGE_HEIGHT
       }
 
-      // Set canvas size
       canvas.width = width
       canvas.height = height
 
-      // Draw image
       ctx.drawImage(img, 0, 0, width, height)
 
-      // Convert to JPEG blob
       canvas.toBlob(
         (blob) => {
           if (!blob) {
@@ -67,7 +65,6 @@ async function compressImage(file: File): Promise<{ dataUrl: string; blob: Blob 
             return
           }
 
-          // If still too large, reduce quality further
           if (blob.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
             canvas.toBlob(
               (reducedBlob) => {
@@ -87,7 +84,7 @@ async function compressImage(file: File): Promise<{ dataUrl: string; blob: Blob 
                 reader.readAsDataURL(reducedBlob)
               },
               'image/jpeg',
-              0.6 // Reduced quality
+              0.6
             )
           } else {
             const reader = new FileReader()
@@ -108,7 +105,6 @@ async function compressImage(file: File): Promise<{ dataUrl: string; blob: Blob 
 
     img.onerror = () => reject(new Error('Failed to load image'))
 
-    // Load image from file
     const reader = new FileReader()
     reader.onload = () => {
       img.src = reader.result as string
@@ -118,9 +114,6 @@ async function compressImage(file: File): Promise<{ dataUrl: string; blob: Blob 
   })
 }
 
-/**
- * Get GPS coordinates with timeout
- */
 async function getGPSCoordinates(
   timeoutMs: number = 5000
 ): Promise<{ latitude: number; longitude: number } | null> {
@@ -146,7 +139,7 @@ async function getGPSCoordinates(
         {
           enableHighAccuracy: true,
           timeout: timeoutMs,
-          maximumAge: 60000, // Accept cached position up to 1 minute old
+          maximumAge: 60000,
         }
       )
     })
@@ -156,7 +149,6 @@ async function getGPSCoordinates(
       longitude: position.coords.longitude,
     }
   } catch {
-    // GPS not available or timed out
     return null
   }
 }
@@ -198,19 +190,78 @@ export function PhotoCapture({
         return
       }
 
+      const isVideo = file.type.startsWith('video/')
+
       try {
-        // Start GPS request in parallel with image processing
+        if (isVideo) {
+          // Videos bypass the offline queue entirely — base64 in
+          // localStorage would blow the quota and corrupt every other
+          // pending upload. Require an active connection up front so the
+          // surveyor sees a clear message instead of a silent failure.
+          if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            throw new Error(
+              'Videos need an internet connection to upload. Reconnect and try again.',
+            )
+          }
+
+          if (file.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+            throw new Error(
+              `Video is too large (max ${MAX_VIDEO_SIZE_MB} MB). Trim it or shoot at lower quality.`,
+            )
+          }
+
+          if (!currentSurveyId) {
+            throw new Error('Save the survey before attaching media.')
+          }
+
+          const gpsCoordinates = await getGPSCoordinates()
+          const timestamp = new Date().toISOString()
+          const mediaId = `media-${Date.now()}-${nanoid(9)}`
+          const mimeType = file.type || 'video/mp4'
+
+          const remoteUrl = await uploadSurveyMediaBlob({
+            organizationId,
+            surveyId: currentSurveyId,
+            category,
+            mediaId,
+            blob: file,
+            mimeType,
+          })
+
+          // Record the uploaded video in survey state so it shows up in
+          // the gallery and gets included in photo_metadata on save.
+          addPhoto({
+            blob: null,
+            dataUrl: remoteUrl,
+            timestamp,
+            gpsCoordinates,
+            category,
+            area_id: null,
+            location: '',
+            caption: '',
+            mediaType: 'video',
+            mimeType,
+            fileSize: file.size,
+          })
+
+          onCapture?.()
+
+          logger.debug(
+            { category, sizeKB: Math.round(file.size / 1024), hasGPS: !!gpsCoordinates },
+            'Video captured',
+          )
+          return
+        }
+
+        // Image path — compress, queue, upload in background.
         const gpsPromise = getGPSCoordinates()
 
-        // Compress image
         const { dataUrl, blob } = await compressImage(file)
 
-        // Wait for GPS (with timeout already built in)
         const gpsCoordinates = await gpsPromise
 
         const timestamp = new Date().toISOString()
 
-        // Add to survey store for immediate UI display
         const photoId = addPhoto({
           blob,
           dataUrl,
@@ -220,9 +271,11 @@ export function PhotoCapture({
           area_id: null,
           location: '',
           caption: '',
+          mediaType: 'image',
+          mimeType: 'image/jpeg',
+          fileSize: blob.size,
         })
 
-        // If we have a survey ID, also add to upload queue
         if (currentSurveyId) {
           addToQueue({
             surveyId: currentSurveyId,
@@ -234,18 +287,16 @@ export function PhotoCapture({
             gpsCoordinates,
             fileSize: blob.size,
             fileType: 'image/jpeg',
+            mediaType: 'image',
           })
 
-          // Trigger queue processing if online
           if (navigator.onLine) {
-            // Process queue in background
             setTimeout(() => processPhotoQueue(), 100)
           }
         }
 
         onCapture?.()
 
-        // Log success
         logger.debug({
           photoId,
           category,
@@ -254,16 +305,16 @@ export function PhotoCapture({
         }, 'Photo captured')
       } catch (err) {
         logger.error(
-          { 
+          {
             error: formatError(err, 'PHOTO_PROCESSING_ERROR'),
-            category
+            category,
+            isVideo,
           },
-          'Error processing photo'
+          'Error processing media',
         )
-        setError(err instanceof Error ? err.message : 'Failed to process photo')
+        setError(err instanceof Error ? err.message : 'Failed to process file')
       } finally {
         setIsProcessing(false)
-        // Reset input to allow capturing same file again
         if (inputRef.current) {
           inputRef.current.value = ''
         }
@@ -272,18 +323,17 @@ export function PhotoCapture({
     [addPhoto, addToQueue, category, currentSurveyId, organizationId, onCapture]
   )
 
-  // Render based on variant
   if (variant === 'compact') {
     return (
       <>
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           capture="environment"
           onChange={handleFileChange}
           className="hidden"
-          aria-label="Capture photo"
+          aria-label="Capture photo or video"
         />
         <Button
           type="button"
@@ -309,11 +359,11 @@ export function PhotoCapture({
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           capture="environment"
           onChange={handleFileChange}
           className="hidden"
-          aria-label="Capture photo"
+          aria-label="Capture photo or video"
         />
         <button
           type="button"
@@ -334,7 +384,7 @@ export function PhotoCapture({
           ) : (
             <>
               <ImagePlus className="w-6 h-6" />
-              <span>Add Photo</span>
+              <span>Add Photo or Video</span>
             </>
           )}
         </button>
@@ -361,11 +411,11 @@ export function PhotoCapture({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,video/*"
         capture="environment"
         onChange={handleFileChange}
         className="hidden"
-        aria-label="Capture photo"
+        aria-label="Capture photo or video"
       />
       <Button
         type="button"
@@ -382,7 +432,7 @@ export function PhotoCapture({
         ) : (
           <>
             <Camera className="w-6 h-6 mr-3" />
-            Take Photo
+            Take Photo or Video
           </>
         )}
       </Button>

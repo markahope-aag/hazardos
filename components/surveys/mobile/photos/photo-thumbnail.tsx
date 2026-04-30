@@ -1,7 +1,7 @@
 'use client'
 
 import { PhotoData } from '@/lib/stores/survey-types'
-import { MapPin } from 'lucide-react'
+import { MapPin, Play } from 'lucide-react'
 
 interface PhotoThumbnailProps {
   photo: PhotoData
@@ -9,6 +9,8 @@ interface PhotoThumbnailProps {
 }
 
 export function PhotoThumbnail({ photo, onClick }: PhotoThumbnailProps) {
+  const isVideo = photo.mediaType === 'video'
+
   return (
     <button
       type="button"
@@ -16,26 +18,45 @@ export function PhotoThumbnail({ photo, onClick }: PhotoThumbnailProps) {
       className="relative aspect-square rounded-lg overflow-hidden border-2 border-border hover:border-primary focus:border-primary transition-colors touch-manipulation"
     >
       {photo.dataUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={photo.dataUrl}
-          alt={photo.caption || 'Survey photo'}
-          className="w-full h-full object-cover"
-        />
+        isVideo ? (
+          // muted+playsInline so iOS Safari paints the first frame as a
+          // poster without ever auto-playing the video. preload=metadata
+          // keeps the bandwidth cost down.
+          <video
+            src={photo.dataUrl}
+            muted
+            playsInline
+            preload="metadata"
+            className="w-full h-full object-cover bg-black"
+          />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photo.dataUrl}
+            alt={photo.caption || 'Survey photo'}
+            className="w-full h-full object-cover"
+          />
+        )
       ) : (
         <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
           No image
         </div>
       )}
 
-      {/* GPS indicator */}
+      {isVideo && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="bg-black/60 rounded-full p-2">
+            <Play className="w-5 h-5 text-white fill-white" />
+          </div>
+        </div>
+      )}
+
       {photo.gpsCoordinates && (
         <div className="absolute top-1 right-1 bg-black/50 rounded-full p-1">
           <MapPin className="w-3 h-3 text-white" />
         </div>
       )}
 
-      {/* Caption indicator */}
       {photo.caption && (
         <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 truncate">
           {photo.caption}

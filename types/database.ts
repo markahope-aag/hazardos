@@ -172,6 +172,12 @@ export interface SurveyPhotoMetadata {
   caption: string
   gpsCoordinates: { latitude: number; longitude: number } | null
   timestamp: string
+  // Media type defaults to 'image' for legacy rows that pre-date video
+  // support; new uploads always set this explicitly. Read sites should
+  // assume `undefined === 'image'`.
+  mediaType?: 'image' | 'video'
+  mimeType?: string | null
+  fileSize?: number | null
 }
 
 export interface Database {

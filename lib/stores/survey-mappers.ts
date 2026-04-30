@@ -52,6 +52,9 @@ export function mapStoreToDb(
       caption: p.caption,
       gpsCoordinates: p.gpsCoordinates,
       timestamp: p.timestamp,
+      mediaType: p.mediaType,
+      mimeType: p.mimeType,
+      fileSize: p.fileSize,
     }))
 
   return {
@@ -150,7 +153,8 @@ export function mapDbToStore(db: Record<string, unknown>): Partial<SurveyStoreSt
     areas: (hazardAssessments.areas || []) as HazardsData['areas'],
   }
 
-  // Map photos
+  // Map photos. Legacy rows (pre-video) won't have mediaType — default
+  // to 'image' so they continue to render in the gallery.
   const photos: PhotoData[] = photoMetadata.map((p) => ({
     id: (p.id as string) || '',
     blob: null,
@@ -161,6 +165,9 @@ export function mapDbToStore(db: Record<string, unknown>): Partial<SurveyStoreSt
     area_id: (p.area_id as string) || null,
     location: (p.location as string) || '',
     caption: (p.caption as string) || '',
+    mediaType: (p.mediaType as PhotoData['mediaType']) || 'image',
+    mimeType: (p.mimeType as string) || null,
+    fileSize: (p.fileSize as number) ?? null,
   }))
 
   return {

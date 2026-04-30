@@ -409,7 +409,7 @@ export default function SurveyDetailPage() {
       </div>
 
       {/* Content Tabs */}
-      <SurveyDetailTabs survey={survey} />
+      <SurveyDetailTabs survey={survey} onSurveyChange={loadSurvey} />
     </div>
   )
 }

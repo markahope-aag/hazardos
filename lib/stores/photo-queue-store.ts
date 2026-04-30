@@ -22,6 +22,9 @@ export interface QueuedPhoto {
   createdAt: string
   fileSize: number | null
   fileType: string | null
+  // Defaults to 'image' for entries created before video support so
+  // queues persisted in localStorage from older sessions still parse.
+  mediaType: 'image' | 'video'
 }
 
 interface PhotoQueueState {

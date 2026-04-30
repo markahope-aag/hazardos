@@ -43,8 +43,11 @@ export function PhotoDetail({ photo, open, onClose }: PhotoDetailProps) {
     updatePhoto(photo.id, { caption: value })
   }
 
+  const isVideo = photo.mediaType === 'video'
+  const mediaLabel = isVideo ? 'video' : 'photo'
+
   const handleDelete = () => {
-    if (confirm('Delete this photo?')) {
+    if (confirm(`Delete this ${mediaLabel}?`)) {
       removePhoto(photo.id)
       onClose()
     }
@@ -56,22 +59,32 @@ export function PhotoDetail({ photo, open, onClose }: PhotoDetailProps) {
     <Dialog open={open} onOpenChange={(isOpen: boolean) => !isOpen && onClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Photo Details</DialogTitle>
+          <DialogTitle>{isVideo ? 'Video Details' : 'Photo Details'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Photo Preview */}
+          {/* Media Preview */}
           <div className="relative aspect-[4/3] rounded-lg overflow-hidden bg-muted">
             {photo.dataUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={photo.dataUrl}
-                alt={photo.caption || 'Survey photo'}
-                className="w-full h-full object-contain"
-              />
+              isVideo ? (
+                <video
+                  src={photo.dataUrl}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="w-full h-full object-contain bg-black"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photo.dataUrl}
+                  alt={photo.caption || 'Survey photo'}
+                  className="w-full h-full object-contain"
+                />
+              )
             ) : (
               <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                No image available
+                No {mediaLabel} available
               </div>
             )}
           </div>
@@ -140,7 +153,7 @@ export function PhotoDetail({ photo, open, onClose }: PhotoDetailProps) {
             className="w-full min-h-[48px] text-red-600 hover:text-red-700 hover:bg-red-50"
           >
             <Trash2 className="w-4 h-4 mr-2" />
-            Delete Photo
+            Delete {isVideo ? 'Video' : 'Photo'}
           </Button>
         </div>
       </DialogContent>
