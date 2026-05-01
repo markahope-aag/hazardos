@@ -12,7 +12,7 @@ describe('customerSchema', () => {
     first_name: 'John',
     last_name: 'Doe',
     contact_type: 'residential' as const,
-    status: 'lead' as const,
+    status: 'inquiry' as const,
     marketing_consent: false,
     address_line1: '123 Test St',
     city: 'Denver',
@@ -28,7 +28,7 @@ describe('customerSchema', () => {
   it('requires first_name', () => {
     const result = customerSchema.safeParse({
       contact_type: 'residential',
-      status: 'lead',
+      status: 'inquiry',
       marketing_consent: false,
     })
     expect(result.success).toBe(false)
@@ -38,7 +38,7 @@ describe('customerSchema', () => {
     const result = customerSchema.safeParse({
       first_name: '',
       contact_type: 'residential',
-      status: 'lead',
+      status: 'inquiry',
       marketing_consent: false,
     })
     expect(result.success).toBe(false)
@@ -54,7 +54,7 @@ describe('customerSchema', () => {
   })
 
   it('accepts valid status values', () => {
-    const statuses = ['lead', 'prospect', 'customer', 'inactive'] as const
+    const statuses = ['inquiry', 'prospect', 'customer', 'inactive'] as const
     for (const status of statuses) {
       const result = customerSchema.safeParse({
         ...validCustomer,
@@ -76,7 +76,7 @@ describe('customerSchema', () => {
     const result = customerSchema.safeParse({
       first_name: 'John',
       contact_type: 'residential',
-      status: 'lead',
+      status: 'inquiry',
     })
     expect(result.success).toBe(false)
   })
@@ -164,7 +164,7 @@ describe('customerSchema', () => {
 
 describe('defaultCustomerValues', () => {
   it('has default status of lead', () => {
-    expect(defaultCustomerValues.status).toBe('lead')
+    expect(defaultCustomerValues.status).toBe('inquiry')
   })
 
   it('has marketing_consent as false', () => {
@@ -197,7 +197,7 @@ describe('US_STATES', () => {
 describe('CUSTOMER_STATUS_OPTIONS', () => {
   it('has all status options', () => {
     const values = CUSTOMER_STATUS_OPTIONS.map(o => o.value)
-    expect(values).toContain('lead')
+    expect(values).toContain('inquiry')
     expect(values).toContain('prospect')
     expect(values).toContain('customer')
     expect(values).toContain('inactive')

@@ -1,20 +1,9 @@
-import { createClient } from '@/lib/supabase/server';
 import { WhiteLabelService } from '@/lib/services/white-label-service';
 import { BrandingForm } from '@/components/settings/branding-form';
+import { requireTenantAdmin } from '@/lib/auth/require-roles';
 
 export default async function BrandingPage() {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('organization_id')
-    .eq('id', user?.id)
-    .single();
-
-  if (!profile?.organization_id) {
-    return <div>No organization found</div>;
-  }
+  const { profile } = await requireTenantAdmin();
 
   const { enabled, config } = await WhiteLabelService.getConfig(profile.organization_id);
   const domains = await WhiteLabelService.listDomains(profile.organization_id);

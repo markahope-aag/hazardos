@@ -38,7 +38,7 @@ describe('POST /api/ai/estimate', () => {
 
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   it('should generate AI estimate for authenticated user', async () => {

@@ -9,7 +9,7 @@ import { ROLES } from '@/lib/auth/roles'
  * Get all pricing data for the organization
  */
 export const GET = createApiHandler(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_ADMIN },
   async (_request, context) => {
     const [
       laborRatesResult,

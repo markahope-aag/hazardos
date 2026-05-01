@@ -34,7 +34,7 @@ import { JobsService } from '@/lib/services/jobs-service'
 describe('Jobs Calendar API', () => {
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   const setupAuthenticatedUser = () => {

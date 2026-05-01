@@ -9,8 +9,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
-import { Loader2, Save, Building, Clock } from 'lucide-react'
+import { Loader2, Save, Building, Clock, Camera } from 'lucide-react'
 import { DEFAULT_TIMEZONE, US_TIMEZONE_OPTIONS } from '@/lib/timezone'
+
+const DEFAULT_PHOTO_RETENTION_DAYS = 1095 // 3 years
+const MIN_PHOTO_RETENTION_DAYS = 90
+const MAX_PHOTO_RETENTION_DAYS = 3650 // 10 years
 
 interface CompanyForm {
   name: string
@@ -23,6 +27,7 @@ interface CompanyForm {
   state: string
   zip: string
   timezone: string
+  photo_retention_days: number
 }
 
 const EMPTY: CompanyForm = {
@@ -36,6 +41,7 @@ const EMPTY: CompanyForm = {
   state: '',
   zip: '',
   timezone: DEFAULT_TIMEZONE,
+  photo_retention_days: DEFAULT_PHOTO_RETENTION_DAYS,
 }
 
 export default function CompanyProfilePage() {
@@ -62,6 +68,7 @@ export default function CompanyProfilePage() {
           state: org.state || '',
           zip: org.zip || '',
           timezone: org.timezone || DEFAULT_TIMEZONE,
+          photo_retention_days: org.photo_retention_days ?? DEFAULT_PHOTO_RETENTION_DAYS,
         })
       } catch (e) {
         toast({
@@ -85,6 +92,18 @@ export default function CompanyProfilePage() {
     if (!form.name.trim()) {
       toast({
         title: 'Company name is required',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (
+      !Number.isFinite(form.photo_retention_days)
+      || form.photo_retention_days < MIN_PHOTO_RETENTION_DAYS
+      || form.photo_retention_days > MAX_PHOTO_RETENTION_DAYS
+    ) {
+      toast({
+        title: 'Photo retention out of range',
+        description: `Must be between ${MIN_PHOTO_RETENTION_DAYS} and ${MAX_PHOTO_RETENTION_DAYS} days.`,
         variant: 'destructive',
       })
       return
@@ -275,6 +294,44 @@ export default function CompanyProfilePage() {
               </Select>
               <p className="text-xs text-muted-foreground mt-2">
                 Currently set to <code className="font-mono">{form.timezone}</code>.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Camera className="h-5 w-5" />
+              Survey photo retention
+            </CardTitle>
+            <CardDescription>
+              How long survey photos and videos are kept before they're permanently
+              deleted. Photos remain visible to the whole team for the first 180 days,
+              then move to admin-only access until they're deleted at the end of the
+              retention window.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="max-w-md space-y-2">
+              <Label htmlFor="photo_retention_days">Retention window (days)</Label>
+              <Input
+                id="photo_retention_days"
+                type="number"
+                inputMode="numeric"
+                min={MIN_PHOTO_RETENTION_DAYS}
+                max={MAX_PHOTO_RETENTION_DAYS}
+                step={1}
+                value={form.photo_retention_days}
+                onChange={(e) =>
+                  update('photo_retention_days', Number(e.target.value) || 0)
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Default is {DEFAULT_PHOTO_RETENTION_DAYS} days (3 years). Allowed range:{' '}
+                {MIN_PHOTO_RETENTION_DAYS}–{MAX_PHOTO_RETENTION_DAYS} days. Changing this
+                value retroactively recomputes the deletion date for every existing
+                photo in your organization.
               </p>
             </div>
           </CardContent>

@@ -1,24 +1,12 @@
-import { createClient } from '@/lib/supabase/server';
 import { LocationService } from '@/lib/services/location-service';
 import { LocationList } from '@/components/settings/location-list';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
+import { requireTenantAdmin } from '@/lib/auth/require-roles';
 
 export default async function LocationsPage() {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('organization_id')
-    .eq('id', user?.id)
-    .single();
-
-  if (!profile?.organization_id) {
-    return <div>No organization found</div>;
-  }
-
+  const { profile } = await requireTenantAdmin();
   const locations = await LocationService.list(profile.organization_id);
 
   return (

@@ -43,7 +43,7 @@ import { InvoicesService } from '@/lib/services/invoices-service'
 
 const mockProfile = {
   organization_id: 'org-123',
-  role: 'user'
+  role: 'admin'
 }
 
 const setupAuthenticatedUser = () => {

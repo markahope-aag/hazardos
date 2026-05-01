@@ -37,7 +37,7 @@ describe('Google Calendar Integration', () => {
 
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   describe('GET /api/integrations/google-calendar/connect', () => {

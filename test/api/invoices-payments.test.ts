@@ -34,7 +34,7 @@ describe('Invoice Payments API', () => {
 
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   describe('POST /api/invoices/[id]/payments', () => {

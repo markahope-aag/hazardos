@@ -56,7 +56,7 @@ class MockAuthService {
       id: 'user-2',
       email: 'user@example.com',
       name: 'Regular User',
-      role: 'user',
+      role: 'admin',
       password: 'hashedPassword456',
       active: true,
       loginAttempts: 0
@@ -66,7 +66,7 @@ class MockAuthService {
       id: 'user-3',
       email: 'locked@example.com',
       name: 'Locked User',
-      role: 'user',
+      role: 'admin',
       password: 'hashedPassword789',
       active: true,
       loginAttempts: 5,
@@ -77,7 +77,7 @@ class MockAuthService {
       id: 'user-4',
       email: 'inactive@example.com',
       name: 'Inactive User',
-      role: 'user',
+      role: 'admin',
       password: 'hashedPassword000',
       active: false,
       loginAttempts: 0

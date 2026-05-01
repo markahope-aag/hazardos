@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { customerListQuerySchema, createCustomerSchema } from '@/lib/validations/customers'
 import { sanitizeSearchQuery } from '@/lib/utils/sanitize'
 import type { CustomerInsert } from '@/types/database'
@@ -19,6 +20,7 @@ import type { CustomerInsert } from '@/types/database'
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_READ,
     querySchema: customerListQuerySchema,
   },
   async (_request, context, _body, query) => {
@@ -57,6 +59,7 @@ export const GET = createApiHandler(
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_WRITE,
     bodySchema: createCustomerSchema,
   },
   async (_request, context, body) => {
@@ -71,7 +74,7 @@ export const POST = createApiHandler(
       city: body.city || null,
       state: body.state || null,
       zip: body.zip || null,
-      status: body.status || 'lead',
+      status: body.status || 'inquiry',
       source: body.source || null,
       communication_preferences: body.communication_preferences || { email: true, sms: false, mail: false },
       marketing_consent: body.marketing_consent || false,

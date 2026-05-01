@@ -32,7 +32,7 @@ describe('Jobs From Proposal API', () => {
 
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   const setupAuthenticatedUser = () => {

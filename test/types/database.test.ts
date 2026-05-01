@@ -43,7 +43,7 @@ describe('Database Types', () => {
         organization_id: '550e8400-e29b-41d4-a716-446655440001',
         name: 'Jane Smith',
         email: 'jane@example.com',
-        status: 'lead'
+        status: 'inquiry'
       }
 
       expectTypeOf(mockInsert).toEqualTypeOf<CustomerInsert>()
@@ -108,7 +108,7 @@ describe('Database Types', () => {
 
   describe('Enum Types', () => {
     it('should validate CustomerStatus enum values', () => {
-      const validStatuses: CustomerStatus[] = ['lead', 'prospect', 'customer', 'inactive']
+      const validStatuses: CustomerStatus[] = ['inquiry', 'prospect', 'customer', 'inactive']
       
       validStatuses.forEach(status => {
         expectTypeOf(status).toEqualTypeOf<CustomerStatus>()

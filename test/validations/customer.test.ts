@@ -34,7 +34,7 @@ describe('Customer Validation Schema', () => {
       const minimalCustomer = {
         first_name: 'Jane',
         contact_type: 'residential' as const,
-        status: 'lead' as const,
+        status: 'inquiry' as const,
         marketing_consent: false,
         address_line1: '123 Test St',
         city: 'Denver',
@@ -50,7 +50,7 @@ describe('Customer Validation Schema', () => {
       const invalidCustomer = {
         email: 'test@example.com',
         contact_type: 'residential' as const,
-        status: 'lead' as const,
+        status: 'inquiry' as const,
         marketing_consent: false,
         address_line1: '123 Test St',
         city: 'Denver',
@@ -70,7 +70,7 @@ describe('Customer Validation Schema', () => {
         first_name: 'John',
         contact_type: 'residential' as const,
         email: 'invalid-email',
-        status: 'lead' as const,
+        status: 'inquiry' as const,
         marketing_consent: false,
         address_line1: '123 Test St',
         city: 'Denver',
@@ -90,7 +90,7 @@ describe('Customer Validation Schema', () => {
         first_name: 'John',
         contact_type: 'residential' as const,
         email: '',
-        status: 'lead' as const,
+        status: 'inquiry' as const,
         marketing_consent: false,
         address_line1: '123 Test St',
         city: 'Denver',
@@ -103,7 +103,7 @@ describe('Customer Validation Schema', () => {
     })
 
     it('should validate valid customer status values', () => {
-      const statuses = ['lead', 'prospect', 'customer', 'inactive'] as const
+      const statuses = ['inquiry', 'prospect', 'customer', 'inactive'] as const
 
       statuses.forEach(status => {
         const customer = {
@@ -145,7 +145,7 @@ describe('Customer Validation Schema', () => {
         const customer = {
           first_name: 'Test',
           contact_type: 'residential' as const,
-          status: 'lead' as const,
+          status: 'inquiry' as const,
           marketing_consent: false,
           address_line1: '123 Test St',
           city: 'Denver',
@@ -164,7 +164,7 @@ describe('Customer Validation Schema', () => {
         first_name: 'Test',
         contact_type: 'residential' as const,
         source: 'invalid-source',
-        status: 'lead' as const,
+        status: 'inquiry' as const,
         marketing_consent: false,
         address_line1: '123 Test St',
         city: 'Denver',
@@ -180,7 +180,7 @@ describe('Customer Validation Schema', () => {
       const customerTrue = {
         first_name: 'Test',
         contact_type: 'residential' as const,
-        status: 'lead' as const,
+        status: 'inquiry' as const,
         marketing_consent: true,
         address_line1: '123 Test St',
         city: 'Denver',
@@ -191,7 +191,7 @@ describe('Customer Validation Schema', () => {
       const customerFalse = {
         first_name: 'Test',
         contact_type: 'residential' as const,
-        status: 'lead' as const,
+        status: 'inquiry' as const,
         marketing_consent: false,
         address_line1: '123 Test St',
         city: 'Denver',
@@ -207,7 +207,7 @@ describe('Customer Validation Schema', () => {
       const customer = {
         first_name: 'Test',
         contact_type: 'residential' as const,
-        status: 'lead' as const,
+        status: 'inquiry' as const,
         marketing_consent: false,
         address_line1: '123 Test St',
         city: 'Denver',
@@ -229,7 +229,7 @@ describe('Customer Validation Schema', () => {
         city: '  Anytown  ',
         state: 'CO',
         zip: '80202',
-        status: 'lead' as const,
+        status: 'inquiry' as const,
         marketing_consent: false
       }
 
@@ -247,12 +247,12 @@ describe('Customer Validation Schema', () => {
     it('should have default values for required fields', () => {
       expect(defaultCustomerValues).toHaveProperty('status')
       expect(defaultCustomerValues).toHaveProperty('marketing_consent')
-      expect(defaultCustomerValues.status).toBe('lead')
+      expect(defaultCustomerValues.status).toBe('inquiry')
       expect(defaultCustomerValues.marketing_consent).toBe(false)
     })
 
     it('should have valid default status', () => {
-      expect(['lead', 'prospect', 'customer', 'inactive']).toContain(defaultCustomerValues.status)
+      expect(['inquiry', 'prospect', 'customer', 'inactive']).toContain(defaultCustomerValues.status)
     })
 
     it('should validate against schema when combined with required fields', () => {
@@ -295,7 +295,7 @@ describe('Customer Validation Schema', () => {
 
   describe('CUSTOMER_STATUS_OPTIONS', () => {
     it('should contain all valid status options', () => {
-      const expectedStatuses = ['lead', 'prospect', 'customer', 'inactive']
+      const expectedStatuses = ['inquiry', 'prospect', 'customer', 'inactive']
       expect(CUSTOMER_STATUS_OPTIONS).toHaveLength(expectedStatuses.length)
 
       expectedStatuses.forEach(status => {

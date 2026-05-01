@@ -156,7 +156,7 @@ describe('Material Costs API', () => {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
-              data: { ...mockProfile, role: 'user' },
+              data: { ...mockProfile, role: 'technician' },
               error: null
             })
           })

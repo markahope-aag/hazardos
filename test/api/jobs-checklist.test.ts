@@ -36,7 +36,7 @@ import { JobCompletionService } from '@/lib/services/job-completion-service'
 
 const mockProfile = {
   organization_id: 'org-123',
-  role: 'user'
+  role: 'admin'
 }
 
 const setupAuthenticatedUser = () => {

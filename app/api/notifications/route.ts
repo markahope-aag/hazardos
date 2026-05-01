@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { NotificationService } from '@/lib/services/notification-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { notificationListQuerySchema, createNotificationSchema } from '@/lib/validations/notifications'
 
 /**
@@ -10,6 +11,7 @@ import { notificationListQuerySchema, createNotificationSchema } from '@/lib/val
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_READ,
     querySchema: notificationListQuerySchema,
   },
   async (_request, _context, _body, query) => {
@@ -36,6 +38,7 @@ export const GET = createApiHandler(
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_ADMIN,
     bodySchema: createNotificationSchema,
   },
   async (_request, _context, body) => {

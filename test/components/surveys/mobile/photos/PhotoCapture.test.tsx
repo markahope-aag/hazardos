@@ -129,12 +129,12 @@ describe('PhotoCapture', () => {
     expect(button).not.toHaveTextContent('Take Photo')
   })
 
-  it('should render inline variant with add photo text', () => {
+  it('should render inline variant with take photo text', () => {
     render(<PhotoCapture category="exterior" variant="inline" />)
 
     const button = screen.getByRole('button')
     expect(button).toBeInTheDocument()
-    expect(screen.getByText('Add Photo')).toBeInTheDocument()
+    expect(screen.getByText('Take Photo')).toBeInTheDocument()
   })
 
   it('should have hidden file input', () => {
@@ -357,7 +357,7 @@ describe('PhotoCapture', () => {
 
     const fileInput = document.querySelector('input[type="file"]')
     expect(fileInput).toHaveAttribute('accept', 'image/*')
-    expect(fileInput).toHaveAttribute('aria-label', 'Capture photo')
+    expect(fileInput).toHaveAttribute('aria-label', 'Take a photo with the camera')
   })
 
   it('should show error for canvas context failure', async () => {

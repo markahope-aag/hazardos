@@ -23,6 +23,10 @@ const updateSchema = z.object({
   // display concerns.
   email_from_name: z.string().max(120).optional().or(z.literal('')),
   email_reply_to: z.string().email().optional().or(z.literal('')),
+  // Survey photo retention window in days. The DB enforces 90–3650
+  // via CHECK constraint; we mirror it here so the API rejects bad
+  // values with a structured error rather than a Postgres error.
+  photo_retention_days: z.number().int().min(90).max(3650).optional(),
 })
 
 // Returns the caller's own organization record.
@@ -31,7 +35,7 @@ export const GET = createApiHandler(
   async (_request, context) => {
     const { data, error } = await context.supabase
       .from('organizations')
-      .select('id, name, email, phone, website, license_number, address, city, state, zip, timezone, email_from_name, email_reply_to, email_domain, email_domain_status')
+      .select('id, name, email, phone, website, license_number, address, city, state, zip, timezone, email_from_name, email_reply_to, email_domain, email_domain_status, photo_retention_days')
       .eq('id', context.profile.organization_id)
       .single()
     if (error) throw error
@@ -48,11 +52,17 @@ export const PATCH = createApiHandler(
     allowedRoles: ['platform_owner', 'platform_admin', 'tenant_owner', 'admin'],
   },
   async (_request, context, body) => {
-    // Convert empty strings to null so clearing a field works.
-    const updates: Record<string, string | null> = {}
+    // Convert empty strings to null so clearing a field works. Number
+    // fields are passed through verbatim — they can't be "cleared" to
+    // null because the column is NOT NULL with a default.
+    const updates: Record<string, string | number | null> = {}
     for (const [key, value] of Object.entries(body)) {
       if (value === undefined) continue
-      updates[key] = value === '' ? null : (value as string)
+      if (typeof value === 'number') {
+        updates[key] = value
+      } else {
+        updates[key] = value === '' ? null : (value as string)
+      }
     }
 
     const { data, error } = await context.supabase

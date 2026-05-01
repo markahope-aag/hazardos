@@ -99,14 +99,11 @@ export function RadioCardGroup<T extends string>({
 
             {/* Content */}
             <div className="flex-1 min-w-0">
-              <span className={cn(
-                'font-medium block',
-                isSelected ? 'text-foreground' : 'text-foreground'
-              )}>
+              <span className="font-medium block text-foreground break-words leading-tight">
                 {option.label}
               </span>
               {option.description && (
-                <span className="text-sm text-muted-foreground line-clamp-2">
+                <span className="text-sm text-muted-foreground line-clamp-2 break-words">
                   {option.description}
                 </span>
               )}

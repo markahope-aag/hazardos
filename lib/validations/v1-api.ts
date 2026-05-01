@@ -18,7 +18,7 @@ const paginationSchema = z.object({
 // ========== Customer Schemas ==========
 
 export const v1CustomerStatusSchema = z.enum([
-  'lead',
+  'inquiry',
   'prospect',
   'active',
   'inactive',

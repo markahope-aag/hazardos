@@ -1,23 +1,12 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { SubscriptionCard } from '@/components/billing/subscription-card'
 import { InvoiceHistory } from '@/components/billing/invoice-history'
 import { PlanSelector } from '@/components/billing/plan-selector'
+import { requireTenantAdmin } from '@/lib/auth/require-roles'
 import type { OrganizationSubscription, SubscriptionPlan, BillingInvoice } from '@/types/billing'
 
 export default async function BillingSettingsPage() {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('organization_id, role')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile?.organization_id) redirect('/onboard')
+  const { profile, supabase } = await requireTenantAdmin()
 
   // Orgs on a custom/manual billing arrangement have the in-app
   // billing flow turned off; bounce them back to settings home.
@@ -65,7 +54,9 @@ export default async function BillingSettingsPage() {
 
   const plans: SubscriptionPlan[] = plansData || []
 
-  const isAdmin = profile.role === 'owner' || profile.role === 'admin' || profile.role === 'tenant_owner'
+  // requireTenantAdmin already enforced this — keeping the variable for
+  // any UI branches below that may want to be defensive.
+  const isAdmin = true
 
   return (
     <div className="space-y-6">

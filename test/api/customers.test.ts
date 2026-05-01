@@ -121,10 +121,10 @@ describe('/api/customers', () => {
     it('applies the status filter when provided', async () => {
       supabaseStub = makeSupabaseStub({ data: [], error: null })
 
-      const request = new NextRequest('http://localhost:3000/api/customers?status=lead')
+      const request = new NextRequest('http://localhost:3000/api/customers?status=inquiry')
       await GET(request)
 
-      expect(supabaseStub.chain.eq).toHaveBeenCalledWith('status', 'lead')
+      expect(supabaseStub.chain.eq).toHaveBeenCalledWith('status', 'inquiry')
     })
 
     it('applies the search filter as a sanitized OR clause', async () => {

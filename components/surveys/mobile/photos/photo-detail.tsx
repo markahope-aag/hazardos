@@ -41,9 +41,14 @@ export function PhotoDetail({ photo, open, onClose }: PhotoDetailProps) {
       setResolvedUrl(photo.dataUrl)
       return
     }
-    if (photo.path) {
+    // Prefer the stamped derivative — that's the JPEG with the
+    // burned-in timestamp/job/GPS band. Fall back to the original
+    // path when stamping hasn't completed yet, for videos, and for
+    // historical rows captured before the pipeline existed.
+    const renderPath = photo.stamped_path ?? photo.path
+    if (renderPath) {
       let cancelled = false
-      getSignedSurveyMediaUrl(photo.path).then((url) => {
+      getSignedSurveyMediaUrl(renderPath).then((url) => {
         if (!cancelled) setResolvedUrl(url)
       })
       return () => {
@@ -123,6 +128,13 @@ export function PhotoDetail({ photo, open, onClose }: PhotoDetailProps) {
               <div className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
                 {photo.gpsCoordinates.latitude.toFixed(6)}, {photo.gpsCoordinates.longitude.toFixed(6)}
+              </div>
+            )}
+            {!isVideo && photo.path && photo.stamp_status !== 'stamped' && (
+              <div className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-900">
+                {photo.stamp_status === 'failed'
+                  ? `Stamp failed${photo.stamp_error ? `: ${photo.stamp_error}` : ''}`
+                  : 'Awaiting stamp'}
               </div>
             )}
           </div>

@@ -140,7 +140,7 @@ describe('CustomersService', () => {
         organization_id: 'org-1',
         name: 'Jane Smith',
         email: 'jane@example.com',
-        status: 'lead' as const
+        status: 'inquiry' as const
       }
 
       const createdCustomer = { id: 'new-customer-id', ...newCustomer }
@@ -241,7 +241,7 @@ describe('CustomersService', () => {
 
       expect(result).toEqual({
         total: 100,
-        leads: 25,
+        inquiries: 25,
         prospects: 30,
         customers: 40,
         inactive: 5
@@ -267,7 +267,7 @@ describe('CustomersService', () => {
     })
 
     it('should validate status values', async () => {
-      const validStatuses = ['lead', 'prospect', 'customer', 'inactive'] as const
+      const validStatuses = ['inquiry', 'prospect', 'customer', 'inactive'] as const
 
       // Ensure select() returns mockSupabase for .single() to work
       mockSupabase.select.mockReturnValue(mockSupabase)

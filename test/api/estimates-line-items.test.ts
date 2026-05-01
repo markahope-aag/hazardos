@@ -20,7 +20,7 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 describe('Estimate Line Items API', () => {
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   const _setupAuthenticatedUser = () => {

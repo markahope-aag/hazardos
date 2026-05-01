@@ -36,7 +36,7 @@ vi.mock('@/lib/utils/api-handler', async (importOriginal) => {
       return async (request: any, params: any) => {
         const mockContext = {
           user: { id: 'user-123' },
-          profile: { organization_id: 'org-123', role: 'user' },
+          profile: { organization_id: 'org-123', role: 'admin' },
           supabase: mockSupabaseClient,
           log: { info: vi.fn(), error: vi.fn() }
         }

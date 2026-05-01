@@ -72,7 +72,7 @@ describe('validations index', () => {
     const customerResult = customerSchema.safeParse({
       first_name: 'Test',
       contact_type: 'residential',
-      status: 'lead',
+      status: 'inquiry',
       marketing_consent: false,
       address_line1: '123 Test St',
       city: 'Denver',

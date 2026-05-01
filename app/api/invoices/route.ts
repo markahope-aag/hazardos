@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { InvoicesService } from '@/lib/services/invoices-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { invoiceListQuerySchema, createInvoiceSchema } from '@/lib/validations/invoices'
 
 /**
@@ -10,6 +11,7 @@ import { invoiceListQuerySchema, createInvoiceSchema } from '@/lib/validations/i
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_READ,
     querySchema: invoiceListQuerySchema,
   },
   async (_request, _context, _body, query) => {
@@ -34,6 +36,7 @@ export const GET = createApiHandler(
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_ADMIN,
     bodySchema: createInvoiceSchema,
   },
   async (_request, _context, body) => {

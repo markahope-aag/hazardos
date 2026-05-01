@@ -9,9 +9,9 @@ interface CustomerStatusBadgeProps {
 export default function CustomerStatusBadge({ status, className }: CustomerStatusBadgeProps) {
   const getStatusConfig = (status: CustomerStatus) => {
     switch (status) {
-      case 'lead':
+      case 'inquiry':
         return {
-          label: 'Lead',
+          label: 'Inquiry',
           variant: 'default' as const,
           className: 'bg-blue-100 text-blue-800 hover:bg-blue-100'
         }

@@ -80,7 +80,7 @@ export default function CustomerForm({
       first_name: '',
       last_name: '',
       contact_type: 'residential' as const,
-      status: 'lead' as const,
+      status: 'inquiry' as const,
       marketing_consent: false,
     }
   })

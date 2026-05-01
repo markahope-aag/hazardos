@@ -13,6 +13,7 @@ export { SETTINGS_NAV } from './settings-nav'
 
 interface SettingsSidebarProps {
   hiddenHrefs?: readonly string[]
+  userRole?: string | null
 }
 
 function isActive(pathname: string, href: string): boolean {
@@ -22,17 +23,21 @@ function isActive(pathname: string, href: string): boolean {
   return pathname.startsWith(href + '/')
 }
 
-export function SettingsSidebar({ hiddenHrefs }: SettingsSidebarProps = {}) {
+export function SettingsSidebar({ hiddenHrefs, userRole }: SettingsSidebarProps = {}) {
   const pathname = usePathname()
 
   const filteredNav = useMemo(() => {
-    if (!hiddenHrefs || hiddenHrefs.length === 0) return SETTINGS_NAV
-    const hidden = new Set(hiddenHrefs)
+    const hidden = new Set(hiddenHrefs || [])
     return SETTINGS_NAV.map((group) => ({
       ...group,
-      items: group.items.filter((item) => !hidden.has(item.href)),
+      items: group.items.filter((item) => {
+        if (hidden.has(item.href)) return false
+        if (!item.requiredRoles) return true
+        if (!userRole) return false
+        return item.requiredRoles.includes(userRole)
+      }),
     })).filter((group) => group.items.length > 0)
-  }, [hiddenHrefs])
+  }, [hiddenHrefs, userRole])
 
   return (
     <nav

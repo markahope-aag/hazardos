@@ -37,7 +37,7 @@ export const customerSchema = z.object({
   city: z.string().min(1, 'City is required').max(100, 'City is too long'),
   state: z.string().min(1, 'State is required').max(50, 'State is too long'),
   zip: z.string().min(1, 'ZIP code is required').max(10, 'ZIP code is too long'),
-  status: z.enum(['lead', 'prospect', 'customer', 'inactive']),
+  status: z.enum(['inquiry', 'prospect', 'customer', 'inactive']),
   source: z.enum(['phone', 'website', 'mail', 'referral', 'other']).optional(),
   marketing_consent: z.boolean(),
   opted_into_email: z.boolean().optional(),
@@ -56,7 +56,7 @@ export type CustomerFormData = z.infer<typeof customerSchema>
 
 // Default values for new customer form
 export const defaultCustomerValues: Partial<CustomerFormData> = {
-  status: 'lead',
+  status: 'inquiry',
   marketing_consent: false,
 }
 
@@ -116,7 +116,7 @@ export const US_STATES = [
 
 // Customer status options for dropdowns
 export const CUSTOMER_STATUS_OPTIONS = [
-  { value: 'lead' as CustomerStatus, label: 'Lead', description: 'Initial contact' },
+  { value: 'inquiry' as CustomerStatus, label: 'Inquiry', description: 'Initial contact' },
   { value: 'prospect' as CustomerStatus, label: 'Prospect', description: 'Survey scheduled/completed' },
   { value: 'customer' as CustomerStatus, label: 'Customer', description: 'Job completed' },
   { value: 'inactive' as CustomerStatus, label: 'Inactive', description: 'No recent activity' },

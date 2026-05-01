@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import type React from 'react'
 import { render, screen } from '@testing-library/react'
 import SettingsPage from '@/app/(dashboard)/settings/page'
 
@@ -17,16 +18,66 @@ vi.mock('lucide-react', () => ({
   MessageSquare: () => <div data-testid="icon-msg" />,
   Mail: () => <div data-testid="icon-mail" />,
   Shield: () => <div data-testid="icon-shield" />,
+  ShieldCheck: () => <div data-testid="icon-shield-check" />,
   Palette: () => <div data-testid="icon-palette" />,
 }))
 
+// SettingsPage is a server component that awaits the Supabase profile
+// lookup and filters items by role. The supabase mock from test/setup.ts
+// returns null profiles by default, which would hide every role-gated
+// item — so for these tests we provide a tenant_owner profile so the
+// full nav surface renders.
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: vi.fn().mockResolvedValue({
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-123' } } }),
+    },
+    from: vi.fn((table: string) => {
+      if (table === 'profiles') {
+        return {
+          select: () => ({
+            eq: () => ({
+              single: () => Promise.resolve({
+                data: { organization_id: 'org-123', role: 'tenant_owner' },
+              }),
+            }),
+          }),
+        }
+      }
+      if (table === 'organizations') {
+        return {
+          select: () => ({
+            eq: () => ({
+              single: () => Promise.resolve({
+                data: { billing_managed_externally: false },
+              }),
+            }),
+          }),
+        }
+      }
+      return {
+        select: () => ({
+          eq: () => ({
+            single: () => Promise.resolve({ data: null }),
+          }),
+        }),
+      }
+    }),
+  }),
+}))
+
+async function renderPage() {
+  const ui = (await SettingsPage()) as React.ReactElement
+  return render(ui)
+}
+
 describe('SettingsPage (landing)', () => {
-  it('renders without crashing', () => {
-    expect(() => render(<SettingsPage />)).not.toThrow()
+  it('renders without crashing', async () => {
+    await expect(renderPage()).resolves.not.toThrow()
   })
 
-  it('groups settings by section', () => {
-    render(<SettingsPage />)
+  it('groups settings by section', async () => {
+    await renderPage()
     expect(screen.getByText('Organization')).toBeInTheDocument()
     expect(screen.getByText('Workflow')).toBeInTheDocument()
     // "Integrations" is both a group heading and an item label —
@@ -36,8 +87,8 @@ describe('SettingsPage (landing)', () => {
     expect(screen.getByText('Account')).toBeInTheDocument()
   })
 
-  it('lists every section item by label', () => {
-    render(<SettingsPage />)
+  it('lists every section item by label', async () => {
+    await renderPage()
     // Organization
     expect(screen.getByText('Company Profile')).toBeInTheDocument()
     expect(screen.getByText('Team Members')).toBeInTheDocument()
@@ -45,8 +96,6 @@ describe('SettingsPage (landing)', () => {
     // Workflow
     expect(screen.getByText('Pricing')).toBeInTheDocument()
     expect(screen.getByText('Billing')).toBeInTheDocument()
-    // Integrations group label conflicts with the item label "Integrations"
-    // — using getAllByText since both render.
     expect(screen.getAllByText('Integrations').length).toBeGreaterThan(0)
     expect(screen.getByText('API Keys')).toBeInTheDocument()
     expect(screen.getByText('Webhooks')).toBeInTheDocument()
@@ -59,8 +108,8 @@ describe('SettingsPage (landing)', () => {
     expect(screen.getByText('Appearance')).toBeInTheDocument()
   })
 
-  it('links each item to its subroute', () => {
-    render(<SettingsPage />)
+  it('links each item to its subroute', async () => {
+    await renderPage()
     const hrefs = screen.getAllByRole('link').map((a) => a.getAttribute('href'))
     expect(hrefs).toEqual(
       expect.arrayContaining([

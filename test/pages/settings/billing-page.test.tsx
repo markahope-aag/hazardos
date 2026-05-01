@@ -1,10 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
-// Mock Supabase server with proper chaining
+// The billing page is gated by requireTenantAdmin and consumes the
+// supabase client returned by that helper rather than calling
+// createClient() directly. Override the global mock from test/setup.ts
+// so this test's billing-shaped data flows through.
+vi.mock('@/lib/auth/require-roles', () => ({
+  requireRoles: vi.fn().mockImplementation(async () => ({
+    user: { id: 'user-123' },
+    profile: { id: 'user-123', organization_id: 'org-123', role: 'admin' },
+    supabase: makeBillingMockClient(),
+  })),
+  requireTenantAdmin: vi.fn().mockImplementation(async () => ({
+    user: { id: 'user-123' },
+    profile: { id: 'user-123', organization_id: 'org-123', role: 'admin' },
+    supabase: makeBillingMockClient(),
+  })),
+}))
+
+// Mock Supabase server with proper chaining (kept for any code path
+// inside the billing page or its imports that still calls createClient
+// directly).
 vi.mock('@/lib/supabase/server', () => ({
-  createClient: () => {
-    const mockClient = {
+  createClient: () => Promise.resolve(makeBillingMockClient()),
+}))
+
+function makeBillingMockClient() {
+  const mockClient = {
       auth: {
         getUser: () => Promise.resolve({ data: { user: { id: 'user-123' } } }),
       },
@@ -76,9 +98,8 @@ vi.mock('@/lib/supabase/server', () => ({
         }
       }),
     }
-    return Promise.resolve(mockClient)
-  },
-}))
+  return mockClient
+}
 
 // Mock billing components
 vi.mock('@/components/billing/subscription-card', () => ({

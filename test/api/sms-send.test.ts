@@ -33,7 +33,7 @@ describe('POST /api/sms/send', () => {
 
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   it('should send SMS for authenticated user', async () => {

@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Cloudflare R2 Photo Storage + Lifecycle (2026-04-30)
+
+- **R2 is now the canonical store for survey photos and videos.** New uploads land directly in Cloudflare R2 via presigned PUT URLs (`POST /api/site-surveys/[id]/photos/upload-url`), bypassing the serverless function for the bytes themselves — saves a round trip on cellular and avoids the 4.5 MB Vercel request body cap on videos.
+- **`survey_photos` table replaces `site_surveys.photo_metadata` JSONB.** Indexed on `(site_survey_id)`, `(customer_id)`, `(job_id)`, `(company_id)`, `(tier, expires_at)` — customer-level photo discovery is now a single indexed query instead of a JSONB scan across surveys. Customer/job/company linkage is denormalized at insert time.
+- **Two-stage finalize** (`POST /api/site-surveys/[id]/photos/finalize`): HEADs R2 to confirm the upload landed, downloads the original (images only), runs SHA-256 + EXIF + sharp stamp pipeline, writes the stamped JPEG back to R2, inserts the `survey_photos` row with full forensic metadata + denormalized linkage. Stamping is fail-soft — the original is preserved either way.
+- **Tiered visibility policy.**
+  - **0–180 days**: stamped photos visible to the whole org via the gallery.
+  - **180+ days** (cool-down): admins see them with a "Cold" badge; non-admins see only a count of how many photos are past the visibility window.
+  - **Past the per-org retention window** (default 1095 days / 3 years): hard-deleted by the daily lifecycle cron.
+- **Cool-down is read-time, not stored.** Computed from `created_at` on every render. Single-tier R2 means "going cold" doesn't move bytes; it's purely an access decision.
+- **Per-org retention setting.** New `organizations.photo_retention_days` (90–3650, default 1095). Editable on `/settings/company`. A trigger recomputes `expires_at` for every existing photo when an org changes the value.
+- **Lifecycle worker** (`/api/cron/photo-lifecycle`): daily 07:00 UTC, CRON_SECRET-protected, batched at 500 rows/run. Hard-deletes expired photos from R2 + Supabase Storage (legacy paths), soft-deletes the row (`tier='deleted'`, paths nulled) as a permanent audit record.
+- **Display layer**: signed-URL resolver dispatches on a `r2:` path prefix. R2 keys → batch-signed via `POST /api/storage/r2-signed-urls` (admin-only on `originals/`); legacy Supabase paths continue to use the existing signing path — no display changes required for pre-cutover data.
+- **Originals admin-only**: kept under `{org}/originals/...` in R2, gated to `tenant_owner | admin | platform_owner | platform_admin`. Stamped derivatives and videos are visible to all org members.
+- **Migration script**: `scripts/migrate-originals-to-r2.mjs` ports legacy Supabase originals to R2 in resumable batches; supports `--all` and `--dry-run`. R2 connectivity check available at `scripts/check-r2.mjs`.
+- **Dependencies**: adds `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` (R2 is S3-compatible).
+
+### Added — Forensic Photo Timestamping (2026-04-30)
+
+- **Originals admin-only retention.** Every survey photo upload now lands in `survey-photos/{orgId}/originals/...`, gated by an RLS policy that limits SELECT on the `originals/` prefix to platform admins and tenant admins. Non-admin tech reads are blocked at the storage layer.
+- **Server-side stamp pipeline.** `POST /api/site-surveys/[id]/photos/stamp` downloads the original via service role, computes a SHA-256 fingerprint, re-extracts EXIF (date, GPS, camera make/model), and renders a JPEG derivative with a burned-in yellow-on-black timestamp/job/GPS band into `survey-photos/{orgId}/stamped/...`. Stamping never blocks ingest — failures persist a `stamp_status: 'failed'` flag while the original is preserved untouched.
+- **Capture-time resolution.** EXIF `DateTimeOriginal` wins where present, falling back to a client-supplied capture timestamp, then the server upload time. The stamp prints the resolved timestamp in the org's configured timezone (`Intl.DateTimeFormat`, `en-CA` ordering).
+- **Client-side EXIF preservation.** `components/surveys/mobile/photos/photo-capture.tsx` extracts EXIF *before* the canvas compression step strips it, so the stamp endpoint can resolve capture time even when the server-side parse on the compressed JPEG comes back empty.
+- **Display layer prefers stamped.** Mobile thumbnails / detail dialogs and the desktop survey-detail media gallery now sign and render `stamped_path` first, falling back to the original with an "Awaiting stamp" / "Unstamped" badge while the pipeline catches up or for legacy rows.
+- **Admin restamp endpoint.** `POST /api/site-surveys/photos/restamp` re-runs the stamp pipeline against an existing original — used to backfill historical photos and to retry rows whose initial stamp failed. Tenant-admin gated.
+- **JSONB schema extensions.** `site_surveys.photo_metadata[]` entries now carry `original_path`, `stamped_path`, `file_hash`, `captured_at`, `captured_lat`, `captured_lng`, `device_make`, `device_model`, `stamp_status`, `stamp_error`, plus a copy of the raw EXIF subset for the legal trail. Existing rows are unaffected — every new field is optional.
+- **Dependencies.** Adds `sharp` (server image processing) and `exifr` (EXIF parsing on both client and server).
+
 ### In Progress
 - Component testing suite expansion (current: ~8%, target: 70%)
 - E2E test workflows for critical user journeys

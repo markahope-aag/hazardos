@@ -71,7 +71,7 @@ export type JobDocumentCategory =
   | 'correspondence'
   | 'video'
   | 'other'
-export type CustomerStatus = 'lead' | 'prospect' | 'customer' | 'inactive'
+export type CustomerStatus = 'inquiry' | 'prospect' | 'customer' | 'inactive'
 export type CustomerSource = 'phone' | 'website' | 'mail' | 'referral' | 'other'
 export type AppointmentStatus = 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
 export type DisposalHazardType = 'asbestos_friable' | 'asbestos_non_friable' | 'mold' | 'lead' | 'other'
@@ -173,7 +173,9 @@ export interface SurveyPhotoMetadata {
   // For new uploads `path` is the source of truth; `url` may be empty.
   url: string
   // Storage object path inside the survey-photos bucket. New uploads
-  // always populate this; render code should sign it on the fly.
+  // always populate this; render code should sign it on the fly. For
+  // forensic-pipeline rows this mirrors `original_path` for backwards
+  // compatibility with legacy readers.
   path?: string | null
   category: string
   location: string
@@ -186,6 +188,22 @@ export interface SurveyPhotoMetadata {
   mediaType?: 'image' | 'video'
   mimeType?: string | null
   fileSize?: number | null
+
+  // Forensic photo pipeline (added 2026-04-30). Read sites should prefer
+  // `stamped_path`; fall back to `original_path` (or `path` for legacy
+  // rows) if `stamp_status` is not 'stamped'. Originals are admin-only;
+  // stamped images follow normal org access.
+  original_path?: string | null
+  stamped_path?: string | null
+  file_hash?: string | null // SHA-256 of original bytes
+  captured_at?: string | null // EXIF DateTimeOriginal → client → server
+  captured_lat?: number | null
+  captured_lng?: number | null
+  device_make?: string | null
+  device_model?: string | null
+  exif_raw?: Record<string, unknown> | null
+  stamp_status?: 'pending' | 'stamped' | 'failed' | 'skipped' | null
+  stamp_error?: string | null
 }
 
 export interface Database {

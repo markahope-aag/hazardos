@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { WebhookService } from '@/lib/services/webhook-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { createWebhookSchema } from '@/lib/validations/webhooks'
 
 /**
@@ -8,7 +9,7 @@ import { createWebhookSchema } from '@/lib/validations/webhooks'
  * List webhooks
  */
 export const GET = createApiHandler(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_ADMIN },
   async (_request, context) => {
     const webhooks = await WebhookService.list(context.profile.organization_id)
     return NextResponse.json({ webhooks })
@@ -22,6 +23,7 @@ export const GET = createApiHandler(
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_ADMIN,
     bodySchema: createWebhookSchema,
   },
   async (_request, context, body) => {

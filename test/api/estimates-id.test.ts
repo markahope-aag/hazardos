@@ -32,7 +32,7 @@ describe('Estimate By ID API', () => {
 
   const _mockUserProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   // Helper to setup authenticated user with profile

@@ -39,7 +39,7 @@ describe('POST /api/ai/photo-analysis', () => {
 
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   describe('Single photo analysis', () => {

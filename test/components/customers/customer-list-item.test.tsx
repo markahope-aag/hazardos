@@ -51,7 +51,7 @@ const mockCustomer: Customer = {
   city: 'New York',
   state: 'NY',
   zip: '10001',
-  status: 'lead',
+  status: 'inquiry',
   source: 'website',
   communication_preferences: { email: true, sms: false, mail: false },
   marketing_consent: true,
@@ -99,7 +99,7 @@ describe('CustomerListItem Component', () => {
       </table>
     )
 
-    expect(screen.getByTestId('status-badge')).toHaveTextContent('lead')
+    expect(screen.getByTestId('status-badge')).toHaveTextContent('inquiry')
   })
 
   it('should show actions menu when clicked', async () => {
@@ -283,7 +283,7 @@ describe('CustomerListItem Component', () => {
   })
 
   it('should handle different customer statuses', () => {
-    const statuses = ['lead', 'prospect', 'customer', 'inactive'] as const
+    const statuses = ['inquiry', 'prospect', 'customer', 'inactive'] as const
 
     statuses.forEach((status) => {
       const customerWithStatus = { ...mockCustomer, status }

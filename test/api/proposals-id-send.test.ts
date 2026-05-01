@@ -30,7 +30,7 @@ vi.mock('resend', () => ({
 describe('Proposals Send API', () => {
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   const mockProposal = {

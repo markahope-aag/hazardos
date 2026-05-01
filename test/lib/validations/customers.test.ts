@@ -13,7 +13,7 @@ import {
 
 describe('customerStatusSchema', () => {
   it('accepts valid statuses', () => {
-    const statuses = ['lead', 'prospect', 'customer', 'inactive']
+    const statuses = ['inquiry', 'prospect', 'customer', 'inactive']
     for (const status of statuses) {
       const result = customerStatusSchema.safeParse(status)
       expect(result.success).toBe(true)
@@ -106,7 +106,7 @@ describe('createCustomerSchema', () => {
     })
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.status).toBe('lead')
+      expect(result.data.status).toBe('inquiry')
     }
   })
 
@@ -180,7 +180,7 @@ describe('updateCustomerSchema', () => {
 describe('customerListQuerySchema', () => {
   it('accepts valid query', () => {
     const result = customerListQuerySchema.safeParse({
-      status: 'lead',
+      status: 'inquiry',
       search: 'John',
       limit: '10',
       offset: '0',

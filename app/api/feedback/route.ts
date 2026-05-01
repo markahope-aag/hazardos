@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { FeedbackService } from '@/lib/services/feedback-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { feedbackListQuerySchema, createFeedbackSurveySchema } from '@/lib/validations/feedback'
 
 /**
@@ -10,6 +11,7 @@ import { feedbackListQuerySchema, createFeedbackSurveySchema } from '@/lib/valid
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_READ,
     querySchema: feedbackListQuerySchema,
   },
   async (_request, _context, _body, query) => {
@@ -32,6 +34,7 @@ export const GET = createApiHandler(
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_WRITE,
     bodySchema: createFeedbackSurveySchema,
   },
   async (_request, _context, body) => {

@@ -25,6 +25,17 @@ export interface QueuedPhoto {
   // Defaults to 'image' for entries created before video support so
   // queues persisted in localStorage from older sessions still parse.
   mediaType: 'image' | 'video'
+
+  // Forensic pipeline carry-over: EXIF extracted client-side BEFORE the
+  // canvas-compress step strips it. Sent to the stamp endpoint so the
+  // server can resolve capture time and GPS even when the compressed
+  // upload no longer has EXIF tags. All optional — entries from older
+  // sessions or non-image uploads simply omit them.
+  exifCapturedAt?: string | null
+  clientCapturedAt?: string | null
+  exifGps?: { lat: number; lng: number } | null
+  deviceMake?: string | null
+  deviceModel?: string | null
 }
 
 interface PhotoQueueState {

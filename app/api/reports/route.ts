@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { ReportingService } from '@/lib/services/reporting-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { createReportSchema } from '@/lib/validations/reports'
 
 /**
@@ -10,6 +11,7 @@ import { createReportSchema } from '@/lib/validations/reports'
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async () => {
     const reports = await ReportingService.listReports()
@@ -24,6 +26,7 @@ export const GET = createApiHandler(
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_ADMIN,
     bodySchema: createReportSchema,
   },
   async (_request, _context, body) => {

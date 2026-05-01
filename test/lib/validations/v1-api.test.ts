@@ -56,7 +56,7 @@ describe('formatZodError', () => {
 
 describe('v1CustomerStatusSchema', () => {
   it('accepts valid statuses', () => {
-    const statuses = ['lead', 'prospect', 'active', 'inactive']
+    const statuses = ['inquiry', 'prospect', 'active', 'inactive']
     for (const status of statuses) {
       const result = v1CustomerStatusSchema.safeParse(status)
       expect(result.success).toBe(true)

@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback } from 'react'
 import { nanoid } from 'nanoid'
+import exifr from 'exifr'
 import { Button } from '@/components/ui/button'
 import { useSurveyStore } from '@/lib/stores/survey-store'
 import { usePhotoQueueStore } from '@/lib/stores/photo-queue-store'
@@ -27,6 +28,62 @@ interface PhotoCaptureProps {
   onCapture?: () => void
   variant?: 'default' | 'compact' | 'inline'
   className?: string
+}
+
+interface ExtractedClientExif {
+  exifCapturedAt: string | null
+  clientCapturedAt: string
+  exifGps: { lat: number; lng: number } | null
+  deviceMake: string | null
+  deviceModel: string | null
+}
+
+/**
+ * Pull EXIF from the original camera file BEFORE compression. The
+ * canvas compress step that follows strips all EXIF tags, so this is
+ * our only chance to capture DateTimeOriginal, the camera-written GPS,
+ * and the device make/model for the forensic stamp pipeline. Failures
+ * are silent — screenshots, downloaded images, and devices that strip
+ * EXIF still upload, just without the legal-grade timestamp.
+ */
+async function extractClientExif(file: File): Promise<ExtractedClientExif> {
+  const clientCapturedAt = new Date().toISOString()
+  try {
+    const exif = await exifr.parse(file, {
+      gps: true,
+      pick: ['DateTimeOriginal', 'CreateDate', 'Make', 'Model', 'latitude', 'longitude'],
+    })
+    if (!exif) {
+      return {
+        exifCapturedAt: null,
+        clientCapturedAt,
+        exifGps: null,
+        deviceMake: null,
+        deviceModel: null,
+      }
+    }
+    const captured: Date | undefined = exif.DateTimeOriginal || exif.CreateDate
+    const exifCapturedAt = captured instanceof Date ? captured.toISOString() : null
+    const exifGps =
+      typeof exif.latitude === 'number' && typeof exif.longitude === 'number'
+        ? { lat: exif.latitude, lng: exif.longitude }
+        : null
+    return {
+      exifCapturedAt,
+      clientCapturedAt,
+      exifGps,
+      deviceMake: typeof exif.Make === 'string' ? exif.Make : null,
+      deviceModel: typeof exif.Model === 'string' ? exif.Model : null,
+    }
+  } catch {
+    return {
+      exifCapturedAt: null,
+      clientCapturedAt,
+      exifGps: null,
+      deviceMake: null,
+      deviceModel: null,
+    }
+  }
 }
 
 async function compressImage(file: File): Promise<{ dataUrl: string; blob: Blob }> {
@@ -255,21 +312,37 @@ export function PhotoCapture({
           return
         }
 
-        // Image path — compress, queue, upload in background.
+        // Image path — extract EXIF first (compress strips it), then
+        // compress for upload, queue, and upload in background.
         const gpsPromise = getGPSCoordinates()
+        const exifPromise = extractClientExif(file)
 
         const { dataUrl, blob } = await compressImage(file)
 
-        const gpsCoordinates = await gpsPromise
+        const [gpsCoordinates, clientExif] = await Promise.all([
+          gpsPromise,
+          exifPromise,
+        ])
 
-        const timestamp = new Date().toISOString()
+        // EXIF GPS wins over the geolocation API reading — the camera
+        // wrote it at shutter time, the geolocation reading happened
+        // a beat later and may have less accuracy.
+        const effectiveGps =
+          clientExif.exifGps
+            ? {
+                latitude: clientExif.exifGps.lat,
+                longitude: clientExif.exifGps.lng,
+              }
+            : gpsCoordinates
+
+        const timestamp = clientExif.exifCapturedAt ?? clientExif.clientCapturedAt
 
         const photoId = addPhoto({
           blob,
           dataUrl,
           path: null,
           timestamp,
-          gpsCoordinates,
+          gpsCoordinates: effectiveGps,
           category,
           area_id: null,
           location: '',
@@ -277,6 +350,12 @@ export function PhotoCapture({
           mediaType: 'image',
           mimeType: 'image/jpeg',
           fileSize: blob.size,
+          captured_at: timestamp,
+          captured_lat: effectiveGps?.latitude ?? null,
+          captured_lng: effectiveGps?.longitude ?? null,
+          device_make: clientExif.deviceMake,
+          device_model: clientExif.deviceModel,
+          stamp_status: 'pending',
         })
 
         if (currentSurveyId) {
@@ -287,10 +366,15 @@ export function PhotoCapture({
             category,
             location: '',
             caption: '',
-            gpsCoordinates,
+            gpsCoordinates: effectiveGps,
             fileSize: blob.size,
             fileType: 'image/jpeg',
             mediaType: 'image',
+            exifCapturedAt: clientExif.exifCapturedAt,
+            clientCapturedAt: clientExif.clientCapturedAt,
+            exifGps: clientExif.exifGps,
+            deviceMake: clientExif.deviceMake,
+            deviceModel: clientExif.deviceModel,
           })
 
           if (navigator.onLine) {
@@ -304,7 +388,8 @@ export function PhotoCapture({
           photoId,
           category,
           sizeKB: Math.round(blob.size / 1024),
-          hasGPS: !!gpsCoordinates,
+          hasGPS: !!effectiveGps,
+          hasExifTime: !!clientExif.exifCapturedAt,
         }, 'Photo captured')
       } catch (err) {
         logger.error(
@@ -332,11 +417,11 @@ export function PhotoCapture({
         <input
           ref={inputRef}
           type="file"
-          accept="image/*,video/*"
+          accept="image/*"
           capture="environment"
           onChange={handleFileChange}
           className="hidden"
-          aria-label="Capture photo or video"
+          aria-label="Take a photo with the camera"
         />
         <Button
           type="button"
@@ -362,11 +447,11 @@ export function PhotoCapture({
         <input
           ref={inputRef}
           type="file"
-          accept="image/*,video/*"
+          accept="image/*"
           capture="environment"
           onChange={handleFileChange}
           className="hidden"
-          aria-label="Capture photo or video"
+          aria-label="Take a photo with the camera"
         />
         <button
           type="button"
@@ -387,7 +472,7 @@ export function PhotoCapture({
           ) : (
             <>
               <ImagePlus className="w-6 h-6" />
-              <span>Add Photo or Video</span>
+              <span>Take Photo</span>
             </>
           )}
         </button>
@@ -414,11 +499,11 @@ export function PhotoCapture({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*,video/*"
+        accept="image/*"
         capture="environment"
         onChange={handleFileChange}
         className="hidden"
-        aria-label="Capture photo or video"
+        aria-label="Take a photo with the camera"
       />
       <Button
         type="button"
@@ -435,7 +520,7 @@ export function PhotoCapture({
         ) : (
           <>
             <Camera className="w-6 h-6 mr-3" />
-            Take Photo or Video
+            Take Photo
           </>
         )}
       </Button>

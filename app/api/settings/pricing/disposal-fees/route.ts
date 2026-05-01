@@ -11,6 +11,7 @@ const adminRoles = ['platform_owner', 'platform_admin', 'tenant_owner', 'admin']
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: adminRoles,
   },
   async (_request, context) => {
     const { data, error } = await context.supabase

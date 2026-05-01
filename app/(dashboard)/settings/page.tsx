@@ -11,12 +11,14 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   let hidden = new Set<string>()
+  let userRole: string | null = null
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('organization_id')
+      .select('organization_id, role')
       .eq('id', user.id)
       .single()
+    userRole = profile?.role ?? null
     if (profile?.organization_id) {
       const { data: org } = await supabase
         .from('organizations')
@@ -29,7 +31,12 @@ export default async function SettingsPage() {
 
   const groups = SETTINGS_NAV.map((group) => ({
     ...group,
-    items: group.items.filter((item) => !hidden.has(item.href)),
+    items: group.items.filter((item) => {
+      if (hidden.has(item.href)) return false
+      if (!item.requiredRoles) return true
+      if (!userRole) return false
+      return item.requiredRoles.includes(userRole)
+    }),
   })).filter((group) => group.items.length > 0)
 
   return (

@@ -17,7 +17,7 @@ vi.mock('@/lib/utils/api-handler', async (importOriginal) => {
       return async (request: any) => {
         const mockContext = {
           user: { id: 'user-123' },
-          profile: { organization_id: 'org-123', role: 'user' },
+          profile: { organization_id: 'org-123', role: 'admin' },
           log: { info: vi.fn(), error: vi.fn() },
           requestId: 'test-id'
         }

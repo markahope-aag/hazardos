@@ -37,7 +37,7 @@ const JOB_UUID = '550e8400-e29b-41d4-a716-446655440001'
 describe('Job Time Entries API', () => {
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   const setupAuthenticatedUser = () => {

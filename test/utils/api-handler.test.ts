@@ -185,7 +185,7 @@ describe('API Handler Module', () => {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
               single: vi.fn().mockResolvedValue({
-                data: { organization_id: 'org-123', role: 'user' },
+                data: { organization_id: 'org-123', role: 'admin' },
                 error: null,
               }),
             })),
@@ -238,7 +238,7 @@ describe('API Handler Module', () => {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
               single: vi.fn().mockResolvedValue({
-                data: { organization_id: 'org-123', role: 'user' },
+                data: { organization_id: 'org-123', role: 'admin' },
                 error: null,
               }),
             })),
@@ -293,7 +293,7 @@ describe('API Handler Module', () => {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
               single: vi.fn().mockResolvedValue({
-                data: { organization_id: 'org-123', role: 'user' },
+                data: { organization_id: 'org-123', role: 'admin' },
                 error: null,
               }),
             })),
@@ -335,7 +335,7 @@ describe('API Handler Module', () => {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
               single: vi.fn().mockResolvedValue({
-                data: { organization_id: 'org-123', role: 'user' },
+                data: { organization_id: 'org-123', role: 'admin' },
                 error: null,
               }),
             })),
@@ -430,7 +430,7 @@ describe('API Handler Module', () => {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
               single: vi.fn().mockResolvedValue({
-                data: { organization_id: 'org-123', role: 'user' },
+                data: { organization_id: 'org-123', role: 'admin' },
                 error: null,
               }),
             })),

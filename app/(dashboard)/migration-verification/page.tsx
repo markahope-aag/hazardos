@@ -104,7 +104,7 @@ export default function MigrationVerificationPage() {
           city: 'Test City',
           state: 'CA',
           zip: '12345',
-          status: 'lead' as const,
+          status: 'inquiry' as const,
           source: 'website' as const,
           communication_preferences: { email: true, sms: false, mail: false },
           marketing_consent: false,

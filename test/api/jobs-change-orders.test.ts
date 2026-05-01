@@ -27,7 +27,7 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 describe('Job Change Orders API', () => {
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   const setupAuthenticatedUser = () => {

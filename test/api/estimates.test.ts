@@ -34,7 +34,7 @@ import { calculateEstimateFromSurvey } from '@/lib/services/estimate-calculator'
 describe('Estimates API', () => {
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   // Helper to setup authenticated user with profile

@@ -70,11 +70,15 @@ describe('PhotoDetail', () => {
     expect(img).toHaveAttribute('src', mockPhoto.dataUrl)
   })
 
-  it('shows No image available when no dataUrl', () => {
-    const photoNoImage = { ...mockPhoto, dataUrl: '' }
-    render(<PhotoDetail photo={photoNoImage} open={true} onClose={mockOnClose} />)
+  it('shows loading spinner when no dataUrl and no path', () => {
+    const photoNoImage = { ...mockPhoto, dataUrl: '', path: null, stamped_path: null }
+    render(
+      <PhotoDetail photo={photoNoImage} open={true} onClose={mockOnClose} />,
+    )
 
-    expect(screen.getByText('No image available')).toBeInTheDocument()
+    // Dialog renders to a portal; query the document root, not container.
+    expect(document.querySelector('.animate-spin')).toBeInTheDocument()
+    expect(document.querySelector('img')).not.toBeInTheDocument()
   })
 
   it('renders GPS coordinates', () => {

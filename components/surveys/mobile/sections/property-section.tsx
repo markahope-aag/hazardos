@@ -103,53 +103,26 @@ export function PropertySection() {
 
       const { latitude, longitude } = position.coords
 
-      // Reverse geocode using Nominatim (OpenStreetMap)
+      // Reverse-geocode through our backend so the Mapbox access token
+      // stays on the server. The endpoint returns a normalized shape
+      // we can drop straight into the form.
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
-          {
-            headers: {
-              'Accept-Language': 'en',
-              'User-Agent': 'HazardOS-SiteSurvey/1.0',
-            },
-          }
+          `/api/geocode/reverse?lat=${latitude}&lng=${longitude}`,
         )
 
         if (!response.ok) {
-          throw new Error('Geocoding service unavailable')
+          throw new Error(`Geocoding failed (${response.status})`)
         }
 
         const data = await response.json()
 
-        if (data.address) {
-          const addr = data.address
-
-          // Extract street address (try different field combinations)
-          const houseNumber = addr.house_number || ''
-          const road = addr.road || addr.street || addr.pedestrian || ''
-          const streetAddress = houseNumber && road
-            ? `${houseNumber} ${road}`
-            : road || data.display_name?.split(',')[0] || ''
-
-          // Extract city (try different field names used by Nominatim)
-          const city = addr.city || addr.town || addr.village || addr.municipality || addr.hamlet || ''
-
-          // Extract state
-          const state = addr.state || ''
-          // Try to find the state abbreviation if full name is returned
-          const stateAbbr = US_STATES.find(
-            s => state.toUpperCase().includes(s) || s === state.toUpperCase()
-          ) || ''
-
-          // Extract ZIP/postal code
-          const zip = addr.postcode || ''
-
-          // Update the form with geocoded address
+        if (data.streetAddress || data.city || data.zip) {
           updateProperty({
-            address: streetAddress,
-            city: city,
-            state: stateAbbr || state,
-            zip: zip,
+            address: data.streetAddress || '',
+            city: data.city || '',
+            state: data.state || '',
+            zip: data.zip || '',
           })
         } else {
           alert('Could not determine address from location. Please enter manually.')
@@ -166,15 +139,21 @@ export function PropertySection() {
         { error: formatError(error, 'LOCATION_ERROR') },
         'Error getting location'
       )
-      if (error instanceof GeolocationPositionError) {
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
+      // Duck-type the error rather than `instanceof GeolocationPositionError` —
+      // that constructor isn't exposed as a global on every runtime
+      // (notably iOS standalone PWA), and `instanceof` against an
+      // undefined identifier throws a ReferenceError that escapes
+      // this catch and silently breaks the button.
+      const code = (error as { code?: number } | null)?.code
+      if (typeof code === 'number') {
+        switch (code) {
+          case 1: // PERMISSION_DENIED
             alert('Location permission denied. Please allow location access or enter the address manually.')
             break
-          case error.POSITION_UNAVAILABLE:
+          case 2: // POSITION_UNAVAILABLE
             alert('Location information unavailable. Please enter the address manually.')
             break
-          case error.TIMEOUT:
+          case 3: // TIMEOUT
             alert('Location request timed out. Please try again or enter the address manually.')
             break
           default:

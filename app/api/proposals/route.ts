@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { proposalListQuerySchema, createProposalSchema } from '@/lib/validations/proposals'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 
@@ -10,6 +11,7 @@ import { SecureError } from '@/lib/utils/secure-error-handler'
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_READ,
     querySchema: proposalListQuerySchema,
   },
   async (_request, context, _body, query) => {
@@ -70,6 +72,7 @@ export const GET = createApiHandler(
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_WRITE,
     bodySchema: createProposalSchema,
   },
   async (_request, context, body) => {

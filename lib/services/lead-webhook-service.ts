@@ -242,7 +242,7 @@ export class LeadWebhookService {
           zip: leadData.zip,
           notes: leadData.notes,
           lead_source: endpoint.provider,
-          status: 'lead',
+          status: 'inquiry',
         })
         .select('id')
         .single();

@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { usePhotoQueueStore, QueuedPhoto } from '@/lib/stores/photo-queue-store'
+import { useSurveyStore } from '@/lib/stores/survey-store'
 import { createServiceLogger } from '@/lib/utils/logger'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 
@@ -16,6 +17,25 @@ const RETRY_DELAYS_MS = [2000, 4000, 8000]
 // burning through the signing service. Browser caches the rendered
 // media for the same TTL.
 const SIGNED_URL_TTL_SECONDS = 60 * 60 * 8 // 8 hours
+
+// "r2:" prefix marks a stored path as an R2 key so the signed-URL
+// resolver knows to call the R2 endpoint rather than Supabase Storage.
+// Legacy paths (no prefix) continue to route through Supabase, which
+// keeps every pre-cutover photo working without a backfill of the
+// JSONB column.
+const R2_PATH_PREFIX = 'r2:'
+
+export function isR2Path(value: string | null | undefined): value is string {
+  return typeof value === 'string' && value.startsWith(R2_PATH_PREFIX)
+}
+
+export function r2KeyFromPath(value: string): string {
+  return value.startsWith(R2_PATH_PREFIX) ? value.slice(R2_PATH_PREFIX.length) : value
+}
+
+export function r2PathFromKey(key: string): string {
+  return `${R2_PATH_PREFIX}${key}`
+}
 
 /**
  * Turn a data URL back into a Blob without `fetch()`. Some browsers (and
@@ -39,17 +59,115 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([bytes], { type: mimeType })
 }
 
+interface UploadUrlResponse {
+  uploadUrl: string
+  key: string
+}
+
+interface FinalizeResponse {
+  photo: {
+    id: string
+    original_r2_key: string | null
+    stamped_r2_key: string | null
+    file_hash: string | null
+    captured_at: string | null
+    captured_at_source: 'exif' | 'client' | 'server' | null
+    captured_lat: number | null
+    captured_lng: number | null
+    device_make: string | null
+    device_model: string | null
+    stamp_status: 'pending' | 'stamped' | 'failed' | 'skipped' | null
+    stamp_error: string | null
+  }
+  signedDisplayUrl: string
+}
+
+async function requestUploadUrl(args: {
+  surveyId: string
+  photoId: string
+  mediaType: 'image' | 'video'
+  contentType: string
+  contentLength: number
+  category: string
+}): Promise<UploadUrlResponse> {
+  const response = await fetch(`/api/site-surveys/${args.surveyId}/photos/upload-url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      photoId: args.photoId,
+      mediaType: args.mediaType,
+      contentType: args.contentType,
+      contentLength: args.contentLength,
+      category: args.category,
+    }),
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`upload-url failed (${response.status}): ${text || 'unknown error'}`)
+  }
+  return response.json()
+}
+
+async function putToR2(uploadUrl: string, blob: Blob, contentType: string): Promise<void> {
+  const response = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': contentType },
+    body: blob,
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`R2 PUT failed (${response.status}): ${text || 'unknown error'}`)
+  }
+}
+
+async function finalizeUpload(args: {
+  surveyId: string
+  photoId: string
+  originalKey: string
+  mediaType: 'image' | 'video'
+  category: string
+  location?: string
+  caption?: string
+  areaId?: string | null
+  mimeType?: string
+  exifCapturedAt?: string | null
+  clientCapturedAt?: string | null
+  gps?: { lat: number; lng: number } | null
+  deviceMake?: string | null
+  deviceModel?: string | null
+}): Promise<FinalizeResponse> {
+  const response = await fetch(`/api/site-surveys/${args.surveyId}/photos/finalize`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      photoId: args.photoId,
+      originalKey: args.originalKey,
+      mediaType: args.mediaType,
+      category: args.category,
+      location: args.location,
+      caption: args.caption,
+      areaId: args.areaId,
+      mimeType: args.mimeType,
+      exifCapturedAt: args.exifCapturedAt,
+      clientCapturedAt: args.clientCapturedAt,
+      gps: args.gps,
+      deviceMake: args.deviceMake,
+      deviceModel: args.deviceModel,
+    }),
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`finalize failed (${response.status}): ${text || 'unknown error'}`)
+  }
+  return response.json()
+}
+
 /**
- * Upload an arbitrary blob to the survey-photos bucket. Returns the
- * storage path (the source of truth for the saved metadata) and a
- * signed URL the caller can use immediately for previewing the upload.
- *
- * Used by the desktop drag-drop flow and the mobile video direct-upload
- * path; the queued photo path goes through {@link uploadPhotoToStorage}
- * so it can persist retry state.
- *
- * The bucket is private; getPublicUrl() returns 400 in the browser. Only
- * signed URLs (or authenticated requests) work for reads.
+ * Upload an arbitrary blob to R2 via the presign → PUT → finalize
+ * pipeline. Used by the desktop drag-drop flow where the file is a
+ * `File` object the browser already holds. Returns the signed display
+ * URL (stamped derivative for images, original for videos) and the
+ * stored R2 paths so the caller can persist them.
  */
 export async function uploadSurveyMediaBlob({
   organizationId,
@@ -58,6 +176,7 @@ export async function uploadSurveyMediaBlob({
   mediaId,
   blob,
   mimeType,
+  caption,
 }: {
   organizationId: string
   surveyId: string
@@ -65,61 +184,231 @@ export async function uploadSurveyMediaBlob({
   mediaId: string
   blob: Blob
   mimeType: string
-}): Promise<{ path: string; signedUrl: string }> {
+  caption?: string
+}): Promise<{
+  /** Storage path in `r2:<key>` form, written into JSONB / survey-store. */
+  path: string
+  /** Display URL — stamped derivative for images, original for videos. */
+  signedUrl: string
+  /** R2 keys for direct reference. */
+  originalKey: string
+  stampedKey: string | null
+  /** Forensic metadata returned by the stamp pipeline. */
+  fileHash: string | null
+  capturedAt: string | null
+  stampStatus: 'pending' | 'stamped' | 'failed' | 'skipped' | null
+}> {
+  if (!organizationId) {
+    throw new SecureError(
+      'BAD_REQUEST',
+      'Missing organization context — refresh the page and retry.',
+    )
+  }
+
   const supabase = createClient()
   const { data: session } = await supabase.auth.getSession()
   if (!session.session) {
     throw new SecureError('UNAUTHORIZED', 'Your session expired — sign in again and retry.')
   }
 
-  const rawExt = (mimeType.split('/')[1] || 'bin')
-    .replace('jpeg', 'jpg')
-    .replace('quicktime', 'mov')
-    .replace(/[^a-z0-9]/gi, '')
-  const path = `${organizationId}/surveys/${surveyId}/${category}/${mediaId}.${rawExt}`
+  const isImage = mimeType.startsWith('image/')
+  const mediaType: 'image' | 'video' = isImage ? 'image' : 'video'
 
-  const { error } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .upload(path, blob, { contentType: mimeType, upsert: true })
+  const { uploadUrl, key } = await requestUploadUrl({
+    surveyId,
+    photoId: mediaId,
+    mediaType,
+    contentType: mimeType,
+    contentLength: blob.size,
+    category,
+  })
 
-  if (error) {
-    const msg = error.message || 'Upload failed'
-    if (/payload too large|file size|413|exceeded/i.test(msg)) {
+  await putToR2(uploadUrl, blob, mimeType)
+
+  const finalized = await finalizeUpload({
+    surveyId,
+    photoId: mediaId,
+    originalKey: key,
+    mediaType,
+    category,
+    caption,
+    mimeType,
+  })
+
+  return {
+    path: r2PathFromKey(finalized.photo.stamped_r2_key ?? finalized.photo.original_r2_key ?? key),
+    signedUrl: finalized.signedDisplayUrl,
+    originalKey: key,
+    stampedKey: finalized.photo.stamped_r2_key,
+    fileHash: finalized.photo.file_hash,
+    capturedAt: finalized.photo.captured_at,
+    stampStatus: finalized.photo.stamp_status,
+  }
+}
+
+/**
+ * Resolve a queued photo's local URI (data: or blob:) into a Blob the
+ * R2 PUT can consume.
+ */
+async function blobFromLocalUri(localUri: string): Promise<Blob> {
+  if (localUri.startsWith('data:')) {
+    return dataUrlToBlob(localUri)
+  }
+  const response = await fetch(localUri)
+  if (!response.ok) {
+    throw new Error(`Could not read photo data (${response.status})`)
+  }
+  return response.blob()
+}
+
+/**
+ * Upload a single queued photo to R2 and finalize it. Errors bubble
+ * up with messages that point at the actual failure (auth, network,
+ * stamp pipeline) so the queue can decide whether to retry.
+ *
+ * On success, this function ALSO mirrors the forensic metadata into
+ * survey-store so the in-progress survey form sees the stamped URL
+ * and capture details without a separate fetch.
+ */
+export async function uploadPhotoToStorage(photo: QueuedPhoto): Promise<string> {
+  if (!photo.organizationId || !photo.surveyId) {
+    throw new SecureError(
+      'BAD_REQUEST',
+      'Photo is missing organization or survey context — reopen the survey and recapture.',
+    )
+  }
+
+  const supabase = createClient()
+
+  const { data: session } = await supabase.auth.getSession()
+  if (!session.session) {
+    throw new SecureError('UNAUTHORIZED', 'Your session expired — sign in again and retry.')
+  }
+
+  let blob: Blob
+  try {
+    blob = await blobFromLocalUri(photo.localUri)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    throw new SecureError('BAD_REQUEST', `Couldn't read photo from device: ${msg}`)
+  }
+
+  const mimeType = photo.fileType || blob.type || (photo.mediaType === 'video' ? 'video/mp4' : 'image/jpeg')
+  const mediaType: 'image' | 'video' = photo.mediaType === 'video' ? 'video' : 'image'
+
+  let uploadUrl: string
+  let key: string
+  try {
+    const presigned = await requestUploadUrl({
+      surveyId: photo.surveyId,
+      photoId: photo.id,
+      mediaType,
+      contentType: mimeType,
+      contentLength: blob.size,
+      category: photo.category,
+    })
+    uploadUrl = presigned.uploadUrl
+    key = presigned.key
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (/network|failed to fetch|load failed/i.test(msg)) {
       throw new SecureError(
         'BAD_REQUEST',
-        'File is too large — max 250 MB per upload.',
+        'Network error reaching upload service — check your connection and try again.',
       )
     }
-    if (/mime|content[- ]type/i.test(msg)) {
+    if (/exceed|too large|413/i.test(msg)) {
       throw new SecureError(
         'BAD_REQUEST',
-        'That file type is not allowed — upload an image or video.',
+        'Photo is too large — reduce resolution and retry.',
+      )
+    }
+    throw new SecureError('BAD_REQUEST', `Upload preparation failed: ${msg}`)
+  }
+
+  try {
+    await putToR2(uploadUrl, blob, mimeType)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (/failed to fetch|network|load failed/i.test(msg)) {
+      throw new SecureError(
+        'BAD_REQUEST',
+        'Network error during upload — check your connection and try again.',
       )
     }
     throw new SecureError('BAD_REQUEST', `Upload failed: ${msg}`)
   }
 
-  const { data: signed, error: signErr } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
-
-  if (signErr || !signed?.signedUrl) {
-    throw new SecureError(
-      'BAD_REQUEST',
-      `Upload succeeded but URL signing failed: ${signErr?.message || 'unknown error'}`,
-    )
+  let finalized: FinalizeResponse
+  try {
+    finalized = await finalizeUpload({
+      surveyId: photo.surveyId,
+      photoId: photo.id,
+      originalKey: key,
+      mediaType,
+      category: photo.category,
+      location: photo.location,
+      caption: photo.caption,
+      areaId: photo.location || null,
+      mimeType,
+      exifCapturedAt: photo.exifCapturedAt ?? null,
+      clientCapturedAt: photo.clientCapturedAt ?? null,
+      gps: photo.exifGps
+        ? photo.exifGps
+        : photo.gpsCoordinates
+          ? { lat: photo.gpsCoordinates.latitude, lng: photo.gpsCoordinates.longitude }
+          : null,
+      deviceMake: photo.deviceMake ?? null,
+      deviceModel: photo.deviceModel ?? null,
+    })
+  } catch (err) {
+    // The bytes are safely in R2 even if finalize fails. Surface the
+    // error so the queue retries — the next attempt will hit the
+    // duplicate-id guard on /upload-url and the operator will see
+    // a clear error to recapture, OR we make finalize idempotent
+    // (which is on the roadmap once we see this happen in practice).
+    const msg = err instanceof Error ? err.message : String(err)
+    throw new SecureError('BAD_REQUEST', `Finalize failed: ${msg}`)
   }
 
-  return { path, signedUrl: signed.signedUrl }
+  // Mirror the forensic metadata into survey-store so the form sees
+  // the stamp result and signed URL on its next render. Survey-store
+  // remains the source of truth for the in-progress survey form;
+  // survey_photos is the source of truth for the persisted record.
+  useSurveyStore.getState().updatePhoto(photo.id, {
+    path: r2PathFromKey(finalized.photo.stamped_r2_key ?? finalized.photo.original_r2_key ?? key),
+    original_path: r2PathFromKey(finalized.photo.original_r2_key ?? key),
+    stamped_path: finalized.photo.stamped_r2_key
+      ? r2PathFromKey(finalized.photo.stamped_r2_key)
+      : null,
+    file_hash: finalized.photo.file_hash,
+    captured_at: finalized.photo.captured_at,
+    captured_lat: finalized.photo.captured_lat,
+    captured_lng: finalized.photo.captured_lng,
+    device_make: finalized.photo.device_make,
+    device_model: finalized.photo.device_model,
+    stamp_status: finalized.photo.stamp_status,
+    stamp_error: finalized.photo.stamp_error,
+  })
+
+  return finalized.signedDisplayUrl
 }
 
 /**
- * Generate a fresh signed URL for an existing storage path. Returns null
- * on failure rather than throwing — the caller usually wants to render
- * a placeholder, not crash the gallery.
+ * Generate a fresh signed URL for an existing storage path. Returns
+ * null on failure rather than throwing — the caller usually wants to
+ * render a placeholder, not crash the gallery.
+ *
+ * Routes to the R2 signing endpoint when the path carries the `r2:`
+ * prefix; otherwise falls through to the legacy Supabase Storage
+ * signer so pre-cutover photos continue to render.
  */
 export async function getSignedSurveyMediaUrl(path: string): Promise<string | null> {
   if (!path) return null
+  if (isR2Path(path)) {
+    const map = await fetchR2SignedUrls([r2KeyFromPath(path)])
+    return map[r2KeyFromPath(path)] ?? null
+  }
   const supabase = createClient()
   const { data, error } = await supabase.storage
     .from(STORAGE_BUCKET)
@@ -132,132 +421,66 @@ export async function getSignedSurveyMediaUrl(path: string): Promise<string | nu
 }
 
 /**
- * Batch sign multiple paths in one round trip. Falls back to per-item
- * signing for any that fail.
+ * Batch sign multiple paths in one round trip. Splits R2 keys and
+ * Supabase paths and dispatches each set to the right backend.
  */
 export async function getSignedSurveyMediaUrls(
   paths: string[],
 ): Promise<Record<string, string>> {
   const result: Record<string, string> = {}
   if (paths.length === 0) return result
-  const supabase = createClient()
-  const { data, error } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS)
-  if (error || !data) {
-    log.warn({ error: error?.message, count: paths.length }, 'Batch sign failed')
-    return result
-  }
-  for (const item of data) {
-    if (item.path && item.signedUrl) {
-      result[item.path] = item.signedUrl
+
+  const r2Paths = paths.filter(isR2Path)
+  const supabasePaths = paths.filter((p) => !isR2Path(p))
+
+  if (r2Paths.length > 0) {
+    const r2Map = await fetchR2SignedUrls(r2Paths.map(r2KeyFromPath))
+    for (const original of r2Paths) {
+      const signed = r2Map[r2KeyFromPath(original)]
+      if (signed) result[original] = signed
     }
   }
+
+  if (supabasePaths.length > 0) {
+    const supabase = createClient()
+    const { data, error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .createSignedUrls(supabasePaths, SIGNED_URL_TTL_SECONDS)
+    if (error || !data) {
+      log.warn(
+        { error: error?.message, count: supabasePaths.length },
+        'Batch Supabase sign failed',
+      )
+    } else {
+      for (const item of data) {
+        if (item.path && item.signedUrl) {
+          result[item.path] = item.signedUrl
+        }
+      }
+    }
+  }
+
   return result
 }
 
-/**
- * Upload a single photo to Supabase Storage. Errors bubble up with
- * messages that point at the actual failure (auth, quota, network) so
- * the UI can surface something more useful than "Failed to fetch".
- */
-export async function uploadPhotoToStorage(photo: QueuedPhoto): Promise<string> {
-  if (!photo.organizationId || !photo.surveyId) {
-    throw new SecureError(
-      'BAD_REQUEST',
-      'Photo is missing organization or survey context — reopen the survey and recapture.',
-    )
-  }
-
-  const supabase = createClient()
-
-  // Confirm there's still an authenticated session. If the token has
-  // silently expired the upload request hits the storage endpoint with
-  // no credentials and Supabase returns a bare 403 that the SDK surfaces
-  // as a vague network error.
-  const { data: session } = await supabase.auth.getSession()
-  if (!session.session) {
-    throw new SecureError('UNAUTHORIZED', 'Your session expired — sign in again and retry.')
-  }
-
-  let blob: Blob
+async function fetchR2SignedUrls(keys: string[]): Promise<Record<string, string>> {
+  if (keys.length === 0) return {}
   try {
-    if (photo.localUri.startsWith('data:')) {
-      blob = dataUrlToBlob(photo.localUri)
-    } else {
-      // blob: or http: URL (e.g. survive reload cases that use object URLs)
-      const response = await fetch(photo.localUri)
-      if (!response.ok) {
-        throw new Error(`Could not read photo data (${response.status})`)
-      }
-      blob = await response.blob()
+    const response = await fetch('/api/storage/r2-signed-urls', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keys }),
+    })
+    if (!response.ok) {
+      log.warn({ status: response.status }, 'R2 sign endpoint failed')
+      return {}
     }
+    const json = (await response.json()) as { urls: Record<string, string> }
+    return json.urls
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error'
-    throw new SecureError('BAD_REQUEST', `Couldn't read photo from device: ${msg}`)
+    log.warn({ err }, 'R2 sign endpoint network error')
+    return {}
   }
-
-  // Determine file extension from MIME type. Use the queued fileType
-  // first (set at capture time) and fall back to the blob's type, since
-  // some browsers strip the type from a Blob reconstructed from a data
-  // URL. Default to image/jpeg for the legacy photo path.
-  const mimeType = photo.fileType || blob.type || 'image/jpeg'
-  const rawExt = mimeType.split('/')[1] || 'bin'
-  // jpeg → jpg, quicktime → mov for human-readable filenames in storage.
-  const extension = rawExt
-    .replace('jpeg', 'jpg')
-    .replace('quicktime', 'mov')
-    .replace(/[^a-z0-9]/gi, '')
-
-  // Generate storage path: {orgId}/surveys/{surveyId}/{category}/{photoId}.{ext}
-  // Org ID as first folder segment enables org-scoped RLS on storage.objects
-  const path = `${photo.organizationId}/surveys/${photo.surveyId}/${photo.category}/${photo.id}.${extension}`
-
-  // Upload to Supabase Storage. Catch TypeError separately — that's the
-  // "Failed to fetch" bucket (CORS, DNS, connection drop) vs the
-  // structured-error bucket (RLS denial, bad bucket, quota).
-  let uploadError: unknown = null
-  try {
-    const { error } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(path, blob, {
-        contentType: mimeType,
-        upsert: true,
-      })
-    uploadError = error
-  } catch (err) {
-    uploadError = err
-  }
-
-  if (uploadError) {
-    const msg = uploadError instanceof Error ? uploadError.message : String(uploadError)
-    if (/failed to fetch|network|load failed/i.test(msg)) {
-      throw new SecureError(
-        'BAD_REQUEST',
-        'Network error reaching storage — check your connection and try again.',
-      )
-    }
-    if (/row-level security|rls|unauthori[sz]ed|forbidden|403/i.test(msg)) {
-      throw new SecureError(
-        'BAD_REQUEST',
-        "You don't have permission to upload to this survey. Sign out and back in, or contact an admin.",
-      )
-    }
-    if (/payload too large|file size|413|exceeded/i.test(msg)) {
-      throw new SecureError(
-        'BAD_REQUEST',
-        'Photo is too large even after compression — reduce resolution and retry.',
-      )
-    }
-    throw new SecureError('BAD_REQUEST', `Upload failed: ${msg}`)
-  }
-
-  // Get public URL
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path)
-
-  return publicUrl
 }
 
 /**
@@ -267,12 +490,10 @@ export async function uploadPhotoToStorage(photo: QueuedPhoto): Promise<string> 
 export async function processPhotoQueue(): Promise<void> {
   const store = usePhotoQueueStore.getState()
 
-  // Already processing, skip
   if (store.isProcessing) {
     return
   }
 
-  // Check if online
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     log.debug('Offline - skipping photo queue processing')
     return
@@ -287,7 +508,6 @@ export async function processPhotoQueue(): Promise<void> {
       const photo = store.getNextPendingPhoto()
       if (!photo) break
 
-      // Mark as uploading
       store.updatePhotoStatus(photo.id, 'uploading')
 
       try {
@@ -299,9 +519,6 @@ export async function processPhotoQueue(): Promise<void> {
         store.incrementRetryCount(photo.id)
         store.updatePhotoStatus(photo.id, 'failed', null, errorMessage)
 
-        // Previous version had a precedence bug — `x || 0 >= 3`
-        // parses as `x || (0 >= 3)` = `x || false`, so the max-retries
-        // branch effectively never fired. This uses explicit grouping.
         const retryCount =
           store.queue.find((p) => p.id === photo.id)?.retryCount ?? 0
         if (retryCount >= RETRY_DELAYS_MS.length) {
@@ -310,7 +527,6 @@ export async function processPhotoQueue(): Promise<void> {
             'Photo failed after max retries',
           )
         } else {
-          // Exponential backoff between retries within the same batch.
           const delay = RETRY_DELAYS_MS[Math.min(retryCount, RETRY_DELAYS_MS.length - 1)]
           await new Promise((resolve) => setTimeout(resolve, delay))
         }
@@ -320,10 +536,8 @@ export async function processPhotoQueue(): Promise<void> {
     store.setProcessing(false)
   }
 
-  // Check if there are more photos to process
   const remainingPending = store.getPendingCount()
   if (remainingPending > 0) {
-    // Schedule another batch
     setTimeout(() => processPhotoQueue(), 100)
   }
 }
@@ -408,22 +622,18 @@ export async function waitForUploads(
 ): Promise<boolean> {
   const startTime = Date.now()
 
-  // Start processing if not already
   processPhotoQueue()
 
   while (Date.now() - startTime < timeoutMs) {
     const progress = getUploadProgress(surveyId)
 
-    // All done
     if (progress.pending === 0) {
       return progress.failed === 0
     }
 
-    // Wait a bit before checking again
     await new Promise((resolve) => setTimeout(resolve, 500))
   }
 
-  // Timeout
   log.warn('Upload wait timeout reached')
   return false
 }

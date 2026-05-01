@@ -37,7 +37,7 @@ import { CustomersService } from '@/lib/supabase/customers'
 describe('Customer By ID API', () => {
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   const mockAdminProfile = {

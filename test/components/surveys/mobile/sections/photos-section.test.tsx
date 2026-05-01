@@ -42,7 +42,7 @@ describe('PhotosSection', () => {
   it('renders section title', () => {
     render(<PhotosSection />)
 
-    expect(screen.getByText('Photo Documentation')).toBeInTheDocument()
+    expect(screen.getByText('Photos & Videos')).toBeInTheDocument()
   })
 
   it('renders PhotoGallery', () => {
@@ -58,26 +58,26 @@ describe('PhotosSection', () => {
     ]
     render(<PhotosSection />)
 
-    expect(screen.getByText('2 photos captured')).toBeInTheDocument()
+    expect(screen.getByText('2 photos')).toBeInTheDocument()
   })
 
   it('shows singular photo text', () => {
     mockPhotos = [{ id: '1', category: 'exterior' }]
     render(<PhotosSection />)
 
-    expect(screen.getByText('1 photo captured')).toBeInTheDocument()
+    expect(screen.getByText('1 photo')).toBeInTheDocument()
   })
 
   it('shows 0 photos captured', () => {
     render(<PhotosSection />)
 
-    expect(screen.getByText('0 photos captured')).toBeInTheDocument()
+    expect(screen.getByText('0 photos')).toBeInTheDocument()
   })
 
   it('renders photo tips', () => {
     render(<PhotosSection />)
 
-    expect(screen.getByText('Photo Tips')).toBeInTheDocument()
+    expect(screen.getByText('Capture Tips')).toBeInTheDocument()
     expect(screen.getByText(/capture all 4 sides/i)).toBeInTheDocument()
     expect(screen.getByText(/close-ups of any hazardous materials/i)).toBeInTheDocument()
     expect(screen.getByText(/utility access points/i)).toBeInTheDocument()

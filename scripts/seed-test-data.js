@@ -73,7 +73,7 @@ async function seed() {
     { name: 'Maria Garcia', company_name: 'Garcia Property Management', email: 'maria@garciaprop.com', phone: '(303) 555-0201', address_line1: '456 Elm St', city: 'Denver', state: 'CO', zip: '80203', status: 'customer', source: 'referral' },
     { name: 'Tom Richardson', company_name: 'Richardson Construction', email: 'tom@richardsonconst.com', phone: '(303) 555-0202', address_line1: '789 Oak Ave', city: 'Boulder', state: 'CO', zip: '80301', status: 'customer', source: 'website' },
     { name: 'Denver School District', company_name: 'Denver School District', email: 'facilities@dsd.edu', phone: '(303) 555-0203', address_line1: '1860 Lincoln St', city: 'Denver', state: 'CO', zip: '80203', status: 'customer', source: 'phone' },
-    { name: 'Lisa Wong', email: 'lisa.wong@gmail.com', phone: '(720) 555-0204', address_line1: '321 Pine Rd', city: 'Aurora', state: 'CO', zip: '80012', status: 'lead', source: 'website' },
+    { name: 'Lisa Wong', email: 'lisa.wong@gmail.com', phone: '(720) 555-0204', address_line1: '321 Pine Rd', city: 'Aurora', state: 'CO', zip: '80012', status: 'inquiry', source: 'website' },
     { name: 'Mountain View HOA', company_name: 'Mountain View HOA', email: 'board@mvhoa.org', phone: '(303) 555-0205', address_line1: '500 Mountain View Dr', city: 'Golden', state: 'CO', zip: '80401', status: 'prospect', source: 'referral' },
   ];
 

@@ -1,24 +1,12 @@
-import { createClient } from '@/lib/supabase/server';
 import { WebhookService } from '@/lib/services/webhook-service';
 import { WebhookList } from '@/components/settings/webhook-list';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
+import { requireTenantAdmin } from '@/lib/auth/require-roles';
 
 export default async function WebhooksPage() {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('organization_id')
-    .eq('id', user?.id)
-    .single();
-
-  if (!profile?.organization_id) {
-    return <div>No organization found</div>;
-  }
-
+  const { profile } = await requireTenantAdmin();
   const webhooks = await WebhookService.list(profile.organization_id);
   const availableEvents = WebhookService.getAvailableEvents();
 

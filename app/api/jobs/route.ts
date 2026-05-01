@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { JobsService } from '@/lib/services/jobs-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { createJobSchema, jobListQuerySchema } from '@/lib/validations/jobs'
 
 /**
@@ -10,6 +11,7 @@ import { createJobSchema, jobListQuerySchema } from '@/lib/validations/jobs'
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_READ,
     querySchema: jobListQuerySchema,
   },
   async (_request, _context, _body, query) => {
@@ -35,6 +37,7 @@ export const GET = createApiHandler(
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_WRITE,
     bodySchema: createJobSchema,
   },
   async (_request, _context, body) => {

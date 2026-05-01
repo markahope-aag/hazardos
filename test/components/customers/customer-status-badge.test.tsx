@@ -5,9 +5,9 @@ import type { CustomerStatus } from '@/types/database'
 
 describe('CustomerStatusBadge Component', () => {
   it('should render lead status with correct styling', () => {
-    render(<CustomerStatusBadge status="lead" />)
+    render(<CustomerStatusBadge status="inquiry" />)
 
-    const badge = screen.getByText('Lead')
+    const badge = screen.getByText('Inquiry')
     expect(badge).toBeInTheDocument()
     expect(badge).toHaveClass('bg-blue-100', 'text-blue-800')
   })
@@ -46,9 +46,9 @@ describe('CustomerStatusBadge Component', () => {
   })
 
   it('should accept custom className', () => {
-    render(<CustomerStatusBadge status="lead" className="custom-class" />)
+    render(<CustomerStatusBadge status="inquiry" className="custom-class" />)
 
-    const badge = screen.getByText('Lead')
+    const badge = screen.getByText('Inquiry')
     expect(badge).toHaveClass('custom-class')
   })
 
@@ -69,15 +69,15 @@ describe('CustomerStatusBadge Component', () => {
   })
 
   it('should have rounded corners for modern design', () => {
-    render(<CustomerStatusBadge status="lead" />)
+    render(<CustomerStatusBadge status="inquiry" />)
 
-    const badge = screen.getByText('Lead')
+    const badge = screen.getByText('Inquiry')
     expect(badge).toHaveClass('rounded-full')
   })
 
   it('should display status text in proper case', () => {
     const statuses = [
-      { status: 'lead' as const, expected: 'Lead' },
+      { status: 'inquiry' as const, expected: 'Inquiry' },
       { status: 'prospect' as const, expected: 'Prospect' },
       { status: 'customer' as const, expected: 'Customer' },
       { status: 'inactive' as const, expected: 'Inactive' }

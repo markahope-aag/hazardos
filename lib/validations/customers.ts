@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 // Customer status
-export const customerStatusSchema = z.enum(['lead', 'prospect', 'customer', 'inactive'])
+export const customerStatusSchema = z.enum(['inquiry', 'prospect', 'customer', 'inactive'])
 
 // Customer source - matches database type
 export const customerSourceSchema = z.enum(['phone', 'website', 'mail', 'referral', 'other'])
@@ -29,7 +29,7 @@ export const createCustomerSchema = z.object({
   city: z.string().max(100).optional(),
   state: z.string().max(50).optional(),
   zip: z.string().max(20).optional(),
-  status: customerStatusSchema.optional().default('lead'),
+  status: customerStatusSchema.optional().default('inquiry'),
   source: customerSourceSchema.optional(),
   communication_preferences: communicationPreferencesSchema.optional(),
   marketing_consent: z.boolean().optional(),

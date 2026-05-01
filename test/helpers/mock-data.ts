@@ -35,7 +35,7 @@ export const createMockCustomerInsert = (overrides: Partial<CustomerInsert> = {}
   city: null,
   state: null,
   zip: null,
-  status: 'lead',
+  status: 'inquiry',
   source: null,
   communication_preferences: null,
   marketing_consent: false,

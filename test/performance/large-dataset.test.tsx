@@ -225,7 +225,7 @@ describe('Performance Tests', () => {
       const specialCustomers = [
         createMockCustomer({ id: '1', name: '测试客户', email: 'test@example.com', status: 'prospect' }),
         createMockCustomer({ id: '2', name: 'Müller & Söhne', email: 'müller@example.de', status: 'customer' }),
-        createMockCustomer({ id: '3', name: '🏢 Corporate Client 🚀', email: 'emoji@example.com', status: 'lead' }),
+        createMockCustomer({ id: '3', name: '🏢 Corporate Client 🚀', email: 'emoji@example.com', status: 'inquiry' }),
         createMockCustomer({ id: '4', name: "O'Connor & Associates", email: "oconnor@example.com", status: 'inactive' }),
         createMockCustomer({ id: '5', name: 'Client With Newlines', email: 'newlines@example.com', status: 'prospect' })
       ]

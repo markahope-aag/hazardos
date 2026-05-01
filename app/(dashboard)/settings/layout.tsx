@@ -7,12 +7,16 @@ export default async function SettingsLayout({ children }: { children: ReactNode
   const { data: { user } } = await supabase.auth.getUser()
 
   let hiddenHrefs: string[] = []
+  let userRole: string | null = null
+
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('organization_id')
+      .select('organization_id, role')
       .eq('id', user.id)
       .single()
+
+    userRole = profile?.role ?? null
 
     if (profile?.organization_id) {
       const { data: org } = await supabase
@@ -37,7 +41,7 @@ export default async function SettingsLayout({ children }: { children: ReactNode
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
-        <SettingsSidebar hiddenHrefs={hiddenHrefs} />
+        <SettingsSidebar hiddenHrefs={hiddenHrefs} userRole={userRole} />
         <div className="flex-1 min-w-0">{children}</div>
       </div>
     </div>

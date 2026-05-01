@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { PipelineService } from '@/lib/services/pipeline-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { createOpportunitySchema, pipelineListQuerySchema } from '@/lib/validations/pipeline'
 
 /**
@@ -10,6 +11,7 @@ import { createOpportunitySchema, pipelineListQuerySchema } from '@/lib/validati
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_READ,
     querySchema: pipelineListQuerySchema,
   },
   async (_request, _context, _body, query) => {
@@ -43,6 +45,7 @@ export const GET = createApiHandler(
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_WRITE,
     bodySchema: createOpportunitySchema,
   },
   async (_request, _context, body) => {

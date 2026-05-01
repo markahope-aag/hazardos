@@ -341,7 +341,8 @@ export interface PhotoData {
   dataUrl: string | null
   // Storage object path within the survey-photos bucket. Set when an
   // item has been uploaded to remote storage; the render path uses it
-  // to generate signed URLs.
+  // to generate signed URLs. For forensic rows this mirrors
+  // `original_path` for backwards compatibility with legacy readers.
   path: string | null
   timestamp: string
   gpsCoordinates: {
@@ -355,6 +356,19 @@ export interface PhotoData {
   mediaType: MediaType
   mimeType: string | null
   fileSize: number | null
+
+  // Forensic pipeline. Populated by the stamp endpoint after the
+  // original is uploaded. See SurveyPhotoMetadata for the full contract.
+  original_path?: string | null
+  stamped_path?: string | null
+  file_hash?: string | null
+  captured_at?: string | null
+  captured_lat?: number | null
+  captured_lng?: number | null
+  device_make?: string | null
+  device_model?: string | null
+  stamp_status?: 'pending' | 'stamped' | 'failed' | 'skipped' | null
+  stamp_error?: string | null
 }
 
 export interface PhotosData {

@@ -117,7 +117,7 @@ All errors follow a consistent format:
       // Customer schemas
       CustomerStatus: {
         type: 'string',
-        enum: ['lead', 'prospect', 'customer', 'inactive'],
+        enum: ['inquiry', 'prospect', 'customer', 'inactive'],
         description: 'Customer lifecycle status',
       },
       CustomerSource: {

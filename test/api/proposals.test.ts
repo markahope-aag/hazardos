@@ -25,7 +25,7 @@ import { GET, POST } from '@/app/api/proposals/route'
 describe('Proposals API', () => {
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   const setupAuthenticatedUser = () => {

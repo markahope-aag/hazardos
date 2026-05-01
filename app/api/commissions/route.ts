@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { CommissionService } from '@/lib/services/commission-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { commissionListQuerySchema, createCommissionSchema } from '@/lib/validations/commissions'
 
 /**
@@ -10,6 +11,7 @@ import { commissionListQuerySchema, createCommissionSchema } from '@/lib/validat
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_ADMIN,
     querySchema: commissionListQuerySchema,
   },
   async (_request, _context, _body, query) => {
@@ -32,6 +34,7 @@ export const GET = createApiHandler(
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_ADMIN,
     bodySchema: createCommissionSchema,
   },
   async (_request, _context, body) => {

@@ -55,7 +55,7 @@ describe('Jobs [id] API', () => {
 
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   beforeEach(() => {

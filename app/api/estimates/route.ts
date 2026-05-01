@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { calculateEstimateFromSurvey } from '@/lib/services/estimate-calculator'
 import { FollowUpsService } from '@/lib/services/follow-ups-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { estimateListQuerySchema, createEstimateFromSurveySchema } from '@/lib/validations/estimates'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { buildEntityNumberBase, withUniqueSuffix } from '@/lib/utils/entity-number'
@@ -13,6 +14,7 @@ import { buildEntityNumberBase, withUniqueSuffix } from '@/lib/utils/entity-numb
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_READ,
     querySchema: estimateListQuerySchema,
   },
   async (_request, context, _body, query) => {
@@ -113,6 +115,7 @@ export const GET = createApiHandler(
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_WRITE,
     bodySchema: createEstimateFromSurveySchema,
   },
   async (_request, context, body) => {

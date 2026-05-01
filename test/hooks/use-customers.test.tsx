@@ -168,7 +168,7 @@ describe('Customer Hooks', () => {
       const newCustomerData = {
         name: 'New Customer',
         email: 'new@example.com',
-        status: 'lead' as const
+        status: 'inquiry' as const
       }
 
       const createdCustomer = createMockCustomer({ id: 'new-id', name: newCustomerData.name, email: newCustomerData.email, status: newCustomerData.status })
@@ -200,7 +200,7 @@ describe('Customer Hooks', () => {
 
       await expect(result.current.mutateAsync({
         name: 'Test Customer',
-        status: 'lead'
+        status: 'inquiry'
       })).rejects.toThrow('Creation failed')
     })
   })
@@ -257,7 +257,7 @@ describe('Customer Hooks', () => {
 
       await createResult.current.mutateAsync({
         name: 'New Customer',
-        status: 'lead'
+        status: 'inquiry'
       })
 
       // Query should be invalidated and refetch

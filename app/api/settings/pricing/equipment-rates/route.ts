@@ -13,7 +13,7 @@ import { ROLES } from '@/lib/auth/roles'
  * List equipment rates
  */
 export const GET = createApiHandler(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_ADMIN },
   async (_request, context) => {
     const { data, error } = await context.supabase
       .from('equipment_rates')

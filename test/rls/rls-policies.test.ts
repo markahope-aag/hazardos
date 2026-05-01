@@ -155,7 +155,7 @@ describe.skipIf(!canRunRlsTests)('RLS Policy Tests', () => {
           last_name: 'OrgA',
           name: 'Alice OrgA',
           contact_type: 'residential',
-          status: 'lead',
+          status: 'inquiry',
           created_by: userA.id,
         })
         .select('id')
@@ -171,7 +171,7 @@ describe.skipIf(!canRunRlsTests)('RLS Policy Tests', () => {
           last_name: 'OrgB',
           name: 'Bob OrgB',
           contact_type: 'residential',
-          status: 'lead',
+          status: 'inquiry',
           created_by: userB.id,
         })
         .select('id')
@@ -232,7 +232,7 @@ describe.skipIf(!canRunRlsTests)('RLS Policy Tests', () => {
           first_name: 'Job',
           last_name: 'Customer A',
           contact_type: 'residential',
-          status: 'lead',
+          status: 'inquiry',
           created_by: userA.id,
         })
         .select('id')
@@ -411,7 +411,7 @@ describe.skipIf(!canRunRlsTests)('RLS Policy Tests', () => {
           first_name: 'Invoice',
           last_name: 'Customer A',
           contact_type: 'residential',
-          status: 'lead',
+          status: 'inquiry',
           created_by: userA.id,
         })
         .select('id')

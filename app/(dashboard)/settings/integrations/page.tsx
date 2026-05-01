@@ -1,26 +1,19 @@
-import { createClient } from '@/lib/supabase/server';
 import { QuickBooksCard } from './quickbooks-card';
 import { MailchimpCard } from '@/components/integrations/mailchimp-card';
 import { HubSpotCard } from '@/components/integrations/hubspot-card';
 import { GoogleCalendarCard } from '@/components/integrations/google-calendar-card';
 import { OutlookCalendarCard } from '@/components/integrations/outlook-calendar-card';
 import { SyncHistoryTable } from './sync-history-table';
+import { requireTenantAdmin } from '@/lib/auth/require-roles';
 
 export default async function IntegrationsPage() {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('organization_id')
-    .eq('id', user?.id)
-    .single();
+  const { profile, supabase } = await requireTenantAdmin();
 
   // Get all integrations
   const { data: integrations } = await supabase
     .from('organization_integrations')
     .select('id, organization_id, integration_type, access_token, refresh_token, token_expires_at, external_id, is_active, last_sync_at, last_error, settings, created_at, updated_at')
-    .eq('organization_id', profile?.organization_id);
+    .eq('organization_id', profile.organization_id);
 
   const quickbooksIntegration = integrations?.find(i => i.integration_type === 'quickbooks') || null;
   const mailchimpIntegration = integrations?.find(i => i.integration_type === 'mailchimp') || null;
@@ -32,7 +25,7 @@ export default async function IntegrationsPage() {
   const { data: syncLogs } = await supabase
     .from('integration_sync_log')
     .select('id, organization_id, integration_type, sync_type, direction, status, records_processed, records_succeeded, records_failed, errors, error_message, started_at, completed_at, duration_ms')
-    .eq('organization_id', profile?.organization_id)
+    .eq('organization_id', profile.organization_id)
     .order('started_at', { ascending: false })
     .limit(10);
 

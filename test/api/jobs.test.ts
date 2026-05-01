@@ -44,7 +44,7 @@ describe('Jobs API', () => {
 
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   // Helper to setup authenticated user with profile

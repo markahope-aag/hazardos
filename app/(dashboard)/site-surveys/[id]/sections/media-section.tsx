@@ -22,6 +22,11 @@ import {
   getSignedSurveyMediaUrls,
   getSignedSurveyMediaUrl,
 } from '@/lib/services/photo-upload-service'
+import {
+  isPhotoCold,
+  canViewColdPhotos,
+  photoCoolDownConfig,
+} from '@/lib/services/photo-cool-down'
 import { logger, formatError } from '@/lib/utils/logger'
 import { cn } from '@/lib/utils'
 import type { SurveyPhotoMetadata } from '@/types/database'
@@ -64,17 +69,20 @@ function formatBytes(bytes?: number | null): string {
 
 /**
  * Resolve the URL we should hand to <img>/<video> for an item:
- *  - Items with a storage path get a fresh signed URL from the cache.
- *  - Items with a data: URL render directly (legacy mobile photos).
- *  - Items with an HTTP url fall back to that URL — works only for the
- *    long-tail of legacy uploads in public buckets, expected to 4xx for
- *    the survey-photos bucket. Better than rendering nothing while the
- *    user reviews older surveys.
+ *  - Images prefer `stamped_path` (the JPEG with the burned-in
+ *    timestamp/job/GPS band) when stamping has finished.
+ *  - Otherwise fall back to the storage `path` cached signed URL.
+ *  - Data: URLs render directly (legacy mobile photos).
+ *  - HTTP urls are a last-resort fallback for ancient public-bucket
+ *    rows; expected to 4xx for survey-photos but better than nothing.
  */
 function resolveMediaUrl(
   item: SurveyPhotoMetadata,
   signedByPath: Record<string, string>,
 ): string | null {
+  if (item.stamped_path && signedByPath[item.stamped_path]) {
+    return signedByPath[item.stamped_path]
+  }
   if (item.path && signedByPath[item.path]) {
     return signedByPath[item.path]
   }
@@ -82,8 +90,15 @@ function resolveMediaUrl(
   return item.url || null
 }
 
+function pathsForSigning(item: SurveyPhotoMetadata): string[] {
+  const out: string[] = []
+  if (item.stamped_path) out.push(item.stamped_path)
+  if (item.path) out.push(item.path)
+  return out
+}
+
 export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
-  const { organization } = useMultiTenantAuth()
+  const { organization, profile } = useMultiTenantAuth()
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selected, setSelected] = useState<SurveyPhotoMetadata | null>(null)
@@ -93,25 +108,36 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [signedByPath, setSignedByPath] = useState<Record<string, string>>({})
 
-  // Memoize the array reference so dependent hooks are stable across
-  // renders when `media` is the same logical list (parent passes a new
-  // ?? [] reference on each render).
-  const items = useMemo<SurveyPhotoMetadata[]>(() => media ?? [], [media])
+  // Cool-down policy: photos older than the configured window drop out
+  // of the standard gallery. Admins (tenant + platform) see them with
+  // a badge so they can still pull them up for legal/audit needs.
+  const showColdPhotos = canViewColdPhotos(profile?.role)
+
+  const allItems = useMemo<SurveyPhotoMetadata[]>(() => media ?? [], [media])
+  const items = useMemo<SurveyPhotoMetadata[]>(
+    () =>
+      showColdPhotos
+        ? allItems
+        : allItems.filter((m) => !isPhotoCold(m.timestamp)),
+    [allItems, showColdPhotos],
+  )
+  const hiddenColdCount = allItems.length - items.length
 
   // Keep a stable list of paths that need signing so the effect doesn't
-  // refire on every parent render.
+  // refire on every parent render. Both stamped and original paths get
+  // signed — the resolver prefers stamped, but downloads still pull
+  // from the original.
   const pathsKey = useMemo(
     () =>
       items
-        .map((m) => m.path)
-        .filter((p): p is string => !!p)
+        .flatMap(pathsForSigning)
         .sort()
         .join('|'),
     [items],
   )
 
   useEffect(() => {
-    const paths = items.map((m) => m.path).filter((p): p is string => !!p)
+    const paths = items.flatMap(pathsForSigning)
     if (paths.length === 0) {
       setSignedByPath({})
       return
@@ -430,6 +456,13 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
             />
           </div>
 
+          {hiddenColdCount > 0 && (
+            <p className="text-xs text-muted-foreground italic">
+              {hiddenColdCount} {hiddenColdCount === 1 ? 'photo is' : 'photos are'} past the
+              {` ${photoCoolDownConfig.coolDownDays}-day visibility window and require admin access.`}
+            </p>
+          )}
+
           {items.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground py-4">
               No media attached yet.
@@ -494,6 +527,14 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
                             {m.gpsCoordinates && (
                               <div className="bg-black/60 rounded p-1">
                                 <MapPin className="h-3 w-3 text-white" />
+                              </div>
+                            )}
+                            {isPhotoCold(m.timestamp) && (
+                              <div
+                                className="rounded bg-amber-500/95 px-1.5 py-0.5 text-[10px] font-semibold text-black uppercase tracking-wide"
+                                title={`Past the ${photoCoolDownConfig.coolDownDays}-day visibility window — admin-only`}
+                              >
+                                Cold
                               </div>
                             )}
                           </div>

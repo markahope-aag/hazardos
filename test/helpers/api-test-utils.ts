@@ -5,7 +5,7 @@ import { vi } from 'vitest'
  */
 export const mockProfile = {
   organization_id: 'org-123',
-  role: 'user'
+  role: 'admin'
 }
 
 export const mockAdminProfile = {

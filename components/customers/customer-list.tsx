@@ -133,7 +133,7 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
             <SelectTrigger className="w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="lead">Lead</SelectItem>
+              <SelectItem value="inquiry">Inquiry</SelectItem>
               <SelectItem value="prospect">Prospect</SelectItem>
               <SelectItem value="customer">Customer</SelectItem>
               <SelectItem value="inactive">Inactive</SelectItem>

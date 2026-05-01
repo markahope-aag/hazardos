@@ -380,7 +380,7 @@ describe('Billing Subscription API', () => {
       expect(data.type).toBe('UNAUTHORIZED')
     })
 
-    it('should return 403 for user role without permission', async () => {
+    it('should return 403 for non-admin role without permission', async () => {
       vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
         data: { user: { id: 'user-1', email: 'user@example.com' } },
         error: null
@@ -390,7 +390,7 @@ describe('Billing Subscription API', () => {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
-              data: { organization_id: 'org-123', role: 'user' },
+              data: { organization_id: 'org-123', role: 'technician' },
               error: null
             })
           })

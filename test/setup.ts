@@ -2,7 +2,10 @@ import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 import React from 'react'
 
-// Mock Next.js router
+// Mock Next.js router. `redirect` and `notFound` throw in real Next.js
+// so server components can short-circuit; in tests we simulate with
+// throws so callers see "this code path was hit" rather than a silent
+// no-op.
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
@@ -15,7 +18,82 @@ vi.mock('next/navigation', () => ({
   useParams: () => ({}),
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => '/',
+  redirect: vi.fn((url: string) => {
+    throw new Error(`NEXT_REDIRECT:${url}`)
+  }),
+  notFound: vi.fn(() => {
+    throw new Error('NEXT_NOT_FOUND')
+  }),
 }))
+
+// Default mock for the role guards used at the top of admin-only
+// settings pages. Tests that need to assert the redirect path can
+// override with their own vi.mock.
+vi.mock('@/lib/auth/require-roles', () => ({
+  requireRoles: vi.fn().mockResolvedValue({
+    user: { id: 'user-123' },
+    profile: {
+      id: 'user-123',
+      organization_id: 'org-123',
+      role: 'admin',
+      first_name: 'Test',
+      last_name: 'User',
+      email: 'test@example.com',
+    },
+    supabase: makeMockSupabase(),
+  }),
+  requireTenantAdmin: vi.fn().mockResolvedValue({
+    user: { id: 'user-123' },
+    profile: {
+      id: 'user-123',
+      organization_id: 'org-123',
+      role: 'admin',
+      first_name: 'Test',
+      last_name: 'User',
+      email: 'test@example.com',
+    },
+    supabase: makeMockSupabase(),
+  }),
+}))
+
+function makeMockSupabase() {
+  // Chainable query builder that resolves to empty data — pages
+  // gated by requireTenantAdmin can call .from(...).select(...)
+  // .eq(...) without crashing the test setup. Tests that need
+  // specific data should override the mock locally.
+  const builder: Record<string, unknown> = {
+    select: vi.fn(() => builder),
+    insert: vi.fn(() => builder),
+    update: vi.fn(() => builder),
+    delete: vi.fn(() => builder),
+    eq: vi.fn(() => builder),
+    neq: vi.fn(() => builder),
+    in: vi.fn(() => builder),
+    is: vi.fn(() => builder),
+    order: vi.fn(() => builder),
+    limit: vi.fn(() => builder),
+    range: vi.fn(() => builder),
+    single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    then: (resolve: (value: { data: unknown[]; error: null }) => unknown) =>
+      Promise.resolve({ data: [], error: null }).then(resolve),
+  }
+  return {
+    from: vi.fn(() => builder),
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-123' } }, error: null }),
+    },
+    storage: {
+      from: vi.fn(() => ({
+        upload: vi.fn(),
+        list: vi.fn(),
+        getPublicUrl: vi.fn(),
+        createSignedUrl: vi.fn().mockResolvedValue({ data: null, error: null }),
+        createSignedUrls: vi.fn().mockResolvedValue({ data: null, error: null }),
+      })),
+    },
+  }
+}
 
 // Mock Next.js link
 vi.mock('next/link', () => {

@@ -7,6 +7,8 @@ import { AccessSection } from './sections/access-section'
 import { HazardsSection } from './sections/hazards-section'
 import { MediaSection } from './sections/media-section'
 import { NotesSection } from './sections/notes-section'
+import { isPhotoCold, canViewColdPhotos } from '@/lib/services/photo-cool-down'
+import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import type { SiteSurvey, SurveyHazardAssessments, SurveyPhotoMetadata } from '@/types/database'
 
 interface SurveyDetailTabsProps {
@@ -29,10 +31,18 @@ interface SurveyDetailTabsProps {
 }
 
 export function SurveyDetailTabs({ survey, onSurveyChange }: SurveyDetailTabsProps) {
+  const { profile } = useMultiTenantAuth()
   const hazardAssessments = survey.hazard_assessments as SurveyHazardAssessments | null
   const photoMetadata = survey.photo_metadata as SurveyPhotoMetadata[] | null
   const hazardCount = hazardAssessments?.types?.length || 0
-  const mediaCount = photoMetadata?.length || 0
+  // Tab badge counts what the viewer can actually see — non-admins
+  // exclude photos past the cool-down window since the gallery filters
+  // them out, and a tab count that doesn't match the rendered grid is
+  // worse than no count at all.
+  const visibleMedia = canViewColdPhotos(profile?.role)
+    ? photoMetadata
+    : photoMetadata?.filter((m) => !isPhotoCold(m.timestamp))
+  const mediaCount = visibleMedia?.length || 0
 
   return (
     <Tabs defaultValue="property" className="space-y-4">

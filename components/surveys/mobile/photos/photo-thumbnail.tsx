@@ -12,31 +12,34 @@ interface PhotoThumbnailProps {
 
 /**
  * Resolve a render URL for the thumbnail. Inline data: URLs render
- * directly. Storage-backed items (path is set, dataUrl is empty or
- * stale) get a fresh signed URL.
+ * directly. Storage-backed items prefer the stamped JPEG derivative
+ * (with burned-in timestamp/job/GPS) and fall back to the original
+ * path while the stamp pipeline catches up — or permanently for
+ * videos and pre-pipeline rows.
  */
 function useResolvedMediaUrl(photo: PhotoData): string | null {
   const [resolved, setResolved] = useState<string | null>(() =>
     photo.dataUrl?.startsWith('data:') ? photo.dataUrl : photo.dataUrl || null,
   )
 
+  const renderPath = photo.stamped_path ?? photo.path
+
   useEffect(() => {
     if (photo.dataUrl?.startsWith('data:')) {
       setResolved(photo.dataUrl)
       return
     }
-    if (photo.path) {
+    if (renderPath) {
       let cancelled = false
-      getSignedSurveyMediaUrl(photo.path).then((url) => {
+      getSignedSurveyMediaUrl(renderPath).then((url) => {
         if (!cancelled) setResolved(url)
       })
       return () => {
         cancelled = true
       }
     }
-    // No path and no data URL — fall back to whatever is in dataUrl.
     setResolved(photo.dataUrl || null)
-  }, [photo.dataUrl, photo.path])
+  }, [photo.dataUrl, renderPath])
 
   return resolved
 }
@@ -85,6 +88,12 @@ export function PhotoThumbnail({ photo, onClick }: PhotoThumbnailProps) {
       {photo.gpsCoordinates && (
         <div className="absolute top-1 right-1 bg-black/50 rounded-full p-1">
           <MapPin className="w-3 h-3 text-white" />
+        </div>
+      )}
+
+      {!isVideo && photo.path && photo.stamp_status !== 'stamped' && (
+        <div className="absolute top-1 left-1 bg-amber-500/90 text-[10px] font-semibold text-black rounded px-1.5 py-0.5 uppercase tracking-wide">
+          Unstamped
         </div>
       )}
 

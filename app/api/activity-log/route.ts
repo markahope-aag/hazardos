@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 const querySchema = z.object({
   entity_type: z.string().optional(),
@@ -288,6 +289,7 @@ function humanAction(action: string): string {
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_READ,
     querySchema,
   },
   async (_request, context, _body, query) => {

@@ -81,12 +81,12 @@ describe('CustomerFilters', () => {
       await userEvent.click(statusButton, { delay: null })
     })
 
-    const leadOption = await screen.findByText('Lead')
+    const leadOption = await screen.findByText('Inquiry')
     await act(async () => {
       await userEvent.click(leadOption, { delay: null })
     })
 
-    expect(mockOnStatusChange).toHaveBeenCalledWith('lead')
+    expect(mockOnStatusChange).toHaveBeenCalledWith('inquiry')
   })
 
   it('should call onSourceChange when source filter clicked', async () => {

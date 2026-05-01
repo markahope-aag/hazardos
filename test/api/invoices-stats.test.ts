@@ -32,7 +32,7 @@ import { InvoicesService } from '@/lib/services/invoices-service'
 describe('Invoice Stats API', () => {
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   const setupAuthenticatedUser = () => {

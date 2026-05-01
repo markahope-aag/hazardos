@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { FollowUpsService } from '@/lib/services/follow-ups-service'
 import {
   createFollowUpSchema,
@@ -13,6 +14,7 @@ import {
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_READ,
     querySchema: followUpListQuerySchema,
   },
   async (_request, _context, _body, query) => {
@@ -28,6 +30,7 @@ export const GET = createApiHandler(
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_WRITE,
     bodySchema: createFollowUpSchema,
   },
   async (_request, _context, body) => {

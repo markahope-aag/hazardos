@@ -96,7 +96,7 @@ const mockCustomer: Customer = {
   city: 'New York',
   state: 'NY',
   zip: '10001',
-  status: 'lead',
+  status: 'inquiry',
   source: 'website',
   contact_type: 'residential',
   communication_preferences: { email: true, sms: false, mail: false },
@@ -118,7 +118,7 @@ describe('CustomerDetail Component', () => {
 
     expect(screen.getByText('John Doe')).toBeInTheDocument()
     expect(screen.getByText('Acme Corp')).toBeInTheDocument()
-    expect(screen.getByTestId('status-badge')).toHaveTextContent('lead')
+    expect(screen.getByTestId('status-badge')).toHaveTextContent('inquiry')
   })
 
   it('should render back button', () => {

@@ -46,9 +46,10 @@ describe('Proposals [id] API', () => {
     }
   }
 
+  // Non-admin profile used by tests that assert role-gated rejection.
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'technician'
   }
 
   const mockAdminProfile = {
@@ -378,7 +379,7 @@ describe('Proposals [id] API', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: mockProfile, // role: 'user' which is not in allowedRoles
+                  data: mockProfile, // role: 'admin' which is not in allowedRoles
                   error: null
                 })
               })

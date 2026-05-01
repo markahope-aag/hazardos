@@ -44,12 +44,12 @@ describe('PhotoThumbnail', () => {
     expect(img).toHaveAttribute('alt', 'Survey photo')
   })
 
-  it('shows No image placeholder when no dataUrl', () => {
+  it('shows loading placeholder when no dataUrl and no path', () => {
     const onClick = vi.fn()
-    const photoWithoutData = { ...mockPhoto, dataUrl: null }
+    const photoWithoutData = { ...mockPhoto, dataUrl: null, path: null, stamped_path: null }
     render(<PhotoThumbnail photo={photoWithoutData} onClick={onClick} />)
 
-    expect(screen.getByText('No image')).toBeInTheDocument()
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })
 

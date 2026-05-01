@@ -81,7 +81,7 @@ describe('GET /api/platform/organizations', () => {
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
           single: vi.fn().mockResolvedValue({
-            data: { organization_id: 'org-123', role: 'user' },
+            data: { organization_id: 'org-123', role: 'admin' },
             error: null
           })
         })

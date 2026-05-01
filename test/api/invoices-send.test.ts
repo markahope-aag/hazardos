@@ -32,7 +32,7 @@ import { InvoiceDeliveryService } from '@/lib/services/invoice-delivery-service'
 describe('Invoice Send API', () => {
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   const setupAuthenticatedUser = () => {

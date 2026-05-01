@@ -34,7 +34,7 @@ describe('Segments API', () => {
 
   const mockProfile = {
     organization_id: 'org-123',
-    role: 'user'
+    role: 'admin'
   }
 
   describe('GET /api/segments', () => {

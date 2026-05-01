@@ -164,18 +164,18 @@ export class CustomersService {
 
   static async getCustomerStats(organizationId: string): Promise<{
     total: number
-    leads: number
+    inquiries: number
     prospects: number
     customers: number
     inactive: number
   }> {
     // Use parallel count queries - more efficient than fetching all rows
-    const [leadCount, prospectCount, customerCount, inactiveCount] = await Promise.all([
+    const [inquiryCount, prospectCount, customerCount, inactiveCount] = await Promise.all([
       this.supabase
         .from('customers')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', organizationId)
-        .eq('status', 'lead'),
+        .eq('status', 'inquiry'),
       this.supabase
         .from('customers')
         .select('*', { count: 'exact', head: true })
@@ -193,14 +193,14 @@ export class CustomersService {
         .eq('status', 'inactive'),
     ])
 
-    const leads = leadCount.count || 0
+    const inquiries = inquiryCount.count || 0
     const prospects = prospectCount.count || 0
     const customers = customerCount.count || 0
     const inactive = inactiveCount.count || 0
 
     return {
-      total: leads + prospects + customers + inactive,
-      leads,
+      total: inquiries + prospects + customers + inactive,
+      inquiries,
       prospects,
       customers,
       inactive,

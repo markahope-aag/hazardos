@@ -20,7 +20,7 @@ describe('Customer Validation Schema', () => {
     city: 'Springfield',
     state: 'IL',
     zip: '62701',
-    status: 'lead' as const,
+    status: 'inquiry' as const,
     source: 'phone' as const,
     marketing_consent: false,
     notes: 'Test customer notes'
@@ -177,7 +177,7 @@ describe('Customer Validation Schema', () => {
   })
 
   describe('Status Validation', () => {
-    const validStatuses = ['lead', 'prospect', 'customer', 'inactive']
+    const validStatuses = ['inquiry', 'prospect', 'customer', 'inactive']
 
     validStatuses.forEach(status => {
       it(`should accept status: ${status}`, () => {
@@ -270,8 +270,8 @@ describe('Customer Validation Schema', () => {
   })
 
   describe('Default Values', () => {
-    it('should have lead as default status', () => {
-      expect(defaultCustomerValues.status).toBe('lead')
+    it('should have inquiry as default status', () => {
+      expect(defaultCustomerValues.status).toBe('inquiry')
     })
 
     it('should have false as default marketing_consent', () => {
@@ -312,10 +312,10 @@ describe('Customer Validation Schema', () => {
       expect(CUSTOMER_STATUS_OPTIONS.length).toBe(4)
     })
 
-    it('should have lead status option', () => {
-      const lead = CUSTOMER_STATUS_OPTIONS.find(o => o.value === 'lead')
-      expect(lead).toBeDefined()
-      expect(lead?.label).toBe('Lead')
+    it('should have inquiry status option', () => {
+      const inquiry = CUSTOMER_STATUS_OPTIONS.find(o => o.value === 'inquiry')
+      expect(inquiry).toBeDefined()
+      expect(inquiry?.label).toBe('Inquiry')
     })
 
     it('should have prospect status option', () => {
@@ -373,7 +373,7 @@ describe('Customer Validation Schema', () => {
       if (result.success) {
         expect(result.data.first_name).toBe('John')
         expect(result.data.email).toBe('john@example.com')
-        expect(result.data.status).toBe('lead')
+        expect(result.data.status).toBe('inquiry')
       }
     })
 

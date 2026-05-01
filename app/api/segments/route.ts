@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { SegmentationService } from '@/lib/services/segmentation-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { createSegmentSchema } from '@/lib/validations/segments'
 
 /**
@@ -8,7 +9,7 @@ import { createSegmentSchema } from '@/lib/validations/segments'
  * List segments
  */
 export const GET = createApiHandler(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_WRITE },
   async (_request, context) => {
     const segments = await SegmentationService.list(context.profile.organization_id)
     return NextResponse.json({ segments })
@@ -22,6 +23,7 @@ export const GET = createApiHandler(
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_WRITE,
     bodySchema: createSegmentSchema,
   },
   async (_request, context, body) => {
