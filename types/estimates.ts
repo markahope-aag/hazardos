@@ -37,12 +37,18 @@ export type ProposalStatus =
 export interface Estimate {
   id: string
   organization_id: string
-  site_survey_id: string
+  site_survey_id: string | null
   customer_id: string | null
 
   // Identification
   estimate_number: string
   version: number
+
+  // Versioning chain — parent_estimate_id is null for v1; estimate_root_id
+  // points at the v1 of this estimate's chain. Both maintained by trigger.
+  parent_estimate_id: string | null
+  estimate_root_id: string
+  revision_notes: string | null
 
   // Status
   status: EstimateStatus

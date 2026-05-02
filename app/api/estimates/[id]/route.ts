@@ -3,6 +3,7 @@ import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateEstimateSchema } from '@/lib/validations/estimates'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
+import { getEstimateChain } from '@/lib/services/estimate-versioning'
 
 /**
  * GET /api/estimates/[id]
@@ -50,7 +51,18 @@ export const GET = createApiHandlerWithParams(
       transformedEstimate.line_items.sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
     }
 
-    return NextResponse.json({ estimate: transformedEstimate })
+    // Add the version chain so the UI can render "X of Y" + sidebar without
+    // a follow-up round trip.
+    const chain = await getEstimateChain(context.supabase, params.id)
+    const total = chain.length > 0 ? Math.max(...chain.map((c) => c.version)) : transformedEstimate.version
+    const versionInfo = {
+      version: transformedEstimate.version,
+      total,
+      root_id: transformedEstimate.estimate_root_id,
+      chain,
+    }
+
+    return NextResponse.json({ estimate: transformedEstimate, version_info: versionInfo })
   }
 )
 

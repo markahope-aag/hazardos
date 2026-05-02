@@ -3,9 +3,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Calculator, ArrowRight, FileText, Building2, Phone, Thermometer, FlaskConical } from 'lucide-react'
+import { ArrowLeft, Loader2, Calculator, ArrowRight, FileText, Building2, Phone, Thermometer, FlaskConical, GitBranch, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { useToast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase/client'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
@@ -58,6 +67,31 @@ export default function SurveyDetailPage() {
   const [loading, setLoading] = useState(true)
   const [generatingEstimate, setGeneratingEstimate] = useState(false)
   const [linkedEstimateId, setLinkedEstimateId] = useState<string | null>(null)
+  const [linkedEstimates, setLinkedEstimates] = useState<Array<{
+    id: string
+    estimate_number: string
+    status: string
+    total: number
+    version: number
+    chain_total: number
+    project_name: string | null
+    revision_notes: string | null
+    created_at: string
+  }>>([])
+  const [revising, setRevising] = useState(false)
+  const [versionInfo, setVersionInfo] = useState<{
+    version: number
+    total: number
+    root_id: string
+    chain: Array<{
+      id: string
+      version: number
+      status: string
+      created_at: string
+      submitted_at: string | null
+      revision_notes: string | null
+    }>
+  } | null>(null)
 
   const surveyId = params.id as string
 
@@ -124,17 +158,90 @@ export default function SurveyDetailPage() {
 
   useEffect(() => {
     if (!survey?.id) return
-    const supabase = createClient()
-    supabase
-      .from('estimates')
-      .select('id')
-      .eq('site_survey_id', survey.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .then(({ data }) => {
-        setLinkedEstimateId(data?.[0]?.id || null)
+    fetch(`/api/site-surveys/${survey.id}/estimates?include=latest`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) {
+          setLinkedEstimates([])
+          setLinkedEstimateId(null)
+          return
+        }
+        const list = (data.estimates || []) as Array<{
+          id: string
+          estimate_number: string
+          status: string
+          total: number
+          version: number
+          chain_total: number
+          project_name: string | null
+          revision_notes: string | null
+          created_at: string
+        }>
+        setLinkedEstimates(list)
+        // Keep linkedEstimateId for the simple "next step" banner — pick the most-recent chain.
+        const newest = list.slice().sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )[0]
+        setLinkedEstimateId(newest?.id || null)
+      })
+      .catch(() => {
+        setLinkedEstimates([])
+        setLinkedEstimateId(null)
       })
   }, [survey?.id])
+
+  useEffect(() => {
+    if (!survey?.id) return
+    fetch(`/api/site-surveys/${survey.id}/versions`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return
+        setVersionInfo({
+          version: data.version_info.version,
+          total: data.version_info.total,
+          root_id: data.version_info.root_id,
+          chain: data.chain,
+        })
+      })
+      .catch(() => {
+        // non-fatal — page still works without version chain
+      })
+  }, [survey?.id])
+
+  const handleRevise = async () => {
+    if (!survey) return
+    const reason = window.prompt(
+      'What changed? (optional — shows on the version history)',
+    )
+    if (reason === null) return
+
+    setRevising(true)
+    try {
+      const res = await fetch(`/api/site-surveys/${survey.id}/revise`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ revision_notes: reason.trim() || null }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.error?.message || 'Failed to create revision')
+      }
+      const data = await res.json()
+      toast({
+        title: 'Revised survey created',
+        description: 'Drafted from this version. Edit and resubmit to generate a new estimate.',
+      })
+      router.push(`/site-surveys/mobile?surveyId=${data.survey.id}`)
+    } catch (e) {
+      toast({
+        title: 'Error',
+        description: e instanceof Error ? e.message : 'Failed to create revision.',
+        variant: 'destructive',
+      })
+    } finally {
+      setRevising(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -184,6 +291,12 @@ export default function SurveyDetailPage() {
             <h1 className="text-2xl font-bold">{displayName}</h1>
             <SurveyStatusBadge status={survey.status} />
             <HazardTypeBadge hazardType={survey.hazard_type} />
+            {versionInfo && (
+              <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
+                <GitBranch className="h-3 w-3 mr-1" />
+                Version {versionInfo.version} of {versionInfo.total}
+              </Badge>
+            )}
           </div>
           {companyName && contactName && companyName !== contactName && (
             <p className="text-sm text-muted-foreground">
@@ -214,6 +327,15 @@ export default function SurveyDetailPage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <SurveyActions survey={survey} onStatusChange={loadSurvey} />
+
+          <Button variant="outline" onClick={handleRevise} disabled={revising}>
+            {revising ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <GitBranch className="h-4 w-4 mr-2" />
+            )}
+            Create Revised Survey
+          </Button>
 
           {survey.status === 'reviewed' && (
             <Button
@@ -407,6 +529,135 @@ export default function SurveyDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Linked Estimates */}
+      {linkedEstimates.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Linked Estimates ({linkedEstimates.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Number</TableHead>
+                  <TableHead>Project</TableHead>
+                  <TableHead>Version</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead>Notes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {linkedEstimates.map((e) => (
+                  <TableRow
+                    key={e.id}
+                    className="cursor-pointer hover:bg-slate-50"
+                    onClick={() => router.push(`/estimates/${e.id}`)}
+                  >
+                    <TableCell className="font-medium">{e.estimate_number}</TableCell>
+                    <TableCell className="max-w-xs truncate">{e.project_name || '—'}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      v{e.version} of {e.chain_total}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize">
+                        {e.status.replace('_', ' ')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      ${e.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate text-muted-foreground">
+                      {e.revision_notes || '—'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Version Chain */}
+      {versionInfo && versionInfo.chain.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <History className="h-4 w-4" />
+              Version History
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-20">Version</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Submitted</TableHead>
+                  <TableHead>Notes</TableHead>
+                  <TableHead>Created</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {versionInfo.chain.map((entry) => {
+                  const isCurrent = entry.id === survey.id
+                  return (
+                    <TableRow
+                      key={entry.id}
+                      className={isCurrent ? 'bg-slate-50' : 'cursor-pointer hover:bg-slate-50'}
+                      onClick={isCurrent ? undefined : () => router.push(`/site-surveys/${entry.id}`)}
+                    >
+                      <TableCell className="font-medium">
+                        v{entry.version}
+                        {isCurrent && (
+                          <span className="ml-2 text-xs text-muted-foreground">(viewing)</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <SurveyStatusBadge status={entry.status as import('@/types/database').SiteSurveyStatus} />
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {entry.submitted_at
+                          ? new Date(entry.submitted_at).toLocaleDateString()
+                          : '—'}
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate text-muted-foreground">
+                        {entry.revision_notes || '—'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(entry.created_at).toLocaleDateString()}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {versionInfo && versionInfo.version < versionInfo.total && (() => {
+        const latest = versionInfo.chain[versionInfo.chain.length - 1]
+        return (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-center justify-between">
+            <span>
+              You're viewing version {versionInfo.version}. The current version is{' '}
+              {versionInfo.total}.
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push(`/site-surveys/${latest.id}`)}
+            >
+              View latest →
+            </Button>
+          </div>
+        )
+      })()}
 
       {/* Content Tabs */}
       <SurveyDetailTabs survey={survey} onSurveyChange={loadSurvey} />

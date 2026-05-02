@@ -155,6 +155,7 @@ export default function EstimatesPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [showAllVersions, setShowAllVersions] = useState(false)
 
   // Follow-up scheduling dialog state
   const [followUpEstimate, setFollowUpEstimate] = useState<EstimateWithRelations | null>(null)
@@ -171,6 +172,7 @@ export default function EstimatesPage() {
       if (statusFilter !== 'all') {
         params.set('status', statusFilter)
       }
+      params.set('include', showAllVersions ? 'all' : 'latest')
 
       const response = await fetch(`/api/estimates?${params.toString()}`)
       if (!response.ok) throw new Error('Failed to fetch estimates')
@@ -186,7 +188,7 @@ export default function EstimatesPage() {
     } finally {
       setLoading(false)
     }
-  }, [organization?.id, statusFilter, toast])
+  }, [organization?.id, statusFilter, showAllVersions, toast])
 
   useEffect(() => {
     loadEstimates()
@@ -416,6 +418,13 @@ export default function EstimatesPage() {
             <SelectItem value="converted">Converted</SelectItem>
           </SelectContent>
         </Select>
+        <Button
+          variant={showAllVersions ? 'default' : 'outline'}
+          onClick={() => setShowAllVersions((v) => !v)}
+          title={showAllVersions ? 'Showing all versions' : 'Showing only latest per chain'}
+        >
+          {showAllVersions ? 'All versions' : 'Latest only'}
+        </Button>
       </div>
 
       {/* Follow-up scheduling dialog */}
@@ -474,6 +483,7 @@ export default function EstimatesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Estimate #</TableHead>
+              <TableHead className="w-[80px]">Version</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Project</TableHead>
               <TableHead>Hazard</TableHead>
@@ -491,13 +501,13 @@ export default function EstimatesPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={13} className="text-center py-8">
+                <TableCell colSpan={14} className="text-center py-8">
                   Loading estimates...
                 </TableCell>
               </TableRow>
             ) : filteredEstimates.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={13} className="text-center py-8">
+                <TableCell colSpan={14} className="text-center py-8">
                   <p className="text-muted-foreground">No estimates found</p>
                   <Button asChild variant="link" className="mt-2">
                     <Link href="/site-surveys?action=estimate">Create your first estimate</Link>
@@ -532,6 +542,16 @@ export default function EstimatesPage() {
                       >
                         {estimate.estimate_number}
                       </Link>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const total = (estimate as EstimateWithRelations & { chain_total?: number }).chain_total ?? estimate.version
+                        return (
+                          <span className="text-xs text-muted-foreground">
+                            v{estimate.version} of {total}
+                          </span>
+                        )
+                      })()}
                     </TableCell>
                     <TableCell>
                       <div className="max-w-[150px] truncate">{customerName}</div>

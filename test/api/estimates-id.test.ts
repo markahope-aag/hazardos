@@ -76,6 +76,8 @@ describe('Estimate By ID API', () => {
         project_name: 'Asbestos Removal',
         status: 'draft',
         total: 5000,
+        version: 1,
+        estimate_root_id: 'est-123',
         site_survey: { id: 'survey-1', job_name: 'Test Job' },
         customer: { id: 'cust-1', company_name: 'Acme Corp' },
         created_by_user: { id: 'user-1', first_name: 'John' },
@@ -86,6 +88,12 @@ describe('Estimate By ID API', () => {
         ],
       }
 
+      // Multiple queries hit the estimates table on this route:
+      //   1. Main GET: select().eq().eq().single()
+      //   2. getEstimateChain step A: select(root_id).eq(id).single()
+      //   3. getEstimateChain step B: select(...).eq(root_id).order()
+      // We branch on the eq()/order() shape the call builds up.
+      let estimatesCallCount = 0
       vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
         if (table === 'profiles') {
           return {
@@ -100,14 +108,50 @@ describe('Estimate By ID API', () => {
           } as any
         }
         if (table === 'estimates') {
+          estimatesCallCount++
+          if (estimatesCallCount === 1) {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
+                    single: vi.fn().mockResolvedValue({
+                      data: mockEstimate,
+                      error: null,
+                    }),
+                  }),
+                }),
+              }),
+            } as any
+          }
+          if (estimatesCallCount === 2) {
+            // getEstimateChain step A: load this estimate's root id
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: { estimate_root_id: 'est-123' },
+                    error: null,
+                  }),
+                }),
+              }),
+            } as any
+          }
+          // Step B: list the chain
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                  single: vi.fn().mockResolvedValue({
-                    data: mockEstimate,
-                    error: null,
-                  }),
+                order: vi.fn().mockResolvedValue({
+                  data: [{
+                    id: 'est-123',
+                    version: 1,
+                    status: 'draft',
+                    created_at: '2026-05-01',
+                    total: 5000,
+                    estimate_number: 'EST-001',
+                    revision_notes: null,
+                    created_by: 'user-1',
+                  }],
+                  error: null,
                 }),
               }),
             }),

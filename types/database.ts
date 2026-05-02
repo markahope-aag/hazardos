@@ -785,6 +785,10 @@ export interface Database {
           cancellation_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          parent_survey_id: string | null
+          survey_root_id: string
+          version: number
+          revision_notes: string | null
         }
         Insert: {
           id?: string
@@ -840,6 +844,10 @@ export interface Database {
           technician_notes?: string | null
           started_at?: string | null
           submitted_at?: string | null
+          parent_survey_id?: string | null
+          survey_root_id?: string
+          version?: number
+          revision_notes?: string | null
         }
         Update: {
           id?: string
@@ -895,6 +903,10 @@ export interface Database {
           technician_notes?: string | null
           started_at?: string | null
           submitted_at?: string | null
+          parent_survey_id?: string | null
+          survey_root_id?: string
+          version?: number
+          revision_notes?: string | null
         }
       }
       site_survey_photos: {

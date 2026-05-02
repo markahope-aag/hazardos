@@ -47,6 +47,10 @@ interface SurveyWithRelations {
   assigned_to: string | null
   created_at: string
   submitted_at: string | null
+  version: number
+  survey_root_id: string
+  parent_survey_id: string | null
+  chain_total: number
   customer?: {
     id: string
     company_name: string | null
@@ -74,6 +78,7 @@ export default function SiteSurveysPage() {
   const { toast } = useToast()
   const [surveys, setSurveys] = useState<SurveyWithRelations[]>([])
   const [loading, setLoading] = useState(true)
+  const [showAllVersions, setShowAllVersions] = useState(false)
 
   const isEstimatePickerMode = searchParams.get('action') === 'estimate'
 
@@ -88,8 +93,14 @@ export default function SiteSurveysPage() {
   }), [searchParams])
 
   const displayedSurveys = useMemo(() => {
+    // Default: collapse to the latest version per survey chain so the list
+    // doesn't repeat superseded versions next to their replacements.
+    const versionScoped = showAllVersions
+      ? surveys
+      : surveys.filter((s) => s.version === s.chain_total)
+
     if (isEstimatePickerMode) {
-      return surveys.filter(s =>
+      return versionScoped.filter(s =>
         (ESTIMATE_ELIGIBLE_STATUSES as readonly string[]).includes(s.status) &&
         (s.estimate?.length ?? 0) === 0
       )
@@ -105,16 +116,16 @@ export default function SiteSurveysPage() {
     const hasEstimate = (s: SurveyWithRelations) => (s.estimate?.length ?? 0) > 0
     switch (filters.view) {
       case 'all':
-        return surveys
+        return versionScoped
       case 'completed':
-        return surveys.filter(s => s.status === 'completed')
+        return versionScoped.filter(s => s.status === 'completed')
       case 'converted':
-        return surveys.filter(s => s.status === 'estimated' || hasEstimate(s))
+        return versionScoped.filter(s => s.status === 'estimated' || hasEstimate(s))
       case 'cancelled':
-        return surveys.filter(s => s.status === 'cancelled')
+        return versionScoped.filter(s => s.status === 'cancelled')
       case 'open':
       default:
-        return surveys.filter(
+        return versionScoped.filter(
           s =>
             s.status !== 'cancelled' &&
             s.status !== 'completed' &&
@@ -122,7 +133,7 @@ export default function SiteSurveysPage() {
             !hasEstimate(s),
         )
     }
-  }, [surveys, isEstimatePickerMode, filters.view])
+  }, [surveys, isEstimatePickerMode, filters.view, showAllVersions])
 
   const loadSurveys = useCallback(async () => {
     if (!organization?.id) return
@@ -148,6 +159,9 @@ export default function SiteSurveysPage() {
           assigned_to,
           created_at,
           submitted_at,
+          version,
+          survey_root_id,
+          parent_survey_id,
           customer:customers!customer_id(id, company_name, name),
           technician:profiles!assigned_to(id, first_name, last_name),
           job:jobs!site_survey_id(id, job_number, status),
@@ -180,7 +194,20 @@ export default function SiteSurveysPage() {
         technician: Array.isArray(survey.technician) ? survey.technician[0] || null : survey.technician,
         job: Array.isArray(survey.job) ? survey.job : survey.job ? [survey.job] : null,
         estimate: Array.isArray(survey.estimate) ? survey.estimate : survey.estimate ? [survey.estimate] : null,
+        chain_total: 1, // overwritten below
       })) as SurveyWithRelations[]
+
+      // Compute chain_total per row from the in-page result set. This works
+      // because the same RLS-scoped query above pulls every version the
+      // user can see — we just need MAX(version) GROUP BY survey_root_id.
+      const chainTotalByRoot = new Map<string, number>()
+      for (const s of transformedData) {
+        const cur = chainTotalByRoot.get(s.survey_root_id) ?? 0
+        if (s.version > cur) chainTotalByRoot.set(s.survey_root_id, s.version)
+      }
+      for (const s of transformedData) {
+        s.chain_total = chainTotalByRoot.get(s.survey_root_id) ?? s.version
+      }
 
       // Client-side search filter
       let filteredData = transformedData
@@ -419,7 +446,17 @@ export default function SiteSurveysPage() {
       </div>
 
       {/* Filters */}
-      <SurveyFilters />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <SurveyFilters />
+        <Button
+          variant={showAllVersions ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setShowAllVersions((v) => !v)}
+          title={showAllVersions ? 'Showing every version' : 'Showing only the latest version per chain'}
+        >
+          {showAllVersions ? 'All versions' : 'Latest only'}
+        </Button>
+      </div>
 
       {/* Surveys Table */}
       {displayedSurveys.length === 0 ? (
@@ -464,6 +501,7 @@ export default function SiteSurveysPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Survey</TableHead>
+                <TableHead className="w-[80px]">Version</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Address</TableHead>
                 <TableHead>Created</TableHead>
@@ -487,6 +525,11 @@ export default function SiteSurveysPage() {
                     >
                       {survey.job_name || `Survey #${survey.id.slice(0, 8)}`}
                     </Link>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-xs text-muted-foreground">
+                      v{survey.version} of {survey.chain_total}
+                    </span>
                   </TableCell>
                   <TableCell>
                     {survey.customer_id ? (

@@ -17,6 +17,8 @@ import {
   Calendar,
   User,
   Phone,
+  History,
+  GitBranch,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -96,14 +98,34 @@ interface ApprovalRequestState {
   final_status: 'pending' | 'approved' | 'rejected'
 }
 
+interface ChainEntry {
+  id: string
+  version: number
+  status: string
+  created_at: string
+  total: number
+  estimate_number: string
+  revision_notes: string | null
+  created_by: string | null
+}
+
+interface VersionInfo {
+  version: number
+  total: number
+  root_id: string
+  chain: ChainEntry[]
+}
+
 export default function EstimateDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { toast } = useToast()
   const { profile } = useMultiTenantAuth()
   const [estimate, setEstimate] = useState<EstimateWithRelations | null>(null)
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [approvalRequest, setApprovalRequest] = useState<ApprovalRequestState | null>(null)
+  const [revising, setRevising] = useState(false)
   const [rejectNotes, setRejectNotes] = useState('')
   const [showRejectForm, setShowRejectForm] = useState(false)
   const [actionPending, setActionPending] = useState(false)
@@ -138,6 +160,9 @@ export default function EstimateDetailPage() {
 
       const data = await estRes.json()
       setEstimate(data.estimate)
+      if (data.version_info) {
+        setVersionInfo(data.version_info as VersionInfo)
+      }
 
       if (approvalRes.ok) {
         const approvalData = await approvalRes.json()
@@ -317,6 +342,40 @@ export default function EstimateDetailPage() {
     }
   }
 
+  const handleRevise = async () => {
+    const reason = window.prompt(
+      'What changed in this revision? (optional — shows on the version history)',
+    )
+    if (reason === null) return // user hit Cancel
+
+    setRevising(true)
+    try {
+      const res = await fetch(`/api/estimates/${estimateId}/revise`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ revision_notes: reason.trim() || null }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.error?.message || 'Failed to create revision')
+      }
+      const data = await res.json()
+      toast({
+        title: 'Revised estimate created',
+        description: 'Drafted from this version. Edit and re-send when ready.',
+      })
+      router.push(`/estimates/${data.estimate.id}`)
+    } catch (e) {
+      toast({
+        title: 'Error',
+        description: e instanceof Error ? e.message : 'Failed to create revision.',
+        variant: 'destructive',
+      })
+    } finally {
+      setRevising(false)
+    }
+  }
+
   const role = profile?.role
   const isOwnerLike = role === 'tenant_owner' || role === 'platform_owner' || role === 'platform_admin'
   const isAdminLike = isOwnerLike || role === 'admin'
@@ -404,6 +463,12 @@ export default function EstimateDetailPage() {
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold">{estimate.estimate_number}</h1>
             <EstimateStatusBadge status={estimate.status} />
+            {versionInfo && (
+              <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
+                <GitBranch className="h-3 w-3 mr-1" />
+                Version {versionInfo.version} of {versionInfo.total}
+              </Badge>
+            )}
           </div>
           <p className="text-lg text-muted-foreground">
             {estimate.project_name || estimate.site_survey?.job_name || 'Untitled Project'}
@@ -474,8 +539,40 @@ export default function EstimateDetailPage() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+          <Button
+            variant="outline"
+            onClick={handleRevise}
+            disabled={revising}
+            title="Create a new draft estimate based on this one"
+          >
+            {revising ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <GitBranch className="h-4 w-4 mr-2" />
+            )}
+            Create Revised Version
+          </Button>
         </div>
       </div>
+
+      {versionInfo && versionInfo.version < versionInfo.total && (() => {
+        const latest = versionInfo.chain[versionInfo.chain.length - 1]
+        return (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-center justify-between">
+            <span>
+              You're viewing version {versionInfo.version}. The current version is{' '}
+              {versionInfo.total}.
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push(`/estimates/${latest.id}`)}
+            >
+              View latest →
+            </Button>
+          </div>
+        )
+      })()}
 
       {approvalRequest && approvalRequest.final_status === 'pending' && (
         <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
@@ -728,6 +825,60 @@ export default function EstimateDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Version Chain */}
+      {versionInfo && versionInfo.chain.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <History className="h-4 w-4" />
+              Version History
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-20">Version</TableHead>
+                  <TableHead>Number</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead>Notes</TableHead>
+                  <TableHead>Created</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {versionInfo.chain.map((entry) => {
+                  const isCurrent = entry.id === estimate.id
+                  return (
+                    <TableRow
+                      key={entry.id}
+                      className={isCurrent ? 'bg-slate-50' : 'cursor-pointer hover:bg-slate-50'}
+                      onClick={isCurrent ? undefined : () => router.push(`/estimates/${entry.id}`)}
+                    >
+                      <TableCell className="font-medium">
+                        v{entry.version}
+                        {isCurrent && <span className="ml-2 text-xs text-muted-foreground">(viewing)</span>}
+                      </TableCell>
+                      <TableCell>{entry.estimate_number}</TableCell>
+                      <TableCell>
+                        <EstimateStatusBadge status={entry.status as EstimateStatus} />
+                      </TableCell>
+                      <TableCell className="text-right">{formatCurrency(entry.total)}</TableCell>
+                      <TableCell className="max-w-xs truncate text-muted-foreground">
+                        {entry.revision_notes || '—'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(entry.created_at).toLocaleDateString()}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Approval Info */}
       {estimate.approved_by && (

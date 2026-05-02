@@ -92,6 +92,9 @@ export const estimateListQuerySchema = z.object({
   to_date: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
   offset: z.coerce.number().int().min(0).optional(),
+  // 'latest' (default) returns one row per chain — the highest version.
+  // 'all' returns every row including older versions.
+  include: z.enum(['latest', 'all']).optional(),
 }).passthrough()
 
 // Create estimate from survey
@@ -108,6 +111,28 @@ export const createEstimateFromSurveySchema = z.object({
   markup_percent: z.number().min(0).max(100).optional(),
   internal_notes: z.string().max(5000).optional(),
 })
+
+// Create standalone estimate (no survey). project_name + customer_id are
+// required since there's no survey to inherit from.
+export const createStandaloneEstimateSchema = z.object({
+  customer_id: z.string().uuid('Invalid customer ID').nullable(),
+  project_name: z.string().min(1, 'Project name is required').max(255),
+  project_description: z.string().max(5000).optional(),
+  scope_of_work: z.string().max(10000).optional(),
+  estimated_duration_days: z.number().int().positive().optional(),
+  estimated_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  estimated_end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  valid_until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  markup_percent: z.number().min(0).max(100).optional(),
+  internal_notes: z.string().max(5000).optional(),
+})
+
+// The POST /api/estimates body — either a survey-rooted or standalone
+// estimate. We discriminate on the presence of site_survey_id.
+export const createEstimateBodySchema = z.union([
+  createEstimateFromSurveySchema,
+  createStandaloneEstimateSchema,
+])
 
 // Bulk update line items
 export const bulkUpdateLineItemsSchema = z.object({

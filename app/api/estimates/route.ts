@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server'
-import { calculateEstimateFromSurvey } from '@/lib/services/estimate-calculator'
 import { FollowUpsService } from '@/lib/services/follow-ups-service'
+import { createDraftEstimateFromSurvey } from '@/lib/services/estimate-creator'
+import { createStandaloneEstimate } from '@/lib/services/standalone-estimate'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { ROLES } from '@/lib/auth/roles'
-import { estimateListQuerySchema, createEstimateFromSurveySchema } from '@/lib/validations/estimates'
-import { SecureError } from '@/lib/utils/secure-error-handler'
-import { buildEntityNumberBase, withUniqueSuffix } from '@/lib/utils/entity-number'
+import { estimateListQuerySchema, createEstimateBodySchema } from '@/lib/validations/estimates'
 
 /**
  * GET /api/estimates
@@ -78,14 +77,45 @@ export const GET = createApiHandler(
       estimateIds
     )
 
+    // Compute chain_total per row so the UI can render "v2 of 3" without
+    // a follow-up round trip. We need MAX(version) per estimate_root_id
+    // across the org — even if the page-of-50 only includes some versions
+    // of each chain, the total should reflect the full chain.
+    const rootIds = Array.from(
+      new Set(
+        (data || [])
+          .map((e) => e.estimate_root_id as string | null)
+          .filter((id): id is string => !!id),
+      ),
+    )
+    const chainTotalByRoot = new Map<string, number>()
+    if (rootIds.length > 0) {
+      const { data: chainRows } = await context.supabase
+        .from('estimates')
+        .select('estimate_root_id, version')
+        .eq('organization_id', context.profile.organization_id)
+        .in('estimate_root_id', rootIds)
+
+      for (const row of chainRows || []) {
+        const root = row.estimate_root_id as string
+        const v = row.version as number
+        const cur = chainTotalByRoot.get(root) ?? 0
+        if (v > cur) chainTotalByRoot.set(root, v)
+      }
+    }
+
     // Transform relations
-    const estimates = (data || []).map(estimate => {
+    const transformed = (data || []).map(estimate => {
       const loggedActivity = lastActivityById.get(estimate.id) ?? null
       const updatedAt = estimate.updated_at ?? null
       const lastActivityAt =
         loggedActivity && updatedAt
           ? loggedActivity > updatedAt ? loggedActivity : updatedAt
           : loggedActivity ?? updatedAt
+
+      const chainTotal =
+        (estimate.estimate_root_id && chainTotalByRoot.get(estimate.estimate_root_id as string)) ||
+        (estimate.version as number) || 1
 
       return {
         ...estimate,
@@ -96,8 +126,16 @@ export const GET = createApiHandler(
         proposals: Array.isArray(estimate.proposals) ? estimate.proposals : [],
         last_activity_at: lastActivityAt,
         next_follow_up: nextFollowUpById.get(estimate.id) ?? null,
+        chain_total: chainTotal,
       }
     })
+
+    // When include=latest (default), return only the most-recent version
+    // per estimate chain so the user isn't drowning in superseded drafts.
+    const include = query.include ?? 'latest'
+    const estimates = include === 'latest'
+      ? transformed.filter((e) => e.version === e.chain_total)
+      : transformed
 
     return NextResponse.json({
       estimates,
@@ -110,115 +148,66 @@ export const GET = createApiHandler(
 
 /**
  * POST /api/estimates
- * Create a new estimate from a site survey
+ *
+ * Two modes:
+ * - **From a survey:** body has `site_survey_id`. Loads pricing data,
+ *   runs the calculator, inserts the estimate + line items, and bumps
+ *   the survey status to 'estimated'.
+ * - **Standalone:** body has `project_name` (and `customer_id`) but no
+ *   `site_survey_id`. Inserts an empty draft estimate; the user fills
+ *   in line items via the existing /api/estimates/[id]/line-items route.
  */
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
     allowedRoles: ROLES.TENANT_WRITE,
-    bodySchema: createEstimateFromSurveySchema,
+    bodySchema: createEstimateBodySchema,
   },
   async (_request, context, body) => {
-    // Get the site survey (full record needed for estimate calculation)
-    const { data: survey, error: surveyError } = await context.supabase
-      .from('site_surveys')
-      .select('*')
-      .eq('id', body.site_survey_id)
-      .eq('organization_id', context.profile.organization_id)
-      .single()
-
-    if (surveyError || !survey) {
-      throw new SecureError('NOT_FOUND', 'Site survey not found')
-    }
-
-    // Calculate estimate from survey
-    const calculation = await calculateEstimateFromSurvey(
-      survey,
-      context.profile.organization_id,
-      context.supabase,
-      {
-        customMarkup: body.markup_percent,
-      }
-    )
-
-    // Estimate number follows the shared EST-<street>-<mmddyyyy> convention.
-    // The date comes from the caller's estimated_start_date when provided,
-    // else the survey's own scheduled date — both reflect "when the work
-    // is planned to happen", which is what the label is trying to convey.
-    const estimateDate = body.estimated_start_date || survey.scheduled_date || null
-    const estimateBase = buildEntityNumberBase('EST', survey.site_address, estimateDate)
-    const { data: existingNumbers } = await context.supabase
-      .from('estimates')
-      .select('estimate_number')
-      .eq('organization_id', context.profile.organization_id)
-      .like('estimate_number', `${estimateBase}%`)
-    const taken = new Set(
-      (existingNumbers || []).map((r) => r.estimate_number as string),
-    )
-    const estimateNumber = withUniqueSuffix(estimateBase, taken)
-
-    // Create the estimate
-    const { data: estimate, error: createError } = await context.supabase
-      .from('estimates')
-      .insert({
-        organization_id: context.profile.organization_id,
-        site_survey_id: body.site_survey_id,
-        customer_id: body.customer_id || survey.customer_id,
-        estimate_number: estimateNumber,
-        status: 'draft',
-        project_name: body.project_name || survey.job_name,
-        project_description: body.project_description,
-        scope_of_work: body.scope_of_work,
-        estimated_duration_days: body.estimated_duration_days,
-        estimated_start_date: body.estimated_start_date,
-        estimated_end_date: body.estimated_end_date,
-        valid_until: body.valid_until,
-        subtotal: calculation.subtotal,
-        markup_percent: calculation.markup_percent,
-        markup_amount: calculation.markup_amount,
-        discount_percent: calculation.discount_percent,
-        discount_amount: calculation.discount_amount,
-        tax_percent: calculation.tax_percent,
-        tax_amount: calculation.tax_amount,
-        total: calculation.total,
-        internal_notes: body.internal_notes,
-        created_by: context.user.id,
+    if ('site_survey_id' in body) {
+      const { estimate } = await createDraftEstimateFromSurvey(context.supabase, {
+        siteSurveyId: body.site_survey_id,
+        organizationId: context.profile.organization_id,
+        userId: context.user.id,
+        customerId: body.customer_id,
+        projectName: body.project_name,
+        projectDescription: body.project_description,
+        scopeOfWork: body.scope_of_work,
+        estimatedDurationDays: body.estimated_duration_days,
+        estimatedStartDate: body.estimated_start_date,
+        estimatedEndDate: body.estimated_end_date,
+        validUntil: body.valid_until,
+        markupPercent: body.markup_percent,
+        internalNotes: body.internal_notes,
       })
-      .select()
-      .single()
 
-    if (createError) {
-      throw createError
+      // The manual "Generate Estimate" flow promotes the survey out of
+      // submitted/reviewed once an estimate has been generated. The auto-
+      // create-on-submit flow leaves the survey at 'submitted'.
+      await context.supabase
+        .from('site_surveys')
+        .update({ status: 'estimated' })
+        .eq('id', body.site_survey_id)
+
+      return NextResponse.json({ estimate }, { status: 201 })
     }
 
-    // Create line items
-    const lineItemsToInsert = calculation.line_items.map((item, index) => ({
-      estimate_id: estimate.id,
-      item_type: item.item_type,
-      category: item.category,
-      description: item.description,
-      quantity: item.quantity,
-      unit: item.unit,
-      unit_price: item.unit_price,
-      total_price: item.total_price,
-      source_rate_id: item.source_rate_id,
-      source_table: item.source_table,
-      sort_order: index,
-      is_optional: item.is_optional,
-      is_included: item.is_included,
-      notes: item.notes,
-    }))
+    // Standalone path
+    const created = await createStandaloneEstimate(context.supabase, {
+      organizationId: context.profile.organization_id,
+      userId: context.user.id,
+      customerId: body.customer_id,
+      projectName: body.project_name,
+      projectDescription: body.project_description ?? null,
+      scopeOfWork: body.scope_of_work ?? null,
+      estimatedDurationDays: body.estimated_duration_days ?? null,
+      estimatedStartDate: body.estimated_start_date ?? null,
+      estimatedEndDate: body.estimated_end_date ?? null,
+      validUntil: body.valid_until ?? null,
+      markupPercent: body.markup_percent ?? null,
+      internalNotes: body.internal_notes ?? null,
+    })
 
-    await context.supabase
-      .from('estimate_line_items')
-      .insert(lineItemsToInsert)
-
-    // Update survey status to 'estimated'
-    await context.supabase
-      .from('site_surveys')
-      .update({ status: 'estimated' })
-      .eq('id', body.site_survey_id)
-
-    return NextResponse.json({ estimate }, { status: 201 })
+    return NextResponse.json({ estimate: { id: created.id, estimate_number: created.estimate_number } }, { status: 201 })
   }
 )

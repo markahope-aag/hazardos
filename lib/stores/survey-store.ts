@@ -556,6 +556,29 @@ export const useSurveyStore = create<SurveyState>()(
 
           if (error) throwDbError(error, 'update survey')
 
+          // Best-effort auto-create of a draft estimate. If this fails the
+          // survey is still submitted — the user can retry via the manual
+          // "Generate Estimate" flow.
+          try {
+            const res = await fetch(`/api/site-surveys/${currentSurveyId}/auto-estimate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: '{}',
+            })
+            if (!res.ok) {
+              const detail = await res.text().catch(() => '')
+              log.warn(
+                { status: res.status, surveyId: currentSurveyId, detail },
+                'Auto-estimate creation failed; survey still submitted',
+              )
+            }
+          } catch (estimateError) {
+            log.warn(
+              { error: formatError(estimateError, 'AUTO_ESTIMATE_ERROR'), surveyId: currentSurveyId },
+              'Auto-estimate request errored; survey still submitted',
+            )
+          }
+
           set({ isDirty: false, isSyncing: false, lastSavedAt: submittedAt })
           return true
         } catch (error) {
