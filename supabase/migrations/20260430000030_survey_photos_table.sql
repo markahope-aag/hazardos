@@ -188,6 +188,7 @@ CREATE POLICY "survey_photos: tenant admins delete"
 -- ============================================
 
 DROP TRIGGER IF EXISTS survey_photos_updated_at ON survey_photos;
+
 CREATE TRIGGER survey_photos_updated_at
   BEFORE UPDATE ON survey_photos
   FOR EACH ROW
@@ -216,6 +217,7 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS organizations_photo_retention_change ON organizations;
+
 CREATE TRIGGER organizations_photo_retention_change
   AFTER UPDATE OF photo_retention_days ON organizations
   FOR EACH ROW
