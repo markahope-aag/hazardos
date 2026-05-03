@@ -74,6 +74,7 @@ export interface Job {
   customer?: CustomerRelation
   proposal?: ProposalRelation
   estimate?: EstimateRelation
+  work_order?: WorkOrderRelation | null
   site_survey?: SiteSurveyRelation
   crew?: JobCrew[]
   equipment?: JobEquipment[]
@@ -81,6 +82,12 @@ export interface Job {
   disposal?: JobDisposal[]
   change_orders?: JobChangeOrder[]
   notes?: JobNote[]
+}
+
+export interface WorkOrderRelation {
+  id: string
+  work_order_number: string
+  status: 'draft' | 'issued'
 }
 
 export interface CompletionPhoto {

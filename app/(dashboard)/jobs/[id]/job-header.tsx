@@ -30,6 +30,8 @@ import {
   FileText,
   XCircle,
   ClipboardList,
+  Calculator,
+  ExternalLink,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Job } from '@/types/jobs'
@@ -148,6 +150,41 @@ export function JobHeader({ job }: JobHeaderProps) {
             Scheduled: {format(parseISO(job.scheduled_start_date), 'MMMM d, yyyy')}
             {job.scheduled_start_time && <> at {format(parseISO(`2000-01-01T${job.scheduled_start_time}`), 'h:mm a')}</>}
           </div>
+          {(job.estimate || job.work_order) && (
+            <div className="ml-10 flex flex-wrap items-center gap-2 pt-1">
+              {job.estimate && (
+                <Link
+                  href={`/estimates/${job.estimate.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-md border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
+                >
+                  <Calculator className="h-3.5 w-3.5" />
+                  Estimate {job.estimate.estimate_number}
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              )}
+              {job.work_order && (
+                <Link
+                  href={`/work-orders/${job.work_order.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-md border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
+                >
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  Work Order {job.work_order.work_order_number}
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'h-4 px-1 text-[10px] font-medium border-0',
+                      job.work_order.status === 'issued'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-amber-100 text-amber-700',
+                    )}
+                  >
+                    {job.work_order.status === 'issued' ? 'Issued' : 'Draft'}
+                  </Badge>
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2">

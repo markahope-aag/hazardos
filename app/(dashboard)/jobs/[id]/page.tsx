@@ -37,7 +37,7 @@ export default async function JobDetailPage({
   const [
     customerRes, proposalRes, estimateRes, surveyRes,
     crewRes, equipmentRes, materialsRes, disposalRes,
-    changeOrdersRes, notesRes,
+    changeOrdersRes, notesRes, workOrderRes,
   ] = await Promise.all([
     job.customer_id
       ? supabase.from('customers').select('*').eq('id', job.customer_id).maybeSingle()
@@ -63,6 +63,16 @@ export default async function JobDetailPage({
       .from('job_notes')
       .select('*, author:profiles(id, full_name)')
       .eq('job_id', id),
+    // Latest work order for this job — surfaces in the header so the
+    // office manager can jump to the dispatch sheet without going back
+    // out to the work-orders index.
+    supabase
+      .from('work_orders')
+      .select('id, work_order_number, status')
+      .eq('job_id', id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   for (const [label, res] of Object.entries({
@@ -70,6 +80,7 @@ export default async function JobDetailPage({
     survey: surveyRes, crew: crewRes, equipment: equipmentRes,
     materials: materialsRes, disposal: disposalRes,
     change_orders: changeOrdersRes, notes: notesRes,
+    work_order: workOrderRes,
   })) {
     if (res.error) {
       console.error(`[jobs/[id]] embed '${label}' failed`, { id, error: res.error })
@@ -81,6 +92,7 @@ export default async function JobDetailPage({
     customer: customerRes.data ?? null,
     proposal: proposalRes.data ?? null,
     estimate: estimateRes.data ?? null,
+    work_order: workOrderRes.data ?? null,
     site_survey: surveyRes.data ?? null,
     equipment: equipmentRes.data ?? [],
     materials: materialsRes.data ?? [],

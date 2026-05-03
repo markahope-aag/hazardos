@@ -127,6 +127,19 @@ export class InvoicesService {
 
     if (jobError || !job) throw new SecureError('NOT_FOUND', 'Job not found')
 
+    // Invoicing an open job is a real money-leak risk: the contract
+    // amount can shift right up until completion (change orders,
+    // scope adjustments, hazard surprises), so we lock the invoice
+    // entry-point behind status='completed'. The UI already hides
+    // the button in this state — this is the server-side enforcement
+    // for direct API calls.
+    if (job.status !== 'completed') {
+      throw new SecureError(
+        'VALIDATION_ERROR',
+        'Cannot invoice this job — it must be marked completed first.',
+      )
+    }
+
     // The customer was promised a discount on the estimate they signed —
     // it must follow them onto the invoice or we under-deliver. We pull
     // the dollar amount only (recomputeEstimateTotals already resolved
