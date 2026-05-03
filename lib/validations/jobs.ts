@@ -21,7 +21,7 @@ export const createJobSchema = z.object({
   // Assigned technician is now required at the API layer too — the UI
   // validation is faster feedback but this is the hard enforcement.
   assigned_to: z.string().uuid('A technician must be assigned'),
-  // Job name is required — it prints on the manifest and shows on the
+  // Job name is required — it prints on the work order and shows on the
   // calendar. Making it optional made jobs essentially unidentifiable.
   name: z.string().min(1, 'Job name is required').max(255),
   scheduled_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)'),

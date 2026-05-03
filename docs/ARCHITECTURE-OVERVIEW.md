@@ -113,7 +113,7 @@ Auth cookies are **chunked** (`sb-*-auth-token.*`); detection uses `includes('-a
 
 Root `app/layout.tsx` wraps the tree with **QueryProvider**, **AnalyticsProvider**, **Toaster**, and global styles.
 
-The **dashboard** `layout.tsx` defines primary navigation (Dashboard, CRM, Surveys, Estimates, Jobs, Manifests, Invoices, Calendar, Messaging, Settings) and gates content on multi-tenant auth.
+The **dashboard** `layout.tsx` defines primary navigation (Dashboard, CRM, Surveys, Estimates, Jobs, Work Orders, Invoices, Calendar, Messaging, Settings) and gates content on multi-tenant auth.
 
 ---
 

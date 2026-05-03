@@ -4,10 +4,10 @@ import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
 import {
-  generateManifestPDFBase64,
-  type ManifestMediaItem,
-} from '@/lib/services/manifest-pdf-generator'
-import type { Manifest, ManifestSnapshot, ManifestVehicle } from '@/types/manifests'
+  generateWorkOrderPDFBase64,
+  type WorkOrderMediaItem,
+} from '@/lib/services/work-order-pdf-generator'
+import type { WorkOrder, WorkOrderSnapshot, WorkOrderVehicle } from '@/types/work-orders'
 import type { SurveyPhotoMetadata } from '@/types/database'
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 // 24h — recipient may open later
@@ -19,34 +19,34 @@ function isVideoItem(m: SurveyPhotoMetadata): boolean {
   return /\.(mp4|mov|webm|m4v|ogv)(\?|$)/i.test(m.url || m.path || '')
 }
 
-const emailManifestSchema = z.object({
+const emailWorkOrderSchema = z.object({
   to: z.array(z.string().email()).min(1, 'At least one recipient is required').max(10),
   subject: z.string().max(200).optional(),
   message: z.string().max(5000).optional(),
 })
 
 /**
- * POST /api/manifests/[id]/email
- * Generate the manifest PDF server-side and email it as an attachment
- * via Resend. Both draft and issued manifests can be emailed — the
+ * POST /api/work-orders/[id]/email
+ * Generate the work order PDF server-side and email it as an attachment
+ * via Resend. Both draft and issued work orders can be emailed — the
  * PDF header labels the state so recipients know which they're holding.
  */
 export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     allowedRoles: ROLES.TENANT_MANAGE,
-    bodySchema: emailManifestSchema,
+    bodySchema: emailWorkOrderSchema,
   },
   async (_request, context, params, body) => {
-    const { data: manifest, error: manifestError } = await context.supabase
-      .from('manifests')
-      .select('*, vehicles:manifest_vehicles(*)')
+    const { data: workOrder, error: workOrderError } = await context.supabase
+      .from('work_orders')
+      .select('*, vehicles:work_order_vehicles(*)')
       .eq('id', params.id)
       .eq('organization_id', context.profile.organization_id)
       .single()
 
-    if (manifestError || !manifest) {
-      throw new SecureError('NOT_FOUND', 'Manifest not found')
+    if (workOrderError || !workOrder) {
+      throw new SecureError('NOT_FOUND', 'Work order not found')
     }
 
     const resendApiKey = process.env.RESEND_API_KEY
@@ -59,8 +59,8 @@ export const POST = createApiHandlerWithParams(
 
     // Pull the source survey's media so the field team gets photos and
     // videos in the PDF, the same way the in-app gallery does.
-    const surveyId = (manifest.snapshot as ManifestSnapshot | null)?.job?.site_survey_id
-    let media: ManifestMediaItem[] = []
+    const surveyId = (workOrder.snapshot as WorkOrderSnapshot | null)?.job?.site_survey_id
+    let media: WorkOrderMediaItem[] = []
     if (surveyId) {
       const { data: survey } = await context.supabase
         .from('site_surveys')
@@ -95,7 +95,7 @@ export const POST = createApiHandlerWithParams(
 
       // Fetch image bytes server-side and convert to base64 data URLs so
       // jsPDF can embed them. Failures fall through to a text link.
-      const embedded: ManifestMediaItem[] = await Promise.all(
+      const embedded: WorkOrderMediaItem[] = await Promise.all(
         toEmbed.map(async (m) => {
           const url = resolveUrl(m)
           let dataUrl: string | null = null
@@ -141,9 +141,9 @@ export const POST = createApiHandlerWithParams(
       ].filter((item) => item.url)
     }
 
-    const pdfBase64 = generateManifestPDFBase64(
-      manifest as Manifest,
-      (manifest.vehicles || []) as ManifestVehicle[],
+    const pdfBase64 = generateWorkOrderPDFBase64(
+      workOrder as WorkOrder,
+      (workOrder.vehicles || []) as WorkOrderVehicle[],
       media,
     )
 
@@ -154,8 +154,8 @@ export const POST = createApiHandlerWithParams(
       .single()
 
     const orgName = org?.name || 'HazardOS'
-    const subject = body.subject || `Manifest ${manifest.manifest_number} — ${orgName}`
-    const filename = `${manifest.manifest_number}.pdf`
+    const subject = body.subject || `Work Order ${workOrder.work_order_number} — ${orgName}`
+    const filename = `${workOrder.work_order_number}.pdf`
 
     try {
       const { Resend } = await import('resend')
@@ -166,7 +166,7 @@ export const POST = createApiHandlerWithParams(
         to: body.to,
         subject,
         html: `
-          <p>${body.message ? body.message : `Manifest ${manifest.manifest_number} attached.`}</p>
+          <p>${body.message ? body.message : `Work Order ${workOrder.work_order_number} attached.`}</p>
           <p style="font-size: 12px; color: #6b7280;">
             Sent from ${orgName}.
           </p>
@@ -180,23 +180,23 @@ export const POST = createApiHandlerWithParams(
       })
 
       context.log.info(
-        { manifestId: manifest.id, recipients: body.to.length },
-        'Manifest emailed',
+        { workOrderId: workOrder.id, recipients: body.to.length },
+        'Work order emailed',
       )
     } catch (err) {
-      context.log.error({ error: err }, 'Failed to email manifest')
+      context.log.error({ error: err }, 'Failed to email work order')
       throw new SecureError('BAD_REQUEST', 'Could not send email.')
     }
 
-    // Stamp last-emailed on the manifest so the audit trail shows it
+    // Stamp last-emailed on the work order so the audit trail shows it
     // went out. Using updated_at is enough for now — add a dedicated
     // column if we need more granular tracking later.
     await context.supabase
-      .from('manifests')
+      .from('work_orders')
       .update({ updated_at: new Date().toISOString() })
-      .eq('id', manifest.id)
+      .eq('id', workOrder.id)
       .then((res) => {
-        if (res.error) throwDbError(res.error, 'stamp manifest email')
+        if (res.error) throwDbError(res.error, 'stamp work order email')
       })
 
     return NextResponse.json({ sent: true, recipients: body.to.length })

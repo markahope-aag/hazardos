@@ -2,13 +2,13 @@ import { z } from 'zod'
 
 // Create: the caller supplies the source job. Everything else is filled
 // from the job record at snapshot time.
-export const createManifestSchema = z.object({
+export const createWorkOrderSchema = z.object({
   job_id: z.string().uuid('Invalid job ID'),
   notes: z.string().max(5000).optional(),
 })
 
 // Shape of the snapshot payload we let the office manager edit while a
-// manifest is still in draft status. Kept permissive — all fields are
+// work order is still in draft status. Kept permissive — all fields are
 // optional because the manager may clear, add, or reorder anything.
 const snapshotSectionsSchema = z
   .object({
@@ -83,12 +83,12 @@ const snapshotSectionsSchema = z
   })
   .partial()
 
-export const updateManifestSchema = z.object({
+export const updateWorkOrderSchema = z.object({
   notes: z.string().max(5000).nullable().optional(),
   snapshot: snapshotSectionsSchema.optional(),
 })
 
-export const manifestVehicleSchema = z.object({
+export const workOrderVehicleSchema = z.object({
   vehicle_type: z.string().max(50).nullable().optional(),
   make_model: z.string().max(255).nullable().optional(),
   plate: z.string().max(20).nullable().optional(),
@@ -103,6 +103,6 @@ export const manifestVehicleSchema = z.object({
   sort_order: z.number().int().optional(),
 })
 
-export type CreateManifestInput = z.infer<typeof createManifestSchema>
-export type UpdateManifestInput = z.infer<typeof updateManifestSchema>
-export type ManifestVehicleInput = z.infer<typeof manifestVehicleSchema>
+export type CreateWorkOrderInput = z.infer<typeof createWorkOrderSchema>
+export type UpdateWorkOrderInput = z.infer<typeof updateWorkOrderSchema>
+export type WorkOrderVehicleInput = z.infer<typeof workOrderVehicleSchema>

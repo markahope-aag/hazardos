@@ -4,27 +4,27 @@ import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
 
 /**
- * POST /api/manifests/[id]/issue
- * Mark a draft manifest as issued. Snapshot is frozen from this point
+ * POST /api/work-orders/[id]/issue
+ * Mark a draft work order as issued. Snapshot is frozen from this point
  * on — further edits are rejected. Records who issued it and when.
  */
 export const POST = createApiHandlerWithParams(
   { allowedRoles: ROLES.TENANT_MANAGE },
   async (_request, context, params) => {
-    const { data: manifest } = await context.supabase
-      .from('manifests')
+    const { data: workOrder } = await context.supabase
+      .from('work_orders')
       .select('id, status')
       .eq('id', params.id)
       .eq('organization_id', context.profile.organization_id)
       .single()
 
-    if (!manifest) throw new SecureError('NOT_FOUND', 'Manifest not found')
-    if (manifest.status === 'issued') {
-      throw new SecureError('VALIDATION_ERROR', 'Manifest is already issued.')
+    if (!workOrder) throw new SecureError('NOT_FOUND', 'Work order not found')
+    if (workOrder.status === 'issued') {
+      throw new SecureError('VALIDATION_ERROR', 'Work order is already issued.')
     }
 
     const { data, error } = await context.supabase
-      .from('manifests')
+      .from('work_orders')
       .update({
         status: 'issued',
         issued_at: new Date().toISOString(),
@@ -34,8 +34,8 @@ export const POST = createApiHandlerWithParams(
       .select()
       .single()
 
-    if (error) throwDbError(error, 'issue manifest')
+    if (error) throwDbError(error, 'issue work order')
 
-    return NextResponse.json({ manifest: data })
+    return NextResponse.json({ work_order: data })
   },
 )

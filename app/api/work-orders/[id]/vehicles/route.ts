@@ -1,39 +1,39 @@
 import { NextResponse } from 'next/server'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
-import { manifestVehicleSchema } from '@/lib/validations/manifests'
+import { workOrderVehicleSchema } from '@/lib/validations/work-orders'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
 
 /**
- * POST /api/manifests/[id]/vehicles
- * Attach a vehicle (truck, trailer, van, rental) to a draft manifest.
+ * POST /api/work-orders/[id]/vehicles
+ * Attach a vehicle (truck, trailer, van, rental) to a draft work order.
  */
 export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     allowedRoles: ROLES.TENANT_MANAGE,
-    bodySchema: manifestVehicleSchema,
+    bodySchema: workOrderVehicleSchema,
   },
   async (_request, context, params, body) => {
-    const { data: manifest } = await context.supabase
-      .from('manifests')
+    const { data: workOrder } = await context.supabase
+      .from('work_orders')
       .select('id, status')
       .eq('id', params.id)
       .eq('organization_id', context.profile.organization_id)
       .single()
 
-    if (!manifest) throw new SecureError('NOT_FOUND', 'Manifest not found')
-    if (manifest.status === 'issued') {
+    if (!workOrder) throw new SecureError('NOT_FOUND', 'Work order not found')
+    if (workOrder.status === 'issued') {
       throw new SecureError(
         'VALIDATION_ERROR',
-        'Issued manifests are locked. Create a new manifest to add a vehicle.',
+        'Issued work orders are locked. Create a new work order to add a vehicle.',
       )
     }
 
     const { data, error } = await context.supabase
-      .from('manifest_vehicles')
+      .from('work_order_vehicles')
       .insert({
-        manifest_id: params.id,
+        work_order_id: params.id,
         vehicle_type: body.vehicle_type ?? null,
         make_model: body.make_model ?? null,
         plate: body.plate ?? null,

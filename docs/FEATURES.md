@@ -309,13 +309,13 @@ Refactored estimation system with improved architecture, better testability, and
 
 ### Overview
 
-Comprehensive document management system for job-related paperwork including permits, manifests, clearance reports, photos, and videos. Provides organized storage and retrieval for regulatory compliance and customer communication.
+Comprehensive document management system for job-related paperwork including permits, workOrders, clearance reports, photos, and videos. Provides organized storage and retrieval for regulatory compliance and customer communication.
 
 ### Document Categories
 
 #### Regulatory Documents
 - **Permits**: Work permits and authorization documents
-- **Manifests**: Waste disposal and transportation manifests
+- **Waste Manifests**: EPA disposal documentation attached to a job at the end
 - **Clearance Reports**: Post-remediation clearance and certification
 - **Compliance Records**: Regulatory filing and inspection records
 
@@ -939,7 +939,7 @@ Ensure all required tasks are completed before job closure.
    - Work area cleaned
    - Equipment decontaminated
    - Waste properly bagged
-   - Disposal manifests completed
+   - Disposal workOrders completed
 
 4. **Documentation** (Purple)
    - Before photos taken

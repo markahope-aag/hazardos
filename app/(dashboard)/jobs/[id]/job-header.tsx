@@ -52,12 +52,12 @@ export function JobHeader({ job }: JobHeaderProps) {
   // ad-hoc rollback work users did when they mis-clicked.
   const [showStartDialog, setShowStartDialog] = useState(false)
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
-  const [generatingManifest, setGeneratingManifest] = useState(false)
+  const [generatingWorkOrder, setGeneratingWorkOrder] = useState(false)
 
-  const generateManifest = async () => {
-    setGeneratingManifest(true)
+  const generateWorkOrder = async () => {
+    setGeneratingWorkOrder(true)
     try {
-      const res = await fetch('/api/manifests', {
+      const res = await fetch('/api/work-orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ job_id: job.id }),
@@ -74,22 +74,22 @@ export function JobHeader({ job }: JobHeaderProps) {
             : typeof body?.error?.message === 'string'
             ? body.error.message
             : null
-        throw new Error(reason || `Failed to generate manifest (${res.status})`)
+        throw new Error(reason || `Failed to generate work order (${res.status})`)
       }
       const body = await res.json()
       toast({
-        title: 'Manifest generated',
-        description: `${body.manifest.manifest_number} created as draft.`,
+        title: 'Work order generated',
+        description: `${body.work_order.work_order_number} created as draft.`,
       })
-      router.push(`/manifests/${body.manifest.id}`)
+      router.push(`/work-orders/${body.work_order.id}`)
     } catch (err) {
       toast({
-        title: 'Could not generate manifest',
+        title: 'Could not generate work order',
         description: err instanceof Error ? err.message : 'Try again.',
         variant: 'destructive',
       })
     } finally {
-      setGeneratingManifest(false)
+      setGeneratingWorkOrder(false)
     }
   }
 
@@ -174,11 +174,11 @@ export function JobHeader({ job }: JobHeaderProps) {
 
           <Button
             variant="outline"
-            onClick={generateManifest}
-            disabled={generatingManifest}
+            onClick={generateWorkOrder}
+            disabled={generatingWorkOrder}
           >
             <ClipboardList className="h-4 w-4 mr-2" />
-            {generatingManifest ? 'Generating...' : 'Generate Manifest'}
+            {generatingWorkOrder ? 'Generating...' : 'Generate Work Order'}
           </Button>
 
           <DropdownMenu>

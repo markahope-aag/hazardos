@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf'
-import type { Manifest, ManifestVehicle, ManifestSnapshot } from '@/types/manifests'
+import type { WorkOrder, WorkOrderVehicle, WorkOrderSnapshot } from '@/types/work-orders'
 
-export interface ManifestMediaItem {
+export interface WorkOrderMediaItem {
   kind: 'image' | 'video'
   label: string
   /** Caption / location, shown beneath the thumbnail or beside the URL. */
@@ -17,7 +17,7 @@ export interface ManifestMediaItem {
 }
 
 /**
- * Generate a print-ready manifest PDF from the frozen snapshot + any
+ * Generate a print-ready work order PDF from the frozen snapshot + any
  * attached vehicles. Works in both Node (for email attachments) and
  * the browser (for direct download).
  *
@@ -25,10 +25,10 @@ export interface ManifestMediaItem {
  * embedded on a "Site Media" page and video URLs are listed as tappable
  * links so the field crew can review the survey on the way to the job.
  */
-export function generateManifestPDF(
-  manifest: Manifest,
-  vehicles: ManifestVehicle[] = [],
-  media: ManifestMediaItem[] = [],
+export function generateWorkOrderPDF(
+  workOrder: WorkOrder,
+  vehicles: WorkOrderVehicle[] = [],
+  media: WorkOrderMediaItem[] = [],
 ): jsPDF {
   const doc = new jsPDF()
   const pageW = doc.internal.pageSize.getWidth()
@@ -44,15 +44,15 @@ export function generateManifestPDF(
     }
   }
 
-  const s: ManifestSnapshot = manifest.snapshot
+  const s: WorkOrderSnapshot = workOrder.snapshot
 
   // Header
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(20)
-  doc.text('MANIFEST', margin, y)
+  doc.text('WORK ORDER', margin, y)
   doc.setFontSize(12)
   doc.setFont('helvetica', 'normal')
-  doc.text(manifest.manifest_number, pageW - margin, y, { align: 'right' })
+  doc.text(workOrder.work_order_number, pageW - margin, y, { align: 'right' })
   y += 8
 
   doc.setDrawColor(200)
@@ -61,8 +61,8 @@ export function generateManifestPDF(
 
   doc.setFontSize(9)
   doc.setTextColor(120)
-  const statusLine = manifest.status === 'issued' && manifest.issued_at
-    ? `Issued ${new Date(manifest.issued_at).toLocaleDateString()}`
+  const statusLine = workOrder.status === 'issued' && workOrder.issued_at
+    ? `Issued ${new Date(workOrder.issued_at).toLocaleDateString()}`
     : 'Draft — not yet issued'
   doc.text(statusLine, margin, y)
   if (s.job?.scheduled_start_date) {
@@ -355,9 +355,9 @@ export function generateManifestPDF(
   }
 
   // --- Dispatch notes ------------------------------------------------
-  if (manifest.notes) {
+  if (workOrder.notes) {
     heading('DISPATCH NOTES')
-    paragraph(manifest.notes)
+    paragraph(workOrder.notes)
   }
 
   // Sign-off box at the bottom of the last page
@@ -373,21 +373,21 @@ export function generateManifestPDF(
   return doc
 }
 
-export function generateManifestPDFBlob(
-  manifest: Manifest,
-  vehicles: ManifestVehicle[] = [],
-  media: ManifestMediaItem[] = [],
+export function generateWorkOrderPDFBlob(
+  workOrder: WorkOrder,
+  vehicles: WorkOrderVehicle[] = [],
+  media: WorkOrderMediaItem[] = [],
 ): Blob {
-  const doc = generateManifestPDF(manifest, vehicles, media)
+  const doc = generateWorkOrderPDF(workOrder, vehicles, media)
   return doc.output('blob')
 }
 
-export function generateManifestPDFBase64(
-  manifest: Manifest,
-  vehicles: ManifestVehicle[] = [],
-  media: ManifestMediaItem[] = [],
+export function generateWorkOrderPDFBase64(
+  workOrder: WorkOrder,
+  vehicles: WorkOrderVehicle[] = [],
+  media: WorkOrderMediaItem[] = [],
 ): string {
-  const doc = generateManifestPDF(manifest, vehicles, media)
+  const doc = generateWorkOrderPDF(workOrder, vehicles, media)
   // jsPDF's datauristring returns "data:application/pdf;filename=...;base64,XXX"
   // — we want the raw base64 for Resend attachments.
   const uri = doc.output('datauristring')

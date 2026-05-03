@@ -206,7 +206,7 @@ const DISPOSAL_MULTIPLIER = {
 **Disposal Cost Factors**:
 - Hazardous waste disposal fees
 - Transportation to licensed facility
-- Manifest documentation
+- WorkOrder documentation
 - Landfill gate fees
 
 **Example Disposal Calculation**:
@@ -538,7 +538,7 @@ graph TD
    - Work area cleaned
    - Equipment decontaminated
    - Waste properly bagged
-   - Disposal manifests completed
+   - Disposal workOrders completed
 
 4. **Documentation** (Required)
    - Before photos taken

@@ -246,10 +246,10 @@ Stages are configurable per organization with custom names, colors, and probabil
 - Schedule dates, revenue
 
 **Right content (tabbed):**
-- **Overview** — Linked opportunity, compliance (air monitoring, clearance, permits, manifests), notes/special instructions
+- **Overview** — Linked opportunity, compliance (air monitoring, clearance, permits, workOrders), notes/special instructions
 - **Financials** — Estimated vs actual revenue/cost, gross margin, deposit (amount + received date), invoice (date + payment date + QB ID)
 - **Crew & Schedule** — Estimated vs actual hours, actual start/end timestamps
-- **Documents** — Placeholder for permits, manifests, clearance reports, photos
+- **Documents** — Placeholder for permits, workOrders, clearance reports, photos
 - **Activity** — Placeholder
 
 **Status Update Modal:** Status dropdown, actual hours prompt (when completing), notes field. Auto-sets `actual_start_at` on In Progress, `actual_end_at` on Complete.

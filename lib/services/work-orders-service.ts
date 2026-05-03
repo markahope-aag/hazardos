@@ -1,20 +1,20 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { ManifestSnapshot } from '@/types/manifests'
+import type { WorkOrderSnapshot } from '@/types/work-orders'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 
 /**
- * Pull all the source data we need to populate a fresh manifest snapshot
- * for a job. Crew comes from job_crew (who's actually assigned).
+ * Pull all the source data we need to populate a fresh work order
+ * snapshot for a job. Crew comes from job_crew (who's actually assigned).
  * Materials, equipment, and the "additional items" list come from the
  * approved estimate's line items — that's the authoritative "here's
  * what this job requires" source. job_materials / job_equipment are
  * reserved for post-job actuals tracking.
  */
-export async function buildManifestSnapshotFromJob(
+export async function buildWorkOrderSnapshotFromJob(
   supabase: SupabaseClient,
   organizationId: string,
   jobId: string,
-): Promise<ManifestSnapshot> {
+): Promise<WorkOrderSnapshot> {
   const { data: job, error: jobError } = await supabase
     .from('jobs')
     .select(`
@@ -48,7 +48,7 @@ export async function buildManifestSnapshotFromJob(
   const crewRows = Array.isArray(job.crew) ? job.crew : []
 
   // Fetch estimate line items separately — these drive materials,
-  // equipment, and the additional-items list on the manifest.
+  // equipment, and the additional-items list on the work order.
   // Excluded items are left out so the crew doesn't chase things the
   // office decided not to do.
   let lineItems: Array<{

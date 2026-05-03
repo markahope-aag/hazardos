@@ -215,7 +215,7 @@ export default function NewJobPage() {
     if (!formData.name.trim()) {
       toast({
         title: 'Job name required',
-        description: 'Give the job a short name — it prints on the manifest and appears on the calendar.',
+        description: 'Give the job a short name — it prints on the work order and appears on the calendar.',
         variant: 'destructive',
       })
       return
@@ -522,7 +522,7 @@ export default function NewJobPage() {
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Shows on the calendar, manifest, and every customer-facing document.
+                  Shows on the calendar, work order, and every customer-facing document.
                 </p>
               </div>
 

@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { manifestVehicleSchema } from '@/lib/validations/manifests'
+import { workOrderVehicleSchema } from '@/lib/validations/work-orders'
 import { SecureError, throwDbError, createSecureErrorResponse } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
 
 /**
  * Vehicle subresource handlers. Because the createApiHandlerWithParams
- * helper only types a single `id` param, and we need both `id` (manifest)
- * and `vehicleId`, we inline the auth-and-org dance here instead of
- * forcing the helper to grow a generic. Same permissions as the parent:
- * TENANT_MANAGE roles only.
+ * helper only types a single `id` param, and we need both `id` (work
+ * order) and `vehicleId`, we inline the auth-and-org dance here instead
+ * of forcing the helper to grow a generic. Same permissions as the
+ * parent: TENANT_MANAGE roles only.
  */
 async function loadContext(_request: NextRequest) {
   const supabase = await createClient()
@@ -33,21 +33,21 @@ async function loadContext(_request: NextRequest) {
 
 async function assertDraft(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  manifestId: string,
+  workOrderId: string,
   organizationId: string,
 ) {
-  const { data: manifest } = await supabase
-    .from('manifests')
+  const { data: workOrder } = await supabase
+    .from('work_orders')
     .select('id, status')
-    .eq('id', manifestId)
+    .eq('id', workOrderId)
     .eq('organization_id', organizationId)
     .single()
 
-  if (!manifest) throw new SecureError('NOT_FOUND', 'Manifest not found')
-  if (manifest.status === 'issued') {
+  if (!workOrder) throw new SecureError('NOT_FOUND', 'Work order not found')
+  if (workOrder.status === 'issued') {
     throw new SecureError(
       'VALIDATION_ERROR',
-      'Issued manifests are locked.',
+      'Issued work orders are locked.',
     )
   }
 }
@@ -62,7 +62,7 @@ export async function PATCH(
     await assertDraft(supabase, id, profile.organization_id)
 
     const body = await request.json().catch(() => ({}))
-    const parsed = manifestVehicleSchema.safeParse(body)
+    const parsed = workOrderVehicleSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
         { error: { message: 'Invalid body', details: parsed.error.issues } },
@@ -86,10 +86,10 @@ export async function PATCH(
     if (v.sort_order !== undefined) update.sort_order = v.sort_order
 
     const { data, error } = await supabase
-      .from('manifest_vehicles')
+      .from('work_order_vehicles')
       .update(update)
       .eq('id', vehicleId)
-      .eq('manifest_id', id)
+      .eq('work_order_id', id)
       .select()
       .single()
 
@@ -111,10 +111,10 @@ export async function DELETE(
     await assertDraft(supabase, id, profile.organization_id)
 
     const { error } = await supabase
-      .from('manifest_vehicles')
+      .from('work_order_vehicles')
       .delete()
       .eq('id', vehicleId)
-      .eq('manifest_id', id)
+      .eq('work_order_id', id)
 
     if (error) throwDbError(error, 'delete vehicle')
 

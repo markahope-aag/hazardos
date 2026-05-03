@@ -23,7 +23,7 @@ served as a static asset at `/logos/<filename>`.
 
 | File | Purpose |
 |------|---------|
-| `icon-192-color.png` | PWA 192×192 (`manifest.json`, Android home-screen, iOS apple-touch). PNG-only — Android/iOS masks render PNG more reliably than SVG. |
+| `icon-192-color.png` | PWA 192×192 (`workOrder.json`, Android home-screen, iOS apple-touch). PNG-only — Android/iOS masks render PNG more reliably than SVG. |
 | `icon-512-color.svg`, `icon-512-color.png` | High-res 512×512, primary color fill |
 | `icon-512-bw.svg`, `icon-512-bw.png` | Black & white (print, monochrome PWA purpose) |
 | `icon-512-white.svg`, `icon-512-white.png` | White on transparent (dark backgrounds) |
@@ -72,9 +72,9 @@ import { Logo, LogoHorizontal, LogoVertical, LogoIcon } from '@/components/ui/lo
 <link rel="apple-touch-icon" sizes="192x192" href="/logos/icon-192-color.png">
 ```
 
-### PWA (`public/manifest.json`)
+### PWA (`public/workOrder.json`)
 
-Already wired up — the manifest lists SVG + PNG favicons and the 192/512
+Already wired up — the workOrder lists SVG + PNG favicons and the 192/512
 icons for Android install prompts.
 
 ### Email templates

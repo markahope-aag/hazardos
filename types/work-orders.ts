@@ -1,10 +1,10 @@
 /**
- * Manifest snapshot schema.
+ * Work order snapshot schema.
  * Versioned via the `version` field so future shape changes don't break
  * records written with an older layout. Consumers should check `version`
  * before reading fields that may not have existed yet.
  */
-export interface ManifestSnapshot {
+export interface WorkOrderSnapshot {
   version: 1
 
   site: {
@@ -30,7 +30,7 @@ export interface ManifestSnapshot {
     access_notes: string | null
     special_instructions: string | null
     // ID of the source site survey, when the job was generated from one.
-    // Used to surface the survey's photos and videos on the manifest so
+    // Used to surface the survey's photos and videos on the work order so
     // the field team has site context on the way to the job.
     site_survey_id: string | null
   }
@@ -84,9 +84,9 @@ export interface ManifestSnapshot {
   }>
 }
 
-export interface ManifestVehicle {
+export interface WorkOrderVehicle {
   id: string
-  manifest_id: string
+  work_order_id: string
   vehicle_type: string | null
   make_model: string | null
   plate: string | null
@@ -102,15 +102,15 @@ export interface ManifestVehicle {
   created_at: string
 }
 
-export type ManifestStatus = 'draft' | 'issued'
+export type WorkOrderStatus = 'draft' | 'issued'
 
-export interface Manifest {
+export interface WorkOrder {
   id: string
   organization_id: string
   job_id: string
-  manifest_number: string
-  status: ManifestStatus
-  snapshot: ManifestSnapshot
+  work_order_number: string
+  status: WorkOrderStatus
+  snapshot: WorkOrderSnapshot
   notes: string | null
   issued_at: string | null
   issued_by: string | null
@@ -119,6 +119,6 @@ export interface Manifest {
   updated_at: string
 }
 
-export interface ManifestWithVehicles extends Manifest {
-  vehicles: ManifestVehicle[]
+export interface WorkOrderWithVehicles extends WorkOrder {
+  vehicles: WorkOrderVehicle[]
 }

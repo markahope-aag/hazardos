@@ -175,7 +175,7 @@ describe('Jobs API', () => {
       customer_id: '550e8400-e29b-41d4-a716-446655440000',
       // Assigned technician is now required on job create.
       assigned_to: '550e8400-e29b-41d4-a716-446655440099',
-      // Job name is now required — used on the manifest and calendar.
+      // Job name is now required — used on the work order and calendar.
       name: 'Asbestos abatement test',
       scheduled_start_date: '2026-02-01',
       job_address: '123 Test St',

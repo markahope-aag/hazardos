@@ -16,9 +16,9 @@ import { Button } from '@/components/ui/button'
 import { ClipboardList, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 
-interface ManifestRow {
+interface WorkOrderRow {
   id: string
-  manifest_number: string
+  work_order_number: string
   status: 'draft' | 'issued'
   notes: string | null
   issued_at: string | null
@@ -40,23 +40,23 @@ interface ManifestRow {
   } | null
 }
 
-export default function ManifestsPage() {
+export default function WorkOrdersPage() {
   const { toast } = useToast()
-  const [manifests, setManifests] = useState<ManifestRow[]>([])
+  const [workOrders, setWorkOrders] = useState<WorkOrderRow[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
     const load = async () => {
       try {
-        const res = await fetch('/api/manifests')
-        if (!res.ok) throw new Error('Failed to load manifests')
+        const res = await fetch('/api/work-orders')
+        if (!res.ok) throw new Error('Failed to load work orders')
         const body = await res.json()
-        if (!cancelled) setManifests(body.manifests || [])
+        if (!cancelled) setWorkOrders(body.work_orders || [])
       } catch (err) {
         if (!cancelled) {
           toast({
-            title: 'Could not load manifests',
+            title: 'Could not load work orders',
             description: err instanceof Error ? err.message : 'Try again shortly.',
             variant: 'destructive',
           })
@@ -75,7 +75,7 @@ export default function ManifestsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Manifests</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Work Orders</h1>
           <p className="text-muted-foreground">
             The sheet the crew takes to the site — site details, people, materials, equipment, vehicles.
           </p>
@@ -89,15 +89,15 @@ export default function ManifestsPage() {
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      ) : manifests.length === 0 ? (
+      ) : workOrders.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center space-y-3">
             <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center">
               <ClipboardList className="h-7 w-7 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium">No manifests yet</h3>
+            <h3 className="text-lg font-medium">No work orders yet</h3>
             <p className="text-sm text-muted-foreground">
-              Manifests are generated from a job. Open a job and click "Generate Manifest".
+              Work orders are generated from a job. Open a job and click &quot;Generate Work Order&quot;.
             </p>
             <Button asChild>
               <Link href="/jobs">Go to jobs</Link>
@@ -109,7 +109,7 @@ export default function ManifestsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Manifest #</TableHead>
+                <TableHead>Work Order #</TableHead>
                 <TableHead>Job</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Site</TableHead>
@@ -118,33 +118,33 @@ export default function ManifestsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {manifests.map((m) => {
-                const customerName = m.job?.customer
-                  ? m.job.customer.company_name || m.job.customer.name || 'Unnamed'
+              {workOrders.map((wo) => {
+                const customerName = wo.job?.customer
+                  ? wo.job.customer.company_name || wo.job.customer.name || 'Unnamed'
                   : '—'
-                const site = [m.job?.job_address, m.job?.job_city, m.job?.job_state]
+                const site = [wo.job?.job_address, wo.job?.job_city, wo.job?.job_state]
                   .filter(Boolean)
                   .join(', ') || '—'
-                const scheduled = m.job?.scheduled_start_date
-                  ? new Date(m.job.scheduled_start_date).toLocaleDateString()
+                const scheduled = wo.job?.scheduled_start_date
+                  ? new Date(wo.job.scheduled_start_date).toLocaleDateString()
                   : '—'
                 return (
-                  <TableRow key={m.id}>
+                  <TableRow key={wo.id}>
                     <TableCell>
                       <Link
-                        href={`/manifests/${m.id}`}
+                        href={`/work-orders/${wo.id}`}
                         className="font-medium text-primary hover:underline"
                       >
-                        {m.manifest_number}
+                        {wo.work_order_number}
                       </Link>
                     </TableCell>
                     <TableCell>
-                      {m.job?.id ? (
+                      {wo.job?.id ? (
                         <Link
-                          href={`/jobs/${m.job.id}`}
+                          href={`/jobs/${wo.job.id}`}
                           className="text-sm hover:underline"
                         >
-                          {m.job.job_number || 'View job'}
+                          {wo.job.job_number || 'View job'}
                         </Link>
                       ) : (
                         <span className="text-muted-foreground">—</span>
@@ -159,12 +159,12 @@ export default function ManifestsPage() {
                       <Badge
                         variant="outline"
                         className={
-                          m.status === 'issued'
+                          wo.status === 'issued'
                             ? 'bg-green-100 text-green-700 border-0'
                             : 'bg-amber-100 text-amber-700 border-0'
                         }
                       >
-                        {m.status === 'issued' ? 'Issued' : 'Draft'}
+                        {wo.status === 'issued' ? 'Issued' : 'Draft'}
                       </Badge>
                     </TableCell>
                   </TableRow>

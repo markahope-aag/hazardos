@@ -19,7 +19,7 @@ Screen names and menus match the current app. If your organization uses custom b
 6. [Proposals and Estimates](#proposals-and-estimates)
 7. [Job Scheduling and Management](#job-scheduling-and-management)
 8. [Invoicing](#invoicing)
-9. [Manifests](#manifests)
+9. [Work Orders](#work-orders)
 10. [Messaging](#messaging)
 11. [Notifications](#notifications)
 12. [Using the Customer Portal](#using-the-customer-portal)
@@ -100,7 +100,7 @@ The top navigation includes:
 | **Surveys** | Site survey list and mobile field workflow |
 | **Estimates** | Estimates and pricing workflows |
 | **Jobs** | Job list and job detail (operations view) |
-| **Manifests** | Hazardous waste manifest tracking |
+| **Work Orders** | Crew dispatch sheets — site, crew, materials, equipment, vehicles |
 | **Invoices** | Customer invoicing |
 | **Calendar** | Scheduling |
 | **Messaging** | Customer messaging threads |
@@ -678,7 +678,7 @@ When job is finished:
 - [ ] Work area cleaned
 - [ ] Equipment decontaminated
 - [ ] Waste properly bagged
-- [ ] Disposal manifests completed
+- [ ] Disposal workOrders completed
 
 **Documentation**:
 - [ ] Before photos taken
@@ -915,11 +915,11 @@ If QuickBooks integration is enabled:
 
 ---
 
-## Manifests
+## Work Orders
 
-Use **Manifests** in the main menu to track **hazardous waste manifests** and related shipment details for jobs that require that compliance trail. Open the list to add or open a manifest, attach vehicles or documentation as your workflow defines, and use email actions on a manifest when your team sends paperwork to transporters or regulators.
+A **Work Order** is the dispatch sheet the field crew takes to a site — site location, scope of work, assigned crew, materials, equipment, vehicles, and any special instructions. Generate one from a job (the **Generate Work Order** button on the job page) and the system snapshots the relevant bits of the job, estimate, and crew assignments at that moment. Edit the snapshot while the work order is in **Draft**; once you press **Issue**, the contents are locked so the paper version the crew took to the field always matches what was dispatched, even if you later edit the job.
 
-Exact fields and steps follow your organization’s process; your admin configures integrations and templates elsewhere in **Settings**.
+Open the **Work Orders** list to find any existing work order, attach vehicles, write dispatch notes, print a PDF, or email it to the crew lead. The end-of-job EPA **Waste Manifest** is a separate document attached to the job's disposal records — not the same as a Work Order.
 
 ---
 

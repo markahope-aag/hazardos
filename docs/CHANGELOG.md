@@ -61,7 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Address-based job history aggregation
 
 - **Job Documents System** 
-  - Document management for permits, manifests, clearance reports
+  - Document management for permits, workOrders, clearance reports
   - Video category support for job documentation
   - File organization and retrieval system
 

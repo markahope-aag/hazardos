@@ -197,7 +197,7 @@ describe('Job Disposal Management', () => {
       })
     })
 
-    it('should update manifest number', async () => {
+    it('should update workOrder number', async () => {
       // Arrange
       setupAuthenticatedUser()
 

@@ -34,15 +34,15 @@ import {
   FileText, Download, Mail, Camera, Play, Image as ImageIcon, Video,
 } from 'lucide-react'
 import type {
-  Manifest,
-  ManifestSnapshot,
-  ManifestVehicle,
-} from '@/types/manifests'
+  WorkOrder,
+  WorkOrderSnapshot,
+  WorkOrderVehicle,
+} from '@/types/work-orders'
 import type { SurveyPhotoMetadata } from '@/types/database'
 import {
-  generateManifestPDF,
-  type ManifestMediaItem,
-} from '@/lib/services/manifest-pdf-generator'
+  generateWorkOrderPDF,
+  type WorkOrderMediaItem,
+} from '@/lib/services/work-order-pdf-generator'
 import { getSignedSurveyMediaUrls } from '@/lib/services/photo-upload-service'
 
 const MAX_PDF_PHOTO_EMBEDS = 6
@@ -74,9 +74,9 @@ async function fetchImageAsDataUrl(url: string): Promise<string | null> {
   }
 }
 
-interface ManifestDetail extends Manifest {
+interface WorkOrderDetail extends WorkOrder {
   job: { id: string; job_number: string | null; name: string | null } | null
-  vehicles: ManifestVehicle[]
+  vehicles: WorkOrderVehicle[]
 }
 
 function isVideoMedia(m: SurveyPhotoMetadata): boolean {
@@ -85,12 +85,12 @@ function isVideoMedia(m: SurveyPhotoMetadata): boolean {
   return /\.(mp4|mov|webm|m4v|ogv)(\?|$)/i.test(m.url || m.path || '')
 }
 
-type CrewItem = ManifestSnapshot['crew'][number]
-type MaterialItem = ManifestSnapshot['materials'][number]
-type EquipmentItem = ManifestSnapshot['equipment'][number]
-type ExtraItem = ManifestSnapshot['extra_items'][number]
+type CrewItem = WorkOrderSnapshot['crew'][number]
+type MaterialItem = WorkOrderSnapshot['materials'][number]
+type EquipmentItem = WorkOrderSnapshot['equipment'][number]
+type ExtraItem = WorkOrderSnapshot['extra_items'][number]
 
-export default function ManifestDetailPage({
+export default function WorkOrderDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>
@@ -98,7 +98,7 @@ export default function ManifestDetailPage({
   const { id } = use(params)
   const { toast } = useToast()
 
-  const [manifest, setManifest] = useState<ManifestDetail | null>(null)
+  const [workOrder, setWorkOrder] = useState<WorkOrderDetail | null>(null)
   const [surveyMedia, setSurveyMedia] = useState<SurveyPhotoMetadata[]>([])
   const [signedByPath, setSignedByPath] = useState<Record<string, string>>({})
   const [previewMedia, setPreviewMedia] = useState<SurveyPhotoMetadata | null>(null)
@@ -123,12 +123,12 @@ export default function ManifestDetailPage({
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/manifests/${id}`)
-      if (!res.ok) throw new Error('Failed to load manifest')
+      const res = await fetch(`/api/work-orders/${id}`)
+      if (!res.ok) throw new Error('Failed to load work order')
       const body = await res.json()
-      setManifest(body.manifest)
-      const s: ManifestSnapshot = body.manifest.snapshot || {}
-      setNotes(body.manifest.notes || '')
+      setWorkOrder(body.work_order)
+      const s: WorkOrderSnapshot = body.work_order.snapshot || {}
+      setNotes(body.work_order.notes || '')
       setCrew(s.crew || [])
       setMaterials(s.materials || [])
       setEquipment(s.equipment || [])
@@ -147,7 +147,7 @@ export default function ManifestDetailPage({
       }
     } catch (err) {
       toast({
-        title: 'Could not load manifest',
+        title: 'Could not load work order',
         description: err instanceof Error ? err.message : 'Try again shortly.',
         variant: 'destructive',
       })
@@ -161,10 +161,10 @@ export default function ManifestDetailPage({
   }, [load])
 
   const saveAll = async () => {
-    if (!manifest) return
+    if (!workOrder) return
     setSaving(true)
     try {
-      const res = await fetch(`/api/manifests/${id}`, {
+      const res = await fetch(`/api/work-orders/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -181,7 +181,7 @@ export default function ManifestDetailPage({
         const b = await res.json().catch(() => ({}))
         throw new Error(b?.error?.message || 'Save failed')
       }
-      toast({ title: 'Manifest saved' })
+      toast({ title: 'WorkOrder saved' })
       load()
     } catch (err) {
       toast({
@@ -194,18 +194,18 @@ export default function ManifestDetailPage({
     }
   }
 
-  const issueManifest = async () => {
-    if (!manifest) return
+  const issueWorkOrder = async () => {
+    if (!workOrder) return
     setSaving(true)
     try {
-      const res = await fetch(`/api/manifests/${id}/issue`, { method: 'POST' })
+      const res = await fetch(`/api/work-orders/${id}/issue`, { method: 'POST' })
       if (!res.ok) {
         const b = await res.json().catch(() => ({}))
         throw new Error(b?.error?.message || 'Failed to issue')
       }
       toast({
-        title: 'Manifest issued',
-        description: 'The manifest is locked and ready for dispatch.',
+        title: 'WorkOrder issued',
+        description: 'The work order is locked and ready for dispatch.',
       })
       setShowIssueConfirm(false)
       load()
@@ -223,7 +223,7 @@ export default function ManifestDetailPage({
   const [generatingPdf, setGeneratingPdf] = useState(false)
 
   const downloadPdf = async () => {
-    if (!manifest) return
+    if (!workOrder) return
     setGeneratingPdf(true)
     try {
       // Pre-resolve the first MAX_PDF_PHOTO_EMBEDS image thumbnails to
@@ -234,7 +234,7 @@ export default function ManifestDetailPage({
       const toEmbed = imageMedia.slice(0, MAX_PDF_PHOTO_EMBEDS)
       const toLink = imageMedia.slice(MAX_PDF_PHOTO_EMBEDS)
 
-      const embedItems: ManifestMediaItem[] = await Promise.all(
+      const embedItems: WorkOrderMediaItem[] = await Promise.all(
         toEmbed.map(async (m) => {
           const url =
             (m.path && signedByPath[m.path]) ||
@@ -251,7 +251,7 @@ export default function ManifestDetailPage({
         }),
       )
 
-      const linkOnlyItems: ManifestMediaItem[] = [
+      const linkOnlyItems: WorkOrderMediaItem[] = [
         ...toLink.map((m) => ({
           kind: 'image' as const,
           label: m.caption || 'Photo',
@@ -272,30 +272,30 @@ export default function ManifestDetailPage({
         })),
       ]
 
-      const snapshotForPdf: ManifestSnapshot = {
-        ...manifest.snapshot,
+      const snapshotForPdf: WorkOrderSnapshot = {
+        ...workOrder.snapshot,
         crew,
         materials,
         equipment,
         extra_items: extraItems,
       }
-      const doc = generateManifestPDF(
+      const doc = generateWorkOrderPDF(
         {
-          ...manifest,
+          ...workOrder,
           snapshot: snapshotForPdf,
           notes: notes.trim() || null,
-        } as Manifest,
-        manifest.vehicles,
+        } as WorkOrder,
+        workOrder.vehicles,
         [...embedItems, ...linkOnlyItems].filter((m) => m.url),
       )
-      doc.save(`${manifest.manifest_number}.pdf`)
+      doc.save(`${workOrder.work_order_number}.pdf`)
     } finally {
       setGeneratingPdf(false)
     }
   }
 
   const sendEmail = async () => {
-    if (!manifest) return
+    if (!workOrder) return
     const recipients = emailTo
       .split(/[,\s]+/)
       .map((r) => r.trim())
@@ -309,7 +309,7 @@ export default function ManifestDetailPage({
     }
     setEmailing(true)
     try {
-      const res = await fetch(`/api/manifests/${id}/email`, {
+      const res = await fetch(`/api/work-orders/${id}/email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -323,7 +323,7 @@ export default function ManifestDetailPage({
       }
       const body = await res.json()
       toast({
-        title: 'Manifest emailed',
+        title: 'WorkOrder emailed',
         description: `Sent to ${body.recipients} recipient${body.recipients === 1 ? '' : 's'}.`,
       })
       setShowEmailDialog(false)
@@ -348,15 +348,15 @@ export default function ManifestDetailPage({
     )
   }
 
-  if (!manifest) {
+  if (!workOrder) {
     return (
       <Card>
         <CardContent className="p-6 text-center">
-          <p className="text-sm text-muted-foreground mb-3">Manifest not found.</p>
+          <p className="text-sm text-muted-foreground mb-3">WorkOrder not found.</p>
           <Button asChild variant="outline" size="sm">
-            <Link href="/manifests">
+            <Link href="/work-orders">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to manifests
+              Back to work orders
             </Link>
           </Button>
         </CardContent>
@@ -364,22 +364,22 @@ export default function ManifestDetailPage({
     )
   }
 
-  const s = manifest.snapshot
-  const isDraft = manifest.status === 'draft'
+  const s = workOrder.snapshot
+  const isDraft = workOrder.status === 'draft'
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link href="/manifests">
+          <Link href="/work-orders">
             <Button variant="ghost" size="icon" aria-label="Back">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              {manifest.manifest_number}
+              {workOrder.work_order_number}
             </h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Badge
@@ -392,17 +392,17 @@ export default function ManifestDetailPage({
               >
                 {isDraft ? 'Draft' : 'Issued'}
               </Badge>
-              {manifest.job?.id && (
+              {workOrder.job?.id && (
                 <Link
-                  href={`/jobs/${manifest.job.id}`}
+                  href={`/jobs/${workOrder.job.id}`}
                   className="inline-flex items-center gap-1 hover:underline"
                 >
                   <ExternalLink className="h-3 w-3" />
-                  {manifest.job.job_number || 'job'}
+                  {workOrder.job.job_number || 'job'}
                 </Link>
               )}
-              {manifest.issued_at && (
-                <span>· Issued {new Date(manifest.issued_at).toLocaleDateString()}</span>
+              {workOrder.issued_at && (
+                <span>· Issued {new Date(workOrder.issued_at).toLocaleDateString()}</span>
               )}
             </div>
           </div>
@@ -423,7 +423,7 @@ export default function ManifestDetailPage({
           {isDraft && (
             <Button onClick={() => setShowIssueConfirm(true)} disabled={saving}>
               <CheckCircle className="h-4 w-4 mr-2" />
-              Issue manifest
+              Issue work order
             </Button>
           )}
         </div>
@@ -812,8 +812,8 @@ export default function ManifestDetailPage({
           they have plate/driver/rental metadata that doesn't live on the
           snapshot. */}
       <VehiclesSection
-        manifestId={manifest.id}
-        vehicles={manifest.vehicles}
+        workOrderId={workOrder.id}
+        vehicles={workOrder.vehicles}
         disabled={!isDraft}
         onChange={load}
       />
@@ -891,9 +891,9 @@ export default function ManifestDetailPage({
       <AlertDialog open={showIssueConfirm} onOpenChange={setShowIssueConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Issue this manifest?</AlertDialogTitle>
+            <AlertDialogTitle>Issue this workOrder?</AlertDialogTitle>
             <AlertDialogDescription>
-              Once issued, the manifest is locked. Crew, materials, equipment,
+              Once issued, the workOrder is locked. Crew, materials, equipment,
               vehicles, and notes become read-only. You can still download or
               email the PDF. Save any pending changes first — issuing uses the
               last saved snapshot.
@@ -901,9 +901,9 @@ export default function ManifestDetailPage({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={issueManifest} disabled={saving}>
+            <AlertDialogAction onClick={issueWorkOrder} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Issue manifest
+              Issue work order
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -963,9 +963,9 @@ export default function ManifestDetailPage({
       <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Email manifest</DialogTitle>
+            <DialogTitle>Email workOrder</DialogTitle>
             <DialogDescription>
-              {manifest.manifest_number} will go out as a PDF attachment.
+              {workOrder.work_order_number} will go out as a PDF attachment.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
@@ -1071,13 +1071,13 @@ function EditableListCard<T>({
 }
 
 function VehiclesSection({
-  manifestId,
+  workOrderId,
   vehicles,
   disabled,
   onChange,
 }: {
-  manifestId: string
-  vehicles: ManifestVehicle[]
+  workOrderId: string
+  vehicles: WorkOrderVehicle[]
   disabled: boolean
   onChange: () => void
 }) {
@@ -1096,7 +1096,7 @@ function VehiclesSection({
   const addVehicle = async () => {
     setSaving(true)
     try {
-      const res = await fetch(`/api/manifests/${manifestId}/vehicles`, {
+      const res = await fetch(`/api/work-orders/${workOrderId}/vehicles`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1136,7 +1136,7 @@ function VehiclesSection({
 
   const removeVehicle = async (vehicleId: string) => {
     try {
-      const res = await fetch(`/api/manifests/${manifestId}/vehicles/${vehicleId}`, {
+      const res = await fetch(`/api/work-orders/${workOrderId}/vehicles/${vehicleId}`, {
         method: 'DELETE',
       })
       if (!res.ok) throw new Error('Failed to remove')

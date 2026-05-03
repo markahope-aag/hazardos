@@ -875,7 +875,7 @@ export async function syncPendingEstimates() {
 **Goal:** PWA with offline capability
 
 **Tasks:**
-- [ ] PWA manifest and service worker
+- [ ] PWA workOrder and service worker
 - [ ] Offline form submission
 - [ ] IndexedDB integration
 - [ ] Background sync
@@ -1167,7 +1167,7 @@ export async function syncPendingEstimates() {
 - EPA notification records
 - Worker safety certifications
 - Air monitoring results
-- Disposal manifests
+- Disposal workOrders
 - Customer notifications
 
 **Future Features:**

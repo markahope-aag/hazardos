@@ -131,7 +131,7 @@ Large structured fields (asbestos/mold/lead JSON) are described in TypeScript in
 | `scheduled_reminders` | Reminders tied to jobs or related entities. |
 | `job_time_entries` / `job_material_usage` | Actuals during completion. |
 | `job_completion_photos` / `job_completion_checklists` / `job_completions` | Completion workflow. |
-| `job_documents` | Uploaded docs (categories: permit, manifest, clearance, …). |
+| `job_documents` | Uploaded docs (categories: permit, workOrder, clearance, …). |
 
 ### Invoicing and payments (customer invoices)
 
@@ -192,11 +192,11 @@ Large structured fields (asbestos/mold/lead JSON) are described in TypeScript in
 |-------|------|
 | `activity_log` | User-visible **activity feed**: who did what on which entity (`entity_type` / `entity_id`), optional JSON diffs. Prefer this for “CRM activity” semantics. |
 
-### Waste manifests
+### Waste workOrders
 
 | Table | Role |
 |-------|------|
-| `manifests` / `manifest_vehicles` | Hazardous waste manifest tracking and vehicles. |
+| `work_orders` / `work_order_vehicles` | Crew-facing dispatch sheet (work order) per job, plus assigned vehicles. Snapshot frozen at issue time. |
 
 ---
 

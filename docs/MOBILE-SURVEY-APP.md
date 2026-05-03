@@ -144,7 +144,7 @@ When the browser comes back online (`navigator.onLine` event):
 ## PWA Features
 
 ### Installation
-- `manifest.json` declares standalone display mode, theme color (#FF6B35), and app icons
+- `workOrder.json` declares standalone display mode, theme color (#FF6B35), and app icons
 - `PWAInstallPrompt` component shows a banner when the browser supports installation
 - Dismissible for 7 days via localStorage flag
 - Shortcuts: "New Site Survey" and "Jobs" appear in the app launcher
@@ -210,7 +210,7 @@ lib/services/
 lib/hooks/
   use-online-status.ts                           # Online/offline + sync hooks
 app/sw.ts                                        # Service worker config
-public/manifest.json                             # PWA manifest
+public/workOrder.json                             # PWA workOrder
 app/(public)/offline/page.tsx                    # Offline fallback
 components/pwa/pwa-install-prompt.tsx            # Install banner
 ```
