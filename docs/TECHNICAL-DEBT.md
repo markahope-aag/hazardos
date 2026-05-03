@@ -96,3 +96,25 @@ Items found by the role-permissions audit that we've intentionally deferred. HIG
 **Why deferred:** Pure consistency improvement. No data leak — RLS catches it. Worth doing eventually so the convention is "every route declares its allowedRoles".
 
 **Proposed approach:** Sweep `app/api/**/route.ts` for missing `allowedRoles`, add `ROLES.TENANT_READ` to GETs that don't already gate.
+
+---
+
+## CSP: drop `'unsafe-inline'` / `'unsafe-eval'` from script-src
+
+**What:** `next.config.mjs:121-125` allows `'unsafe-inline'` and `'unsafe-eval'` for `script-src` in both dev and prod. The block comment claims prod is strict but the config is identical for both modes. This weakens the primary XSS defense — any script injection slipped past output-encoding can execute.
+
+**Why deferred:** Two real constraints:
+1. **Next.js hydration** emits inline `<script>` tags with no `src`. Removing `'unsafe-inline'` requires per-request nonces minted in `proxy.ts` and threaded through every script tag (own and third-party).
+2. **Stripe.js** historically requires `'unsafe-eval'`. Stripe now ships a no-eval bundle, but checkout flows need to be re-tested end-to-end before flipping it.
+
+Not a one-line fix; touches every page render and the Stripe integration.
+
+**Proposed approach:**
+
+1. In `proxy.ts`, generate a `crypto.randomUUID()`-based nonce per request and inject as a request header so server components can read it.
+2. Update CSP middleware to emit `script-src 'self' 'nonce-<value>' https://js.stripe.com https://va.vercel-scripts.com` — drop both `'unsafe-inline'` and (eventually) `'unsafe-eval'`.
+3. Tag every inline script with the nonce. Next.js auto-tags hydration scripts when `nonce` is set on `<NextScript>` (App Router uses a different hook — verify in 16.x).
+4. Confirm Stripe is on the no-eval bundle and run a full payment-flow test before dropping `'unsafe-eval'` in prod.
+5. Roll out behind a config flag so we can toggle per-environment if a third-party tag misbehaves.
+
+**Risk:** Any inline script that misses the nonce stops loading — typical breakage is silent (a button doesn't react, an analytics tag goes dark). Needs a CSP-violation reporting endpoint live *before* we tighten the policy, so we can see what breaks in production traffic.
