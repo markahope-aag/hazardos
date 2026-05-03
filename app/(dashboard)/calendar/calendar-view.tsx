@@ -400,7 +400,6 @@ export function CalendarView() {
     options: { compact?: boolean } = {},
   ) => {
     const { event, isStart, isEnd } = eventOnDay
-    const isMiddle = !isStart && !isEnd
 
     if (event.kind === 'job') {
       const job = event.raw.kind === 'job' ? event.raw.job : null

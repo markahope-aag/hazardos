@@ -1,3 +1,9 @@
+// hazardos/allow-unauthenticated: iCal subscribe URLs are pasted into
+// Apple/Google/Outlook Calendar, which never sends session cookies.
+// The per-user calendar_feed_token in the path is the credential —
+// possession of it grants read-only access to that user's schedule,
+// and only that user's. Treated like a password by the UI (rotatable
+// from Settings → Integrations).
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { generateICal, type ICalEvent } from '@/lib/services/ical-generator'
@@ -6,14 +12,8 @@ import { addDays, format } from 'date-fns'
 /**
  * GET /api/calendar/feed/[token]
  *
- * Public iCal subscribe endpoint. The token is a per-user secret
- * stored on profiles.calendar_feed_token — possession of it grants
- * read-only access to that user's assigned jobs and surveys for
- * use in Apple/Google/Outlook Calendar.
- *
- * Calendar clients don't carry session cookies, so this route
- * intentionally bypasses RLS via the service-role client and
- * scopes results purely by the token-mapped user.
+ * Public iCal subscribe endpoint. See the allow-unauthenticated
+ * comment above for the security rationale.
  */
 
 const WINDOW_PAST_DAYS = 30
