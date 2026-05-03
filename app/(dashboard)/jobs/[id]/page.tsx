@@ -5,6 +5,7 @@ import { JobDetails } from './job-details'
 import { JobCrew } from './job-crew'
 import { JobNotes } from './job-notes'
 import { JobDocuments } from './job-documents'
+import { JobWorkOrder } from './job-work-order'
 import EntityActivityFeed from '@/components/activity/entity-activity-feed'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
@@ -126,6 +127,7 @@ export default async function JobDetailPage({
           <TabsTrigger value="crew">
             Crew ({transformedJob.crew?.length || 0})
           </TabsTrigger>
+          <TabsTrigger value="work-order">Work Order</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="notes">
             Notes ({transformedJob.notes?.length || 0})
@@ -142,6 +144,13 @@ export default async function JobDetailPage({
             job={transformedJob}
             crew={transformedJob.crew || []}
             availableCrew={availableCrew || []}
+          />
+        </TabsContent>
+
+        <TabsContent value="work-order" className="mt-4">
+          <JobWorkOrder
+            jobId={transformedJob.id}
+            initial={transformedJob.work_order ?? null}
           />
         </TabsContent>
 
