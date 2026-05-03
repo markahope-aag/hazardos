@@ -1709,6 +1709,29 @@ export interface Database {
           shared_at?: string
         }
       }
+      estimate_attached_documents: {
+        Row: {
+          estimate_id: string
+          document_id: string
+          organization_id: string
+          attached_by: string | null
+          attached_at: string
+        }
+        Insert: {
+          estimate_id: string
+          document_id: string
+          organization_id: string
+          attached_by?: string | null
+          attached_at?: string
+        }
+        Update: {
+          estimate_id?: string
+          document_id?: string
+          organization_id?: string
+          attached_by?: string | null
+          attached_at?: string
+        }
+      }
       property_contacts: {
         Row: {
           id: string
@@ -1831,6 +1854,8 @@ export type JobDocumentInsert = Database['public']['Tables']['job_documents']['I
 export type OrganizationDocumentInsert = Database['public']['Tables']['organization_documents']['Insert']
 export type OrganizationDocumentUpdate = Database['public']['Tables']['organization_documents']['Update']
 export type OrganizationDocumentShareInsert = Database['public']['Tables']['organization_document_shares']['Insert']
+export type EstimateAttachedDocument = Database['public']['Tables']['estimate_attached_documents']['Row']
+export type EstimateAttachedDocumentInsert = Database['public']['Tables']['estimate_attached_documents']['Insert']
 
 // Update types
 export type OrganizationUpdate = Database['public']['Tables']['organizations']['Update']

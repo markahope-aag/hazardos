@@ -54,6 +54,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import { formatCurrency } from '@/lib/utils'
 import { SurveyReviewModal } from '@/components/estimates/survey-review-modal'
+import { CredentialsPicker } from '@/components/estimates/credentials-picker'
 import type { EstimateWithRelations, EstimateStatus, LineItemType, EstimateLineItem } from '@/types/estimates'
 
 const STATUS_CONFIG: Record<EstimateStatus, { label: string; color: string; bgColor: string }> = {
@@ -844,6 +845,9 @@ export default function EstimateDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Credentials & Permits — attached docs ride along on the proposal email */}
+      <CredentialsPicker estimateId={estimate.id} />
 
       {/* Version Chain */}
       {versionInfo && versionInfo.chain.length > 1 && (
