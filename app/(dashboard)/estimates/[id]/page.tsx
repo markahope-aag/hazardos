@@ -52,7 +52,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import { SurveyReviewModal } from '@/components/estimates/survey-review-modal'
 import { CredentialsPicker } from '@/components/estimates/credentials-picker'
 import type { EstimateWithRelations, EstimateStatus, LineItemType, EstimateLineItem } from '@/types/estimates'
@@ -761,50 +761,75 @@ export default function EstimateDetailPage() {
           )}
         </CardHeader>
         <CardContent className="p-0">
-          {(Object.entries(groupedLineItems) as [LineItemType, EstimateLineItem[]][]).map(([type, items]) => (
-            <div key={type}>
-              <div className="px-6 py-2 bg-muted/50">
-                <h4 className="font-medium text-sm">{LINE_ITEM_TYPE_LABELS[type]}</h4>
-              </div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40%]">Description</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead className="text-right">Unit Price</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item: EstimateLineItem) => (
-                    <TableRow key={item.id} className={!item.is_included ? 'opacity-50' : ''}>
-                      <TableCell>
-                        <div>
-                          {item.description}
-                          {item.is_optional && (
-                            <Badge variant="outline" className="ml-2 text-xs">Optional</Badge>
-                          )}
-                          {!item.is_included && (
-                            <Badge variant="outline" className="ml-2 text-xs">Excluded</Badge>
-                          )}
-                        </div>
-                        {item.notes && (
-                          <p className="text-xs text-muted-foreground mt-1">{item.notes}</p>
+          {(Object.entries(groupedLineItems) as [LineItemType, EstimateLineItem[]][]).map(([type, items]) => {
+            // Section subtotal sums included items only — excluded ones
+            // sit in the row list grayed-out for context but don't roll
+            // into the section total.
+            const sectionSubtotal = items.reduce(
+              (sum, item) => (item.is_included ? sum + Number(item.total_price) : sum),
+              0,
+            )
+            return (
+              <div key={type} className="border-b last:border-b-0">
+                <div className="px-6 py-2.5 bg-orange-500 text-white">
+                  <h4 className="font-semibold text-sm uppercase tracking-wide">
+                    {LINE_ITEM_TYPE_LABELS[type]}
+                  </h4>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40%]">Description</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead>Unit</TableHead>
+                      <TableHead className="text-right">Unit Price</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {items.map((item: EstimateLineItem, idx: number) => (
+                      <TableRow
+                        key={item.id}
+                        className={cn(
+                          idx % 2 === 1 && 'bg-gray-50',
+                          !item.is_included && 'opacity-50',
                         )}
+                      >
+                        <TableCell>
+                          <div>
+                            {item.description}
+                            {item.is_optional && (
+                              <Badge variant="outline" className="ml-2 text-xs">Optional</Badge>
+                            )}
+                            {!item.is_included && (
+                              <Badge variant="outline" className="ml-2 text-xs">Excluded</Badge>
+                            )}
+                          </div>
+                          {item.notes && (
+                            <p className="text-xs text-muted-foreground mt-1">{item.notes}</p>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">{item.quantity}</TableCell>
+                        <TableCell>{item.unit}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(item.total_price)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="bg-orange-50 hover:bg-orange-50 border-t-2 border-orange-200">
+                      <TableCell colSpan={4} className="text-right font-semibold text-orange-900">
+                        {LINE_ITEM_TYPE_LABELS[type]} Subtotal
                       </TableCell>
-                      <TableCell className="text-right">{item.quantity}</TableCell>
-                      <TableCell>{item.unit}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(item.total_price)}
+                      <TableCell className="text-right font-bold text-orange-900">
+                        {formatCurrency(sectionSubtotal)}
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )
+          })}
         </CardContent>
       </Card>
 
