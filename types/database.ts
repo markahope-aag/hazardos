@@ -73,6 +73,15 @@ export type JobDocumentCategory =
   | 'daily_log'
   | 'opp'
   | 'other'
+export type OrganizationDocumentCategory =
+  | 'license'
+  | 'certification'
+  | 'insurance'
+  | 'bond'
+  | 'w9'
+  | 'safety_plan'
+  | 'references'
+  | 'other'
 export type CustomerStatus = 'inquiry' | 'prospect' | 'customer' | 'inactive'
 export type CustomerSource = 'phone' | 'website' | 'mail' | 'referral' | 'other'
 export type AppointmentStatus = 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
@@ -1600,6 +1609,106 @@ export interface Database {
           updated_at?: string
         }
       }
+      organization_documents: {
+        Row: {
+          id: string
+          organization_id: string
+          file_name: string
+          storage_path: string
+          mime_type: string | null
+          size_bytes: number | null
+          display_name: string
+          document_number: string | null
+          category: OrganizationDocumentCategory
+          issued_on: string | null
+          expires_on: string | null
+          issuing_authority: string | null
+          notes: string | null
+          uploaded_by: string | null
+          uploaded_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          file_name: string
+          storage_path: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          display_name: string
+          document_number?: string | null
+          category?: OrganizationDocumentCategory
+          issued_on?: string | null
+          expires_on?: string | null
+          issuing_authority?: string | null
+          notes?: string | null
+          uploaded_by?: string | null
+          uploaded_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          file_name?: string
+          storage_path?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          display_name?: string
+          document_number?: string | null
+          category?: OrganizationDocumentCategory
+          issued_on?: string | null
+          expires_on?: string | null
+          issuing_authority?: string | null
+          notes?: string | null
+          uploaded_by?: string | null
+          uploaded_at?: string
+          updated_at?: string
+        }
+      }
+      organization_document_shares: {
+        Row: {
+          id: string
+          organization_id: string
+          document_id: string
+          recipient_email: string
+          recipient_name: string | null
+          customer_id: string | null
+          company_id: string | null
+          message: string | null
+          link_expires_at: string
+          email_send_id: string | null
+          shared_by: string | null
+          shared_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          document_id: string
+          recipient_email: string
+          recipient_name?: string | null
+          customer_id?: string | null
+          company_id?: string | null
+          message?: string | null
+          link_expires_at: string
+          email_send_id?: string | null
+          shared_by?: string | null
+          shared_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          document_id?: string
+          recipient_email?: string
+          recipient_name?: string | null
+          customer_id?: string | null
+          company_id?: string | null
+          message?: string | null
+          link_expires_at?: string
+          email_send_id?: string | null
+          shared_by?: string | null
+          shared_at?: string
+        }
+      }
       property_contacts: {
         Row: {
           id: string
@@ -1693,6 +1802,8 @@ export type PricingSetting = Database['public']['Tables']['pricing_settings']['R
 export type Property = Database['public']['Tables']['properties']['Row']
 export type PropertyContact = Database['public']['Tables']['property_contacts']['Row']
 export type JobDocument = Database['public']['Tables']['job_documents']['Row']
+export type OrganizationDocument = Database['public']['Tables']['organization_documents']['Row']
+export type OrganizationDocumentShare = Database['public']['Tables']['organization_document_shares']['Row']
 
 // Insert types
 export type OrganizationInsert = Database['public']['Tables']['organizations']['Insert']
@@ -1717,6 +1828,9 @@ export type PricingSettingInsert = Database['public']['Tables']['pricing_setting
 export type PropertyInsert = Database['public']['Tables']['properties']['Insert']
 export type PropertyContactInsert = Database['public']['Tables']['property_contacts']['Insert']
 export type JobDocumentInsert = Database['public']['Tables']['job_documents']['Insert']
+export type OrganizationDocumentInsert = Database['public']['Tables']['organization_documents']['Insert']
+export type OrganizationDocumentUpdate = Database['public']['Tables']['organization_documents']['Update']
+export type OrganizationDocumentShareInsert = Database['public']['Tables']['organization_document_shares']['Insert']
 
 // Update types
 export type OrganizationUpdate = Database['public']['Tables']['organizations']['Update']

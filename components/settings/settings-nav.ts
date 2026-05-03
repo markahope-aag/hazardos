@@ -13,6 +13,7 @@ import {
   Mail,
   Shield,
   Palette,
+  FileBadge,
   type LucideIcon,
 } from 'lucide-react'
 import { ROLES } from '@/lib/auth/roles'
@@ -46,6 +47,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
     label: 'Organization',
     items: [
       { href: '/settings/company', label: 'Company Profile', icon: Building2, requiredRoles: ADMIN_ONLY },
+      { href: '/settings/credentials', label: 'Licenses & Permits', icon: FileBadge, description: 'Upload, track expirations, share with prospects', requiredRoles: ADMIN_ONLY },
       { href: '/settings/team', label: 'Team Members', icon: Users, requiredRoles: ADMIN_ONLY },
       { href: '/settings/roles', label: 'Roles', icon: ShieldCheck, requiredRoles: ADMIN_ONLY },
       { href: '/settings/locations', label: 'Locations', icon: MapPin, requiredRoles: ADMIN_ONLY },

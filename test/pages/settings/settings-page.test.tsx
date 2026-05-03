@@ -20,6 +20,7 @@ vi.mock('lucide-react', () => ({
   Shield: () => <div data-testid="icon-shield" />,
   ShieldCheck: () => <div data-testid="icon-shield-check" />,
   Palette: () => <div data-testid="icon-palette" />,
+  FileBadge: () => <div data-testid="icon-file-badge" />,
 }))
 
 // SettingsPage is a server component that awaits the Supabase profile
