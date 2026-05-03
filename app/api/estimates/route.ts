@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { FollowUpsService } from '@/lib/services/follow-ups-service'
-import { createDraftEstimateFromSurvey } from '@/lib/services/estimate-creator'
+import { createEstimateFromSurvey } from '@/lib/services/estimate-creator'
 import { createStandaloneEstimate } from '@/lib/services/standalone-estimate'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { ROLES } from '@/lib/auth/roles'
@@ -165,7 +165,7 @@ export const POST = createApiHandler(
   },
   async (_request, context, body) => {
     if ('site_survey_id' in body) {
-      const { estimate } = await createDraftEstimateFromSurvey(context.supabase, {
+      const { estimate } = await createEstimateFromSurvey(context.supabase, {
         siteSurveyId: body.site_survey_id,
         organizationId: context.profile.organization_id,
         userId: context.user.id,
