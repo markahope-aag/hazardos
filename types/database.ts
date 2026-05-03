@@ -231,6 +231,10 @@ export interface Database {
           email_domain_provider_id: string | null
           email_domain_records: unknown | null // JSONB
           email_domain_verified_at: string | null
+          email_header_color: string | null
+          email_accent_color: string | null
+          email_logo_url: string | null
+          email_signature: string | null
           status: OrganizationStatus
           subscription_tier: SubscriptionTier
           trial_ends_at: string | null
@@ -261,6 +265,10 @@ export interface Database {
           email_domain_provider_id?: string | null
           email_domain_records?: unknown | null
           email_domain_verified_at?: string | null
+          email_header_color?: string | null
+          email_accent_color?: string | null
+          email_logo_url?: string | null
+          email_signature?: string | null
           billing_managed_externally?: boolean
           created_at?: string
           updated_at?: string
@@ -284,6 +292,10 @@ export interface Database {
           email_domain_provider_id?: string | null
           email_domain_records?: unknown | null
           email_domain_verified_at?: string | null
+          email_header_color?: string | null
+          email_accent_color?: string | null
+          email_logo_url?: string | null
+          email_signature?: string | null
           billing_managed_externally?: boolean
           created_at?: string
           updated_at?: string

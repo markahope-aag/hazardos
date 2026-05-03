@@ -4,6 +4,7 @@ import { SecureError } from '@/lib/utils/secure-error-handler'
 import { SmsService } from '@/lib/services/sms-service'
 import { InvoicesService } from '@/lib/services/invoices-service'
 import { EmailService } from '@/lib/services/email/email-service'
+import { wrapEmailHtml } from '@/lib/services/email/template-wrapper'
 import { formatCurrency } from '@/lib/utils'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type { Invoice } from '@/types/invoices'
@@ -210,54 +211,44 @@ export class InvoiceDeliveryService {
       </tr>
     `).join('') || ''
 
-    const emailHtml = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background-color: #f97316; padding: 24px; text-align: center;">
-          <h1 style="color: white; margin: 0;">${companyName}</h1>
-        </div>
+    // Body content only — wrapper supplies the header bar, signature,
+    // CTA button and the surrounding chrome based on org appearance
+    // settings so changes from Settings → Email propagate here.
+    const bodyHtml = `
+      <h2 style="color:#1f2937;margin:0 0 16px 0;font-size:20px;font-weight:600;">Invoice ${invoice.invoice_number}</h2>
+      <p style="margin:0 0 12px 0;">Dear ${customerName},</p>
+      <p style="margin:0 0 16px 0;">Please find your invoice details below. The total amount due is <strong>${formatCurrency(invoice.balance_due)}</strong> by ${new Date(invoice.due_date).toLocaleDateString()}.</p>
 
-        <div style="padding: 24px;">
-          <h2 style="color: #1f2937;">Invoice ${invoice.invoice_number}</h2>
+      <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+        <thead>
+          <tr style="background-color:#f3f4f6;">
+            <th style="padding:8px;text-align:left;">Description</th>
+            <th style="padding:8px;text-align:center;">Qty</th>
+            <th style="padding:8px;text-align:right;">Price</th>
+            <th style="padding:8px;text-align:right;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${lineItemsHtml}
+        </tbody>
+      </table>
 
-          <p>Dear ${customerName},</p>
-
-          <p>Please find your invoice details below. The total amount due is <strong>${formatCurrency(invoice.balance_due)}</strong> by ${new Date(invoice.due_date).toLocaleDateString()}.</p>
-
-          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-            <thead>
-              <tr style="background-color: #f3f4f6;">
-                <th style="padding: 8px; text-align: left;">Description</th>
-                <th style="padding: 8px; text-align: center;">Qty</th>
-                <th style="padding: 8px; text-align: right;">Price</th>
-                <th style="padding: 8px; text-align: right;">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${lineItemsHtml}
-            </tbody>
-          </table>
-
-          <div style="text-align: right; margin-top: 20px;">
-            <p style="margin: 4px 0;">Subtotal: ${formatCurrency(invoice.subtotal)}</p>
-            ${invoice.tax_amount > 0 ? `<p style="margin: 4px 0;">Tax: ${formatCurrency(invoice.tax_amount)}</p>` : ''}
-            ${invoice.discount_amount > 0 ? `<p style="margin: 4px 0;">Discount: -${formatCurrency(invoice.discount_amount)}</p>` : ''}
-            <p style="margin: 8px 0; font-size: 18px; font-weight: bold;">Total Due: ${formatCurrency(invoice.balance_due)}</p>
-          </div>
-
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${paymentUrl}" style="display: inline-block; padding: 14px 32px; background-color: #f97316; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Pay Now</a>
-          </div>
-
-          ${invoice.notes ? `<p style="margin-top: 20px; padding: 12px; background-color: #f3f4f6; border-radius: 4px;"><strong>Notes:</strong> ${invoice.notes}</p>` : ''}
-
-          <hr style="margin-top: 30px; border: none; border-top: 1px solid #e5e7eb;" />
-
-          <p style="font-size: 12px; color: #6b7280; text-align: center;">
-            ${companyName}${organization?.address ? ` | ${organization.address}` : ''}${organization?.phone ? ` | ${organization.phone}` : ''}
-          </p>
-        </div>
+      <div style="text-align:right;margin-top:20px;">
+        <p style="margin:4px 0;">Subtotal: ${formatCurrency(invoice.subtotal)}</p>
+        ${invoice.tax_amount > 0 ? `<p style="margin:4px 0;">Tax: ${formatCurrency(invoice.tax_amount)}</p>` : ''}
+        ${invoice.discount_amount > 0 ? `<p style="margin:4px 0;">Discount: -${formatCurrency(invoice.discount_amount)}</p>` : ''}
+        <p style="margin:8px 0;font-size:18px;font-weight:bold;">Total Due: ${formatCurrency(invoice.balance_due)}</p>
       </div>
+
+      ${invoice.notes ? `<p style="margin-top:20px;padding:12px;background-color:#f3f4f6;border-radius:4px;"><strong>Notes:</strong> ${invoice.notes}</p>` : ''}
     `
+
+    const emailHtml = await wrapEmailHtml(organizationId, {
+      subject: `Invoice ${invoice.invoice_number}`,
+      preheader: `${formatCurrency(invoice.balance_due)} due ${new Date(invoice.due_date).toLocaleDateString()}`,
+      bodyHtml,
+      cta: { url: paymentUrl, label: 'Pay Now' },
+    })
 
     await EmailService.send(
       organizationId,

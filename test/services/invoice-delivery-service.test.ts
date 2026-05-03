@@ -41,6 +41,13 @@ vi.mock('@/lib/services/email/email-service', () => ({
   }),
 }))
 
+// The shared template wrapper now reads org appearance via the admin
+// client. Mock it so this test stays focused on delivery wiring (the
+// pure renderer is exercised by its own unit tests).
+vi.mock('@/lib/services/email/template-wrapper', () => ({
+  wrapEmailHtml: vi.fn().mockResolvedValue('<html><body>mocked email</body></html>'),
+}))
+
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
 

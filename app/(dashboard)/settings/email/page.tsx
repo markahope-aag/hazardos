@@ -9,9 +9,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
+import { Textarea } from '@/components/ui/textarea'
 import {
-  AlertTriangle, Check, Clock, Copy, Globe, Loader2, Mail, RefreshCw, Save, Send, Trash2, XCircle,
+  AlertTriangle, Check, Clock, Copy, Globe, Loader2, Mail, Palette, RefreshCw, Save, Send, Trash2, XCircle,
 } from 'lucide-react'
+import {
+  renderEmailHtml,
+  resolveAppearance,
+  DEFAULT_HEADER_COLOR,
+  DEFAULT_ACCENT_COLOR,
+} from '@/lib/services/email/template'
 
 interface DnsRecord {
   type: 'TXT' | 'MX' | 'CNAME'
@@ -34,6 +41,13 @@ interface EmailSettingsState {
   organization_name: string
 }
 
+interface EmailAppearanceState {
+  email_header_color: string
+  email_accent_color: string
+  email_logo_url: string
+  email_signature: string
+}
+
 export default function EmailSettingsPage() {
   const { toast } = useToast()
   const [loadingOrg, setLoadingOrg] = useState(true)
@@ -44,6 +58,13 @@ export default function EmailSettingsPage() {
     email_reply_to: '',
     organization_name: '',
   })
+  const [appearance, setAppearance] = useState<EmailAppearanceState>({
+    email_header_color: '',
+    email_accent_color: '',
+    email_logo_url: '',
+    email_signature: '',
+  })
+  const [savingAppearance, setSavingAppearance] = useState(false)
   const [domain, setDomain] = useState<DomainState>({
     domain: null,
     status: null,
@@ -67,6 +88,12 @@ export default function EmailSettingsPage() {
         email_from_name: org.email_from_name || '',
         email_reply_to: org.email_reply_to || '',
         organization_name: org.name || '',
+      })
+      setAppearance({
+        email_header_color: org.email_header_color || '',
+        email_accent_color: org.email_accent_color || '',
+        email_logo_url: org.email_logo_url || '',
+        email_signature: org.email_signature || '',
       })
     } finally {
       setLoadingOrg(false)
@@ -126,6 +153,35 @@ export default function EmailSettingsPage() {
       })
     } finally {
       setSavingSettings(false)
+    }
+  }
+
+  const handleSaveAppearance = async () => {
+    setSavingAppearance(true)
+    try {
+      const res = await fetch('/api/organizations/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email_header_color: appearance.email_header_color,
+          email_accent_color: appearance.email_accent_color,
+          email_logo_url: appearance.email_logo_url,
+          email_signature: appearance.email_signature,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.error?.message || 'Save failed')
+      }
+      toast({ title: 'Email appearance saved' })
+    } catch (e) {
+      toast({
+        title: 'Save failed',
+        description: e instanceof Error ? e.message : 'Unknown error',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingAppearance(false)
     }
   }
 
@@ -338,6 +394,174 @@ export default function EmailSettingsPage() {
                 <><Save className="h-4 w-4 mr-2" /> Save</>
               )}
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Email appearance — drives the shared template wrapper so a
+          single change here propagates to every email type. The
+          preview iframe below renders the user's pending settings in
+          real time so they can see exactly what their customer will
+          receive before saving. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="h-5 w-5" />
+            Email Appearance
+          </CardTitle>
+          <CardDescription>
+            Customize the look of every transactional email — header color, button color, logo,
+            and signature. Changes apply to invoices, reminders, estimates, and all other
+            outbound mail.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="email_header_color">Header color</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    id="email_header_color_picker"
+                    type="color"
+                    value={appearance.email_header_color || DEFAULT_HEADER_COLOR}
+                    onChange={(e) =>
+                      setAppearance((s) => ({ ...s, email_header_color: e.target.value }))
+                    }
+                    className="w-14 h-10 p-1 cursor-pointer flex-shrink-0"
+                    aria-label="Header color picker"
+                  />
+                  <Input
+                    id="email_header_color"
+                    value={appearance.email_header_color}
+                    onChange={(e) =>
+                      setAppearance((s) => ({ ...s, email_header_color: e.target.value }))
+                    }
+                    placeholder={DEFAULT_HEADER_COLOR}
+                    className="font-mono text-sm"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  The banner at the top of every email.
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="email_accent_color">Button color</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    id="email_accent_color_picker"
+                    type="color"
+                    value={appearance.email_accent_color || DEFAULT_ACCENT_COLOR}
+                    onChange={(e) =>
+                      setAppearance((s) => ({ ...s, email_accent_color: e.target.value }))
+                    }
+                    className="w-14 h-10 p-1 cursor-pointer flex-shrink-0"
+                    aria-label="Button color picker"
+                  />
+                  <Input
+                    id="email_accent_color"
+                    value={appearance.email_accent_color}
+                    onChange={(e) =>
+                      setAppearance((s) => ({ ...s, email_accent_color: e.target.value }))
+                    }
+                    placeholder={DEFAULT_ACCENT_COLOR}
+                    className="font-mono text-sm"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Used on call-to-action buttons like &ldquo;Pay Now&rdquo; or &ldquo;View Invoice&rdquo;.
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="email_logo_url">Logo URL (optional)</Label>
+                <Input
+                  id="email_logo_url"
+                  type="url"
+                  value={appearance.email_logo_url}
+                  onChange={(e) =>
+                    setAppearance((s) => ({ ...s, email_logo_url: e.target.value }))
+                  }
+                  placeholder="https://yourcompany.com/logo.png"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Replaces the company-name text in the header. Use a transparent PNG, max ~240×48px.
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="email_signature">Email signature</Label>
+                <Textarea
+                  id="email_signature"
+                  value={appearance.email_signature}
+                  onChange={(e) =>
+                    setAppearance((s) => ({ ...s, email_signature: e.target.value }))
+                  }
+                  placeholder={`Acme Remediation\n123 Main St, Springfield IL\n(555) 123-4567 · License #ABC1234`}
+                  rows={4}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Appears at the bottom of every email. Plain text — line breaks are preserved.
+                </p>
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={handleSaveAppearance} disabled={savingAppearance}>
+                  {savingAppearance ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving…</>
+                  ) : (
+                    <><Save className="h-4 w-4 mr-2" /> Save Appearance</>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label className="block mb-2">Live preview</Label>
+              <div className="rounded-md border overflow-hidden bg-muted/30">
+                <iframe
+                  title="Email preview"
+                  srcDoc={renderEmailHtml(
+                    resolveAppearance({
+                      organizationName: settings.organization_name || 'Your Company',
+                      email_header_color: appearance.email_header_color || null,
+                      email_accent_color: appearance.email_accent_color || null,
+                      email_logo_url: appearance.email_logo_url || null,
+                      email_signature: appearance.email_signature || null,
+                    }),
+                    {
+                      subject: 'Sample invoice email',
+                      preheader: '$1,250.00 due Apr 30',
+                      bodyHtml: `
+                        <h2 style="color:#1f2937;margin:0 0 16px 0;font-size:20px;font-weight:600;">Invoice INV-1042</h2>
+                        <p style="margin:0 0 12px 0;">Dear Sample Customer,</p>
+                        <p style="margin:0 0 16px 0;">Please find your invoice details below. The total amount due is <strong>$1,250.00</strong> by Apr 30.</p>
+                        <table style="width:100%;border-collapse:collapse;margin:20px 0;font-size:14px;">
+                          <thead>
+                            <tr style="background-color:#f3f4f6;">
+                              <th style="padding:8px;text-align:left;">Description</th>
+                              <th style="padding:8px;text-align:right;">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;">Asbestos abatement — kitchen</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:right;">$1,000.00</td></tr>
+                            <tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;">Disposal &amp; permits</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:right;">$250.00</td></tr>
+                          </tbody>
+                        </table>
+                        <p style="text-align:right;margin:8px 0;font-size:18px;font-weight:bold;">Total Due: $1,250.00</p>
+                      `,
+                      cta: { url: '#', label: 'Pay Now' },
+                    },
+                  )}
+                  className="w-full h-[640px] bg-white border-0"
+                  sandbox=""
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Preview updates in real time as you change the inputs. Save when it looks right.
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>

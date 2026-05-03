@@ -23,6 +23,21 @@ const updateSchema = z.object({
   // display concerns.
   email_from_name: z.string().max(120).optional().or(z.literal('')),
   email_reply_to: z.string().email().optional().or(z.literal('')),
+  // Email appearance — drive the shared template wrapper. Hex colors
+  // are validated as #-prefixed 3- or 6-digit codes; logo + signature
+  // are free-form. Empty string → null (clears the value).
+  email_header_color: z
+    .string()
+    .regex(/^#(?:[0-9a-fA-F]{3}){1,2}$/, 'Use a hex color like #1f2937')
+    .optional()
+    .or(z.literal('')),
+  email_accent_color: z
+    .string()
+    .regex(/^#(?:[0-9a-fA-F]{3}){1,2}$/, 'Use a hex color like #f97316')
+    .optional()
+    .or(z.literal('')),
+  email_logo_url: z.string().url().max(2048).optional().or(z.literal('')),
+  email_signature: z.string().max(2000).optional().or(z.literal('')),
   // Survey photo retention window in days. The DB enforces 90–3650
   // via CHECK constraint; we mirror it here so the API rejects bad
   // values with a structured error rather than a Postgres error.
@@ -35,7 +50,7 @@ export const GET = createApiHandler(
   async (_request, context) => {
     const { data, error } = await context.supabase
       .from('organizations')
-      .select('id, name, email, phone, website, license_number, address, city, state, zip, timezone, email_from_name, email_reply_to, email_domain, email_domain_status, photo_retention_days')
+      .select('id, name, email, phone, website, license_number, address, city, state, zip, timezone, email_from_name, email_reply_to, email_domain, email_domain_status, email_header_color, email_accent_color, email_logo_url, email_signature, photo_retention_days')
       .eq('id', context.profile.organization_id)
       .single()
     if (error) throw error
