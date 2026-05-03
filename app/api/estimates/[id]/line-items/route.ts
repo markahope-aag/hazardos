@@ -1,8 +1,29 @@
 import { NextResponse } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { addLineItemSchema, bulkUpdateLineItemsSchema } from '@/lib/validations/estimates'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { recomputeEstimateTotals } from '@/lib/services/estimate-totals'
+import { logger } from '@/lib/utils/logger'
+
+/**
+ * Recompute the estimate's monetary roll-up after a mutation. Best-
+ * effort: a recompute failure is logged but does not roll back the
+ * primary write — the line item / status change has already happened
+ * and stale stored totals are preferable to a 500 that nudges the user
+ * into duplicate-clicking. The next mutation will re-derive totals.
+ */
+async function tryRecompute(supabase: SupabaseClient, estimateId: string) {
+  try {
+    return await recomputeEstimateTotals(supabase, estimateId)
+  } catch (err) {
+    logger.warn(
+      { estimateId, err },
+      'recomputeEstimateTotals failed; primary write succeeded but stored totals may be stale',
+    )
+    return null
+  }
+}
 
 /**
  * GET /api/estimates/[id]/line-items
@@ -104,7 +125,7 @@ export const POST = createApiHandlerWithParams(
       throw createError
     }
 
-    const totals = await recomputeEstimateTotals(context.supabase, params.id)
+    const totals = await tryRecompute(context.supabase, params.id)
 
     return NextResponse.json({ line_item: lineItem, totals }, { status: 201 })
   }
@@ -189,7 +210,7 @@ export const PUT = createApiHandlerWithParams(
       throw fetchError
     }
 
-    const totals = await recomputeEstimateTotals(context.supabase, params.id)
+    const totals = await tryRecompute(context.supabase, params.id)
 
     return NextResponse.json({ line_items: lineItems || [], totals })
   }

@@ -1,10 +1,25 @@
 import { NextResponse } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateEstimateSchema } from '@/lib/validations/estimates'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
 import { getEstimateChain } from '@/lib/services/estimate-versioning'
 import { recomputeEstimateTotals } from '@/lib/services/estimate-totals'
+import { logger } from '@/lib/utils/logger'
+
+// Best-effort recompute — see the line-items route for the rationale.
+async function tryRecompute(supabase: SupabaseClient, estimateId: string) {
+  try {
+    return await recomputeEstimateTotals(supabase, estimateId)
+  } catch (err) {
+    logger.warn(
+      { estimateId, err },
+      'recomputeEstimateTotals failed; primary write succeeded but stored totals may be stale',
+    )
+    return null
+  }
+}
 
 /**
  * GET /api/estimates/[id]
@@ -127,18 +142,20 @@ export const PATCH = createApiHandlerWithParams(
       body.tax_percent !== undefined
 
     if (totalsAffected) {
-      const totals = await recomputeEstimateTotals(context.supabase, params.id)
-      return NextResponse.json({
-        estimate: {
-          ...estimate,
-          subtotal: totals.subtotal,
-          markup_amount: totals.markup_amount,
-          discount_amount: totals.discount_amount,
-          tax_amount: totals.tax_amount,
-          total: totals.total,
-        },
-        totals,
-      })
+      const totals = await tryRecompute(context.supabase, params.id)
+      if (totals) {
+        return NextResponse.json({
+          estimate: {
+            ...estimate,
+            subtotal: totals.subtotal,
+            markup_amount: totals.markup_amount,
+            discount_amount: totals.discount_amount,
+            tax_amount: totals.tax_amount,
+            total: totals.total,
+          },
+          totals,
+        })
+      }
     }
 
     return NextResponse.json({ estimate })

@@ -170,6 +170,7 @@ describe('InvoicesService', () => {
         customer_id: 'cust-1',
         contract_amount: 5000,
         final_amount: null,
+        status: 'completed',
         change_orders: [],
       }
 
@@ -261,6 +262,7 @@ describe('InvoicesService', () => {
         id: 'job-1',
         customer_id: 'cust-1',
         contract_amount: 5000,
+        status: 'completed',
         change_orders: [
           { id: 'co-1', status: 'approved', amount: 1000, description: 'Extra work' },
           { id: 'co-2', status: 'pending', amount: 500, description: 'Not approved' },

@@ -1,9 +1,25 @@
 import { NextResponse } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateLineItemSchema } from '@/lib/validations/estimates'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { recomputeEstimateTotals } from '@/lib/services/estimate-totals'
+import { logger } from '@/lib/utils/logger'
 import { z } from 'zod'
+
+// Best-effort recompute — a stale total beats a 500 that masks a
+// successful primary write. Same rationale as the parent route.
+async function tryRecompute(supabase: SupabaseClient, estimateId: string) {
+  try {
+    return await recomputeEstimateTotals(supabase, estimateId)
+  } catch (err) {
+    logger.warn(
+      { estimateId, err },
+      'recomputeEstimateTotals failed; primary write succeeded but stored totals may be stale',
+    )
+    return null
+  }
+}
 
 type UpdateLineItemBody = z.infer<typeof updateLineItemSchema>
 type Params = { id: string; lineItemId: string }
@@ -77,7 +93,7 @@ export const PATCH = createApiHandlerWithParams<UpdateLineItemBody, unknown, Par
       throw updateError
     }
 
-    const totals = await recomputeEstimateTotals(context.supabase, params.id)
+    const totals = await tryRecompute(context.supabase, params.id)
 
     return NextResponse.json({ line_item: lineItem, totals })
   }
@@ -118,7 +134,7 @@ export const DELETE = createApiHandlerWithParams<unknown, unknown, Params>(
       throw deleteError
     }
 
-    const totals = await recomputeEstimateTotals(context.supabase, params.id)
+    const totals = await tryRecompute(context.supabase, params.id)
 
     return NextResponse.json({ success: true, totals })
   }
