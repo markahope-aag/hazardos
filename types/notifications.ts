@@ -201,6 +201,13 @@ export const notificationTypeConfig: Record<NotificationType, {
     color: 'text-yellow-700',
     bgColor: 'bg-yellow-100',
   },
+  sms_received: {
+    label: 'New Text Message',
+    description: 'When a customer texts you back',
+    icon: 'MessageSquare',
+    color: 'text-indigo-700',
+    bgColor: 'bg-indigo-100',
+  },
   system: {
     label: 'System',
     description: 'System announcements and updates',
@@ -245,6 +252,7 @@ export const defaultNotificationPreferences: Record<NotificationType, {
   payment_failed: { in_app: true, email: true, push: true },
   feedback_received: { in_app: true, email: true, push: false },
   testimonial_pending: { in_app: true, email: true, push: false },
+  sms_received: { in_app: true, email: false, push: true },
   system: { in_app: true, email: true, push: false },
   reminder: { in_app: true, email: true, push: false },
 }

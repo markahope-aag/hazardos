@@ -10,8 +10,10 @@ export const notificationTypeSchema = z.enum([
   'invoice_paid',
   'invoice_overdue',
   'invoice_viewed',
+  'payment_failed',
   'feedback_received',
   'testimonial_pending',
+  'sms_received',
   'system',
   'reminder',
 ])
@@ -41,13 +43,23 @@ export const notificationListQuerySchema = z.object({
   unread: z.string().optional(),
 }).passthrough()
 
-// Update notification preference
+// Update notification preference. user_id is optional — when provided
+// the API treats it as "configure this OTHER user's preferences" and
+// requires the caller to have admin role; when omitted, it edits the
+// caller's own preferences.
 export const updateNotificationPreferenceSchema = z.object({
   notification_type: notificationTypeSchema,
+  user_id: z.string().uuid().optional(),
   in_app: z.boolean().optional(),
   email: z.boolean().optional(),
   push: z.boolean().optional(),
 })
+
+// Query for GET /api/notifications/preferences — admin can pass a
+// user_id to inspect a teammate's preferences.
+export const notificationPreferencesQuerySchema = z.object({
+  user_id: z.string().uuid().optional(),
+}).passthrough()
 
 // Export types
 export type CreateNotificationInput = z.infer<typeof createNotificationSchema>

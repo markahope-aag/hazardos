@@ -227,30 +227,99 @@ export class NotificationService {
 
   // ========== PREFERENCES ==========
 
-  static async getPreferences(): Promise<NotificationPreference[]> {
+  /**
+   * Resolve which user's preferences a request is operating on.
+   *
+   * Default is "the caller's own" — this path matches the original
+   * service behavior exactly: just `auth.getUser()`, no extra profile
+   * fetch.
+   *
+   * Passing `targetUserId` triggers the admin path: the caller must be
+   * tenant_owner / admin / platform staff in the same organization as
+   * the target. RLS still backstops cross-tenant attempts, but
+   * enforcing here gives clean error messages and keeps the audit
+   * story simple.
+   */
+  private static async resolvePreferenceTarget(
+    targetUserId?: string,
+  ): Promise<{ userId: string; organizationId: string | null }> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-
     if (!user) throw new SecureError('UNAUTHORIZED')
 
-    // Initialize preferences if not exists
-    const { data: profile } = await supabase
+    if (!targetUserId || targetUserId === user.id) {
+      return { userId: user.id, organizationId: null }
+    }
+
+    const { data: callerProfile } = await supabase
       .from('profiles')
-      .select('organization_id')
+      .select('id, organization_id, role, is_platform_user')
       .eq('id', user.id)
       .single()
+    if (!callerProfile) throw new SecureError('UNAUTHORIZED')
 
-    if (profile) {
+    const adminRoles = ['platform_owner', 'platform_admin', 'tenant_owner', 'admin']
+    const callerIsAdmin =
+      callerProfile.is_platform_user || adminRoles.includes(callerProfile.role)
+    if (!callerIsAdmin) {
+      throw new SecureError(
+        'FORBIDDEN',
+        'Only admins can configure notifications for other users',
+      )
+    }
+
+    const { data: targetProfile } = await supabase
+      .from('profiles')
+      .select('id, organization_id')
+      .eq('id', targetUserId)
+      .single()
+    if (!targetProfile) throw new SecureError('NOT_FOUND', 'User not found')
+
+    // Tenant admins can only configure users inside their own org.
+    // Platform staff can cross orgs.
+    if (
+      !callerProfile.is_platform_user &&
+      targetProfile.organization_id !== callerProfile.organization_id
+    ) {
+      throw new SecureError('FORBIDDEN', 'User is in a different organization')
+    }
+
+    return {
+      userId: targetProfile.id,
+      organizationId: targetProfile.organization_id,
+    }
+  }
+
+  static async getPreferences(targetUserId?: string): Promise<NotificationPreference[]> {
+    const supabase = await createClient()
+    const { userId, organizationId: resolvedOrgId } =
+      await NotificationService.resolvePreferenceTarget(targetUserId)
+
+    // Self path: resolvePreferenceTarget short-circuits before fetching
+    // the profile, so we still need the org id here for the seed RPC.
+    let organizationId = resolvedOrgId
+    if (!organizationId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', userId)
+        .single()
+      organizationId = profile?.organization_id ?? null
+    }
+
+    // Seed any missing preference rows so the UI can render every
+    // notification type even on a brand-new user.
+    if (organizationId) {
       await supabase.rpc('initialize_notification_preferences', {
-        p_user_id: user.id,
-        p_org_id: profile.organization_id,
+        p_user_id: userId,
+        p_org_id: organizationId,
       })
     }
 
     const { data, error } = await supabase
       .from('notification_preferences')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('notification_type')
 
     if (error) throwDbError(error, 'fetch notification preferences')
@@ -258,11 +327,12 @@ export class NotificationService {
     return data || []
   }
 
-  static async updatePreference(input: UpdatePreferenceInput): Promise<NotificationPreference> {
+  static async updatePreference(
+    input: UpdatePreferenceInput,
+    targetUserId?: string,
+  ): Promise<NotificationPreference> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new SecureError('UNAUTHORIZED')
+    const { userId } = await NotificationService.resolvePreferenceTarget(targetUserId)
 
     const updateData: Record<string, unknown> = {}
     if (input.in_app !== undefined) updateData.in_app = input.in_app
@@ -272,7 +342,7 @@ export class NotificationService {
     const { data, error } = await supabase
       .from('notification_preferences')
       .update(updateData)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('notification_type', input.notification_type)
       .select()
       .single()

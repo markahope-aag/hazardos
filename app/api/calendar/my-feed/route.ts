@@ -14,7 +14,7 @@ export const GET = createApiHandler(
     const { data, error } = await context.supabase
       .from('profiles')
       .select('calendar_feed_token')
-      .eq('id', context.profile.id)
+      .eq('id', context.user.id)
       .single()
 
     if (error || !data?.calendar_feed_token) {
@@ -44,7 +44,7 @@ export const POST = createApiHandler(
     const { error } = await context.supabase
       .from('profiles')
       .update({ calendar_feed_token: newToken })
-      .eq('id', context.profile.id)
+      .eq('id', context.user.id)
 
     if (error) throw error
 

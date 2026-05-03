@@ -5,6 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import {
   Bell,
@@ -20,12 +27,21 @@ import {
   Info,
   Eye,
   ClipboardCheck,
+  Users,
 } from 'lucide-react'
 import type {
   NotificationPreference,
   NotificationType,
 } from '@/types/notifications'
 import { notificationTypeConfig } from '@/types/notifications'
+import { useMultiTenantAuth } from '@/components/providers/auth-provider'
+
+interface TeamMember {
+  id: string
+  first_name: string | null
+  last_name: string | null
+  email: string
+}
 
 const iconMap: Record<NotificationType, React.ReactNode> = {
   job_assigned: <Briefcase className="w-5 h-5" />,
@@ -39,6 +55,7 @@ const iconMap: Record<NotificationType, React.ReactNode> = {
   payment_failed: <AlertCircle className="w-5 h-5" />,
   feedback_received: <MessageSquare className="w-5 h-5" />,
   testimonial_pending: <MessageSquare className="w-5 h-5" />,
+  sms_received: <MessageSquare className="w-5 h-5" />,
   system: <Info className="w-5 h-5" />,
   reminder: <Bell className="w-5 h-5" />,
 }
@@ -61,36 +78,74 @@ const categoryGroups: { title: string; types: NotificationType[] }[] = [
     types: ['feedback_received', 'testimonial_pending'],
   },
   {
+    title: 'Messaging',
+    types: ['sms_received'],
+  },
+  {
     title: 'System',
     types: ['system', 'reminder'],
   },
 ]
 
 export default function NotificationSettingsPage() {
+  const { user, canAccessTenantAdmin } = useMultiTenantAuth()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [preferences, setPreferences] = useState<NotificationPreference[]>([])
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  // Fetch preferences
+  // Admin-only: which user's preferences are we configuring? Empty
+  // string represents "yourself" (the API treats a missing user_id as
+  // self).
+  const [selectedUserId, setSelectedUserId] = useState<string>('')
+  const [members, setMembers] = useState<TeamMember[]>([])
+
+  const isEditingSelf = !selectedUserId || selectedUserId === user?.id
+
+  // Load team members for the picker — admins only.
   useEffect(() => {
+    if (!canAccessTenantAdmin) return
+    let cancelled = false
+    fetch('/api/team')
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled) setMembers(d.members || [])
+      })
+      .catch(() => {
+        if (!cancelled) setMembers([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [canAccessTenantAdmin])
+
+  // Fetch preferences for the current target (self or admin-selected).
+  useEffect(() => {
+    let cancelled = false
     async function fetchPreferences() {
+      setLoading(true)
       try {
-        const res = await fetch('/api/notifications/preferences')
-        if (res.ok) {
-          const data = await res.json()
-          setPreferences(data)
+        const params = new URLSearchParams()
+        if (selectedUserId && selectedUserId !== user?.id) {
+          params.set('user_id', selectedUserId)
         }
+        const qs = params.toString() ? `?${params.toString()}` : ''
+        const res = await fetch(`/api/notifications/preferences${qs}`)
+        if (!res.ok) throw new Error('Failed to load')
+        const data = await res.json()
+        if (!cancelled) setPreferences(data)
       } catch {
-        setError('Failed to load preferences')
+        if (!cancelled) setError('Failed to load preferences')
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
-
     fetchPreferences()
-  }, [])
+    return () => {
+      cancelled = true
+    }
+  }, [selectedUserId, user?.id])
 
   // Get preference for a type
   function getPreference(type: NotificationType): NotificationPreference | undefined {
@@ -108,13 +163,18 @@ export default function NotificationSettingsPage() {
       setError(null)
       setSuccess(null)
 
+      const body: Record<string, unknown> = {
+        notification_type: type,
+        [channel]: value,
+      }
+      if (selectedUserId && selectedUserId !== user?.id) {
+        body.user_id = selectedUserId
+      }
+
       const res = await fetch('/api/notifications/preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          notification_type: type,
-          [channel]: value,
-        }),
+        body: JSON.stringify(body),
       })
 
       if (!res.ok) throw new Error('Failed to update preference')
@@ -141,6 +201,10 @@ export default function NotificationSettingsPage() {
     }
   }
 
+  function memberLabel(m: TeamMember): string {
+    return [m.first_name, m.last_name].filter(Boolean).join(' ') || m.email
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -149,14 +213,67 @@ export default function NotificationSettingsPage() {
     )
   }
 
+  const editingMember = members.find((m) => m.id === selectedUserId)
+  const headingTitle =
+    isEditingSelf || !editingMember
+      ? 'Notification Settings'
+      : `Notifications for ${memberLabel(editingMember)}`
+  const headingSubtitle = isEditingSelf
+    ? 'Manage how you receive notifications'
+    : `Configure how ${editingMember ? memberLabel(editingMember) : 'this user'} receives notifications`
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Notification Settings</h1>
-        <p className="text-muted-foreground">
-          Manage how you receive notifications
-        </p>
+        <h1 className="text-2xl font-bold">{headingTitle}</h1>
+        <p className="text-muted-foreground">{headingSubtitle}</p>
       </div>
+
+      {/* Admin-only: pick which user's preferences to configure. The
+          picker is hidden entirely for non-admins so the page reads
+          identically to before for technicians/estimators. */}
+      {canAccessTenantAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Configure for
+            </CardTitle>
+            <CardDescription>
+              Switch users to manage their notification channels — useful for onboarding new
+              team members or setting field-crew defaults.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select
+              value={selectedUserId || (user?.id ?? '')}
+              onValueChange={(v) => setSelectedUserId(v === user?.id ? '' : v)}
+            >
+              <SelectTrigger className="w-full sm:w-[320px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {user?.id && (
+                  <SelectItem value={user.id}>Yourself</SelectItem>
+                )}
+                {members
+                  .filter((m) => m.id !== user?.id)
+                  .map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {memberLabel(m)}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            {!isEditingSelf && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Editing on behalf of another team member. Changes apply to their account
+                immediately.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Status messages */}
       {error && (
