@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   format,
   startOfMonth,
@@ -35,7 +35,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ChevronLeft, ChevronRight, Plus, MapPin, Clock, User, FileText, FileSignature, Download, ExternalLink } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  MapPin,
+  Clock,
+  User,
+  FileText,
+  FileSignature,
+  Download,
+  ExternalLink,
+  ClipboardList,
+  AlertTriangle,
+  CalendarIcon,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { jobStatusConfig } from '@/types/jobs'
 import { logger, formatError } from '@/lib/utils/logger'
@@ -45,6 +59,7 @@ import { JobDocumentsService } from '@/lib/supabase/job-documents'
 import type { JobDocumentCategory } from '@/types/database'
 
 type ViewMode = 'month' | 'week' | 'day'
+type EventKind = 'job' | 'survey' | 'deadline' | 'external'
 
 // Postgres DATE columns come across the wire as bare 'YYYY-MM-DD' strings.
 // date-fns' parseISO treats those as UTC midnight per the ISO spec, which
@@ -75,6 +90,46 @@ interface CalendarJob {
     name: string
     company_name: string | null
   } | null
+  crew?: { is_lead: boolean; profile: { id: string; full_name: string | null } | null }[]
+}
+
+interface CalendarSurvey {
+  id: string
+  job_name: string
+  status: string
+  appointment_status: string | null
+  scheduled_date: string
+  scheduled_time_start: string | null
+  scheduled_time_end: string | null
+  site_address: string
+  site_city: string | null
+  hazard_type: string
+  customer_name: string
+  assigned_to: string | null
+  customer: {
+    id: string
+    first_name: string | null
+    last_name: string | null
+    company_name: string | null
+    name: string | null
+  } | null
+  assignee: {
+    id: string
+    first_name: string | null
+    last_name: string | null
+  } | null
+}
+
+interface RegulatoryDeadline {
+  id: string
+  kind: 'epa_asbestos_notification'
+  label: string
+  deadline_date: string
+  job_id: string
+  job_number: string
+  job_name: string | null
+  job_start_date: string
+  customer_name: string | null
 }
 
 interface ExternalEvent {
@@ -87,16 +142,54 @@ interface ExternalEvent {
   html_link: string | null
 }
 
+interface TeamMember {
+  id: string
+  first_name: string | null
+  last_name: string | null
+  email: string
+}
+
+// Unified event the calendar grid renders. The original record is
+// kept on `raw` so the detail Sheet can branch on type without
+// re-fetching anything.
+interface CalendarEvent {
+  id: string
+  kind: EventKind
+  title: string
+  startDate: Date
+  endDate: Date
+  startTime: string | null
+  assigneeIds: string[]
+  raw:
+    | { kind: 'job'; job: CalendarJob }
+    | { kind: 'survey'; survey: CalendarSurvey }
+    | { kind: 'deadline'; deadline: RegulatoryDeadline }
+    | { kind: 'external'; event: ExternalEvent }
+}
+
+const DEFAULT_TYPE_FILTER: Record<EventKind, boolean> = {
+  job: true,
+  survey: true,
+  deadline: true,
+  external: true,
+}
+
 export function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<ViewMode>('month')
   const [jobs, setJobs] = useState<CalendarJob[]>([])
+  const [surveys, setSurveys] = useState<CalendarSurvey[]>([])
+  const [deadlines, setDeadlines] = useState<RegulatoryDeadline[]>([])
   const [externalEvents, setExternalEvents] = useState<ExternalEvent[]>([])
+  const [members, setMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedJob, setSelectedJob] = useState<CalendarJob | null>(null)
+  const [selected, setSelected] = useState<CalendarEvent | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
 
-  const fetchJobs = useCallback(async () => {
+  const [typeFilter, setTypeFilter] = useState<Record<EventKind, boolean>>(DEFAULT_TYPE_FILTER)
+  const [memberFilter, setMemberFilter] = useState<string>('all')
+
+  const fetchData = useCallback(async () => {
     setLoading(true)
     try {
       let start: Date, end: Date
@@ -115,28 +208,44 @@ export function CalendarView() {
       const startParam = format(start, 'yyyy-MM-dd')
       const endParam = format(end, 'yyyy-MM-dd')
 
-      // Jobs and external (Google) events are fetched in parallel. A Google
-      // outage or a disconnected integration shouldn't break the jobs view —
-      // the external-events endpoint returns an empty list in that case.
-      const [jobsRes, externalRes] = await Promise.all([
+      // Pull every event source in parallel. A failure on any one
+      // shouldn't blank the calendar — surveys/deadlines/external
+      // each fall back to empty.
+      const [jobsRes, surveysRes, deadlinesRes, externalRes] = await Promise.all([
         fetch(`/api/jobs/calendar?start=${startParam}&end=${endParam}`),
+        fetch(`/api/site-surveys/calendar?start=${startParam}&end=${endParam}`),
+        fetch(`/api/calendar/regulatory-deadlines?start=${startParam}&end=${endParam}`),
         fetch(`/api/calendar/external-events?start=${startParam}&end=${endParam}`),
       ])
 
-      const jobsData = await jobsRes.json()
+      const jobsData = await jobsRes.json().catch(() => ({}))
       const jobsList = Array.isArray(jobsData) ? jobsData : jobsData.jobs || []
       setJobs(jobsList)
 
+      if (surveysRes.ok) {
+        const data = await surveysRes.json().catch(() => ({ surveys: [] }))
+        setSurveys(data.surveys || [])
+      } else {
+        setSurveys([])
+      }
+
+      if (deadlinesRes.ok) {
+        const data = await deadlinesRes.json().catch(() => ({ deadlines: [] }))
+        setDeadlines(data.deadlines || [])
+      } else {
+        setDeadlines([])
+      }
+
       if (externalRes.ok) {
-        const externalData = await externalRes.json()
-        setExternalEvents(externalData.google || [])
+        const data = await externalRes.json().catch(() => ({ google: [] }))
+        setExternalEvents(data.google || [])
       } else {
         setExternalEvents([])
       }
     } catch (error) {
       logger.error(
         { error: formatError(error, 'CALENDAR_FETCH_ERROR') },
-        'Failed to fetch calendar jobs'
+        'Failed to fetch calendar data'
       )
     } finally {
       setLoading(false)
@@ -144,8 +253,103 @@ export function CalendarView() {
   }, [currentDate, viewMode])
 
   useEffect(() => {
-    fetchJobs()
-  }, [fetchJobs])
+    fetchData()
+  }, [fetchData])
+
+  useEffect(() => {
+    fetch('/api/team')
+      .then((r) => r.json())
+      .then((d) => setMembers(d.members || []))
+      .catch(() => setMembers([]))
+  }, [])
+
+  // Normalize every source into a single CalendarEvent shape so
+  // filtering and rendering don't have to branch on type per cell.
+  const allEvents = useMemo<CalendarEvent[]>(() => {
+    const out: CalendarEvent[] = []
+
+    for (const job of jobs) {
+      const start = parseLocalDate(job.scheduled_start_date)
+      const end = job.scheduled_end_date ? parseLocalDate(job.scheduled_end_date) : start
+      const assigneeIds = (job.crew || [])
+        .map((c) => c.profile?.id)
+        .filter((x): x is string => Boolean(x))
+      out.push({
+        id: `job-${job.id}`,
+        kind: 'job',
+        title: job.job_number,
+        startDate: start,
+        endDate: end,
+        startTime: job.scheduled_start_time,
+        assigneeIds,
+        raw: { kind: 'job', job },
+      })
+    }
+
+    for (const survey of surveys) {
+      const d = parseLocalDate(survey.scheduled_date)
+      out.push({
+        id: `survey-${survey.id}`,
+        kind: 'survey',
+        title: `Survey: ${survey.job_name}`,
+        startDate: d,
+        endDate: d,
+        startTime: survey.scheduled_time_start,
+        assigneeIds: survey.assigned_to ? [survey.assigned_to] : [],
+        raw: { kind: 'survey', survey },
+      })
+    }
+
+    for (const deadline of deadlines) {
+      const d = parseLocalDate(deadline.deadline_date)
+      out.push({
+        id: deadline.id,
+        kind: 'deadline',
+        title: deadline.label,
+        startDate: d,
+        endDate: d,
+        startTime: null,
+        assigneeIds: [],
+        raw: { kind: 'deadline', deadline },
+      })
+    }
+
+    for (const ev of externalEvents) {
+      if (!ev.start) continue
+      const start = ev.all_day ? parseLocalDate(ev.start) : parseISO(ev.start)
+      const rawEnd = ev.end ? (ev.all_day ? parseLocalDate(ev.end) : parseISO(ev.end)) : start
+      // Google all-day ranges use an exclusive end date.
+      const end = ev.all_day && ev.end ? addDays(rawEnd, -1) : rawEnd
+      out.push({
+        id: `ext-${ev.id}`,
+        kind: 'external',
+        title: ev.summary,
+        startDate: start,
+        endDate: end,
+        startTime: ev.all_day ? null : format(start, 'HH:mm'),
+        assigneeIds: [],
+        raw: { kind: 'external', event: ev },
+      })
+    }
+
+    return out
+  }, [jobs, surveys, deadlines, externalEvents])
+
+  const filteredEvents = useMemo(() => {
+    return allEvents.filter((ev) => {
+      if (!typeFilter[ev.kind]) return false
+      if (memberFilter !== 'all') {
+        // Deadlines have no assignees. Filter them in along with their
+        // owning job — practically: keep deadlines when *anything* the
+        // user owns lives nearby. Simplest correct rule: hide deadlines
+        // when filtering by member, since they're org-wide compliance
+        // pins.
+        if (ev.kind === 'deadline' || ev.kind === 'external') return false
+        if (!ev.assigneeIds.includes(memberFilter)) return false
+      }
+      return true
+    })
+  }, [allEvents, typeFilter, memberFilter])
 
   const navigate = (direction: 'prev' | 'next') => {
     if (viewMode === 'month') {
@@ -159,37 +363,141 @@ export function CalendarView() {
 
   const goToToday = () => setCurrentDate(new Date())
 
-  const getJobsForDate = (date: Date) => {
-    // Multi-day jobs (e.g. a 5-day abatement project) need to appear on every
-    // day they're scheduled, not just the start date.
-    return jobs.filter((job) => {
-      const start = parseLocalDate(job.scheduled_start_date)
-      const end = job.scheduled_end_date ? parseLocalDate(job.scheduled_end_date) : start
-      if (isSameDay(start, date) || isSameDay(end, date)) return true
-      return date > start && date < end
-    })
+  // For every visible day, decide which events touch it and where in
+  // the event's range this day sits. The position lets the renderer
+  // draw a continuous bar across multiple days instead of repeating
+  // the same tile.
+  type EventOnDay = {
+    event: CalendarEvent
+    isStart: boolean
+    isEnd: boolean
   }
 
-  const getExternalEventsForDate = (date: Date) => {
-    return externalEvents.filter((e) => {
-      if (!e.start) return false
-      // Google timed events come with full timestamps, but all-day events
-      // look like DATE strings and need the same local-time handling as
-      // job scheduled_start_date — otherwise the "Offsite" event lands a
-      // day early in Pacific time.
-      const start = e.all_day ? parseLocalDate(e.start) : parseISO(e.start)
-      const end = e.end ? (e.all_day ? parseLocalDate(e.end) : parseISO(e.end)) : start
-      // Google all-day ranges use an exclusive end date, so subtract one day
-      // from the end for "is this event on this day" checks when all-day.
-      const effectiveEnd = e.all_day && e.end ? addDays(end, -1) : end
-      if (isSameDay(start, date) || isSameDay(effectiveEnd, date)) return true
-      return date > start && date < effectiveEnd
-    })
+  const getEventsForDate = (date: Date): EventOnDay[] => {
+    const out: EventOnDay[] = []
+    for (const ev of filteredEvents) {
+      const onStart = isSameDay(ev.startDate, date)
+      const onEnd = isSameDay(ev.endDate, date)
+      const inMiddle = date > ev.startDate && date < ev.endDate
+      if (onStart || onEnd || inMiddle) {
+        out.push({ event: ev, isStart: onStart, isEnd: onEnd })
+      }
+    }
+    // Stable order: jobs first (multi-day bars), then surveys,
+    // deadlines, external.
+    const order: Record<EventKind, number> = { job: 0, survey: 1, deadline: 2, external: 3 }
+    out.sort((a, b) => order[a.event.kind] - order[b.event.kind])
+    return out
   }
 
-  const handleJobClick = (job: CalendarJob) => {
-    setSelectedJob(job)
+  const handleEventClick = (event: CalendarEvent) => {
+    setSelected(event)
     setSheetOpen(true)
+  }
+
+  const renderEventTile = (
+    eventOnDay: EventOnDay,
+    options: { compact?: boolean } = {},
+  ) => {
+    const { event, isStart, isEnd } = eventOnDay
+    const isMiddle = !isStart && !isEnd
+
+    if (event.kind === 'job') {
+      const job = event.raw.kind === 'job' ? event.raw.job : null
+      const statusConfig = job ? jobStatusConfig[job.status as keyof typeof jobStatusConfig] : null
+      return (
+        <button
+          key={`${event.id}-${isStart ? 's' : isEnd ? 'e' : 'm'}`}
+          onClick={() => handleEventClick(event)}
+          className={cn(
+            'w-full text-left text-xs p-1 truncate hover:opacity-80 transition-opacity',
+            statusConfig?.bgColor || 'bg-gray-100',
+            statusConfig?.color || 'text-gray-800',
+            isStart && 'rounded-l',
+            isEnd && 'rounded-r',
+            !isStart && !isEnd && 'rounded-none',
+            isStart && isEnd && 'rounded',
+          )}
+          title={event.title}
+        >
+          {isStart ? (
+            <>
+              {event.startTime && (
+                <span className="font-medium">
+                  {format(parseISO(`2000-01-01T${event.startTime}`), 'h:mma')}
+                </span>
+              )}{' '}
+              {event.title}
+            </>
+          ) : (
+            <span className="opacity-60">{options.compact ? '↳' : '↳ continued'}</span>
+          )}
+        </button>
+      )
+    }
+
+    if (event.kind === 'survey') {
+      return (
+        <button
+          key={event.id}
+          onClick={() => handleEventClick(event)}
+          className={cn(
+            'w-full text-left text-xs p-1 rounded truncate transition-opacity hover:opacity-80',
+            'bg-purple-100 text-purple-900 border-l-2 border-purple-500',
+          )}
+          title={event.title}
+        >
+          <ClipboardList className="h-3 w-3 inline mr-1" />
+          {event.startTime && (
+            <span className="font-medium">
+              {format(parseISO(`2000-01-01T${event.startTime}`), 'h:mma')}{' '}
+            </span>
+          )}
+          {event.title}
+        </button>
+      )
+    }
+
+    if (event.kind === 'deadline') {
+      return (
+        <button
+          key={event.id}
+          onClick={() => handleEventClick(event)}
+          className={cn(
+            'w-full text-left text-xs p-1 rounded truncate transition-opacity hover:opacity-80',
+            'bg-red-50 text-red-800 border border-red-300',
+          )}
+          title={event.title}
+        >
+          <AlertTriangle className="h-3 w-3 inline mr-1" />
+          {event.title}
+        </button>
+      )
+    }
+
+    // external (Google Calendar)
+    if (event.raw.kind === 'external') {
+      const ev = event.raw.event
+      return (
+        <a
+          key={event.id}
+          href={ev.html_link || '#'}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full text-left text-xs p-1 rounded truncate bg-white text-gray-700 border border-dashed border-gray-300 hover:bg-gray-50"
+          title={`Google Calendar: ${ev.summary}`}
+        >
+          {!ev.all_day && ev.start && (
+            <span className="font-medium">
+              {format(parseISO(ev.start), 'h:mma')}{' '}
+            </span>
+          )}
+          {ev.summary}
+        </a>
+      )
+    }
+
+    return null
   }
 
   const renderMonthView = () => {
@@ -201,83 +509,42 @@ export function CalendarView() {
 
     return (
       <div className="grid grid-cols-7 gap-px bg-muted rounded-lg overflow-hidden">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="bg-background p-2 text-center text-sm font-medium text-muted-foreground">
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+          <div
+            key={day}
+            className="bg-background p-2 text-center text-sm font-medium text-muted-foreground"
+          >
             {day}
           </div>
         ))}
-        {days.map(day => {
-          const dayJobs = getJobsForDate(day)
-          const dayExternal = getExternalEventsForDate(day)
+        {days.map((day) => {
+          const dayEvents = getEventsForDate(day)
           const isToday = isSameDay(day, new Date())
           const isCurrentMonth = isSameMonth(day, currentDate)
 
-          const totalItems = dayJobs.length + dayExternal.length
-          const MAX = 3
-          const visibleJobs = dayJobs.slice(0, MAX)
-          const remainingSlots = Math.max(0, MAX - visibleJobs.length)
-          const visibleExternal = dayExternal.slice(0, remainingSlots)
-          const overflow = totalItems - visibleJobs.length - visibleExternal.length
+          const MAX = 4
+          const visible = dayEvents.slice(0, MAX)
+          const overflow = dayEvents.length - visible.length
 
           return (
             <div
               key={day.toISOString()}
-              className={cn(
-                'bg-background min-h-[120px] p-2',
-                !isCurrentMonth && 'bg-muted/50'
-              )}
+              className={cn('bg-background min-h-[120px] p-2', !isCurrentMonth && 'bg-muted/50')}
             >
-              <div className={cn(
-                'text-sm font-medium mb-1',
-                isToday && 'bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center',
-                !isCurrentMonth && 'text-muted-foreground'
-              )}>
+              <div
+                className={cn(
+                  'text-sm font-medium mb-1',
+                  isToday &&
+                    'bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center',
+                  !isCurrentMonth && 'text-muted-foreground',
+                )}
+              >
                 {format(day, 'd')}
               </div>
               <div className="space-y-1">
-                {visibleJobs.map(job => {
-                  const statusConfig = jobStatusConfig[job.status as keyof typeof jobStatusConfig]
-                  return (
-                    <button
-                      key={job.id}
-                      onClick={() => handleJobClick(job)}
-                      className={cn(
-                        'w-full text-left text-xs p-1 rounded truncate',
-                        statusConfig?.bgColor || 'bg-gray-100',
-                        statusConfig?.color || 'text-gray-800',
-                        'hover:opacity-80 transition-opacity'
-                      )}
-                    >
-                      {job.scheduled_start_time && (
-                        <span className="font-medium">
-                          {format(parseISO(`2000-01-01T${job.scheduled_start_time}`), 'h:mma')}
-                        </span>
-                      )}{' '}
-                      {job.job_number}
-                    </button>
-                  )
-                })}
-                {visibleExternal.map((event) => (
-                  <a
-                    key={event.id}
-                    href={event.html_link || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full text-left text-xs p-1 rounded truncate bg-white text-gray-700 border border-dashed border-gray-300 hover:bg-gray-50"
-                    title={`Google Calendar: ${event.summary}`}
-                  >
-                    {!event.all_day && event.start && (
-                      <span className="font-medium">
-                        {format(parseISO(event.start), 'h:mma')}
-                      </span>
-                    )}{' '}
-                    {event.summary}
-                  </a>
-                ))}
+                {visible.map((eod) => renderEventTile(eod, { compact: true }))}
                 {overflow > 0 && (
-                  <div className="text-xs text-muted-foreground">
-                    +{overflow} more
-                  </div>
+                  <div className="text-xs text-muted-foreground">+{overflow} more</div>
                 )}
               </div>
             </div>
@@ -293,67 +560,23 @@ export function CalendarView() {
 
     return (
       <div className="grid grid-cols-7 gap-2">
-        {days.map(day => {
-          const dayJobs = getJobsForDate(day)
-          const dayExternal = getExternalEventsForDate(day)
+        {days.map((day) => {
+          const dayEvents = getEventsForDate(day)
           const isToday = isSameDay(day, new Date())
 
           return (
             <div key={day.toISOString()} className="min-h-[400px]">
-              <div className={cn(
-                'text-center p-2 rounded-t-lg',
-                isToday ? 'bg-primary text-primary-foreground' : 'bg-muted'
-              )}>
+              <div
+                className={cn(
+                  'text-center p-2 rounded-t-lg',
+                  isToday ? 'bg-primary text-primary-foreground' : 'bg-muted',
+                )}
+              >
                 <div className="text-sm font-medium">{format(day, 'EEE')}</div>
                 <div className="text-2xl font-bold">{format(day, 'd')}</div>
               </div>
               <div className="border border-t-0 rounded-b-lg p-2 space-y-2 min-h-[350px]">
-                {dayJobs.map(job => {
-                  const statusConfig = jobStatusConfig[job.status as keyof typeof jobStatusConfig]
-                  return (
-                    <button
-                      key={job.id}
-                      onClick={() => handleJobClick(job)}
-                      className={cn(
-                        'w-full text-left p-2 rounded text-sm',
-                        statusConfig?.bgColor || 'bg-gray-100',
-                        statusConfig?.color || 'text-gray-800',
-                        'hover:opacity-80 transition-opacity'
-                      )}
-                    >
-                      <div className="font-medium">{job.job_number}</div>
-                      {job.scheduled_start_time && (
-                        <div className="text-xs opacity-80">
-                          {format(parseISO(`2000-01-01T${job.scheduled_start_time}`), 'h:mm a')}
-                        </div>
-                      )}
-                      {job.customer && (
-                        <div className="text-xs truncate mt-1">
-                          {job.customer.company_name || job.customer.name}
-                        </div>
-                      )}
-                    </button>
-                  )
-                })}
-                {dayExternal.map((event) => (
-                  <a
-                    key={event.id}
-                    href={event.html_link || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full text-left p-2 rounded text-sm bg-white border border-dashed border-gray-300 text-gray-700 hover:bg-gray-50"
-                  >
-                    <div className="font-medium truncate">{event.summary}</div>
-                    {!event.all_day && event.start && (
-                      <div className="text-xs opacity-80">
-                        {format(parseISO(event.start), 'h:mm a')}
-                      </div>
-                    )}
-                    <div className="text-[10px] uppercase tracking-wide opacity-60 mt-1">
-                      Google Calendar
-                    </div>
-                  </a>
-                ))}
+                {dayEvents.map((eod) => renderEventTile(eod))}
               </div>
             </div>
           )
@@ -363,119 +586,39 @@ export function CalendarView() {
   }
 
   const renderDayView = () => {
-    const dayJobs = getJobsForDate(currentDate)
-    const dayExternal = getExternalEventsForDate(currentDate)
+    const dayEvents = getEventsForDate(currentDate)
     const isToday = isSameDay(currentDate, new Date())
-    const nothingScheduled = dayJobs.length === 0 && dayExternal.length === 0
 
     return (
       <div>
-        <div className={cn(
-          'text-center p-4 rounded-lg mb-4',
-          isToday ? 'bg-primary text-primary-foreground' : 'bg-muted'
-        )}>
+        <div
+          className={cn(
+            'text-center p-4 rounded-lg mb-4',
+            isToday ? 'bg-primary text-primary-foreground' : 'bg-muted',
+          )}
+        >
           <div className="text-lg font-medium">{format(currentDate, 'EEEE')}</div>
           <div className="text-4xl font-bold">{format(currentDate, 'MMMM d, yyyy')}</div>
         </div>
         <div className="space-y-3">
-          {nothingScheduled ? (
+          {dayEvents.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
                 Nothing scheduled for this day.
               </CardContent>
             </Card>
           ) : (
-            <>
-              {dayJobs.map(job => {
-                const statusConfig = jobStatusConfig[job.status as keyof typeof jobStatusConfig]
-                return (
-                  <Card
-                    key={job.id}
-                    className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => handleJobClick(job)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-bold">{job.job_number}</span>
-                            <Badge className={cn(statusConfig?.bgColor, statusConfig?.color)}>
-                              {statusConfig?.label || job.status}
-                            </Badge>
-                          </div>
-                          {job.name && (
-                            <p className="text-muted-foreground">{job.name}</p>
-                          )}
-                          {job.customer && (
-                            <p className="text-sm mt-2">
-                              <User className="h-4 w-4 inline mr-1" />
-                              {job.customer.company_name || job.customer.name}
-                            </p>
-                          )}
-                          <p className="text-sm text-muted-foreground mt-1">
-                            <MapPin className="h-4 w-4 inline mr-1" />
-                            {job.job_address}{job.job_city && `, ${job.job_city}`}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          {job.scheduled_start_time && (
-                            <div className="font-medium">
-                              {format(parseISO(`2000-01-01T${job.scheduled_start_time}`), 'h:mm a')}
-                            </div>
-                          )}
-                          {job.estimated_duration_hours && (
-                            <div className="text-sm text-muted-foreground">
-                              <Clock className="h-4 w-4 inline mr-1" />
-                              {job.estimated_duration_hours}h
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
-              {dayExternal.map((event) => (
-                <Card
-                  key={event.id}
-                  className="border-dashed cursor-pointer hover:shadow-md transition-shadow"
-                >
-                  <CardContent className="p-4">
-                    <a
-                      href={event.html_link || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-bold">{event.summary}</span>
-                            <Badge variant="outline">Google Calendar</Badge>
-                          </div>
-                          {event.location && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              <MapPin className="h-4 w-4 inline mr-1" />
-                              {event.location}
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right text-sm">
-                          {!event.all_day && event.start && (
-                            <div className="font-medium">
-                              {format(parseISO(event.start), 'h:mm a')}
-                            </div>
-                          )}
-                          {event.all_day && (
-                            <div className="text-muted-foreground">All day</div>
-                          )}
-                        </div>
-                      </div>
-                    </a>
-                  </CardContent>
-                </Card>
-              ))}
-            </>
+            dayEvents.map((eod) => (
+              <Card
+                key={eod.event.id}
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => handleEventClick(eod.event)}
+              >
+                <CardContent className="p-4">
+                  <DayCardContent eventOnDay={eod} />
+                </CardContent>
+              </Card>
+            ))
           )}
         </div>
       </div>
@@ -495,7 +638,7 @@ export function CalendarView() {
   return (
     <>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => navigate('prev')} aria-label="Previous period">
               <ChevronLeft className="h-4 w-4" />
@@ -528,6 +671,14 @@ export function CalendarView() {
           </div>
         </div>
 
+        <FilterBar
+          typeFilter={typeFilter}
+          setTypeFilter={setTypeFilter}
+          memberFilter={memberFilter}
+          setMemberFilter={setMemberFilter}
+          members={members}
+        />
+
         {loading ? (
           <div className="flex items-center justify-center h-[500px]">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -543,69 +694,397 @@ export function CalendarView() {
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent>
-          {selectedJob && (
-            <>
-              <SheetHeader>
-                <SheetTitle className="flex items-center gap-2">
-                  {selectedJob.job_number}
-                  <Badge className={cn(
-                    jobStatusConfig[selectedJob.status as keyof typeof jobStatusConfig]?.bgColor,
-                    jobStatusConfig[selectedJob.status as keyof typeof jobStatusConfig]?.color
-                  )}>
-                    {jobStatusConfig[selectedJob.status as keyof typeof jobStatusConfig]?.label || selectedJob.status}
-                  </Badge>
-                </SheetTitle>
-                <SheetDescription>
-                  {selectedJob.name || 'Job Details'}
-                </SheetDescription>
-              </SheetHeader>
-              <div className="mt-6 space-y-4">
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">Scheduled</h4>
-                  <p className="mt-1">
-                    {format(parseLocalDate(selectedJob.scheduled_start_date), 'MMMM d, yyyy')}
-                    {selectedJob.scheduled_start_time && (
-                      <> at {format(parseISO(`2000-01-01T${selectedJob.scheduled_start_time}`), 'h:mm a')}</>
-                    )}
-                  </p>
-                </div>
-                {selectedJob.estimated_duration_hours && (
-                  <div>
-                    <h4 className="text-sm font-medium text-muted-foreground">Duration</h4>
-                    <p className="mt-1">{selectedJob.estimated_duration_hours} hours</p>
-                  </div>
-                )}
-                {selectedJob.customer && (
-                  <div>
-                    <h4 className="text-sm font-medium text-muted-foreground">Customer</h4>
-                    <p className="mt-1">{selectedJob.customer.company_name || selectedJob.customer.name}</p>
-                  </div>
-                )}
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">Location</h4>
-                  <p className="mt-1">
-                    {selectedJob.job_address}
-                    {selectedJob.job_city && <>, {selectedJob.job_city}</>}
-                  </p>
-                </div>
-
-                <SelectedJobAttachments
-                  jobId={selectedJob.id}
-                  proposalId={selectedJob.proposal_id}
-                />
-
-                <div className="pt-4">
-                  <Button asChild className="w-full">
-                    <Link href={`/jobs/${selectedJob.id}`}>
-                      View Job Details
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
+          {selected && <EventDetail event={selected} />}
         </SheetContent>
       </Sheet>
+    </>
+  )
+}
+
+function FilterBar({
+  typeFilter,
+  setTypeFilter,
+  memberFilter,
+  setMemberFilter,
+  members,
+}: {
+  typeFilter: Record<EventKind, boolean>
+  setTypeFilter: (v: Record<EventKind, boolean>) => void
+  memberFilter: string
+  setMemberFilter: (v: string) => void
+  members: TeamMember[]
+}) {
+  const toggle = (kind: EventKind) => {
+    setTypeFilter({ ...typeFilter, [kind]: !typeFilter[kind] })
+  }
+
+  const chip = (kind: EventKind, label: string, swatchClass: string, icon?: React.ReactNode) => (
+    <button
+      type="button"
+      onClick={() => toggle(kind)}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+        typeFilter[kind]
+          ? 'bg-foreground text-background border-foreground'
+          : 'bg-background text-muted-foreground border-border hover:bg-muted',
+      )}
+    >
+      <span className={cn('h-2 w-2 rounded-full', swatchClass)} />
+      {icon}
+      {label}
+    </button>
+  )
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2">
+      <span className="text-xs font-medium text-muted-foreground mr-1">Show:</span>
+      {chip('job', 'Jobs', 'bg-blue-500')}
+      {chip('survey', 'Surveys', 'bg-purple-500', <ClipboardList className="h-3 w-3" />)}
+      {chip('deadline', 'Deadlines', 'bg-red-500', <AlertTriangle className="h-3 w-3" />)}
+      {chip('external', 'External', 'bg-gray-400', <CalendarIcon className="h-3 w-3" />)}
+
+      <span className="ml-3 text-xs font-medium text-muted-foreground">Team member:</span>
+      <Select value={memberFilter} onValueChange={setMemberFilter}>
+        <SelectTrigger className="h-8 w-[180px] text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Everyone</SelectItem>
+          {members.map((m) => (
+            <SelectItem key={m.id} value={m.id}>
+              {[m.first_name, m.last_name].filter(Boolean).join(' ') || m.email}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
+
+function DayCardContent({ eventOnDay }: { eventOnDay: { event: CalendarEvent } }) {
+  const { event } = eventOnDay
+
+  if (event.raw.kind === 'job') {
+    const job = event.raw.job
+    const statusConfig = jobStatusConfig[job.status as keyof typeof jobStatusConfig]
+    return (
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-bold">{job.job_number}</span>
+            <Badge className={cn(statusConfig?.bgColor, statusConfig?.color)}>
+              {statusConfig?.label || job.status}
+            </Badge>
+          </div>
+          {job.name && <p className="text-muted-foreground">{job.name}</p>}
+          {job.customer && (
+            <p className="text-sm mt-2">
+              <User className="h-4 w-4 inline mr-1" />
+              {job.customer.company_name || job.customer.name}
+            </p>
+          )}
+          <p className="text-sm text-muted-foreground mt-1">
+            <MapPin className="h-4 w-4 inline mr-1" />
+            {job.job_address}
+            {job.job_city && `, ${job.job_city}`}
+          </p>
+        </div>
+        <div className="text-right">
+          {job.scheduled_start_time && (
+            <div className="font-medium">
+              {format(parseISO(`2000-01-01T${job.scheduled_start_time}`), 'h:mm a')}
+            </div>
+          )}
+          {job.estimated_duration_hours && (
+            <div className="text-sm text-muted-foreground">
+              <Clock className="h-4 w-4 inline mr-1" />
+              {job.estimated_duration_hours}h
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  if (event.raw.kind === 'survey') {
+    const s = event.raw.survey
+    return (
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <ClipboardList className="h-4 w-4 text-purple-600" />
+            <span className="font-bold">{s.job_name}</span>
+            <Badge variant="outline" className="border-purple-300 text-purple-800">
+              Survey
+            </Badge>
+          </div>
+          <p className="text-sm">{s.customer_name}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            <MapPin className="h-4 w-4 inline mr-1" />
+            {s.site_address}
+            {s.site_city && `, ${s.site_city}`}
+          </p>
+        </div>
+        <div className="text-right">
+          {s.scheduled_time_start && (
+            <div className="font-medium">
+              {format(parseISO(`2000-01-01T${s.scheduled_time_start}`), 'h:mm a')}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  if (event.raw.kind === 'deadline') {
+    const d = event.raw.deadline
+    return (
+      <div className="flex items-start gap-3">
+        <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+        <div>
+          <div className="font-bold text-red-900">{d.label}</div>
+          <p className="text-sm text-muted-foreground mt-1">
+            For {d.job_number}
+            {d.job_name ? ` — ${d.job_name}` : ''}
+            {d.customer_name ? ` (${d.customer_name})` : ''}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Job starts {format(parseLocalDate(d.job_start_date), 'EEE MMM d')}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (event.raw.kind === 'external') {
+    const ev = event.raw.event
+    return (
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-bold">{ev.summary}</span>
+            <Badge variant="outline">Google Calendar</Badge>
+          </div>
+          {ev.location && (
+            <p className="text-sm text-muted-foreground mt-1">
+              <MapPin className="h-4 w-4 inline mr-1" />
+              {ev.location}
+            </p>
+          )}
+        </div>
+        <div className="text-right text-sm">
+          {!ev.all_day && ev.start && (
+            <div className="font-medium">{format(parseISO(ev.start), 'h:mm a')}</div>
+          )}
+          {ev.all_day && <div className="text-muted-foreground">All day</div>}
+        </div>
+      </div>
+    )
+  }
+
+  return null
+}
+
+function EventDetail({ event }: { event: CalendarEvent }) {
+  if (event.raw.kind === 'job') return <JobDetail job={event.raw.job} />
+  if (event.raw.kind === 'survey') return <SurveyDetail survey={event.raw.survey} />
+  if (event.raw.kind === 'deadline') return <DeadlineDetail deadline={event.raw.deadline} />
+  if (event.raw.kind === 'external') return <ExternalDetail event={event.raw.event} />
+  return null
+}
+
+function JobDetail({ job }: { job: CalendarJob }) {
+  const statusConfig = jobStatusConfig[job.status as keyof typeof jobStatusConfig]
+  return (
+    <>
+      <SheetHeader>
+        <SheetTitle className="flex items-center gap-2">
+          {job.job_number}
+          <Badge className={cn(statusConfig?.bgColor, statusConfig?.color)}>
+            {statusConfig?.label || job.status}
+          </Badge>
+        </SheetTitle>
+        <SheetDescription>{job.name || 'Job Details'}</SheetDescription>
+      </SheetHeader>
+      <div className="mt-6 space-y-4">
+        <div>
+          <h4 className="text-sm font-medium text-muted-foreground">Scheduled</h4>
+          <p className="mt-1">
+            {format(parseLocalDate(job.scheduled_start_date), 'MMMM d, yyyy')}
+            {job.scheduled_end_date && job.scheduled_end_date !== job.scheduled_start_date && (
+              <> – {format(parseLocalDate(job.scheduled_end_date), 'MMMM d, yyyy')}</>
+            )}
+            {job.scheduled_start_time && (
+              <> at {format(parseISO(`2000-01-01T${job.scheduled_start_time}`), 'h:mm a')}</>
+            )}
+          </p>
+        </div>
+        {job.customer && (
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground">Customer</h4>
+            <p className="mt-1">{job.customer.company_name || job.customer.name}</p>
+          </div>
+        )}
+        <div>
+          <h4 className="text-sm font-medium text-muted-foreground">Location</h4>
+          <p className="mt-1">
+            {job.job_address}
+            {job.job_city && <>, {job.job_city}</>}
+          </p>
+        </div>
+
+        <SelectedJobAttachments jobId={job.id} proposalId={job.proposal_id} />
+
+        <div className="pt-4">
+          <Button asChild className="w-full">
+            <Link href={`/jobs/${job.id}`}>View Job</Link>
+          </Button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+function SurveyDetail({ survey }: { survey: CalendarSurvey }) {
+  return (
+    <>
+      <SheetHeader>
+        <SheetTitle className="flex items-center gap-2">
+          <ClipboardList className="h-5 w-5 text-purple-600" />
+          {survey.job_name}
+          <Badge variant="outline" className="border-purple-300 text-purple-800">
+            Survey
+          </Badge>
+        </SheetTitle>
+        <SheetDescription>
+          {survey.hazard_type ? `${survey.hazard_type} survey` : 'Site survey'}
+        </SheetDescription>
+      </SheetHeader>
+      <div className="mt-6 space-y-4">
+        <div>
+          <h4 className="text-sm font-medium text-muted-foreground">Scheduled</h4>
+          <p className="mt-1">
+            {format(parseLocalDate(survey.scheduled_date), 'MMMM d, yyyy')}
+            {survey.scheduled_time_start && (
+              <> at {format(parseISO(`2000-01-01T${survey.scheduled_time_start}`), 'h:mm a')}</>
+            )}
+          </p>
+        </div>
+        <div>
+          <h4 className="text-sm font-medium text-muted-foreground">Customer</h4>
+          <p className="mt-1">{survey.customer_name}</p>
+        </div>
+        <div>
+          <h4 className="text-sm font-medium text-muted-foreground">Location</h4>
+          <p className="mt-1">
+            {survey.site_address}
+            {survey.site_city && <>, {survey.site_city}</>}
+          </p>
+        </div>
+        {survey.assignee && (
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground">Assigned to</h4>
+            <p className="mt-1">
+              {[survey.assignee.first_name, survey.assignee.last_name].filter(Boolean).join(' ')}
+            </p>
+          </div>
+        )}
+        <div className="pt-4">
+          <Button asChild className="w-full">
+            <Link href={`/site-surveys/${survey.id}`}>View Survey</Link>
+          </Button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+function DeadlineDetail({ deadline }: { deadline: RegulatoryDeadline }) {
+  return (
+    <>
+      <SheetHeader>
+        <SheetTitle className="flex items-center gap-2 text-red-900">
+          <AlertTriangle className="h-5 w-5 text-red-600" />
+          {deadline.label}
+        </SheetTitle>
+        <SheetDescription>Compliance deadline derived from job schedule</SheetDescription>
+      </SheetHeader>
+      <div className="mt-6 space-y-4">
+        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+          The EPA NESHAP rule requires written notification to the relevant agency
+          <strong> 10 working days </strong>
+          before any asbestos abatement begins. Missing this is a per-day fine.
+        </div>
+        <div>
+          <h4 className="text-sm font-medium text-muted-foreground">Due</h4>
+          <p className="mt-1 font-medium">
+            {format(parseLocalDate(deadline.deadline_date), 'EEEE, MMMM d, yyyy')}
+          </p>
+        </div>
+        <div>
+          <h4 className="text-sm font-medium text-muted-foreground">Job</h4>
+          <p className="mt-1">
+            {deadline.job_number}
+            {deadline.job_name ? ` — ${deadline.job_name}` : ''}
+          </p>
+          {deadline.customer_name && (
+            <p className="text-sm text-muted-foreground">{deadline.customer_name}</p>
+          )}
+        </div>
+        <div>
+          <h4 className="text-sm font-medium text-muted-foreground">Job starts</h4>
+          <p className="mt-1">{format(parseLocalDate(deadline.job_start_date), 'MMMM d, yyyy')}</p>
+        </div>
+        <div className="pt-4">
+          <Button asChild className="w-full">
+            <Link href={`/jobs/${deadline.job_id}`}>Open Job</Link>
+          </Button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+function ExternalDetail({ event }: { event: ExternalEvent }) {
+  return (
+    <>
+      <SheetHeader>
+        <SheetTitle className="flex items-center gap-2">
+          <CalendarIcon className="h-5 w-5 text-muted-foreground" />
+          {event.summary}
+          <Badge variant="outline">Google Calendar</Badge>
+        </SheetTitle>
+      </SheetHeader>
+      <div className="mt-6 space-y-4">
+        {event.start && (
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground">When</h4>
+            <p className="mt-1">
+              {event.all_day ? (
+                'All day'
+              ) : (
+                format(parseISO(event.start), 'MMM d, yyyy h:mm a')
+              )}
+            </p>
+          </div>
+        )}
+        {event.location && (
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground">Location</h4>
+            <p className="mt-1">{event.location}</p>
+          </div>
+        )}
+        {event.html_link && (
+          <div className="pt-4">
+            <Button asChild variant="outline" className="w-full">
+              <a href={event.html_link} target="_blank" rel="noopener noreferrer">
+                Open in Google Calendar
+                <ExternalLink className="h-3.5 w-3.5 ml-2" />
+              </a>
+            </Button>
+          </div>
+        )}
+      </div>
     </>
   )
 }
@@ -626,9 +1105,9 @@ const CATEGORY_LABEL: Record<JobDocumentCategory, string> = {
 }
 
 // Small block embedded in the calendar's job popup. Pulls the job's
-// documents from the DB and surfaces the linked proposal (if any) so the
-// user doesn't have to open the full job detail page just to grab a
-// permit or send the proposal.
+// documents from the DB and surfaces the linked proposal (if any) so
+// the user doesn't have to open the full job detail page just to grab
+// a permit or send the proposal.
 function SelectedJobAttachments({
   jobId,
   proposalId,
@@ -643,8 +1122,8 @@ function SelectedJobAttachments({
       const url = await JobDocumentsService.getSignedUrl(storagePath)
       window.open(url, '_blank', 'noopener,noreferrer')
     } catch {
-      // Errors surface through the hook's toast on the full tab; here we
-      // silently swallow so the popup doesn't steal focus.
+      // Errors surface through the hook's toast on the full tab; here
+      // we silently swallow so the popup doesn't steal focus.
     }
   }
 

@@ -3,6 +3,7 @@ import { MailchimpCard } from '@/components/integrations/mailchimp-card';
 import { HubSpotCard } from '@/components/integrations/hubspot-card';
 import { GoogleCalendarCard } from '@/components/integrations/google-calendar-card';
 import { OutlookCalendarCard } from '@/components/integrations/outlook-calendar-card';
+import { MyCalendarFeedCard } from '@/components/integrations/my-calendar-feed-card';
 import { SyncHistoryTable } from './sync-history-table';
 import { requireTenantAdmin } from '@/lib/auth/require-roles';
 
@@ -62,6 +63,7 @@ export default async function IntegrationsPage() {
         <div>
           <h2 className="text-lg font-semibold mb-4">Calendar</h2>
           <div className="grid gap-6 md:grid-cols-2">
+            <MyCalendarFeedCard />
             <GoogleCalendarCard integration={googleCalendarIntegration} />
             <OutlookCalendarCard integration={outlookCalendarIntegration} />
           </div>

@@ -368,6 +368,7 @@ export interface Database {
           is_platform_user: boolean
           last_login_at: string | null
           login_count: number
+          calendar_feed_token: string
           created_at: string
           updated_at: string
         }
@@ -380,6 +381,7 @@ export interface Database {
           phone?: string | null
           role?: UserRole
           is_active?: boolean
+          calendar_feed_token?: string
           created_at?: string
           updated_at?: string
         }
@@ -392,6 +394,7 @@ export interface Database {
           phone?: string | null
           role?: UserRole
           is_active?: boolean
+          calendar_feed_token?: string
           created_at?: string
           updated_at?: string
         }
