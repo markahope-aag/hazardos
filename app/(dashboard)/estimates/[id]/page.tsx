@@ -19,6 +19,7 @@ import {
   Phone,
   History,
   GitBranch,
+  ClipboardList,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -52,6 +53,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import { formatCurrency } from '@/lib/utils'
+import { SurveyReviewModal } from '@/components/estimates/survey-review-modal'
 import type { EstimateWithRelations, EstimateStatus, LineItemType, EstimateLineItem } from '@/types/estimates'
 
 const STATUS_CONFIG: Record<EstimateStatus, { label: string; color: string; bgColor: string }> = {
@@ -126,6 +128,7 @@ export default function EstimateDetailPage() {
   const [loading, setLoading] = useState(true)
   const [approvalRequest, setApprovalRequest] = useState<ApprovalRequestState | null>(null)
   const [revising, setRevising] = useState(false)
+  const [surveyModalOpen, setSurveyModalOpen] = useState(false)
   const [rejectNotes, setRejectNotes] = useState('')
   const [showRejectForm, setShowRejectForm] = useState(false)
   const [actionPending, setActionPending] = useState(false)
@@ -552,8 +555,24 @@ export default function EstimateDetailPage() {
             )}
             Create Revised Version
           </Button>
+          {estimate.site_survey_id && (
+            <Button
+              variant="outline"
+              onClick={() => setSurveyModalOpen(true)}
+              title="Open the survey that produced this estimate"
+            >
+              <ClipboardList className="h-4 w-4 mr-2" />
+              View Survey
+            </Button>
+          )}
         </div>
       </div>
+
+      <SurveyReviewModal
+        surveyId={estimate.site_survey_id || null}
+        open={surveyModalOpen}
+        onOpenChange={setSurveyModalOpen}
+      />
 
       {versionInfo && versionInfo.version < versionInfo.total && (() => {
         const latest = versionInfo.chain[versionInfo.chain.length - 1]
