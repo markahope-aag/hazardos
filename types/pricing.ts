@@ -6,7 +6,7 @@ export interface LaborRate {
   id: string
   organization_id: string
   name: string
-  rate_per_hour: number
+  rate_per_day: number
   description: string | null
   is_default: boolean
   created_at: string
@@ -75,7 +75,7 @@ export interface PricingSettings {
 // Input types
 export interface CreateLaborRateInput {
   name: string
-  rate_per_hour: number
+  rate_per_day: number
   description?: string
   is_default?: boolean
 }
@@ -139,6 +139,7 @@ export const disposalHazardTypeConfig: Record<DisposalHazardType, { label: strin
 }
 
 export const commonUnits = [
+  { value: 'day', label: 'Day' },
   { value: 'each', label: 'Each' },
   { value: 'roll', label: 'Roll' },
   { value: 'pair', label: 'Pair' },

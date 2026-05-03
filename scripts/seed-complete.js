@@ -87,10 +87,10 @@ async function main() {
   // ============================================================
   console.log('\n3. Seeding labor rates...');
   await insert('labor_rates', [
-    { organization_id: ORG_ID, name: 'Project Supervisor', rate_per_hour: 85.00, description: 'Licensed supervisor/foreman', is_default: false },
-    { organization_id: ORG_ID, name: 'Certified Abatement Worker', rate_per_hour: 55.00, description: 'EPA/state-certified remediation technician', is_default: true },
-    { organization_id: ORG_ID, name: 'General Laborer', rate_per_hour: 35.00, description: 'Support labor for containment and cleanup', is_default: false },
-    { organization_id: ORG_ID, name: 'Air Monitoring Technician', rate_per_hour: 75.00, description: 'Phase contrast/TEM air sampling tech', is_default: false },
+    { organization_id: ORG_ID, name: 'Project Supervisor', rate_per_day: 680.00, description: 'Licensed supervisor/foreman', is_default: false },
+    { organization_id: ORG_ID, name: 'Certified Abatement Worker', rate_per_day: 440.00, description: 'EPA/state-certified remediation technician', is_default: true },
+    { organization_id: ORG_ID, name: 'General Laborer', rate_per_day: 280.00, description: 'Support labor for containment and cleanup', is_default: false },
+    { organization_id: ORG_ID, name: 'Air Monitoring Technician', rate_per_day: 600.00, description: 'Phase contrast/TEM air sampling tech', is_default: false },
   ], 'Labor rates');
 
   // ============================================================

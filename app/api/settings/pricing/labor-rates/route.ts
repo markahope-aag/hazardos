@@ -16,7 +16,7 @@ export const GET = createApiHandler(
   async (_request, context) => {
     const { data: laborRates, error } = await context.supabase
       .from('labor_rates')
-      .select('id, organization_id, name, rate_per_hour, description, is_default, created_at, updated_at')
+      .select('id, organization_id, name, rate_per_day, description, is_default, created_at, updated_at')
       .order('is_default', { ascending: false })
       .order('name')
 
@@ -52,7 +52,7 @@ export const POST = createApiHandler(
       .insert({
         organization_id: context.profile.organization_id,
         name: body.name,
-        rate_per_hour: body.rate_per_hour,
+        rate_per_day: body.rate_per_day,
         description: body.description || null,
         is_default: body.is_default || false,
       })

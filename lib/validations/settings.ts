@@ -3,7 +3,7 @@ import { z } from 'zod'
 // Labor rate
 export const createLaborRateSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255),
-  rate_per_hour: z.number().positive('Rate must be positive'),
+  rate_per_day: z.number().positive('Rate must be positive'),
   description: z.string().max(500).optional(),
   is_default: z.boolean().optional().default(false),
 })
@@ -11,7 +11,7 @@ export const createLaborRateSchema = z.object({
 export const updateLaborRateSchema = z.object({
   id: z.string().uuid('Invalid ID'),
   name: z.string().min(1).max(255).optional(),
-  rate_per_hour: z.number().positive().optional(),
+  rate_per_day: z.number().positive().optional(),
   description: z.string().max(500).optional(),
   is_default: z.boolean().optional(),
 })

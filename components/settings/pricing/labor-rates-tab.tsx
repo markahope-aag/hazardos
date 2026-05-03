@@ -31,7 +31,7 @@ export function LaborRatesTab({ data, onDataChange }: PricingTabProps) {
       const body = {
         id: editing?.id,
         name: formData.get('name'),
-        rate_per_hour: parseFloat(formData.get('rate_per_hour') as string),
+        rate_per_day: parseFloat(formData.get('rate_per_day') as string),
         description: formData.get('description') || null,
         is_default: formData.get('is_default') === 'on',
       }
@@ -74,7 +74,7 @@ export function LaborRatesTab({ data, onDataChange }: PricingTabProps) {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Labor Rates</CardTitle>
-            <CardDescription>Hourly rates for different worker types</CardDescription>
+            <CardDescription>Day rates (8-hour day) for different worker types — used to price man-days on estimates</CardDescription>
           </div>
           <Button onClick={() => { setEditing(null); setDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" />
@@ -86,7 +86,7 @@ export function LaborRatesTab({ data, onDataChange }: PricingTabProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Rate/Hour</TableHead>
+                <TableHead>Rate/Day</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Default</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
@@ -103,7 +103,7 @@ export function LaborRatesTab({ data, onDataChange }: PricingTabProps) {
                 data.labor_rates.map(rate => (
                   <TableRow key={rate.id}>
                     <TableCell className="font-medium">{rate.name}</TableCell>
-                    <TableCell>{formatCurrency(rate.rate_per_hour)}</TableCell>
+                    <TableCell>{formatCurrency(rate.rate_per_day)}</TableCell>
                     <TableCell className="text-muted-foreground">{rate.description || '-'}</TableCell>
                     <TableCell>
                       {rate.is_default && <Badge variant="secondary">Default</Badge>}
@@ -131,7 +131,7 @@ export function LaborRatesTab({ data, onDataChange }: PricingTabProps) {
           <form action={save}>
             <DialogHeader>
               <DialogTitle>{editing ? 'Edit Labor Rate' : 'Add Labor Rate'}</DialogTitle>
-              <DialogDescription>Configure an hourly rate for a worker type</DialogDescription>
+              <DialogDescription>Configure a day rate (8-hour day) for a worker type</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -139,8 +139,8 @@ export function LaborRatesTab({ data, onDataChange }: PricingTabProps) {
                 <Input name="name" defaultValue={editing?.name} placeholder="e.g., Technician" required />
               </div>
               <div className="space-y-2">
-                <Label>Rate per Hour *</Label>
-                <Input name="rate_per_hour" type="number" step="0.01" min="0" defaultValue={editing?.rate_per_hour} required />
+                <Label>Rate per Day *</Label>
+                <Input name="rate_per_day" type="number" step="0.01" min="0" defaultValue={editing?.rate_per_day} required />
               </div>
               <div className="space-y-2">
                 <Label>Description</Label>

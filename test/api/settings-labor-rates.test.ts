@@ -118,7 +118,7 @@ describe('Labor Rates API', () => {
                   id: 'lr-new',
                   organization_id: 'org-123',
                   name: 'Senior Technician',
-                  rate_per_hour: 55,
+                  rate_per_day: 440,
                   description: 'Experienced field technician',
                   is_default: false
                 },
@@ -137,7 +137,7 @@ describe('Labor Rates API', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: 'Senior Technician',
-          rate_per_hour: 55,
+          rate_per_day: 440,
           description: 'Experienced field technician',
           is_default: false
         })
@@ -150,7 +150,7 @@ describe('Labor Rates API', () => {
       // Assert
       expect(response.status).toBe(201)
       expect(data.name).toBe('Senior Technician')
-      expect(data.rate_per_hour).toBe(55)
+      expect(data.rate_per_day).toBe(440)
     })
 
     it('should reject non-admin users', async () => {
@@ -174,7 +174,7 @@ describe('Labor Rates API', () => {
       const request = new NextRequest('http://localhost:3000/api/settings/pricing/labor-rates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'Test', rate_per_hour: 50 })
+        body: JSON.stringify({ name: 'Test', rate_per_day: 400 })
       })
 
       // Act
@@ -215,7 +215,7 @@ describe('Labor Rates API', () => {
                   data: {
                     id: '550e8400-e29b-41d4-a716-446655440001',
                     name: 'Technician',
-                    rate_per_hour: 50,
+                    rate_per_day: 400,
                     is_default: false
                   },
                   error: null
@@ -232,7 +232,7 @@ describe('Labor Rates API', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: '550e8400-e29b-41d4-a716-446655440001',
-          rate_per_hour: 50
+          rate_per_day: 400
         })
       })
 
@@ -242,7 +242,7 @@ describe('Labor Rates API', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data.rate_per_hour).toBe(50)
+      expect(data.rate_per_day).toBe(400)
     })
   })
 

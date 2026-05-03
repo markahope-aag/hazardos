@@ -197,7 +197,7 @@ export default function MigrationVerificationPage() {
       try {
         // Test each pricing table with a sample record
         const pricingTables = [
-          { name: 'labor_rates', testData: { organization_id: organization.id, name: 'Test Rate', rate_per_hour: 50.00 } },
+          { name: 'labor_rates', testData: { organization_id: organization.id, name: 'Test Rate', rate_per_day: 400.00 } },
           { name: 'equipment_rates', testData: { organization_id: organization.id, name: 'Test Equipment', rate_per_day: 100.00 } },
           { name: 'material_costs', testData: { organization_id: organization.id, name: 'Test Material', cost_per_unit: 25.00, unit: 'each' } },
           { name: 'disposal_fees', testData: { organization_id: organization.id, hazard_type: 'mold', cost_per_cubic_yard: 150.00 } },

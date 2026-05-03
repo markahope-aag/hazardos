@@ -42,7 +42,7 @@ const parentLineItems = [
   {
     id: 'li-1', estimate_id: PARENT_ID,
     item_type: 'labor', category: 'removal', description: 'Removal labor',
-    quantity: 10, unit: 'hours', unit_price: 80, total_price: 800,
+    quantity: 2, unit: 'day', unit_price: 400, total_price: 800,
     source_rate_id: null, source_table: null,
     sort_order: 0, is_optional: false, is_included: true, notes: null,
   },
@@ -143,7 +143,7 @@ describe('createEstimateRevision', () => {
     expect(captures.lineItemsInsert![0]).toMatchObject({
       estimate_id: 'new-est-id',
       description: 'Removal labor',
-      quantity: 10,
+      quantity: 2,
       sort_order: 0,
     })
     expect(captures.lineItemsInsert![0]).not.toHaveProperty('id')

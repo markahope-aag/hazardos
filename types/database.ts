@@ -1294,7 +1294,7 @@ export interface Database {
           id: string
           organization_id: string
           name: string
-          rate_per_hour: number
+          rate_per_day: number
           description: string | null
           is_default: boolean
           created_at: string
@@ -1304,7 +1304,7 @@ export interface Database {
           id?: string
           organization_id: string
           name: string
-          rate_per_hour: number
+          rate_per_day: number
           description?: string | null
           is_default?: boolean
           created_at?: string
@@ -1314,7 +1314,7 @@ export interface Database {
           id?: string
           organization_id?: string
           name?: string
-          rate_per_hour?: number
+          rate_per_day?: number
           description?: string | null
           is_default?: boolean
           created_at?: string

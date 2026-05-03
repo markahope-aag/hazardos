@@ -22,14 +22,14 @@ describe('createLaborRateSchema', () => {
   it('accepts valid labor rate', () => {
     const result = createLaborRateSchema.safeParse({
       name: 'Standard Labor',
-      rate_per_hour: 75,
+      rate_per_day: 600,
     })
     expect(result.success).toBe(true)
   })
 
   it('requires name', () => {
     const result = createLaborRateSchema.safeParse({
-      rate_per_hour: 75,
+      rate_per_day: 600,
     })
     expect(result.success).toBe(false)
   })
@@ -37,7 +37,7 @@ describe('createLaborRateSchema', () => {
   it('rejects empty name', () => {
     const result = createLaborRateSchema.safeParse({
       name: '',
-      rate_per_hour: 75,
+      rate_per_day: 600,
     })
     expect(result.success).toBe(false)
   })
@@ -45,7 +45,7 @@ describe('createLaborRateSchema', () => {
   it('requires positive rate', () => {
     const result = createLaborRateSchema.safeParse({
       name: 'Standard',
-      rate_per_hour: 0,
+      rate_per_day: 0,
     })
     expect(result.success).toBe(false)
   })
@@ -53,7 +53,7 @@ describe('createLaborRateSchema', () => {
   it('defaults is_default to false', () => {
     const result = createLaborRateSchema.safeParse({
       name: 'Standard',
-      rate_per_hour: 75,
+      rate_per_day: 600,
     })
     expect(result.success).toBe(true)
     if (result.success) {

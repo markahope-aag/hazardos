@@ -19,7 +19,7 @@ export const GET = createApiHandler(
       travelRatesResult,
       settingsResult,
     ] = await Promise.all([
-      context.supabase.from('labor_rates').select('id, organization_id, name, rate_per_hour, description, is_default, created_at, updated_at').order('name'),
+      context.supabase.from('labor_rates').select('id, organization_id, name, rate_per_day, description, is_default, created_at, updated_at').order('name'),
       context.supabase.from('equipment_rates').select('id, organization_id, name, rate_per_day, description, created_at, updated_at').order('name'),
       context.supabase.from('material_costs').select('id, organization_id, name, cost_per_unit, unit, description, created_at, updated_at').order('name'),
       context.supabase.from('disposal_fees').select('id, organization_id, hazard_type, cost_per_cubic_yard, description, created_at, updated_at').order('hazard_type'),

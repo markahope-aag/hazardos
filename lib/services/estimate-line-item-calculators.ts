@@ -49,7 +49,12 @@ export function calculateLaborItems(
   const items: CalculatedLineItem[] = []
   const hoursPerSqft = LABOR_HOURS_PER_SQFT[hazardType]?.[containmentLevel] || 0.2
   const crewSize = CREW_SIZE_BY_CONTAINMENT[containmentLevel] || 2
-  const totalHours = areaSqft * hoursPerSqft
+  const totalHoursPerWorker = areaSqft * hoursPerSqft
+
+  // The smallest billable unit on this domain is one 8-hour day per worker —
+  // no half-days, no hourly billing. Round the per-worker hours up to whole
+  // days, then multiply by headcount to get man-days.
+  const daysPerWorker = Math.max(1, Math.ceil(totalHoursPerWorker / 8))
 
   const supervisorRate = pricingData.laborRates.find((r) =>
     r.name.toLowerCase().includes('supervisor'),
@@ -60,19 +65,20 @@ export function calculateLaborItems(
       r.name.toLowerCase().includes('worker'),
   )
 
-  const defaultSupervisorRate = 85
-  const defaultTechnicianRate = 55
+  // Day-rate fallbacks (8h * old hourly fallback).
+  const defaultSupervisorRate = 680
+  const defaultTechnicianRate = 440
 
-  const supervisorHours = totalHours
-  const supervisorUnitPrice = supervisorRate?.rate_per_hour || defaultSupervisorRate
+  const supervisorManDays = daysPerWorker
+  const supervisorUnitPrice = supervisorRate?.rate_per_day || defaultSupervisorRate
   items.push({
     item_type: 'labor',
     category: 'Supervisor',
-    description: `Project Supervisor (${hazardType})`,
-    quantity: roundQuantity(supervisorHours),
-    unit: 'hour',
+    description: `Project Supervisor (${hazardType}) — ${supervisorManDays} man-day${supervisorManDays === 1 ? '' : 's'}`,
+    quantity: supervisorManDays,
+    unit: 'day',
     unit_price: supervisorUnitPrice,
-    total_price: roundCurrency(supervisorHours * supervisorUnitPrice),
+    total_price: roundCurrency(supervisorManDays * supervisorUnitPrice),
     source_rate_id: supervisorRate?.id,
     source_table: 'labor_rates',
     is_optional: false,
@@ -80,16 +86,16 @@ export function calculateLaborItems(
   })
 
   const techCount = Math.max(crewSize - 1, 1)
-  const technicianHours = totalHours * techCount
-  const technicianUnitPrice = technicianRate?.rate_per_hour || defaultTechnicianRate
+  const technicianManDays = daysPerWorker * techCount
+  const technicianUnitPrice = technicianRate?.rate_per_day || defaultTechnicianRate
   items.push({
     item_type: 'labor',
     category: 'Technician',
-    description: `Abatement Technicians x${techCount} (${hazardType})`,
-    quantity: roundQuantity(technicianHours),
-    unit: 'hour',
+    description: `Abatement Technicians ×${techCount} (${hazardType}) — ${technicianManDays} man-day${technicianManDays === 1 ? '' : 's'}`,
+    quantity: technicianManDays,
+    unit: 'day',
     unit_price: technicianUnitPrice,
-    total_price: roundCurrency(technicianHours * technicianUnitPrice),
+    total_price: roundCurrency(technicianManDays * technicianUnitPrice),
     source_rate_id: technicianRate?.id,
     source_table: 'labor_rates',
     is_optional: false,

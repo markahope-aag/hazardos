@@ -461,7 +461,7 @@ describe.skipIf(!canRunRlsTests)('RLS Policy Tests', () => {
         .insert({
           organization_id: orgA.id,
           name: 'RLS Test Rate',
-          rate_per_hour: 50,
+          rate_per_day: 400,
         })
         .select('id')
         .single()
@@ -482,7 +482,7 @@ describe.skipIf(!canRunRlsTests)('RLS Policy Tests', () => {
     it('user B CANNOT insert into org A labor rates', async () => {
       const { error } = await clientB
         .from('labor_rates')
-        .insert({ organization_id: orgA.id, name: 'Injected', rate_per_hour: 999 })
+        .insert({ organization_id: orgA.id, name: 'Injected', rate_per_day: 999 })
       expect(error).not.toBeNull()
     })
   })

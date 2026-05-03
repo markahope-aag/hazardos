@@ -240,7 +240,7 @@ describe('Estimate Validation Schemas', () => {
       const result = addLineItemSchema.safeParse({
         ...validLineItem,
         category: 'Hazmat Technician',
-        unit: 'hours',
+        unit: 'day',
         is_optional: true,
         is_included: false,
         sort_order: 1
