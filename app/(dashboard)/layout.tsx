@@ -3,6 +3,7 @@
 import { LogoHorizontal } from '@/components/ui/logo'
 import { SkipLink } from '@/components/ui/skip-link'
 import { UserMenu } from '@/components/layout/user-menu'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 import { AuthProvider, useMultiTenantAuth } from '@/components/providers/auth-provider'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
@@ -151,6 +152,8 @@ function DashboardLayoutInner({
                   Platform Admin
                 </a>
               )}
+
+              <NotificationBell />
 
               <UserMenu user={user} profile={profile} />
             </div>

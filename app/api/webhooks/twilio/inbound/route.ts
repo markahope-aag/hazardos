@@ -132,18 +132,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Match the customer by phone number within the resolved org. Phone
-    // normalization is cheap here — we try a few common shapes.
+    // normalization is cheap here — we try a few common shapes. We also
+    // grab the customer's name + account owner so we can attribute the
+    // notification correctly without a second round-trip.
     let customerId: string | null = null
+    let customerName: string | null = null
+    let accountOwnerId: string | null = null
     if (fromNumber) {
       const candidates = buildPhoneMatchCandidates(fromNumber)
       const { data: customer } = await supabase
         .from('customers')
-        .select('id')
+        .select('id, name, first_name, last_name, account_owner_id')
         .eq('organization_id', organizationId)
         .or(candidates.map((p) => `phone.eq.${p},mobile_phone.eq.${p}`).join(','))
         .limit(1)
         .maybeSingle()
       customerId = customer?.id ?? null
+      customerName =
+        customer?.name ||
+        [customer?.first_name, customer?.last_name].filter(Boolean).join(' ') ||
+        null
+      accountOwnerId = customer?.account_owner_id ?? null
     }
 
     // Persist the inbound message before keyword handling so the inbox
@@ -169,6 +178,50 @@ export async function POST(request: NextRequest) {
 
     if (fromNumber && body) {
       await SmsService.handleInboundKeyword(fromNumber, body)
+    }
+
+    // Surface the inbound message in the bell so it actually gets seen.
+    // Target the customer's account owner first; fall back to the first
+    // tenant_owner / admin so nothing slips through when there's no owner.
+    try {
+      let targetUserId: string | null = accountOwnerId
+      if (!targetUserId) {
+        const { data: fallback } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .in('role', ['tenant_owner', 'admin'])
+          .eq('is_active', true)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle()
+        targetUserId = fallback?.id ?? null
+      }
+
+      if (targetUserId) {
+        const senderLabel = customerName || fromNumber
+        const preview = body && body.length > 140 ? `${body.slice(0, 137)}…` : body || '(empty message)'
+        const actionUrl = customerId ? `/messages/${customerId}` : '/messages'
+
+        await supabase.from('notifications').insert({
+          organization_id: organizationId,
+          user_id: targetUserId,
+          type: 'sms_received',
+          title: `New message from ${senderLabel}`,
+          message: preview,
+          entity_type: customerId ? 'customer' : null,
+          entity_id: customerId,
+          action_url: actionUrl,
+          action_label: 'Open conversation',
+          priority: 'normal',
+          metadata: { from_phone: fromNumber, sms_body_preview: preview },
+        })
+      }
+    } catch (notifyErr) {
+      log.warn(
+        { err: formatError(notifyErr), organizationId, customerId },
+        'failed to create sms_received notification (message still saved)',
+      )
     }
 
     return emptyTwiml()

@@ -11,6 +11,7 @@ export type NotificationType =
   | 'payment_failed'
   | 'feedback_received'
   | 'testimonial_pending'
+  | 'sms_received'
   | 'system'
   | 'reminder'
 

@@ -44,6 +44,7 @@ const iconMap: Record<NotificationType, React.ReactNode> = {
   payment_failed: <AlertCircle className="w-4 h-4" />,
   feedback_received: <MessageSquare className="w-4 h-4" />,
   testimonial_pending: <MessageSquare className="w-4 h-4" />,
+  sms_received: <MessageSquare className="w-4 h-4" />,
   system: <Info className="w-4 h-4" />,
   reminder: <Bell className="w-4 h-4" />,
 }
@@ -60,6 +61,7 @@ const colorMap: Record<NotificationType, string> = {
   payment_failed: 'bg-red-100 text-red-700',
   feedback_received: 'bg-purple-100 text-purple-700',
   testimonial_pending: 'bg-yellow-100 text-yellow-700',
+  sms_received: 'bg-indigo-100 text-indigo-700',
   system: 'bg-gray-100 text-gray-700',
   reminder: 'bg-orange-100 text-orange-700',
 }
