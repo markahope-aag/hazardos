@@ -612,7 +612,7 @@ export function CalendarView() {
 
 const CATEGORY_LABEL: Record<JobDocumentCategory, string> = {
   permit: 'Permit',
-  manifest: 'Disposal manifest',
+  manifest: 'Waste manifest',
   clearance: 'Clearance report',
   air_monitoring: 'Air monitoring',
   insurance: 'Insurance (COI)',
@@ -620,6 +620,8 @@ const CATEGORY_LABEL: Record<JobDocumentCategory, string> = {
   customer_signoff: 'Customer sign-off',
   correspondence: 'Correspondence',
   video: 'Video',
+  daily_log: 'Daily log',
+  opp: 'OPP',
   other: 'Other',
 }
 

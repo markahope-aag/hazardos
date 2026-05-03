@@ -70,6 +70,8 @@ export type JobDocumentCategory =
   | 'customer_signoff'
   | 'correspondence'
   | 'video'
+  | 'daily_log'
+  | 'opp'
   | 'other'
 export type CustomerStatus = 'inquiry' | 'prospect' | 'customer' | 'inactive'
 export type CustomerSource = 'phone' | 'website' | 'mail' | 'referral' | 'other'

@@ -4,7 +4,7 @@ import { JobHeader } from './job-header'
 import { JobDetails } from './job-details'
 import { JobCrew } from './job-crew'
 import { JobNotes } from './job-notes'
-import { JobDocuments } from './job-documents'
+import { JobDocumentsHub } from './job-documents-hub'
 import { JobWorkOrder } from './job-work-order'
 import EntityActivityFeed from '@/components/activity/entity-activity-feed'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -155,7 +155,33 @@ export default async function JobDetailPage({
         </TabsContent>
 
         <TabsContent value="documents" className="mt-4">
-          <JobDocuments jobId={transformedJob.id} />
+          <JobDocumentsHub
+            jobId={transformedJob.id}
+            survey={
+              transformedJob.site_survey
+                ? {
+                    id: transformedJob.site_survey.id,
+                    label: 'Open the original site survey',
+                  }
+                : null
+            }
+            estimate={
+              transformedJob.estimate
+                ? {
+                    id: transformedJob.estimate.id,
+                    label: transformedJob.estimate.estimate_number,
+                  }
+                : null
+            }
+            workOrder={
+              transformedJob.work_order
+                ? {
+                    id: transformedJob.work_order.id,
+                    label: transformedJob.work_order.work_order_number,
+                  }
+                : null
+            }
+          />
         </TabsContent>
 
         <TabsContent value="notes" className="mt-4">

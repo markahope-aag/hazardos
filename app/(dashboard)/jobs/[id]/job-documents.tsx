@@ -26,11 +26,20 @@ import type { JobDocumentCategory } from '@/types/database'
 
 interface JobDocumentsProps {
   jobId: string
+  // Categories rendered in dedicated cards higher on the Documents
+  // tab (e.g. Waste Manifest, Daily Logs). When set, those category
+  // values are removed from this component's list and from the
+  // category filter so we don't show them twice.
+  excludeCategories?: JobDocumentCategory[]
+  // Override the empty-state copy when this component is rendering
+  // an "everything else" subset rather than the full document list.
+  emptyHint?: string
+  title?: string
 }
 
 const CATEGORY_LABEL: Record<JobDocumentCategory, string> = {
   permit: 'Permit',
-  manifest: 'Disposal manifest',
+  manifest: 'Waste manifest',
   clearance: 'Clearance report',
   air_monitoring: 'Air monitoring',
   insurance: 'Insurance (COI)',
@@ -38,6 +47,8 @@ const CATEGORY_LABEL: Record<JobDocumentCategory, string> = {
   customer_signoff: 'Customer sign-off',
   correspondence: 'Correspondence',
   video: 'Video',
+  daily_log: 'Daily log',
+  opp: 'Occupant Protection Plan',
   other: 'Other',
 }
 
@@ -51,6 +62,8 @@ const CATEGORY_BADGE: Record<JobDocumentCategory, string> = {
   customer_signoff: 'bg-indigo-100 text-indigo-700',
   correspondence: 'bg-gray-100 text-gray-700',
   video: 'bg-pink-100 text-pink-700',
+  daily_log: 'bg-cyan-100 text-cyan-700',
+  opp: 'bg-rose-100 text-rose-700',
   other: 'bg-gray-100 text-gray-600',
 }
 
@@ -69,10 +82,31 @@ function formatSize(bytes: number | null | undefined): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-export function JobDocuments({ jobId }: JobDocumentsProps) {
-  const { data: documents = [], isLoading, error } = useJobDocuments(jobId)
+export function JobDocuments({
+  jobId,
+  excludeCategories,
+  emptyHint,
+  title = 'Documents',
+}: JobDocumentsProps) {
+  const { data: allDocuments = [], isLoading, error } = useJobDocuments(jobId)
   const upload = useUploadJobDocument(jobId)
   const remove = useDeleteJobDocument(jobId)
+
+  const excluded = useMemo(
+    () => new Set<JobDocumentCategory>(excludeCategories || []),
+    [excludeCategories],
+  )
+  const documents = useMemo(
+    () => allDocuments.filter((d) => !excluded.has(d.category)),
+    [allDocuments, excluded],
+  )
+  const visibleCategories = useMemo(
+    () =>
+      (Object.keys(CATEGORY_LABEL) as JobDocumentCategory[]).filter(
+        (c) => !excluded.has(c),
+      ),
+    [excluded],
+  )
 
   const fileRef = useRef<HTMLInputElement>(null)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
@@ -97,6 +131,8 @@ export function JobDocuments({ jobId }: JobDocumentsProps) {
     if (file.type.startsWith('video/')) setPendingCategory('video')
     else if (name.includes('permit')) setPendingCategory('permit')
     else if (name.includes('manifest')) setPendingCategory('manifest')
+    else if (name.includes('opp') || name.includes('occupant')) setPendingCategory('opp')
+    else if (name.includes('daily') || name.includes('log')) setPendingCategory('daily_log')
     else if (name.includes('clearance')) setPendingCategory('clearance')
     else if (name.includes('air') || name.includes('pcm') || name.includes('tem')) setPendingCategory('air_monitoring')
     else if (name.includes('coi') || name.includes('insurance')) setPendingCategory('insurance')
@@ -145,7 +181,7 @@ export function JobDocuments({ jobId }: JobDocumentsProps) {
         <div className="flex items-center justify-between gap-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <FileText className="h-4 w-4" />
-            Documents ({documents.length})
+            {title} ({documents.length})
           </CardTitle>
           <div className="flex items-center gap-2">
             <Select
@@ -157,7 +193,7 @@ export function JobDocuments({ jobId }: JobDocumentsProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All categories</SelectItem>
-                {(Object.keys(CATEGORY_LABEL) as JobDocumentCategory[]).map((c) => (
+                {visibleCategories.map((c) => (
                   <SelectItem key={c} value={c}>
                     {CATEGORY_LABEL[c]}
                   </SelectItem>
@@ -197,7 +233,7 @@ export function JobDocuments({ jobId }: JobDocumentsProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(Object.keys(CATEGORY_LABEL) as JobDocumentCategory[]).map((c) => (
+                  {visibleCategories.map((c) => (
                     <SelectItem key={c} value={c}>
                       {CATEGORY_LABEL[c]}
                     </SelectItem>
@@ -245,7 +281,7 @@ export function JobDocuments({ jobId }: JobDocumentsProps) {
         ) : visibleDocs.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">
             {documents.length === 0
-              ? 'No documents yet. Upload permits, manifests, clearance reports, or any other job paperwork.'
+              ? emptyHint || 'No documents yet. Upload permits, clearance reports, photos, or any other job paperwork.'
               : 'No documents match this filter.'}
           </div>
         ) : (
