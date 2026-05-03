@@ -84,7 +84,9 @@ function formatTimeAgo(dateString: string): string {
 async function fetchNotifications(): Promise<Notification[]> {
   const res = await fetch('/api/notifications?limit=20')
   if (!res.ok) throw new Error('Failed to fetch notifications')
-  return res.json()
+  const data = await res.json()
+  // /api/notifications returns { notifications, total, limit, offset } — not a bare array.
+  return Array.isArray(data) ? data : data.notifications ?? []
 }
 
 async function fetchUnreadCount(): Promise<number> {
