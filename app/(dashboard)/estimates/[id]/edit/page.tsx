@@ -11,6 +11,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 
+type DiscountMode = 'percent' | 'amount'
+
 interface EstimateForm {
   project_name: string
   scope_of_work: string
@@ -18,7 +20,9 @@ interface EstimateForm {
   estimated_start_date: string
   estimated_end_date: string
   markup_percent: string
+  discount_mode: DiscountMode
   discount_percent: string
+  discount_amount: string
   tax_percent: string
   notes: string
   internal_notes: string
@@ -31,7 +35,9 @@ const EMPTY_FORM: EstimateForm = {
   estimated_start_date: '',
   estimated_end_date: '',
   markup_percent: '',
+  discount_mode: 'percent',
   discount_percent: '',
+  discount_amount: '',
   tax_percent: '',
   notes: '',
   internal_notes: '',
@@ -56,6 +62,10 @@ export default function EditEstimatePage() {
         const data = await res.json()
         const e = data.estimate
         setEstimateNumber(e.estimate_number || '')
+        // Discount mode is implicit in the data — if a flat amount was
+        // saved we show the $ input, otherwise %. The recompute helper
+        // applies the same precedence on the server.
+        const hasFlatDiscount = Number(e.discount_amount) > 0
         setForm({
           project_name: e.project_name || '',
           scope_of_work: e.scope_of_work || '',
@@ -63,7 +73,9 @@ export default function EditEstimatePage() {
           estimated_start_date: e.estimated_start_date || '',
           estimated_end_date: e.estimated_end_date || '',
           markup_percent: e.markup_percent != null ? String(e.markup_percent) : '',
+          discount_mode: hasFlatDiscount ? 'amount' : 'percent',
           discount_percent: e.discount_percent != null ? String(e.discount_percent) : '',
+          discount_amount: e.discount_amount != null ? String(e.discount_amount) : '',
           tax_percent: e.tax_percent != null ? String(e.tax_percent) : '',
           notes: e.notes || '',
           internal_notes: e.internal_notes || '',
@@ -107,9 +119,22 @@ export default function EditEstimatePage() {
       const n = Number(form.markup_percent)
       if (Number.isFinite(n)) patch.markup_percent = n
     }
-    if (form.discount_percent.trim()) {
-      const n = Number(form.discount_percent)
-      if (Number.isFinite(n)) patch.discount_percent = n
+    // Discount: send the active mode's value and zero the other so the
+    // data on disk only ever carries one. recomputeEstimateTotals
+    // gives precedence to amount when both are non-zero, but we keep
+    // the raw fields tidy for display + invoice carry-over.
+    if (form.discount_mode === 'amount') {
+      const n = form.discount_amount.trim() ? Number(form.discount_amount) : 0
+      if (Number.isFinite(n)) {
+        patch.discount_amount = n
+        patch.discount_percent = 0
+      }
+    } else {
+      const n = form.discount_percent.trim() ? Number(form.discount_percent) : 0
+      if (Number.isFinite(n)) {
+        patch.discount_percent = n
+        patch.discount_amount = 0
+      }
     }
     if (form.tax_percent.trim()) {
       const n = Number(form.tax_percent)
@@ -249,16 +274,59 @@ export default function EditEstimatePage() {
               />
             </div>
             <div>
-              <Label htmlFor="discount_percent">Discount %</Label>
-              <Input
-                id="discount_percent"
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={form.discount_percent}
-                onChange={(e) => update('discount_percent', e.target.value)}
-              />
+              <div className="flex items-center justify-between mb-1">
+                <Label htmlFor={form.discount_mode === 'amount' ? 'discount_amount' : 'discount_percent'}>
+                  Discount
+                </Label>
+                <div className="inline-flex rounded-md border bg-background text-xs">
+                  <button
+                    type="button"
+                    onClick={() => update('discount_mode', 'percent')}
+                    className={`px-2 py-0.5 rounded-l-md ${
+                      form.discount_mode === 'percent'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted'
+                    }`}
+                    aria-pressed={form.discount_mode === 'percent'}
+                  >
+                    %
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => update('discount_mode', 'amount')}
+                    className={`px-2 py-0.5 rounded-r-md ${
+                      form.discount_mode === 'amount'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted'
+                    }`}
+                    aria-pressed={form.discount_mode === 'amount'}
+                  >
+                    $
+                  </button>
+                </div>
+              </div>
+              {form.discount_mode === 'amount' ? (
+                <Input
+                  id="discount_amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={form.discount_amount}
+                  onChange={(e) => update('discount_amount', e.target.value)}
+                />
+              ) : (
+                <Input
+                  id="discount_percent"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  placeholder="0"
+                  value={form.discount_percent}
+                  onChange={(e) => update('discount_percent', e.target.value)}
+                />
+              )}
             </div>
             <div>
               <Label htmlFor="tax_percent">Tax %</Label>
@@ -273,7 +341,9 @@ export default function EditEstimatePage() {
               />
             </div>
             <p className="sm:col-span-3 text-xs text-muted-foreground">
-              Totals will recalculate automatically after save.
+              Discount can be entered as a percent of the subtotal or a flat dollar
+              amount. The customer&apos;s proposal shows the savings clearly. Totals
+              recalculate automatically after save.
             </p>
           </CardContent>
         </Card>

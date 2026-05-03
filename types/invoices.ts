@@ -103,6 +103,10 @@ export interface CreateInvoiceInput {
   payment_terms?: string
   notes?: string
   tax_rate?: number
+  // Carried from the source estimate when invoicing a job. The DB
+  // trigger `recalculate_invoice_totals` already factors discount_amount
+  // into total + balance_due, so writing it on creation is sufficient.
+  discount_amount?: number
 }
 
 export interface CreateInvoiceFromJobInput {

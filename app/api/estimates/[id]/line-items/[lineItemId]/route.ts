@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateLineItemSchema } from '@/lib/validations/estimates'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { recomputeEstimateTotals } from '@/lib/services/estimate-totals'
 import { z } from 'zod'
 
 type UpdateLineItemBody = z.infer<typeof updateLineItemSchema>
@@ -76,7 +77,9 @@ export const PATCH = createApiHandlerWithParams<UpdateLineItemBody, unknown, Par
       throw updateError
     }
 
-    return NextResponse.json({ line_item: lineItem })
+    const totals = await recomputeEstimateTotals(context.supabase, params.id)
+
+    return NextResponse.json({ line_item: lineItem, totals })
   }
 )
 
@@ -115,6 +118,8 @@ export const DELETE = createApiHandlerWithParams<unknown, unknown, Params>(
       throw deleteError
     }
 
-    return NextResponse.json({ success: true })
+    const totals = await recomputeEstimateTotals(context.supabase, params.id)
+
+    return NextResponse.json({ success: true, totals })
   }
 )

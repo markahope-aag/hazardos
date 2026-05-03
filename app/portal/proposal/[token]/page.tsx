@@ -429,6 +429,22 @@ export default function ProposalPortalPage() {
                     <span>{formatCurrency(estimate.markup_amount)}</span>
                   </div>
                 )}
+                {estimate.discount_amount > 0 && (
+                  <div className="flex justify-between text-sm text-green-700 font-medium">
+                    <span>
+                      Discount
+                      {estimate.discount_percent > 0 && Number(estimate.discount_amount) > 0 &&
+                        // Only show "(X%)" when the percent path drove the
+                        // amount — i.e. there was no flat-amount override.
+                        // The recompute helper sets discount_amount from
+                        // discount_percent in that case, so showing the % is
+                        // accurate. Flat-amount discounts have
+                        // discount_percent==0 by the edit form's design.
+                        ` (${estimate.discount_percent}%)`}
+                    </span>
+                    <span>−{formatCurrency(estimate.discount_amount)}</span>
+                  </div>
+                )}
                 {estimate.tax_percent > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tax</span>
@@ -440,6 +456,11 @@ export default function ProposalPortalPage() {
                   <span>Total</span>
                   <span>{formatCurrency(estimate.total)}</span>
                 </div>
+                {estimate.discount_amount > 0 && (
+                  <p className="text-xs text-green-700 text-right pt-1">
+                    You&apos;re saving {formatCurrency(estimate.discount_amount)}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>

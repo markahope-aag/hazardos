@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { addLineItemSchema, bulkUpdateLineItemsSchema } from '@/lib/validations/estimates'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { recomputeEstimateTotals } from '@/lib/services/estimate-totals'
 
 /**
  * GET /api/estimates/[id]/line-items
@@ -103,7 +104,9 @@ export const POST = createApiHandlerWithParams(
       throw createError
     }
 
-    return NextResponse.json({ line_item: lineItem }, { status: 201 })
+    const totals = await recomputeEstimateTotals(context.supabase, params.id)
+
+    return NextResponse.json({ line_item: lineItem, totals }, { status: 201 })
   }
 )
 
@@ -186,6 +189,8 @@ export const PUT = createApiHandlerWithParams(
       throw fetchError
     }
 
-    return NextResponse.json({ line_items: lineItems || [] })
+    const totals = await recomputeEstimateTotals(context.supabase, params.id)
+
+    return NextResponse.json({ line_items: lineItems || [], totals })
   }
 )

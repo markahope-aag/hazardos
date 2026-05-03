@@ -4,6 +4,7 @@ import { updateEstimateSchema } from '@/lib/validations/estimates'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
 import { getEstimateChain } from '@/lib/services/estimate-versioning'
+import { recomputeEstimateTotals } from '@/lib/services/estimate-totals'
 
 /**
  * GET /api/estimates/[id]
@@ -98,6 +99,7 @@ export const PATCH = createApiHandlerWithParams(
     if (body.estimated_end_date !== undefined) updateData.estimated_end_date = body.estimated_end_date
     if (body.markup_percent !== undefined) updateData.markup_percent = body.markup_percent
     if (body.discount_percent !== undefined) updateData.discount_percent = body.discount_percent
+    if (body.discount_amount !== undefined) updateData.discount_amount = body.discount_amount
     if (body.tax_percent !== undefined) updateData.tax_percent = body.tax_percent
     if (body.notes !== undefined) updateData.notes = body.notes
     if (body.internal_notes !== undefined) updateData.internal_notes = body.internal_notes
@@ -113,6 +115,30 @@ export const PATCH = createApiHandlerWithParams(
 
     if (updateError) {
       throw updateError
+    }
+
+    // Any change to markup/discount/tax invalidates the stored totals.
+    // Recompute so subtotal/markup_amount/tax_amount/total all stay in
+    // sync — the recompute helper also persists the new values.
+    const totalsAffected =
+      body.markup_percent !== undefined ||
+      body.discount_percent !== undefined ||
+      body.discount_amount !== undefined ||
+      body.tax_percent !== undefined
+
+    if (totalsAffected) {
+      const totals = await recomputeEstimateTotals(context.supabase, params.id)
+      return NextResponse.json({
+        estimate: {
+          ...estimate,
+          subtotal: totals.subtotal,
+          markup_amount: totals.markup_amount,
+          discount_amount: totals.discount_amount,
+          tax_amount: totals.tax_amount,
+          total: totals.total,
+        },
+        totals,
+      })
     }
 
     return NextResponse.json({ estimate })

@@ -46,6 +46,7 @@ export const updateEstimateSchema = z.object({
   estimated_end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   markup_percent: z.number().min(0).max(100).optional(),
   discount_percent: z.number().min(0).max(100).optional(),
+  discount_amount: z.number().min(0).optional(),
   tax_percent: z.number().min(0).max(100).optional(),
   notes: z.string().max(2000).optional(),
   internal_notes: z.string().max(2000).optional(),

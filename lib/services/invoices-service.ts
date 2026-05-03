@@ -94,6 +94,7 @@ export class InvoicesService {
         payment_terms: input.payment_terms || null,
         notes: input.notes || null,
         tax_rate: input.tax_rate || 0,
+        discount_amount: input.discount_amount || 0,
         status: 'draft',
         created_by: user.id,
       })
@@ -126,6 +127,23 @@ export class InvoicesService {
 
     if (jobError || !job) throw new SecureError('NOT_FOUND', 'Job not found')
 
+    // The customer was promised a discount on the estimate they signed —
+    // it must follow them onto the invoice or we under-deliver. We pull
+    // the dollar amount only (recomputeEstimateTotals already resolved
+    // percent vs flat at signing time) and the invoice trigger handles
+    // re-deriving total + balance_due once line items land.
+    let estimateDiscountAmount = 0
+    if (job.estimate_id) {
+      const { data: srcEstimate } = await supabase
+        .from('estimates')
+        .select('discount_amount')
+        .eq('id', job.estimate_id)
+        .maybeSingle()
+      if (srcEstimate?.discount_amount) {
+        estimateDiscountAmount = Number(srcEstimate.discount_amount) || 0
+      }
+    }
+
     // Resolve due terms:
     //   1. Explicit `due_days` on the request wins (manual override).
     //   2. Else the company's `payment_terms` if it parses as "Net N".
@@ -149,6 +167,7 @@ export class InvoicesService {
       customer_id: job.customer_id,
       due_date: dueDate.toISOString().split('T')[0],
       payment_terms: paymentTermsLabel,
+      discount_amount: estimateDiscountAmount,
     })
 
     // Collect all line items for batch insert (single query)

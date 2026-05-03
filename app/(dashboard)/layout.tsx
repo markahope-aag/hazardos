@@ -120,66 +120,71 @@ function DashboardLayoutInner({
   return (
     <div className="min-h-screen bg-gray-50">
       <SkipLink />
-      <header className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-        <div className="container flex h-14 items-center justify-between">
-          <div className="flex items-center space-x-6">
-            <Link className="flex items-center space-x-2" href="/">
-              <LogoHorizontal size="md" />
-            </Link>
-            
-            {organization && (
-              <>
-                <div className="h-6 w-px bg-gray-300" />
-                <div>
-                  <div className="text-sm font-medium text-gray-900">{organization.name}</div>
-                  <div className="text-xs text-gray-500 capitalize">{organization.subscription_tier}</div>
-                </div>
-              </>
-            )}
-          </div>
+      {/* Header + main nav ride along on scroll. The CRM has its own
+          chrome and re-implements sticky behavior in its own layout, so
+          we only stick the main nav when we're outside /crm. */}
+      <div className="sticky top-0 z-40">
+        <header className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+          <div className="container flex h-14 items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <Link className="flex items-center space-x-2" href="/">
+                <LogoHorizontal size="md" />
+              </Link>
 
-          <div className="flex items-center space-x-4">
-            {canAccessPlatformAdmin && (
-              <a 
-                href="/platform-admin" 
-                className="text-sm font-medium text-gray-600 hover:text-primary"
-              >
-                Platform Admin
-              </a>
-            )}
-            
-            <UserMenu user={user} profile={profile} />
-          </div>
-        </div>
-      </header>
-      
-      {/* Navigation - hidden when inside CRM */}
-      {!pathname.startsWith('/crm') && (
-      <nav className="border-b bg-white" aria-label="Main navigation">
-        <div className="container">
-          <div className="flex space-x-8 overflow-x-auto">
-            {MAIN_NAV_ITEMS.map((item) => {
-              const isActive = item.match(pathname)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
-                    isActive
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+              {organization && (
+                <>
+                  <div className="h-6 w-px bg-gray-300" />
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{organization.name}</div>
+                    <div className="text-xs text-gray-500 capitalize">{organization.subscription_tier}</div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-4">
+              {canAccessPlatformAdmin && (
+                <a
+                  href="/platform-admin"
+                  className="text-sm font-medium text-gray-600 hover:text-primary"
                 >
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </Link>
-              )
-            })}
+                  Platform Admin
+                </a>
+              )}
+
+              <UserMenu user={user} profile={profile} />
+            </div>
           </div>
-        </div>
-      </nav>
-      )}
+        </header>
+
+        {/* Navigation - hidden when inside CRM */}
+        {!pathname.startsWith('/crm') && (
+          <nav className="border-b bg-white" aria-label="Main navigation">
+            <div className="container">
+              <div className="flex space-x-8 overflow-x-auto">
+                {MAIN_NAV_ITEMS.map((item) => {
+                  const isActive = item.match(pathname)
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={`flex items-center space-x-2 py-4 px-1 border-b-2 text-sm font-medium whitespace-nowrap ${
+                        isActive
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          </nav>
+        )}
+      </div>
 
       <main id="main-content" className="container py-6">
         {children}
