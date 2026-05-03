@@ -771,7 +771,7 @@ export default function EstimateDetailPage() {
             )
             return (
               <div key={type} className="border-b last:border-b-0">
-                <div className="px-6 py-2.5 bg-orange-500 text-white">
+                <div className="px-6 py-2.5 bg-hazard-navy text-white">
                   <h4 className="font-semibold text-sm uppercase tracking-wide">
                     {LINE_ITEM_TYPE_LABELS[type]}
                   </h4>
@@ -817,11 +817,11 @@ export default function EstimateDetailPage() {
                         </TableCell>
                       </TableRow>
                     ))}
-                    <TableRow className="bg-orange-50 hover:bg-orange-50 border-t-2 border-orange-200">
-                      <TableCell colSpan={4} className="text-right font-semibold text-orange-900">
+                    <TableRow className="bg-blue-50 hover:bg-blue-50 border-t-2 border-blue-200">
+                      <TableCell colSpan={4} className="text-right font-semibold text-hazard-navy">
                         {LINE_ITEM_TYPE_LABELS[type]} Subtotal
                       </TableCell>
-                      <TableCell className="text-right font-bold text-orange-900">
+                      <TableCell className="text-right font-bold text-hazard-navy">
                         {formatCurrency(sectionSubtotal)}
                       </TableCell>
                     </TableRow>
