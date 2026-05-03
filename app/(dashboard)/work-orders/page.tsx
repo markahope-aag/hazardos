@@ -19,7 +19,7 @@ import { useToast } from '@/components/ui/use-toast'
 interface WorkOrderRow {
   id: string
   work_order_number: string
-  status: 'draft' | 'issued'
+  status: 'draft' | 'issued' | 'revised' | 'completed' | 'archived'
   notes: string | null
   issued_at: string | null
   created_at: string
@@ -159,12 +159,18 @@ export default function WorkOrdersPage() {
                       <Badge
                         variant="outline"
                         className={
-                          wo.status === 'issued'
-                            ? 'bg-green-100 text-green-700 border-0'
-                            : 'bg-amber-100 text-amber-700 border-0'
+                          wo.status === 'archived'
+                            ? 'bg-gray-200 text-gray-700 border-0'
+                            : wo.status === 'completed'
+                              ? 'bg-blue-100 text-blue-700 border-0'
+                              : wo.status === 'revised'
+                                ? 'bg-orange-100 text-orange-700 border-0'
+                                : wo.status === 'issued'
+                                  ? 'bg-green-100 text-green-700 border-0'
+                                  : 'bg-amber-100 text-amber-700 border-0'
                         }
                       >
-                        {wo.status === 'issued' ? 'Issued' : 'Draft'}
+                        {wo.status.charAt(0).toUpperCase() + wo.status.slice(1)}
                       </Badge>
                     </TableCell>
                   </TableRow>

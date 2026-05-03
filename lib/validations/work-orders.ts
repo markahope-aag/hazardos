@@ -86,6 +86,10 @@ const snapshotSectionsSchema = z
 export const updateWorkOrderSchema = z.object({
   notes: z.string().max(5000).nullable().optional(),
   snapshot: snapshotSectionsSchema.optional(),
+  // Admin-driven status override — used by transition buttons (Issue,
+  // Mark Revised, Complete, Archive, Unarchive). Edits without a status
+  // present auto-transition issued → revised in the route handler.
+  status: z.enum(['draft', 'issued', 'revised', 'completed', 'archived']).optional(),
 })
 
 export const workOrderVehicleSchema = z.object({

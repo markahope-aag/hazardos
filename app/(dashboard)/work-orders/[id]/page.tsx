@@ -44,6 +44,7 @@ import {
   type WorkOrderMediaItem,
 } from '@/lib/services/work-order-pdf-generator'
 import { getSignedSurveyMediaUrls } from '@/lib/services/photo-upload-service'
+import { WorkOrderDocuments } from './work-order-documents'
 
 const MAX_PDF_PHOTO_EMBEDS = 6
 const PDF_PHOTO_MAX_DIM = 800
@@ -181,7 +182,7 @@ export default function WorkOrderDetailPage({
         const b = await res.json().catch(() => ({}))
         throw new Error(b?.error?.message || 'Save failed')
       }
-      toast({ title: 'WorkOrder saved' })
+      toast({ title: 'Work order saved' })
       load()
     } catch (err) {
       toast({
@@ -204,8 +205,8 @@ export default function WorkOrderDetailPage({
         throw new Error(b?.error?.message || 'Failed to issue')
       }
       toast({
-        title: 'WorkOrder issued',
-        description: 'The work order is locked and ready for dispatch.',
+        title: 'Work order issued',
+        description: 'The work order is in the crew’s hands.',
       })
       setShowIssueConfirm(false)
       load()
@@ -365,7 +366,50 @@ export default function WorkOrderDetailPage({
   }
 
   const s = workOrder.snapshot
-  const isDraft = workOrder.status === 'draft'
+  // Editability moved off "draft only" — every status except archived
+  // accepts edits. Archived rows are read-only history.
+  const isEditable = workOrder.status !== 'archived'
+  const status = workOrder.status
+
+  const STATUS_LABEL: Record<typeof status, string> = {
+    draft: 'Draft',
+    issued: 'Issued',
+    revised: 'Revised',
+    completed: 'Completed',
+    archived: 'Archived',
+  }
+  const STATUS_BADGE: Record<typeof status, string> = {
+    draft: 'bg-amber-100 text-amber-700 border-0',
+    issued: 'bg-green-100 text-green-700 border-0',
+    revised: 'bg-orange-100 text-orange-700 border-0',
+    completed: 'bg-blue-100 text-blue-700 border-0',
+    archived: 'bg-gray-200 text-gray-700 border-0',
+  }
+
+  const transitionTo = async (next: typeof status, successCopy: string) => {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/work-orders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: next }),
+      })
+      if (!res.ok) {
+        const b = await res.json().catch(() => ({}))
+        throw new Error(b?.error?.message || 'Transition failed')
+      }
+      toast({ title: successCopy })
+      load()
+    } catch (err) {
+      toast({
+        title: 'Could not update status',
+        description: err instanceof Error ? err.message : 'Try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -382,15 +426,8 @@ export default function WorkOrderDetailPage({
               {workOrder.work_order_number}
             </h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Badge
-                variant="outline"
-                className={
-                  isDraft
-                    ? 'bg-amber-100 text-amber-700 border-0'
-                    : 'bg-green-100 text-green-700 border-0'
-                }
-              >
-                {isDraft ? 'Draft' : 'Issued'}
+              <Badge variant="outline" className={STATUS_BADGE[status]}>
+                {STATUS_LABEL[status]}
               </Badge>
               {workOrder.job?.id && (
                 <Link
@@ -420,10 +457,49 @@ export default function WorkOrderDetailPage({
             <Mail className="h-4 w-4 mr-2" />
             Email
           </Button>
-          {isDraft && (
+
+          {/* Lifecycle transitions. Order matches the natural flow:
+              draft → issued → revised (if edited after issue) → completed → archived. */}
+          {status === 'draft' && (
             <Button onClick={() => setShowIssueConfirm(true)} disabled={saving}>
               <CheckCircle className="h-4 w-4 mr-2" />
               Issue work order
+            </Button>
+          )}
+          {(status === 'issued' || status === 'revised') && (
+            <Button
+              onClick={() => transitionTo('completed', 'Marked complete')}
+              disabled={saving}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Mark complete
+            </Button>
+          )}
+          {status === 'revised' && (
+            <Button
+              variant="outline"
+              onClick={() => transitionTo('issued', 'Re-issued')}
+              disabled={saving}
+            >
+              Re-issue
+            </Button>
+          )}
+          {status === 'completed' && (
+            <Button
+              variant="outline"
+              onClick={() => transitionTo('archived', 'Archived')}
+              disabled={saving}
+            >
+              Archive
+            </Button>
+          )}
+          {status === 'archived' && (
+            <Button
+              variant="outline"
+              onClick={() => transitionTo('completed', 'Unarchived')}
+              disabled={saving}
+            >
+              Unarchive
             </Button>
           )}
         </div>
@@ -600,7 +676,7 @@ export default function WorkOrderDetailPage({
       <EditableListCard
         title={`Crew (${crew.length})`}
         icon={<Users className="h-4 w-4" />}
-        canEdit={isDraft}
+        canEdit={isEditable}
         items={crew}
         onAdd={() =>
           setCrew([
@@ -617,7 +693,7 @@ export default function WorkOrderDetailPage({
         }
         onRemove={(i) => setCrew(crew.filter((_, j) => j !== i))}
         renderRow={(c, i) =>
-          isDraft ? (
+          isEditable ? (
             <div className="flex flex-wrap items-center gap-2 w-full">
               <Input
                 value={c.name}
@@ -671,7 +747,7 @@ export default function WorkOrderDetailPage({
       <EditableListCard
         title={`Materials (${materials.length})`}
         icon={<Package className="h-4 w-4" />}
-        canEdit={isDraft}
+        canEdit={isEditable}
         items={materials}
         onAdd={() =>
           setMaterials([
@@ -681,7 +757,7 @@ export default function WorkOrderDetailPage({
         }
         onRemove={(i) => setMaterials(materials.filter((_, j) => j !== i))}
         renderRow={(m, i) =>
-          isDraft ? (
+          isEditable ? (
             <div className="flex flex-wrap items-center gap-2 w-full">
               <Input
                 value={m.name}
@@ -738,7 +814,7 @@ export default function WorkOrderDetailPage({
       <EditableListCard
         title={`Equipment (${equipment.length})`}
         icon={<Wrench className="h-4 w-4" />}
-        canEdit={isDraft}
+        canEdit={isEditable}
         items={equipment}
         onAdd={() =>
           setEquipment([
@@ -756,7 +832,7 @@ export default function WorkOrderDetailPage({
         }
         onRemove={(i) => setEquipment(equipment.filter((_, j) => j !== i))}
         renderRow={(e, i) =>
-          isDraft ? (
+          isEditable ? (
             <div className="flex flex-wrap items-center gap-2 w-full">
               <Input
                 value={e.name}
@@ -814,7 +890,7 @@ export default function WorkOrderDetailPage({
       <VehiclesSection
         workOrderId={workOrder.id}
         vehicles={workOrder.vehicles}
-        disabled={!isDraft}
+        disabled={!isEditable}
         onChange={load}
       />
 
@@ -822,12 +898,12 @@ export default function WorkOrderDetailPage({
       <EditableListCard
         title={`Additional items (${extraItems.length})`}
         icon={<Plus className="h-4 w-4" />}
-        canEdit={isDraft}
+        canEdit={isEditable}
         items={extraItems}
         onAdd={() => setExtraItems([...extraItems, { label: '', detail: null }])}
         onRemove={(i) => setExtraItems(extraItems.filter((_, j) => j !== i))}
         renderRow={(item, i) =>
-          isDraft ? (
+          isEditable ? (
             <div className="flex items-start gap-2 w-full">
               <Input
                 placeholder="Label"
@@ -873,10 +949,10 @@ export default function WorkOrderDetailPage({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
-            disabled={!isDraft}
+            disabled={!isEditable}
             placeholder="Anything to tell the crew that isn't captured above."
           />
-          {isDraft && (
+          {isEditable && (
             <div className="flex justify-end">
               <Button onClick={saveAll} disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
@@ -887,16 +963,22 @@ export default function WorkOrderDetailPage({
         </CardContent>
       </Card>
 
+      {/* Documents & media — SDS sheets, manuals, access info, site
+          photos/videos. Independent of issue state since the office
+          may attach late-arriving paperwork (signed acknowledgments,
+          insurance forms) after the work order is in the crew's hands. */}
+      <WorkOrderDocuments workOrderId={workOrder.id} />
+
       {/* Issue confirmation */}
       <AlertDialog open={showIssueConfirm} onOpenChange={setShowIssueConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Issue this workOrder?</AlertDialogTitle>
+            <AlertDialogTitle>Issue this work order?</AlertDialogTitle>
             <AlertDialogDescription>
-              Once issued, the workOrder is locked. Crew, materials, equipment,
-              vehicles, and notes become read-only. You can still download or
-              email the PDF. Save any pending changes first — issuing uses the
-              last saved snapshot.
+              Issuing hands this work order off to the crew. You can still
+              edit it later — any post-issue change flips the status to
+              &quot;Revised&quot; so the field team knows to re-sync. Save
+              any pending changes first.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -31,7 +31,7 @@ async function loadContext(_request: NextRequest) {
   return { supabase, user, profile }
 }
 
-async function assertDraft(
+async function assertEditable(
   supabase: Awaited<ReturnType<typeof createClient>>,
   workOrderId: string,
   organizationId: string,
@@ -44,10 +44,10 @@ async function assertDraft(
     .single()
 
   if (!workOrder) throw new SecureError('NOT_FOUND', 'Work order not found')
-  if (workOrder.status === 'issued') {
+  if (workOrder.status === 'archived') {
     throw new SecureError(
       'VALIDATION_ERROR',
-      'Issued work orders are locked.',
+      'Archived work orders are read-only.',
     )
   }
 }
@@ -59,7 +59,7 @@ export async function PATCH(
   try {
     const { id, vehicleId } = await params
     const { supabase, profile } = await loadContext(request)
-    await assertDraft(supabase, id, profile.organization_id)
+    await assertEditable(supabase, id, profile.organization_id)
 
     const body = await request.json().catch(() => ({}))
     const parsed = workOrderVehicleSchema.safeParse(body)
@@ -108,7 +108,7 @@ export async function DELETE(
   try {
     const { id, vehicleId } = await params
     const { supabase, profile } = await loadContext(request)
-    await assertDraft(supabase, id, profile.organization_id)
+    await assertEditable(supabase, id, profile.organization_id)
 
     const { error } = await supabase
       .from('work_order_vehicles')

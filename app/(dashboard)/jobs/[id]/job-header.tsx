@@ -162,27 +162,39 @@ export function JobHeader({ job }: JobHeaderProps) {
                   <ExternalLink className="h-3 w-3" />
                 </Link>
               )}
-              {job.work_order && (
-                <Link
-                  href={`/work-orders/${job.work_order.id}`}
-                  className="inline-flex items-center gap-1.5 rounded-md border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
-                >
-                  <ClipboardList className="h-3.5 w-3.5" />
-                  Work Order {job.work_order.work_order_number}
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      'h-4 px-1 text-[10px] font-medium border-0',
-                      job.work_order.status === 'issued'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-amber-100 text-amber-700',
-                    )}
+              {job.work_order && (() => {
+                const woStatus = job.work_order.status
+                const woBadgeClass =
+                  woStatus === 'archived'
+                    ? 'bg-gray-200 text-gray-700'
+                    : woStatus === 'completed'
+                      ? 'bg-blue-100 text-blue-700'
+                      : woStatus === 'revised'
+                        ? 'bg-orange-100 text-orange-700'
+                        : woStatus === 'issued'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-amber-100 text-amber-700'
+                const woLabel = woStatus.charAt(0).toUpperCase() + woStatus.slice(1)
+                return (
+                  <Link
+                    href={`/work-orders/${job.work_order.id}`}
+                    className="inline-flex items-center gap-1.5 rounded-md border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
                   >
-                    {job.work_order.status === 'issued' ? 'Issued' : 'Draft'}
-                  </Badge>
-                  <ExternalLink className="h-3 w-3" />
-                </Link>
-              )}
+                    <ClipboardList className="h-3.5 w-3.5" />
+                    Work Order {job.work_order.work_order_number}
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'h-4 px-1 text-[10px] font-medium border-0',
+                        woBadgeClass,
+                      )}
+                    >
+                      {woLabel}
+                    </Badge>
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                )
+              })()}
             </div>
           )}
         </div>

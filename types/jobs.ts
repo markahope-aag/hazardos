@@ -87,7 +87,7 @@ export interface Job {
 export interface WorkOrderRelation {
   id: string
   work_order_number: string
-  status: 'draft' | 'issued'
+  status: 'draft' | 'issued' | 'revised' | 'completed' | 'archived'
 }
 
 export interface CompletionPhoto {

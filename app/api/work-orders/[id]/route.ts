@@ -68,10 +68,14 @@ export const PATCH = createApiHandlerWithParams(
       .single()
 
     if (!existing) throw new SecureError('NOT_FOUND', 'Work order not found')
-    if (existing.status === 'issued') {
+    // Archived work orders are off the active list — treat as read-only
+    // history. Every other status (draft, issued, revised, completed) is
+    // editable; the office may need to apply in-flight corrections to
+    // an already-issued work order.
+    if (existing.status === 'archived') {
       throw new SecureError(
         'VALIDATION_ERROR',
-        'Issued work orders are locked. Unissue to edit, or create a new one.',
+        'Archived work orders are read-only. Unarchive to edit.',
       )
     }
 
@@ -82,6 +86,22 @@ export const PATCH = createApiHandlerWithParams(
     if (body.snapshot) {
       const current = (existing.snapshot || {}) as Partial<WorkOrderSnapshot>
       update.snapshot = { ...current, ...body.snapshot }
+    }
+
+    // Caller-supplied status takes precedence — that's how the
+    // transition buttons (Issue, Complete, Archive, Unarchive) move
+    // through the lifecycle.
+    if (body.status !== undefined) {
+      update.status = body.status
+    } else if (
+      Object.keys(update).length > 0 &&
+      existing.status === 'issued'
+    ) {
+      // Auto-transition issued → revised when an edit lands without an
+      // explicit status. Gives the field team a visible signal that the
+      // version in their hands is no longer canonical and they should
+      // re-sync.
+      update.status = 'revised'
     }
 
     if (Object.keys(update).length === 0) {
@@ -119,12 +139,11 @@ export const DELETE = createApiHandlerWithParams(
       .single()
 
     if (!existing) throw new SecureError('NOT_FOUND', 'Work order not found')
-    if (existing.status === 'issued') {
-      throw new SecureError(
-        'VALIDATION_ERROR',
-        'Cannot delete an issued work order.',
-      )
-    }
+    // We allow deletion in any status — the office sometimes generates
+    // a work order, then realizes the job's been pushed out and they
+    // want a clean slate. The delete is a hard delete (no undo), so the
+    // UI confirms before calling.
+    void existing
 
     const { error } = await context.supabase
       .from('work_orders')

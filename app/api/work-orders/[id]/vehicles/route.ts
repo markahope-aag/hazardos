@@ -23,10 +23,10 @@ export const POST = createApiHandlerWithParams(
       .single()
 
     if (!workOrder) throw new SecureError('NOT_FOUND', 'Work order not found')
-    if (workOrder.status === 'issued') {
+    if (workOrder.status === 'archived') {
       throw new SecureError(
         'VALIDATION_ERROR',
-        'Issued work orders are locked. Create a new work order to add a vehicle.',
+        'Archived work orders are read-only. Unarchive to add a vehicle.',
       )
     }
 

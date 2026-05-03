@@ -102,7 +102,7 @@ export interface WorkOrderVehicle {
   created_at: string
 }
 
-export type WorkOrderStatus = 'draft' | 'issued'
+export type WorkOrderStatus = 'draft' | 'issued' | 'revised' | 'completed' | 'archived'
 
 export interface WorkOrder {
   id: string
@@ -121,4 +121,48 @@ export interface WorkOrder {
 
 export interface WorkOrderWithVehicles extends WorkOrder {
   vehicles: WorkOrderVehicle[]
+}
+
+// Documents attached to a work order. Distinct from job_documents (which
+// outlive any single dispatch and hold the regulatory artifacts) — these
+// are the day-of references the crew actually needs in their hands.
+export type WorkOrderDocumentCategory =
+  | 'sds'
+  | 'manual'
+  | 'access'
+  | 'pre_work'
+  | 'signed_acknowledgment'
+  | 'other'
+
+export interface WorkOrderDocument {
+  id: string
+  organization_id: string
+  work_order_id: string
+  file_name: string
+  storage_path: string
+  mime_type: string | null
+  size_bytes: number | null
+  category: WorkOrderDocumentCategory
+  notes: string | null
+  uploaded_by: string | null
+  uploaded_at: string
+  updated_at: string
+}
+
+export interface WorkOrderDocumentInsert {
+  organization_id: string
+  work_order_id: string
+  file_name: string
+  storage_path: string
+  mime_type?: string | null
+  size_bytes?: number | null
+  category?: WorkOrderDocumentCategory
+  notes?: string | null
+  uploaded_by?: string | null
+}
+
+export interface WorkOrderDocumentUpdate {
+  file_name?: string
+  category?: WorkOrderDocumentCategory
+  notes?: string | null
 }
