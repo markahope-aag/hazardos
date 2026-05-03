@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 
 /**
  * GET /api/organization-documents
@@ -17,7 +18,7 @@ export const GET = createApiHandler(
       .order('category', { ascending: true })
       .order('uploaded_at', { ascending: false })
 
-    if (error) throw error
+    if (error) throwDbError(error, 'list organization documents')
     return NextResponse.json({ documents: data || [] })
   }
 )

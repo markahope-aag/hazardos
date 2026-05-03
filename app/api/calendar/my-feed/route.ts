@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 
 /**
  * GET /api/calendar/my-feed
@@ -17,8 +18,9 @@ export const GET = createApiHandler(
       .eq('id', context.user.id)
       .single()
 
-    if (error || !data?.calendar_feed_token) {
-      throw error || new Error('Calendar feed token missing')
+    if (error) throwDbError(error, 'load calendar feed token')
+    if (!data?.calendar_feed_token) {
+      throw new SecureError('NOT_FOUND', 'Calendar feed token missing')
     }
 
     const origin = request.nextUrl.origin
@@ -46,7 +48,7 @@ export const POST = createApiHandler(
       .update({ calendar_feed_token: newToken })
       .eq('id', context.user.id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'rotate calendar feed token')
 
     const origin = request.nextUrl.origin
     const url = `${origin}/api/calendar/feed/${newToken}`

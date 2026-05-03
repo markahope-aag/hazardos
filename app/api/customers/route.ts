@@ -3,6 +3,7 @@ import { createApiHandler } from '@/lib/utils/api-handler'
 import { ROLES } from '@/lib/auth/roles'
 import { customerListQuerySchema, createCustomerSchema } from '@/lib/validations/customers'
 import { sanitizeSearchQuery } from '@/lib/utils/sanitize'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import type { CustomerInsert } from '@/types/database'
 
 /**
@@ -46,7 +47,7 @@ export const GET = createApiHandler(
     }
 
     const { data, error } = await dbQuery
-    if (error) throw error
+    if (error) throwDbError(error, 'list customers')
 
     return NextResponse.json({ customers: data || [] })
   },
@@ -88,7 +89,7 @@ export const POST = createApiHandler(
       .insert(customerData)
       .select()
       .single()
-    if (error) throw error
+    if (error) throwDbError(error, 'create customer')
 
     return NextResponse.json({ customer }, { status: 201 })
   },

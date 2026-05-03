@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateEstimateSchema } from '@/lib/validations/estimates'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
 import { getEstimateChain } from '@/lib/services/estimate-versioning'
 import { recomputeEstimateTotals } from '@/lib/services/estimate-totals'
@@ -128,9 +128,7 @@ export const PATCH = createApiHandlerWithParams(
       .select()
       .single()
 
-    if (updateError) {
-      throw updateError
-    }
+    if (updateError) throwDbError(updateError, 'update estimate')
 
     // Any change to markup/discount/tax invalidates the stored totals.
     // Recompute so subtotal/markup_amount/tax_amount/total all stay in
@@ -179,9 +177,7 @@ export const DELETE = createApiHandlerWithParams(
       .eq('id', params.id)
       .eq('organization_id', context.profile.organization_id)
 
-    if (deleteError) {
-      throw deleteError
-    }
+    if (deleteError) throwDbError(deleteError, 'delete estimate')
 
     return NextResponse.json({ success: true })
   }

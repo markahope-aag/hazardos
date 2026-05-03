@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { ROLES } from '@/lib/auth/roles'
 import { proposalListQuerySchema, createProposalSchema } from '@/lib/validations/proposals'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 
 /**
  * GET /api/proposals
@@ -130,9 +130,7 @@ export const POST = createApiHandler(
       .select()
       .single()
 
-    if (createError) {
-      throw createError
-    }
+    if (createError) throwDbError(createError, 'create proposal')
 
     // Update estimate status to 'sent'
     await context.supabase

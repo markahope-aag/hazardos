@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 
 const putSchema = z.object({
   document_ids: z.array(z.string().uuid()),
@@ -22,7 +22,7 @@ export const GET = createApiHandlerWithParams(
       .eq('id', params.id)
       .eq('organization_id', orgId)
       .maybeSingle()
-    if (estErr) throw estErr
+    if (estErr) throwDbError(estErr, 'load estimate')
     if (!estimate) throw new SecureError('NOT_FOUND', 'Estimate not found')
 
     const { data, error } = await context.supabase
@@ -37,7 +37,7 @@ export const GET = createApiHandlerWithParams(
       .eq('estimate_id', params.id)
       .order('attached_at', { ascending: false })
 
-    if (error) throw error
+    if (error) throwDbError(error, 'list estimate attachments')
     return NextResponse.json({ attachments: data || [] })
   },
 )
@@ -61,7 +61,7 @@ export const PUT = createApiHandlerWithParams(
       .eq('id', params.id)
       .eq('organization_id', orgId)
       .maybeSingle()
-    if (estErr) throw estErr
+    if (estErr) throwDbError(estErr, 'load estimate')
     if (!estimate) throw new SecureError('NOT_FOUND', 'Estimate not found')
 
     // Verify every doc id belongs to the caller's org before touching
@@ -73,7 +73,7 @@ export const PUT = createApiHandlerWithParams(
         .select('id')
         .eq('organization_id', orgId)
         .in('id', body.document_ids)
-      if (docErr) throw docErr
+      if (docErr) throwDbError(docErr, 'verify documents')
       if (!docs || docs.length !== body.document_ids.length) {
         throw new SecureError('NOT_FOUND', 'One or more documents not found')
       }
@@ -86,7 +86,7 @@ export const PUT = createApiHandlerWithParams(
       .from('estimate_attached_documents')
       .delete()
       .eq('estimate_id', params.id)
-    if (delErr) throw delErr
+    if (delErr) throwDbError(delErr, 'clear estimate attachments')
 
     if (body.document_ids.length > 0) {
       const rows = body.document_ids.map((document_id) => ({
@@ -98,7 +98,7 @@ export const PUT = createApiHandlerWithParams(
       const { error: insErr } = await context.supabase
         .from('estimate_attached_documents')
         .insert(rows)
-      if (insErr) throw insErr
+      if (insErr) throwDbError(insErr, 'attach documents')
     }
 
     return NextResponse.json({ success: true, count: body.document_ids.length })

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateProposalSchema } from '@/lib/validations/proposals'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
 
 /**
@@ -96,9 +96,7 @@ export const PATCH = createApiHandlerWithParams(
       .select()
       .single()
 
-    if (updateError) {
-      throw updateError
-    }
+    if (updateError) throwDbError(updateError, 'update proposal')
 
     return NextResponse.json({ proposal })
   }
@@ -121,9 +119,7 @@ export const DELETE = createApiHandlerWithParams(
       .eq('id', params.id)
       .eq('organization_id', context.profile.organization_id)
 
-    if (deleteError) {
-      throw deleteError
-    }
+    if (deleteError) throwDbError(deleteError, 'delete proposal')
 
     return NextResponse.json({ success: true })
   }

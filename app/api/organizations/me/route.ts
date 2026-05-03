@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 
 // PATCH body: every field is optional; empty string → null so the form can
 // clear a value.
@@ -53,7 +54,7 @@ export const GET = createApiHandler(
       .select('id, name, email, phone, website, license_number, address, city, state, zip, timezone, email_from_name, email_reply_to, email_domain, email_domain_status, email_header_color, email_accent_color, email_logo_url, email_signature, photo_retention_days')
       .eq('id', context.profile.organization_id)
       .single()
-    if (error) throw error
+    if (error) throwDbError(error, 'load organization')
     return NextResponse.json({ organization: data })
   },
 )
@@ -86,7 +87,7 @@ export const PATCH = createApiHandler(
       .eq('id', context.profile.organization_id)
       .select()
       .single()
-    if (error) throw error
+    if (error) throwDbError(error, 'update organization')
 
     return NextResponse.json({ organization: data })
   },

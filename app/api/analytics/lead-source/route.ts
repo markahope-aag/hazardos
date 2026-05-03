@@ -7,6 +7,7 @@ import {
   type DashboardPeriod,
   type DashboardHazardType,
 } from '@/lib/dashboard/filters'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 
 const querySchema = z.object({
   period: z.enum(['week', 'month', 'quarter', 'ytd']).optional(),
@@ -47,7 +48,7 @@ export const GET = createApiHandler(
       .lte('created_at', range.end.toISOString())
       .or(`actual_end_at.is.null,actual_end_at.gte.${range.start.toISOString()}`)
       .neq('status', 'cancelled')
-    if (jobsError) throw jobsError
+    if (jobsError) throwDbError(jobsError, 'list jobs by lead source')
 
     const surveyIds = Array.from(new Set((jobs || []).map((j) => j.site_survey_id).filter(Boolean)))
     if (surveyIds.length === 0) {
@@ -65,7 +66,7 @@ export const GET = createApiHandler(
     }
 
     const { data: surveys, error: surveysError } = await surveysQuery
-    if (surveysError) throw surveysError
+    if (surveysError) throwDbError(surveysError, 'load surveys for lead source')
 
     const matchedCustomerIds = Array.from(
       new Set((surveys || []).map((s) => s.customer_id).filter(Boolean))
@@ -88,7 +89,7 @@ export const GET = createApiHandler(
       .select('id, lead_source, source')
       .in('id', matchedCustomerIds)
 
-    if (customersError) throw customersError
+    if (customersError) throwDbError(customersError, 'load customers for lead source')
 
     const leadSourceByCustomerId = new Map<string, string>()
     for (const c of customers || []) {

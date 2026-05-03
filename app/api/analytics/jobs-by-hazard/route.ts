@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { getPeriodRange, type DashboardPeriod } from '@/lib/dashboard/filters'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 
 const querySchema = z.object({
   period: z.enum(['week', 'month', 'quarter', 'ytd']).optional(),
@@ -37,7 +38,7 @@ export const GET = createApiHandler(
       .or(`actual_end_at.is.null,actual_end_at.gte.${range.start.toISOString()}`)
       .neq('status', 'cancelled')
 
-    if (error) throw error
+    if (error) throwDbError(error, 'group jobs by hazard')
 
     const counts = new Map<string, number>()
     for (const job of jobs || []) {

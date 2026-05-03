@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { calendarQuerySchema } from '@/lib/validations/jobs'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { addDays, parseISO, format } from 'date-fns'
 
 /**
@@ -66,7 +66,7 @@ export const GET = createApiHandler(
       .lte('scheduled_start_date', lookaheadEnd)
       .neq('status', 'cancelled')
 
-    if (error) throw error
+    if (error) throwDbError(error, 'load regulatory deadlines')
 
     type DeadlineEvent = {
       id: string

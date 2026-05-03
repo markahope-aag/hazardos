@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 
 /**
  * GET /api/organization-documents/shares
@@ -20,7 +21,7 @@ export const GET = createApiHandler(
       .order('shared_at', { ascending: false })
       .limit(100)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'list document shares')
     return NextResponse.json({ shares: data || [] })
   }
 )

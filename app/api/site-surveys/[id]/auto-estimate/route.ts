@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { createEstimateFromSurvey } from '@/lib/services/estimate-creator'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { z } from 'zod'
 
 /**
@@ -35,9 +35,7 @@ export const POST = createApiHandlerWithParams(
       .limit(1)
       .maybeSingle()
 
-    if (existingError) {
-      throw existingError
-    }
+    if (existingError) throwDbError(existingError, 'check for existing estimate')
 
     if (existing) {
       return NextResponse.json({ estimate: existing, created: false })

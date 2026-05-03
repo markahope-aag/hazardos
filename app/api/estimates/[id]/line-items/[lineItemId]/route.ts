@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateLineItemSchema } from '@/lib/validations/estimates'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { recomputeEstimateTotals } from '@/lib/services/estimate-totals'
 import { logger } from '@/lib/utils/logger'
 import { z } from 'zod'
@@ -89,9 +89,7 @@ export const PATCH = createApiHandlerWithParams<UpdateLineItemBody, unknown, Par
       .select()
       .single()
 
-    if (updateError) {
-      throw updateError
-    }
+    if (updateError) throwDbError(updateError, 'update line item')
 
     const totals = await tryRecompute(context.supabase, params.id)
 
@@ -130,9 +128,7 @@ export const DELETE = createApiHandlerWithParams<unknown, unknown, Params>(
       .eq('id', params.lineItemId)
       .eq('estimate_id', params.id)
 
-    if (deleteError) {
-      throw deleteError
-    }
+    if (deleteError) throwDbError(deleteError, 'delete line item')
 
     const totals = await tryRecompute(context.supabase, params.id)
 

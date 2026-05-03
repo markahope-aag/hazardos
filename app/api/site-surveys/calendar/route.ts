@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { calendarQuerySchema } from '@/lib/validations/jobs'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 
 /**
  * GET /api/site-surveys/calendar?start=YYYY-MM-DD&end=YYYY-MM-DD
@@ -53,9 +53,7 @@ export const GET = createApiHandler(
       .neq('status', 'cancelled')
       .order('scheduled_date', { ascending: true })
 
-    if (error) {
-      throw error
-    }
+    if (error) throwDbError(error, 'list survey calendar')
 
     const surveys = (data || []).map((row) => ({
       ...row,

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { addLineItemSchema, bulkUpdateLineItemsSchema } from '@/lib/validations/estimates'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { recomputeEstimateTotals } from '@/lib/services/estimate-totals'
 import { logger } from '@/lib/utils/logger'
 
@@ -121,9 +121,7 @@ export const POST = createApiHandlerWithParams(
       .select()
       .single()
 
-    if (createError) {
-      throw createError
-    }
+    if (createError) throwDbError(createError, 'add line item')
 
     const totals = await tryRecompute(context.supabase, params.id)
 
@@ -206,9 +204,7 @@ export const PUT = createApiHandlerWithParams(
       .eq('estimate_id', params.id)
       .order('sort_order', { ascending: true })
 
-    if (fetchError) {
-      throw fetchError
-    }
+    if (fetchError) throwDbError(fetchError, 'list updated line items')
 
     const totals = await tryRecompute(context.supabase, params.id)
 

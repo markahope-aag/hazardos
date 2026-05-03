@@ -4,7 +4,7 @@ import { createApiHandler } from '@/lib/utils/api-handler'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { EmailService } from '@/lib/services/email/email-service'
 import { wrapEmailHtml } from '@/lib/services/email/template-wrapper'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { addDays } from 'date-fns'
 
 const BUCKET = 'organization-documents'
@@ -51,7 +51,7 @@ export const POST = createApiHandler(
       .eq('organization_id', orgId)
       .in('id', body.document_ids)
 
-    if (docsErr) throw docsErr
+    if (docsErr) throwDbError(docsErr, 'load documents')
     if (!docs || docs.length !== body.document_ids.length) {
       throw new SecureError('NOT_FOUND', 'One or more documents not found')
     }
@@ -161,7 +161,7 @@ export const POST = createApiHandler(
     const { error: shareErr } = await context.supabase
       .from('organization_document_shares')
       .insert(auditRows)
-    if (shareErr) throw shareErr
+    if (shareErr) throwDbError(shareErr, 'record document share')
 
     return NextResponse.json({
       success: true,

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { sendProposalSchema } from '@/lib/validations/proposals'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 const CREDENTIALS_BUCKET = 'organization-documents'
@@ -145,9 +145,7 @@ export const POST = createApiHandlerWithParams(
       .select()
       .single()
 
-    if (updateError) {
-      throw updateError
-    }
+    if (updateError) throwDbError(updateError, 'mark proposal sent')
 
     return NextResponse.json({
       proposal: updated,
