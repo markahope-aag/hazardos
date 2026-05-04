@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
 import { logger } from '@/lib/utils/logger';
@@ -13,16 +14,16 @@ import { logger } from '@/lib/utils/logger';
  * POST /api/errors/report
  */
 
-interface ErrorReportPayload {
-  name: string;
-  message: string;
-  stack?: string;
-  componentStack?: string;
-  context?: Record<string, unknown>;
-  userAgent?: string;
-  url?: string;
-  timestamp: string;
-}
+const errorReportSchema = z.object({
+  name: z.string().max(100),
+  message: z.string().max(500),
+  stack: z.string().max(5000).optional(),
+  componentStack: z.string().max(3000).optional(),
+  context: z.record(z.string(), z.unknown()).optional(),
+  userAgent: z.string().max(300).optional(),
+  url: z.string().url().max(500).optional(),
+  timestamp: z.string().datetime().optional(),
+});
 
 export async function POST(request: NextRequest) {
   // Client-reported errors are unauthenticated by design — anonymous users
@@ -36,15 +37,12 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    const payload: ErrorReportPayload = await request.json();
-
-    // Validate required fields
-    if (!payload.name || !payload.message) {
-      return NextResponse.json(
-        { error: 'Missing required error fields' },
-        { status: 400 }
-      );
+    const raw = await request.json();
+    const parsed = errorReportSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid error report' }, { status: 400 });
     }
+    const payload = parsed.data;
 
     logger.error(
       {

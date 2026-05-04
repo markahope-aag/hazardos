@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { generateICal, type ICalEvent } from '@/lib/services/ical-generator'
 import { addDays, format } from 'date-fns'
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
 
 /**
  * GET /api/calendar/feed/[token]
@@ -20,9 +21,12 @@ const WINDOW_PAST_DAYS = 30
 const WINDOW_FUTURE_DAYS = 180
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ token: string }> },
 ) {
+  const rateLimitResponse = await applyUnifiedRateLimit(request, 'public')
+  if (rateLimitResponse) return rateLimitResponse
+
   const { token } = await params
 
   // Quick UUID format check — saves a DB round-trip on garbage URLs.

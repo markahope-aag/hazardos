@@ -1,0 +1,345 @@
+name: Security Audit & Dependency Updates
+
+on:
+  # Run security checks on every push to main and PRs
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Weekly scheduled security audit
+  schedule:
+    # Run every Monday at 8 AM CT (14:00 UTC)
+    - cron: '0 14 * * 1'
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      update_level:
+        description: 'Update level (patch, minor, major)'
+        required: false
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  # Comprehensive security audit
+  security-audit:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: NPM Security Audit
+        run: |
+          echo "::group::NPM Audit Results"
+          # Run audit and capture both output and exit code
+          if ! npm audit --audit-level=moderate --json > audit-results.json 2>&1; then
+            echo "::warning::NPM audit found vulnerabilities"
+            cat audit-results.json | jq '.' || cat audit-results.json
+            
+            # Check if there are high or critical vulnerabilities
+            if npm audit --audit-level=high --json > /dev/null 2>&1; then
+              echo "::notice::Only low/moderate vulnerabilities found"
+            else
+              echo "::error::High or critical vulnerabilities found!"
+              npm audit --audit-level=high
+              exit 1
+            fi
+          else
+            echo "::notice::No vulnerabilities found"
+          fi
+          echo "::endgroup::"
+
+      - name: Check for hardcoded secrets
+        run: |
+          echo "::group::Secret Detection"
+          
+          # Function to check for potential secrets
+          check_secrets() {
+            local pattern="$1"
+            local description="$2"
+            local files="$3"
+            
+            if echo "$files" | xargs grep -rn "$pattern" 2>/dev/null; then
+              echo "::error::${description} found in source code"
+              return 1
+            fi
+            return 0
+          }
+          
+          # Get files to scan (exclude common false positive paths)
+          FILES=$(find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.env*" \) \
+            -not -path "./node_modules/*" \
+            -not -path "./.next/*" \
+            -not -path "./dist/*" \
+            -not -path "./.git/*" \
+            -not -path "./coverage/*")
+          
+          SECRET_FOUND=0
+          
+          # Check for various secret patterns
+          check_secrets "sk-[a-zA-Z0-9]{20,}" "OpenAI API keys" "$FILES" || SECRET_FOUND=1
+          check_secrets "pk_live_[a-zA-Z0-9]{24,}" "Stripe Live API keys" "$FILES" || SECRET_FOUND=1  
+          check_secrets "sk_live_[a-zA-Z0-9]{24,}" "Stripe Live Secret keys" "$FILES" || SECRET_FOUND=1
+          check_secrets "eyJhbGciOiJIUzI1NiI[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*" "JWT tokens" "$FILES" || SECRET_FOUND=1
+          check_secrets "re_[A-Za-z0-9]{20,}" "Resend API keys" "$FILES" || SECRET_FOUND=1
+          check_secrets "AKIA[0-9A-Z]{16}" "AWS Access Keys" "$FILES" || SECRET_FOUND=1
+          check_secrets "[a-zA-Z0-9+/]{40}" "Generic Base64 secrets (potential)" "$FILES" || SECRET_FOUND=1
+          
+          if [ $SECRET_FOUND -eq 1 ]; then
+            echo "::error::Potential secrets found in source code!"
+            exit 1
+          else
+            echo "::notice::No hardcoded secrets detected"
+          fi
+          echo "::endgroup::"
+
+      - name: Check package.json overrides
+        run: |
+          echo "::group::Security Override Analysis"
+          
+          if [ -f package.json ]; then
+            # Check if security overrides are still needed
+            OVERRIDES=$(cat package.json | jq -r '.pnpm.overrides // {} | keys[]' 2>/dev/null || echo "")
+            
+            if [ -n "$OVERRIDES" ]; then
+              echo "::notice::Current security overrides:"
+              echo "$OVERRIDES" | while read -r pkg; do
+                VERSION=$(cat package.json | jq -r ".pnpm.overrides.\"$pkg\"")
+                echo "  - $pkg: $VERSION"
+              done
+              
+              echo ""
+              echo "::warning::Please verify these overrides are still necessary for security"
+              echo "Consider updating or removing overrides that may no longer be needed"
+            else
+              echo "::notice::No security overrides found"
+            fi
+          fi
+          echo "::endgroup::"
+
+      - name: Check for outdated dependencies
+        run: |
+          echo "::group::Outdated Dependencies Report"
+          
+          # Check for outdated packages
+          npm outdated --json > outdated.json 2>/dev/null || true
+          
+          if [ -s outdated.json ]; then
+            echo "::warning::Outdated packages found:"
+            cat outdated.json | jq -r 'to_entries[] | "\(.key): \(.value.current) -> \(.value.wanted) (latest: \(.value.latest))"'
+            
+            # Check for major version updates that might need attention
+            MAJOR_UPDATES=$(cat outdated.json | jq -r 'to_entries[] | select(.value.current != .value.latest) | .key' | wc -l)
+            
+            if [ "$MAJOR_UPDATES" -gt 0 ]; then
+              echo ""
+              echo "::notice::$MAJOR_UPDATES packages have newer versions available"
+              echo "Consider reviewing and updating critical dependencies"
+            fi
+          else
+            echo "::notice::All dependencies are up to date"
+          fi
+          echo "::endgroup::"
+
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-results
+          path: |
+            audit-results.json
+            outdated.json
+          retention-days: 30
+
+  # Dependency update automation 
+  dependency-update:
+    name: Automated Security Updates
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for security updates
+        id: security-check
+        run: |
+          echo "::group::Checking for security updates"
+          
+          # Check for security advisories
+          npm audit --audit-level=moderate --json > current-audit.json 2>/dev/null || true
+          
+          VULNERABILITIES=$(cat current-audit.json | jq '.vulnerabilities | length' 2>/dev/null || echo "0")
+          
+          if [ "$VULNERABILITIES" -gt 0 ]; then
+            echo "has-vulnerabilities=true" >> $GITHUB_OUTPUT
+            echo "::warning::Found $VULNERABILITIES packages with vulnerabilities"
+            
+            # Try to fix automatically
+            if npm audit fix --dry-run --json > fix-preview.json 2>/dev/null; then
+              echo "can-auto-fix=true" >> $GITHUB_OUTPUT
+              echo "::notice::Vulnerabilities can be automatically fixed"
+            else
+              echo "can-auto-fix=false" >> $GITHUB_OUTPUT
+              echo "::warning::Manual intervention may be required for some vulnerabilities"
+            fi
+          else
+            echo "has-vulnerabilities=false" >> $GITHUB_OUTPUT
+            echo "::notice::No security vulnerabilities found"
+          fi
+          echo "::endgroup::"
+
+      - name: Apply security updates
+        if: steps.security-check.outputs.has-vulnerabilities == 'true' && steps.security-check.outputs.can-auto-fix == 'true'
+        run: |
+          echo "::group::Applying security updates"
+          
+          # Apply fixes
+          npm audit fix
+          
+          # Check if package.json was modified
+          if git diff --exit-code package.json package-lock.json >/dev/null 2>&1; then
+            echo "no-changes=true" >> $GITHUB_OUTPUT
+            echo "::notice::No changes were made"
+          else
+            echo "no-changes=false" >> $GITHUB_OUTPUT
+            echo "::notice::Security updates applied"
+          fi
+          echo "::endgroup::"
+
+      - name: Run tests after updates
+        if: steps.security-check.outputs.has-vulnerabilities == 'true' && steps.security-check.outputs.can-auto-fix == 'true'
+        run: |
+          echo "::group::Testing after security updates"
+          
+          # Install updated dependencies
+          npm ci
+          
+          # Run tests to ensure updates don't break functionality
+          npm run type-check
+          npm run lint
+          npm run test -- --run
+          npm run build
+          
+          echo "::notice::All tests passed after security updates"
+          echo "::endgroup::"
+
+      - name: Create Pull Request
+        if: steps.security-check.outputs.has-vulnerabilities == 'true' && steps.security-check.outputs.can-auto-fix == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(security): apply automated security updates"
+          title: "🔒 Automated Security Updates"
+          body: |
+            ## 🔒 Automated Security Updates
+            
+            This PR contains automated security updates applied by the security workflow.
+            
+            ### Changes Made
+            - Applied `npm audit fix` to resolve security vulnerabilities
+            - All tests pass with the updated dependencies
+            
+            ### Verification
+            - ✅ Type checking passed
+            - ✅ Linting passed  
+            - ✅ Tests passed
+            - ✅ Build succeeded
+            
+            ### Review Notes
+            Please review the changes to ensure they don't introduce any regressions.
+            
+            **Auto-generated by Security Workflow**
+          branch: security/automated-updates
+          labels: |
+            security
+            dependencies
+            automated
+          assignees: markh
+
+  # License and supply chain security
+  supply-chain-security:
+    name: Supply Chain Security
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check licenses
+        run: |
+          echo "::group::License Compliance Check"
+          
+          # Install license checker
+          npm install -g license-checker
+          
+          # Generate license report
+          license-checker --json > licenses.json
+          
+          # Check for problematic licenses
+          PROBLEMATIC_LICENSES=("GPL-2.0" "GPL-3.0" "AGPL-1.0" "AGPL-3.0" "LGPL-2.1" "LGPL-3.0")
+          
+          for license in "${PROBLEMATIC_LICENSES[@]}"; do
+            if cat licenses.json | jq -r '.[] | .licenses' | grep -i "$license" >/dev/null 2>&1; then
+              echo "::warning::Found potentially problematic license: $license"
+            fi
+          done
+          
+          # Count total packages and licenses
+          TOTAL_PACKAGES=$(cat licenses.json | jq 'keys | length')
+          UNIQUE_LICENSES=$(cat licenses.json | jq -r '.[] | .licenses' | sort -u | wc -l)
+          
+          echo "::notice::License summary: $TOTAL_PACKAGES packages using $UNIQUE_LICENSES unique licenses"
+          echo "::endgroup::"
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: licenses.json
+          retention-days: 90

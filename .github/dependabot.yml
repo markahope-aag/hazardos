@@ -1,0 +1,102 @@
+# Dependabot configuration for automated security dependency updates
+# https://docs.github.com/en/code-security/supply-chain-security/keeping-your-dependencies-updated-automatically
+
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Chicago"
+    # Limit the number of open pull requests for version updates
+    open-pull-requests-limit: 5
+    # Assignees for dependency PRs
+    assignees:
+      - "markh"
+    # Labels for dependency PRs
+    labels:
+      - "dependencies"
+      - "security"
+    # Commit message preferences
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    # Update strategies
+    versioning-strategy: "increase"
+    # Security updates get priority
+    target-branch: "main"
+    # Group updates where possible to reduce PR noise
+    groups:
+      # Group React-related dependencies
+      react:
+        patterns:
+          - "react*"
+          - "@types/react*"
+      # Group Radix UI components  
+      radix:
+        patterns:
+          - "@radix-ui/*"
+      # Group AWS SDK packages
+      aws:
+        patterns:
+          - "@aws-sdk/*"
+      # Group Supabase packages
+      supabase:
+        patterns:
+          - "@supabase/*"
+          - "supabase"
+      # Group ESLint and TypeScript tooling
+      tooling:
+        patterns:
+          - "eslint*"
+          - "@eslint/*"
+          - "@typescript-eslint/*"
+          - "typescript*"
+      # Group testing utilities
+      testing:
+        patterns:
+          - "@testing-library/*"
+          - "vitest*"
+          - "@vitest/*"
+      # Group Tailwind CSS
+      tailwind:
+        patterns:
+          - "tailwindcss*"
+          - "@tailwindcss/*"
+
+  # Monitor GitHub Actions for updates
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:30"
+      timezone: "America/Chicago"
+    assignees:
+      - "markh"
+    labels:
+      - "ci"
+      - "dependencies"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+
+  # Monitor Docker dependencies if any Dockerfiles exist
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"  
+      time: "10:00"
+      timezone: "America/Chicago"
+    assignees:
+      - "markh"
+    labels:
+      - "docker"
+      - "dependencies"
+    commit-message:
+      prefix: "docker"

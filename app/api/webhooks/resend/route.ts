@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import crypto from 'node:crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
 
 /**
  * POST /api/webhooks/resend
@@ -58,6 +59,9 @@ function verifySvixSignature(
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await applyUnifiedRateLimit(request, 'webhook')
+  if (rateLimitResponse) return rateLimitResponse
+
   const rawBody = await request.text()
   const secret = process.env.RESEND_WEBHOOK_SECRET
 

@@ -18,7 +18,22 @@
     "test:ui": "vitest --ui",
     "test:watch": "vitest --watch",
     "pre-commit": "npm run type-check && npm run lint && npm run test:run && npm run build",
-    "check-all": "npm run type-check && npm run lint && npm run test:run && npm run build"
+    "check-all": "npm run type-check && npm run lint && npm run test:run && npm run build",
+    "security:audit": "npm audit --audit-level=moderate",
+    "security:fix": "npm audit fix",
+    "security:check": "npm run security:audit && npm outdated && npm run security:licenses",
+    "security:licenses": "npx license-checker --summary",
+    "deps:check": "npm outdated",
+    "deps:update": "npm update",
+    "deps:update-patch": "npm update --save",
+    "deps:update-minor": "npx npm-check-updates --target minor -u && npm install",
+    "deps:update-major": "npx npm-check-updates --target latest -u && npm install",
+    "deps:clean": "rm -rf node_modules package-lock.json && npm install",
+    "security:helper": "node scripts/security-update.js",
+    "security:helper:audit": "node scripts/security-update.js audit",
+    "security:helper:fix": "node scripts/security-update.js fix",
+    "security:helper:report": "node scripts/security-update.js report",
+    "security:helper:check": "node scripts/security-update.js check"
   },
   "keywords": [
     "environmental",

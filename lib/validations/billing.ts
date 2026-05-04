@@ -6,12 +6,17 @@ export const cancelSubscriptionSchema = z.object({
   cancel_immediately: z.boolean().optional().default(false),
 })
 
+function mustBeAppUrl(url: string): boolean {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://hazardos.app'
+  return url === appUrl || url.startsWith(appUrl + '/')
+}
+
 // Checkout session
 export const createCheckoutSchema = z.object({
   plan_slug: z.string().min(1, 'Plan slug is required'),
   billing_cycle: z.enum(['monthly', 'yearly']).optional().default('monthly'),
-  success_url: z.string().url(),
-  cancel_url: z.string().url(),
+  success_url: z.string().url().refine(mustBeAppUrl, 'URL must be on the application domain'),
+  cancel_url: z.string().url().refine(mustBeAppUrl, 'URL must be on the application domain'),
 })
 
 // Portal session

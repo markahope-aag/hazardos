@@ -195,8 +195,15 @@ export class LeadWebhookService {
     try {
       // Verify authentication if configured
       if (endpoint.api_key) {
-        const authHeader = headers['authorization'] || headers['x-api-key'];
-        if (!authHeader || !authHeader.includes(endpoint.api_key)) {
+        const rawHeader = headers['authorization'] || headers['x-api-key'] || '';
+        const providedKey = rawHeader.replace(/^Bearer\s+/i, '');
+        const expected = Buffer.from(endpoint.api_key);
+        const provided = Buffer.from(providedKey);
+        const keyValid =
+          expected.length > 0 &&
+          expected.length === provided.length &&
+          timingSafeEqual(expected, provided);
+        if (!keyValid) {
           return this.logAndReturn(endpoint, payload, headers, ipAddress, 'failed', 'Invalid API key');
         }
       }
@@ -307,6 +314,23 @@ export class LeadWebhookService {
     };
   }
 
+  private static readonly SENSITIVE_HEADER_KEYS = new Set([
+    'authorization',
+    'x-api-key',
+    'x-signature',
+    'x-webhook-signature',
+    'cookie',
+    'set-cookie',
+  ]);
+
+  private static sanitizeHeaders(headers: Record<string, string>): Record<string, string> {
+    return Object.fromEntries(
+      Object.entries(headers).filter(
+        ([key]) => !LeadWebhookService.SENSITIVE_HEADER_KEYS.has(key.toLowerCase()),
+      ),
+    );
+  }
+
   private static async logLead(
     endpoint: LeadWebhookEndpoint,
     payload: Record<string, unknown>,
@@ -323,7 +347,7 @@ export class LeadWebhookService {
       endpoint_id: endpoint.id,
       organization_id: endpoint.organization_id,
       raw_payload: payload,
-      headers,
+      headers: LeadWebhookService.sanitizeHeaders(headers),
       ip_address: ipAddress,
       status,
       error_message: errorMessage,

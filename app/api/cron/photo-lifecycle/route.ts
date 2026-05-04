@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
   const provided = Buffer.from(authHeader || '')
   const isAuthorized =
     expected.length === provided.length && timingSafeEqual(expected, provided)
-  if (!isAuthorized && !request.headers.get('x-vercel-cron')) {
+  if (!isAuthorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

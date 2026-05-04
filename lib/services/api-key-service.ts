@@ -187,60 +187,31 @@ export class ApiKeyService {
   static async checkRateLimit(keyId: string): Promise<{ allowed: boolean; remaining: number; resetAt: Date }> {
     const supabase = await createClient();
 
-    const { data: key } = await supabase
-      .from('api_keys')
-      .select('rate_limit, rate_limit_count, rate_limit_reset_at')
-      .eq('id', keyId)
-      .single();
+    try {
+      // Use atomic rate limiting function to prevent race conditions
+      const { data, error } = await supabase.rpc('check_and_increment_rate_limit', {
+        p_key_id: keyId,
+      });
 
-    if (!key) {
+      if (error) {
+        console.error('Rate limit check failed:', error);
+        return { allowed: false, remaining: 0, resetAt: new Date() };
+      }
+
+      if (!data) {
+        return { allowed: false, remaining: 0, resetAt: new Date() };
+      }
+
+      return {
+        allowed: data.allowed,
+        remaining: data.remaining,
+        resetAt: new Date(data.reset_at),
+      };
+    } catch (error) {
+      console.error('Rate limit check exception:', error);
+      // Fail secure: deny the request if we can't check the rate limit
       return { allowed: false, remaining: 0, resetAt: new Date() };
     }
-
-    const now = new Date();
-    const resetAt = key.rate_limit_reset_at ? new Date(key.rate_limit_reset_at) : null;
-
-    // If reset time has passed, reset the counter
-    if (!resetAt || resetAt < now) {
-      const newResetAt = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
-
-      await supabase
-        .from('api_keys')
-        .update({
-          rate_limit_count: 1,
-          rate_limit_reset_at: newResetAt.toISOString(),
-        })
-        .eq('id', keyId);
-
-      return {
-        allowed: true,
-        remaining: key.rate_limit - 1,
-        resetAt: newResetAt,
-      };
-    }
-
-    // Check if over limit
-    if (key.rate_limit_count >= key.rate_limit) {
-      return {
-        allowed: false,
-        remaining: 0,
-        resetAt: resetAt,
-      };
-    }
-
-    // Increment counter
-    await supabase
-      .from('api_keys')
-      .update({
-        rate_limit_count: key.rate_limit_count + 1,
-      })
-      .eq('id', keyId);
-
-    return {
-      allowed: true,
-      remaining: key.rate_limit - key.rate_limit_count - 1,
-      resetAt: resetAt,
-    };
   }
 
   // ========== LOGGING ==========
@@ -313,5 +284,29 @@ export class ApiKeyService {
 
   static hasAnyScope(apiKey: ApiKey, requiredScopes: ApiKeyScope[]): boolean {
     return requiredScopes.some(scope => apiKey.scopes.includes(scope));
+  }
+
+  /**
+   * Reset rate limit for an API key (admin function)
+   * Useful for testing or manual rate limit resets
+   */
+  static async resetRateLimit(keyId: string): Promise<boolean> {
+    const supabase = await createClient();
+
+    try {
+      const { data, error } = await supabase.rpc('reset_rate_limit', {
+        p_key_id: keyId,
+      });
+
+      if (error) {
+        console.error('Rate limit reset failed:', error);
+        return false;
+      }
+
+      return data === true;
+    } catch (error) {
+      console.error('Rate limit reset exception:', error);
+      return false;
+    }
   }
 }
