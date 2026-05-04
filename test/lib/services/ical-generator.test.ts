@@ -94,7 +94,9 @@ describe('generateICal', () => {
     })
     expect(ics).toContain('\r\n ')
     expect(ics).toMatch(/SUMMARY:a+/)
-    expect(ics).toContain(long)
+    // Unfold per RFC 5545 (CRLF + single space = continuation) and verify all
+    // bytes are preserved across the fold.
+    expect(ics.replace(/\r\n /g, '')).toContain(long)
   })
 
   it('ends lines with CRLF and trailing newline', () => {

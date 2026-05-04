@@ -27,7 +27,7 @@ describe('analytics performance', () => {
       endpoint: '/api/x',
       method: 'GET',
       statusCode: 200,
-      duration: 3000.4,
+      duration: 2999.6,
       success: true,
     })
     expect(track).toHaveBeenCalledWith('api_performance', {
@@ -133,7 +133,7 @@ describe('analytics performance', () => {
       'performance_metric',
       expect.objectContaining({
         metric_name: 'op',
-        metadata: { success: true },
+        success: true,
       })
     )
     timer.cancel()
@@ -147,7 +147,8 @@ describe('analytics performance', () => {
     expect(track).toHaveBeenCalledWith(
       'performance_metric',
       expect.objectContaining({
-        metadata: { success: true },
+        metric_name: 'add-one',
+        success: true,
       })
     )
   })
@@ -164,7 +165,8 @@ describe('analytics performance', () => {
     expect(track).toHaveBeenCalledWith(
       'performance_metric',
       expect.objectContaining({
-        metadata: { success: false },
+        metric_name: 'fails',
+        success: false,
       })
     )
   })
