@@ -12,9 +12,10 @@ import {
 } from '@/components/ui/alert-dialog'
 import {
   FileText, Upload, Download, Trash2, ExternalLink, FileWarning, Calculator,
-  ClipboardList, FlaskConical, Shield, ClipboardCheck,
+  ClipboardList, FlaskConical, Shield, ClipboardCheck, Send, FilePlus,
 } from 'lucide-react'
 import { JobDocuments } from './job-documents'
+import { OppGeneratorModal } from '@/components/jobs/opp-generator-modal'
 import {
   useJobDocuments,
   useUploadJobDocument,
@@ -55,6 +56,7 @@ function CategoryDocsCard({
   icon,
   description,
   emptyText,
+  extraActions,
 }: {
   jobId: string
   category: JobDocumentCategory
@@ -62,6 +64,7 @@ function CategoryDocsCard({
   icon: React.ReactNode
   description: string
   emptyText: string
+  extraActions?: React.ReactNode
 }) {
   const { data: allDocuments = [], isLoading } = useJobDocuments(jobId)
   const upload = useUploadJobDocument(jobId)
@@ -130,14 +133,17 @@ function CategoryDocsCard({
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">{description}</p>
           </div>
-          <Button
-            size="sm"
-            onClick={() => fileRef.current?.click()}
-            disabled={upload.isPending}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload
-          </Button>
+          <div className="flex items-center gap-2">
+            {extraActions}
+            <Button
+              size="sm"
+              onClick={() => fileRef.current?.click()}
+              disabled={upload.isPending}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Upload
+            </Button>
+          </div>
           <input
             ref={fileRef}
             type="file"
@@ -302,6 +308,27 @@ export function JobDocumentsHub({
   // record that belongs to the same project so the office manager can
   // navigate the whole flow without bouncing to index pages.
   const hasAnyProjectLink = !!(survey || estimate || workOrder)
+  const [oppOpen, setOppOpen] = useState(false)
+
+  const oppActions = (
+    <>
+      <Button
+        size="sm"
+        variant="outline"
+        asChild
+        title="Download the blank Wisconsin DHS form (F-44016)"
+      >
+        <a href="/templates/opp-wisconsin-blank.pdf" target="_blank" rel="noopener noreferrer">
+          <Download className="h-4 w-4 mr-2" />
+          Blank template
+        </a>
+      </Button>
+      <Button size="sm" variant="default" onClick={() => setOppOpen(true)}>
+        <FilePlus className="h-4 w-4 mr-2" />
+        Generate OPP
+      </Button>
+    </>
+  )
 
   return (
     <div className="space-y-6">
@@ -379,8 +406,18 @@ export function JobDocumentsHub({
         category="opp"
         title="Occupant Protection Plan (OPP)"
         icon={<Shield className="h-4 w-4" />}
-        description="Required for abatement work in occupied buildings."
-        emptyText="No OPP uploaded yet."
+        description="Required for abatement work in occupied buildings. Generate fills a Wisconsin DHS-style PDF from this job's data."
+        emptyText="No OPP uploaded yet. Click Generate OPP to create one from this job's data."
+        extraActions={oppActions}
+      />
+
+      <CategoryDocsCard
+        jobId={jobId}
+        category="regulatory"
+        title="Regulatory Notifications"
+        icon={<Send className="h-4 w-4" />}
+        description="Filings to the regulatory agency (e.g., EPA NESHAP) announcing the work and the disposal manifest to follow. Typically due 10 working days before abatement begins."
+        emptyText="No regulatory notifications uploaded yet."
       />
 
       <CategoryDocsCard
@@ -398,9 +435,11 @@ export function JobDocumentsHub({
       <JobDocuments
         jobId={jobId}
         title="Other documents"
-        excludeCategories={['manifest', 'opp', 'daily_log']}
+        excludeCategories={['manifest', 'opp', 'regulatory', 'daily_log']}
         emptyHint="No other documents yet. Upload permits, clearance reports, COIs, photos, or anything else."
       />
+
+      <OppGeneratorModal jobId={jobId} open={oppOpen} onOpenChange={setOppOpen} />
     </div>
   )
 }

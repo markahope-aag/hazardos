@@ -5,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
-import { Loader2, Save, Building, Clock, Camera } from 'lucide-react'
+import { Loader2, Save, Building, Clock, Camera, Shield } from 'lucide-react'
 import { DEFAULT_TIMEZONE, US_TIMEZONE_OPTIONS } from '@/lib/timezone'
 
 const DEFAULT_PHOTO_RETENTION_DAYS = 1095 // 3 years
@@ -28,6 +29,10 @@ interface CompanyForm {
   zip: string
   timezone: string
   photo_retention_days: number
+  opp_default_containment: string
+  opp_default_ventilation: string
+  opp_default_work_practices: string
+  opp_default_final_cleaning: string
 }
 
 const EMPTY: CompanyForm = {
@@ -42,6 +47,10 @@ const EMPTY: CompanyForm = {
   zip: '',
   timezone: DEFAULT_TIMEZONE,
   photo_retention_days: DEFAULT_PHOTO_RETENTION_DAYS,
+  opp_default_containment: '',
+  opp_default_ventilation: '',
+  opp_default_work_practices: '',
+  opp_default_final_cleaning: '',
 }
 
 export default function CompanyProfilePage() {
@@ -57,6 +66,7 @@ export default function CompanyProfilePage() {
         if (!res.ok) throw new Error('Failed to load company profile')
         const data = await res.json()
         const org = data.organization || {}
+        const oppDefaults = org.opp_defaults || {}
         setForm({
           name: org.name || '',
           email: org.email || '',
@@ -69,6 +79,10 @@ export default function CompanyProfilePage() {
           zip: org.zip || '',
           timezone: org.timezone || DEFAULT_TIMEZONE,
           photo_retention_days: org.photo_retention_days ?? DEFAULT_PHOTO_RETENTION_DAYS,
+          opp_default_containment: oppDefaults.containment || '',
+          opp_default_ventilation: oppDefaults.ventilation || '',
+          opp_default_work_practices: oppDefaults.work_practices || '',
+          opp_default_final_cleaning: oppDefaults.final_cleaning || '',
         })
       } catch (e) {
         toast({
@@ -110,10 +124,28 @@ export default function CompanyProfilePage() {
     }
     setSaving(true)
     try {
+      // Repackage the four flat opp_default_* fields into the JSONB
+      // shape the API expects, while keeping the form state itself flat.
+      const {
+        opp_default_containment,
+        opp_default_ventilation,
+        opp_default_work_practices,
+        opp_default_final_cleaning,
+        ...rest
+      } = form
+      const payload = {
+        ...rest,
+        opp_defaults: {
+          containment: opp_default_containment,
+          ventilation: opp_default_ventilation,
+          work_practices: opp_default_work_practices,
+          final_cleaning: opp_default_final_cleaning,
+        },
+      }
       const res = await fetch('/api/organizations/me', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -333,6 +365,62 @@ export default function CompanyProfilePage() {
                 value retroactively recomputes the deletion date for every existing
                 photo in your organization.
               </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              OPP boilerplate
+            </CardTitle>
+            <CardDescription>
+              Default text for the four "Protective Measures" sections of an Occupant Protection
+              Plan. The OPP wizard pre-fills these on every job — your crew tweaks per-site as
+              needed.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="opp_default_containment">Containment or barrier system</Label>
+              <Textarea
+                id="opp_default_containment"
+                rows={3}
+                placeholder="e.g. Full negative-air containment with HEPA-filtered exhaust, double-layer 6-mil poly walls, decon chamber on the only entry…"
+                value={form.opp_default_containment}
+                onChange={(e) => update('opp_default_containment', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="opp_default_ventilation">Ventilation system shutdown</Label>
+              <Textarea
+                id="opp_default_ventilation"
+                rows={3}
+                placeholder="e.g. HVAC isolated to the work area only; main system off and registers sealed with 6-mil poly and tape…"
+                value={form.opp_default_ventilation}
+                onChange={(e) => update('opp_default_ventilation', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="opp_default_work_practices">Work practices</Label>
+              <Textarea
+                id="opp_default_work_practices"
+                rows={3}
+                placeholder="e.g. Wet methods used throughout; debris bagged at the work area and double-bagged at the decon; all waste tracked on the manifest…"
+                value={form.opp_default_work_practices}
+                onChange={(e) => update('opp_default_work_practices', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="opp_default_final_cleaning">Final cleaning and clearance</Label>
+              <Textarea
+                id="opp_default_final_cleaning"
+                rows={3}
+                placeholder="e.g. HEPA vacuum, wet wipe, encapsulant, then independent third-party air sample below 0.01 f/cc before barriers come down…"
+                value={form.opp_default_final_cleaning}
+                onChange={(e) => update('opp_default_final_cleaning', e.target.value)}
+              />
             </div>
           </CardContent>
         </Card>

@@ -43,6 +43,17 @@ const updateSchema = z.object({
   // via CHECK constraint; we mirror it here so the API rejects bad
   // values with a structured error rather than a Postgres error.
   photo_retention_days: z.number().int().min(90).max(3650).optional(),
+  // Per-org boilerplate text that pre-fills the OPP wizard's four
+  // protective-measures sections. Stored as a single JSONB column so
+  // adding a fifth section (state variants) doesn't need a migration.
+  opp_defaults: z
+    .object({
+      containment: z.string().max(4000).optional(),
+      ventilation: z.string().max(4000).optional(),
+      work_practices: z.string().max(4000).optional(),
+      final_cleaning: z.string().max(4000).optional(),
+    })
+    .optional(),
 })
 
 // Returns the caller's own organization record.
@@ -51,7 +62,7 @@ export const GET = createApiHandler(
   async (_request, context) => {
     const { data, error } = await context.supabase
       .from('organizations')
-      .select('id, name, email, phone, website, license_number, address, city, state, zip, timezone, email_from_name, email_reply_to, email_domain, email_domain_status, email_header_color, email_accent_color, email_logo_url, email_signature, photo_retention_days')
+      .select('id, name, email, phone, website, license_number, address, city, state, zip, timezone, email_from_name, email_reply_to, email_domain, email_domain_status, email_header_color, email_accent_color, email_logo_url, email_signature, photo_retention_days, opp_defaults')
       .eq('id', context.profile.organization_id)
       .single()
     if (error) throwDbError(error, 'load organization')
@@ -69,12 +80,12 @@ export const PATCH = createApiHandler(
   },
   async (_request, context, body) => {
     // Convert empty strings to null so clearing a field works. Number
-    // fields are passed through verbatim — they can't be "cleared" to
-    // null because the column is NOT NULL with a default.
-    const updates: Record<string, string | number | null> = {}
+    // and object fields (opp_defaults JSONB) are passed through verbatim
+    // — they can't be "cleared" to null via empty string.
+    const updates: Record<string, string | number | null | object> = {}
     for (const [key, value] of Object.entries(body)) {
       if (value === undefined) continue
-      if (typeof value === 'number') {
+      if (typeof value === 'number' || (typeof value === 'object' && value !== null)) {
         updates[key] = value
       } else {
         updates[key] = value === '' ? null : (value as string)
