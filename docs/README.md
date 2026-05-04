@@ -40,9 +40,9 @@
 - **[Quick API Reference](./QUICK-API-REFERENCE.md)** - Fast reference for all API endpoints
 
 ### 🧪 Testing & Quality
-- **[Testing Guide](./TESTING.md)** - Comprehensive testing documentation
-- **[Test Coverage Report](./TEST-COVERAGE-REPORT.md)** - Initial coverage analysis and testing roadmap
-- **[Updated Test Coverage Report](./TEST-COVERAGE-REPORT-UPDATED.md)** - ✨ **Latest coverage analysis with major improvements**
+- **[Testing Guide](./TESTING.md)** — **Source of truth** for Vitest, coverage thresholds, and `test/` layout (including `test/pages/`)
+- **[Test Coverage Report](./TEST-COVERAGE-REPORT.md)** — Archived February 2026 snapshot (see banner in file)
+- **[Updated Test Coverage Report](./TEST-COVERAGE-REPORT-UPDATED.md)** — Archived February 2026 snapshot (see banner in file)
 
 ## 📖 Quick Navigation
 
@@ -62,8 +62,8 @@
 
 ## 🎯 Current Project Status
 
-**Status**: Production Ready ✅  
-**Last Updated**: February 2, 2026
+**Status**: Production ready (continuous delivery)  
+**Last documentation refresh**: May 3, 2026
 
 ### ✅ Completed Core Features
 - **Multi-tenant SaaS Platform** with Stripe billing, feature gating, and onboarding
@@ -82,11 +82,12 @@
 - **Win/Loss Analysis** with competitor intelligence and loss reason tracking
 - **Activity Logging** with comprehensive audit trail and manual note/call logging
 - **PWA Support** with offline functionality and mobile optimization
-- **Comprehensive Testing** with 1,800+ test cases and structured logging
+- **Comprehensive automated testing** (Vitest): **400+** test files, **5,000+** examples — see [Testing](./TESTING.md)
 
-### 🚧 In Development
-- Component testing suite expansion (current: ~8%, target: 70%)
-- E2E test workflows for critical user journeys
+### 🚧 In development
+- Raising **instrumented** coverage on `app/`, `components/`, `lib/`, `types/` (Vitest thresholds in `vitest.config.ts`; run `npm run test:coverage`)
+- Dashboard and detail **page smoke tests** under `test/pages/` (jobs, work orders, messages, settings, surveys — expanding over time)
+- E2E workflows for critical journeys (where introduced)
 - Logger integration across remaining services
 - Mobile native apps (iOS/Android)
 - Advanced AI features for estimate accuracy and photo analysis

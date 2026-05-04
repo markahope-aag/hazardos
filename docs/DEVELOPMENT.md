@@ -2,9 +2,9 @@
 
 **Complete guide for developers working on HazardOS**
 
-> **Last Updated**: April 7, 2026  
+> **Last Updated**: May 3, 2026  
 > **For Developers**: Setup, workflows, standards, and best practices  
-> **Status**: ✅ Updated Post-Audit
+> **Status**: Living document — validate commands against `package.json` when in doubt
 
 ---
 
@@ -28,7 +28,7 @@
 ### Prerequisites
 
 **Required**:
-- Node.js 18+ (LTS recommended)
+- Node.js **20+** (matches `package.json` `engines`; LTS recommended)
 - npm or pnpm (pnpm recommended for faster installs)
 - Git
 - VS Code or similar code editor
@@ -456,18 +456,14 @@ npm run check-all
 
 ```
 test/
-├── api/                  # API route tests
-│   ├── customers.test.ts
-│   ├── jobs.test.ts
-│   └── ...
+├── api/                  # API route tests (largest area)
+├── pages/                # App Router page smoke tests (dashboard, auth, …)
 ├── components/           # Component tests
-│   ├── CustomerForm.test.tsx
-│   └── ...
 ├── services/             # Service tests
-│   ├── estimate-calculator.test.ts
-│   └── ...
-└── utils/                # Utility tests
-    └── formatters.test.ts
+├── lib/                  # Utilities, hooks, middleware helpers
+├── integration/          # Cross-cutting flows
+├── rls/                  # Supabase RLS checks (when configured)
+└── ...
 ```
 
 ### Running Tests
@@ -485,6 +481,8 @@ npm run test:coverage
 # Run tests with UI
 npm run test:ui
 ```
+
+**Coverage**: `test:coverage` enables Vitest **thresholds** on `app/`, `components/`, `lib/`, and `types/` (see `vitest.config.ts`). The command fails if tests fail **or** coverage drops below those floors. Details and dashboard testing patterns: [Testing Guide](./TESTING.md).
 
 ### Writing Tests
 

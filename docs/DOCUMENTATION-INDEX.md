@@ -2,9 +2,9 @@
 
 **Complete index of all documentation with status and purpose**
 
-> **Last Updated**: April 7, 2026  
-> **Total Documents**: 68+ files  
-> **Status**: ✅ Current and Comprehensive (Post-Audit Update)
+> **Last Updated**: May 3, 2026  
+> **Total documents**: 80+ Markdown files under `docs/` (plus SQL and template trees)  
+> **Status**: Maintained — verify runtime behavior with **OpenAPI** (`/docs/api`), **tests**, and **migrations** alongside prose
 
 ---
 
@@ -32,7 +32,7 @@
 | Document | Purpose | Status | Last Updated |
 |----------|---------|--------|--------------|
 | [Architecture Guide](./architecture.md) | System architecture | ✅ Current | Apr 7, 2026 |
-| [API Reference](./API-REFERENCE.md) | REST API docs (144 endpoints, 100% complete) | ✅ Current | Feb 25, 2026 |
+| [API Reference](./API-REFERENCE.md) | REST API narrative + examples (use with `/docs/api`) | ✅ Current | May 3, 2026 |
 | [API Documentation Update Plan](./API-DOCUMENTATION-UPDATE-PLAN.md) | API docs improvement plan | ✅ Current | Feb 25, 2026 |
 | [API Documentation Progress Report](./API-DOCUMENTATION-PROGRESS-REPORT.md) | Progress summary and achievements | ✅ Current | Feb 25, 2026 |
 | [API Documentation Completion Report](./API-DOCUMENTATION-COMPLETION-REPORT.md) | Final completion report | ✅ Current | Feb 25, 2026 |
@@ -46,7 +46,8 @@
 ### 📊 Project Management & Audit (Status)
 | Document | Purpose | Status | Last Updated |
 |----------|---------|--------|--------------|
-| [Comprehensive Codebase Audit](./CODEBASE-AUDIT-2026-04-07.md) | Complete audit report | ✅ Current | Apr 7, 2026 |
+| [Comprehensive Codebase Audit (May 2026)](./CODEBASE-AUDIT-2026-05-03.md) | Security, quality, CI, coverage, UX | ✅ Current | May 3, 2026 |
+| [Comprehensive Codebase Audit (Apr 2026)](./CODEBASE-AUDIT-2026-04-07.md) | Earlier scorecard & findings | 📎 Reference | Apr 7, 2026 |
 | [Application Status](./APP-STATUS%20020226.md) | Current feature status | ✅ Current | Feb 2, 2026 |
 | [Documentation Review Summary](./DOCUMENTATION-REVIEW-SUMMARY-APR-2026.md) | April 2026 comprehensive documentation audit and updates | ✅ Current | Apr 19, 2026 |
 | [Current Status Report](./CURRENT-STATUS-FEB-2026.md) | Comprehensive status report | ✅ Current | Feb 2, 2026 |
@@ -88,16 +89,11 @@
 - **Status indicators**: Clear status and update dates
 - **Multiple formats**: Quick reference + detailed guides
 
-### 📊 Documentation Metrics (Post-Audit)
-- **Total Files**: 68+ documentation files
-- **Current Status**: All files current and comprehensive
-- **Coverage**: ~90% of production features documented (Properties feature added April 2026, needs documentation)
-- **API Coverage**: ~144 of 160+ endpoints documented (~90% - needs update for recent additions)
-- **Test Coverage**: Comprehensive testing strategy documentation
-- **Security Coverage**: Complete security audit and findings documentation
-- **Performance Coverage**: Comprehensive performance optimization guide
-- **Architecture Coverage**: Updated post-audit architecture documentation
-- **Deployment**: Complete production deployment guide
+### Documentation metrics (honest scope)
+- **Feature prose**: Most major product areas have a guide; new surfaces should add or extend **FEATURES**, **USER-GUIDE**, or a scoped doc as they ship.
+- **HTTP API**: **~190+** `app/api/**/route.ts` modules — treat **`GET /api/openapi`** and **`/docs/api`** as authoritative; Markdown API references are supporting material.
+- **Tests**: **400+** test files; **`npm run test:coverage`** enforces Vitest thresholds on `app/`, `components/`, `lib/`, `types/` (see [Testing](./TESTING.md)).
+- **Security / performance / architecture**: Audit and ADR-style docs are snapshots from their **dated** reviews — re-read before relying on vulnerability counts or metrics.
 
 ---
 
@@ -156,23 +152,15 @@
 ## 🚀 Documentation Roadmap (Updated Post-Audit)
 
 ### Completed ✅
-- Comprehensive API documentation (144 endpoints, 100% coverage)
-- Complete feature reference
-- Production deployment guide
-- **NEW**: Comprehensive testing strategy guide
-- **NEW**: Security audit findings and remediation guide
-- **NEW**: Performance optimization guide with specific improvements
-- **NEW**: Updated architecture documentation with Next.js 16 patterns
-- **NEW**: Enhanced development guide with security standards
-- Security architecture documentation
-- Business logic documentation
-- Quick reference guides
+- OpenAPI + Swagger UI (`/docs/api`, `/api/openapi`) as the live API contract
+- Large Vitest suite (`test/api`, `test/pages`, components, services, RLS)
+- Production deployment, security, and architecture guides (dated snapshots)
+- User-facing **USER-GUIDE** and feature/business docs
 
-### In Progress 🚧
-- Implementation tracking for audit recommendations
-- Performance optimization implementation
-- Security vulnerability remediation
-- Testing coverage expansion
+### In progress 🚧
+- Raising **instrumented** coverage toward Vitest thresholds and beyond (see [TESTING](./TESTING.md))
+- Keeping Markdown API sections aligned with new routes (prefer OpenAPI diff)
+- E2E coverage for critical journeys (where introduced)
 
 ### Planned 📋
 - Video tutorials for key workflows
@@ -210,12 +198,12 @@
 - ✅ **Development Guide**: Enhanced with security standards and audit findings
 - ✅ **Main README**: Updated with current status, security alerts, and audit references
 
-### Documentation Quality Assessment
-- **Completeness**: 100% of features and systems documented
-- **Currency**: All documentation reflects current codebase state (post-audit)
-- **Accuracy**: Technical details verified against actual implementation
-- **Usability**: Clear navigation and cross-references between documents
-- **Maintenance**: Regular update schedule established
+### Documentation quality assessment
+- **Completeness**: Strong for onboarding, architecture, and core workflows; gaps appear first in **long-tail API** and **new dashboard** routes.
+- **Currency**: Dated sections remain useful for context — confirm against **git** and **OpenAPI** before production decisions.
+- **Accuracy**: Prefer **tests** and **generated specs** over static tables for counts and endpoint lists.
+- **Usability**: Cross-links in this index and `docs/README.md` are the primary navigation aids.
+- **Maintenance**: Update **CHANGELOG**, **TESTING**, and **API-REFERENCE** headers when you ship materially new behavior.
 
 ### Critical Documentation Additions
 1. **Security Audit Findings** - Immediate action items for 23 vulnerabilities
@@ -225,7 +213,6 @@
 
 ---
 
-**Documentation Status**: ✅ Comprehensive and Current (Post-Audit Update)  
-**Next Review**: July 1, 2026  
-**Maintenance**: Ongoing with each release + quarterly comprehensive reviews  
-**Audit Reference**: [Comprehensive Codebase Audit 2026-04-07](./CODEBASE-AUDIT-2026-04-07.md)
+**Documentation status**: Living docs — validate against **code + OpenAPI + tests** when behavior matters  
+**Next full index review**: August 1, 2026 (or on any major release)  
+**Audit reference**: [Codebase audit 2026-05-03](./CODEBASE-AUDIT-2026-05-03.md) · [Earlier audit 2026-04-07](./CODEBASE-AUDIT-2026-04-07.md)

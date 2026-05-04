@@ -7,7 +7,7 @@
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1.18-38bdf8)](https://tailwindcss.com/)
 [![Vitest](https://img.shields.io/badge/Vitest-4.0.18-729B1B)](https://vitest.dev/)
-[![Test Coverage](https://img.shields.io/badge/Coverage-75%25-green)](https://vitest.dev/)
+[![Test Coverage](https://img.shields.io/badge/Coverage-instrumented~38%25-yellow)](docs/TESTING.md)
 [![Security Status](https://img.shields.io/badge/Security-23_Vulnerabilities-red)](https://github.com/advisories)
 [![Performance](https://img.shields.io/badge/Performance-B--Grade-orange)](docs/PERFORMANCE-OPTIMIZATION-GUIDE.md)
 
@@ -20,7 +20,7 @@ Mobile-first business management platform for asbestos, mold, lead paint, and ha
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js **20+** (see `package.json` `engines`)
 - npm or pnpm
 - Supabase account
 

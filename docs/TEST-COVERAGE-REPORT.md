@@ -1,5 +1,7 @@
 # HazardOS Comprehensive Test Coverage Report
 
+> **Archived snapshot (Feb 2026)** — For **current** commands, Vitest thresholds, and `test/pages/` smoke tests, use **[TESTING.md](./TESTING.md)** and run **`npm run test:coverage`**. Do not treat the tables below as live metrics.
+
 **Generated**: February 2, 2026  
 **Analysis Method**: Manual file analysis and documentation review  
 **Total Test Files**: 209 test files  

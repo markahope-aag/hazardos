@@ -1,10 +1,11 @@
 # HazardOS Quick API Reference
 
-**Fast reference for all API endpoints in HazardOS**
+**Fast reference for common API surfaces in HazardOS**
 
-> **Last Updated**: February 2, 2026  
+> **Last Updated**: May 3, 2026  
 > **Base URL**: `https://hazardos.app/api`  
-> **Authentication**: Bearer token required for all endpoints
+> **Authentication**: Bearer token (Supabase JWT) on most tenant routes; public and webhook routes differ — see OpenAPI  
+> **Canonical list**: `GET /api/openapi` or in-app `/docs/api` (this file is a cheat sheet, not an exhaustive catalog)
 
 ---
 

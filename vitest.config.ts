@@ -31,17 +31,12 @@ export default defineConfig({
         'lib/**/*.{ts,tsx}',
         'types/**/*.{ts,tsx}',
       ],
-      // Vitest 4 flattened the threshold shape — `thresholds.global` from
-      // older configs is silently ignored, which is why the 70% gate
-      // wasn't biting. Thresholds below are a ratchet, pinned just under
-      // current coverage so regressions fail CI while we work the number
-      // up toward the 70% target we actually want.
       thresholds: {
         lines: 40,
         statements: 38,
         functions: 38,
         branches: 31,
-      }
+      },
     },
   },
   resolve: {

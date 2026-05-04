@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — Documentation (2026-05-03)
+
+- Refreshed **[DOCUMENTATION-INDEX](./DOCUMENTATION-INDEX.md)**, **[docs/README](./README.md)**, **[DEVELOPMENT](./DEVELOPMENT.md)**, and **[TESTING](./TESTING.md)** for Node 20+, Vitest coverage thresholds, `test/pages/` dashboard smoke tests, and honest API doc scope (**OpenAPI** + **`/docs/api`** as source of truth for routes).
+- Updated **[API-REFERENCE](./API-REFERENCE.md)** and **[QUICK-API-REFERENCE](./QUICK-API-REFERENCE.md)** intros to stop implying a fixed “144 endpoints = 100%” match with the live `app/api` tree (~**190+** route modules).
+- Marked **[TEST-COVERAGE-REPORT](./TEST-COVERAGE-REPORT.md)** as an archived snapshot; current testing policy lives in **TESTING.md**.
+- Root **[README](../README.md)**: prerequisites Node **20+**; coverage badge points to **TESTING.md** with realistic instrumented line coverage language.
+
 ### Added — Cloudflare R2 Photo Storage + Lifecycle (2026-04-30)
 
 - **R2 is now the canonical store for survey photos and videos.** New uploads land directly in Cloudflare R2 via presigned PUT URLs (`POST /api/site-surveys/[id]/photos/upload-url`), bypassing the serverless function for the bytes themselves — saves a round trip on cellular and avoids the 4.5 MB Vercel request body cap on videos.
@@ -38,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dependencies.** Adds `sharp` (server image processing) and `exifr` (EXIF parsing on both client and server).
 
 ### In Progress
-- Component testing suite expansion (current: ~8%, target: 70%)
+- Instrumented coverage expansion (Vitest ratchet + dashboard `test/pages/` smoke tests — see **TESTING.md**)
 - E2E test workflows for critical user journeys
 - Logger integration across remaining services
 

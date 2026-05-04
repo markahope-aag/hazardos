@@ -1,38 +1,23 @@
 # HazardOS API Reference
 
-**Complete API documentation for HazardOS environmental remediation platform**
+**Human-readable API documentation for the HazardOS environmental remediation platform**
 
-> **Status**: ✅ **100% COMPLETE**  
-> **Last Updated**: February 25, 2026  
-> **Base URL**: `https://hazardos.app/api`  
-> **Coverage**: 144 of 144 endpoints documented (100%)  
-> **Interactive Docs**: Available at `/docs/api`
+> **Last Updated**: May 3, 2026  
+> **Base URL (production)**: `https://hazardos.app/api`  
+> **Authoritative contract**: **`GET /api/openapi`** (JSON OpenAPI) and in-app **`/docs/api`** (Swagger UI) — generated from `lib/openapi/openapi-spec` and the live route tree  
+> **This document**: narrative reference and examples; it may lag new routes briefly
 
-## ✅ Documentation Complete
+## How to stay aligned with the app
 
-**Current State**: **100% COMPLETE** - All API endpoints fully documented with comprehensive OpenAPI specification.
+The codebase ships **many** Next.js App Router handlers under `app/api/**/route.ts` (on the order of **190+** files). Markdown cannot stay perfectly synchronized with every path and query parameter.
 
-- **Documented Endpoints**: 144 endpoints (up from 25)
-- **Actual API Routes**: 144 endpoints  
-- **Current Coverage**: 100% documented (up from 17%)
+**Recommended workflow**
 
-**All Categories Complete**:
-- ✅ **Public API v1**: All 6 endpoints with API key authentication
-- ✅ **SMS System**: Complete SMS functionality (5 endpoints)
-- ✅ **Advanced Job Management**: Time tracking, photos, materials, completion workflow (24 endpoints)
-- ✅ **Integrations**: OAuth flows and sync endpoints for QuickBooks, HubSpot, Mailchimp, Calendar (18 endpoints)
-- ✅ **Notifications**: Complete notification system (5 endpoints)
-- ✅ **Webhooks**: Stripe and Twilio webhook handlers (6 endpoints)
-- ✅ **Customer Segments**: Dynamic segmentation and targeting (5 endpoints)
-- ✅ **Advanced Reporting**: Report generation and export (4 endpoints)
-- ✅ **Team Management**: User invitations and role management (3 endpoints)
-- ✅ **Portal Access**: Customer portal and public access (2 endpoints)
-- ✅ **Platform Admin**: Multi-tenant administration (2 endpoints)
-- ✅ **Utility Endpoints**: Onboarding, cron jobs, and more (19 endpoints)
+1. Use **`/docs/api`** or **`GET /api/openapi`** for the current path list, request bodies, and security schemes.
+2. Use **`test/api/*.test.ts`** for behavior and regression coverage of specific handlers.
+3. Use this **API-REFERENCE.md** for prose, examples, and domain context.
 
-**Interactive Documentation**: Available at `/docs/api` with Swagger UI
-
-**Status**: See [API Documentation Completion Report](./API-DOCUMENTATION-COMPLETION-REPORT.md) for full details.
+Historical completion reports ([API-DOCUMENTATION-COMPLETION-REPORT](./API-DOCUMENTATION-COMPLETION-REPORT.md), etc.) describe milestones; they are **not** a guarantee that every new route since publication appears in the sections below.
 
 ---
 

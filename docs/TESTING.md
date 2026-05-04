@@ -2,8 +2,8 @@
 
 **Comprehensive testing documentation for the HazardOS platform**
 
-> **Last Updated**: February 1, 2026
-> **Status**: Active Development
+> **Last Updated**: May 3, 2026  
+> **Status**: Active development (Vitest 4, React 19, Next.js 16 App Router)
 
 ---
 
@@ -76,17 +76,16 @@ test/
 ├── setup.ts                    # Global test configuration
 ├── helpers/
 │   └── mock-data.ts           # Shared mock data generators
-├── api/                        # API route tests
+├── api/                        # API route tests (largest area)
 │   ├── customers.test.ts      # GET/POST /api/customers
 │   ├── jobs.test.ts           # Jobs API
-│   ├── jobs-id.test.ts        # Job operations
-│   ├── invoices.test.ts       # Invoice API
-│   ├── estimates.test.ts      # Estimates API
-│   ├── proposals.test.ts      # Proposal generation
-│   ├── proposals-id.test.ts   # Proposal operations
-│   ├── analytics.test.ts      # Analytics endpoints
-│   ├── settings-pricing.test.ts # Pricing configuration
-│   └── integrations.test.ts   # External integrations
+│   └── …                      # One or more files per route group
+├── pages/                      # App Router page smoke tests
+│   ├── jobs/                  # e.g. jobs-page, job-detail-page
+│   ├── work-orders/
+│   ├── messages/
+│   ├── settings/
+│   └── …
 ├── components/                 # Component tests
 │   ├── ui/
 │   │   ├── button.test.tsx
@@ -137,7 +136,8 @@ test/
 
 ### Configuration
 
-**vitest.config.ts**:
+**vitest.config.ts** (excerpt — see repo for full file):
+
 ```typescript
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
@@ -147,14 +147,23 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
-    setupFiles: ['./test/setup.ts'],
+    setupFiles: [path.resolve(__dirname, 'test/setup.ts')],
     globals: true,
     css: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      include: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}', 'lib/**/*.{ts,tsx}', 'types/**/*.{ts,tsx}'],
+      thresholds: {
+        lines: 40,
+        statements: 38,
+        functions: 38,
+        branches: 31,
+      },
+    },
   },
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './'),
-    },
+    alias: { '@': path.resolve(__dirname, './') },
   },
 })
 ```
@@ -725,153 +734,46 @@ Object.defineProperty(window, 'matchMedia', {
 
 ## Test Coverage
 
-### Current Test Suite
+### Where tests live
 
-**API Route Tests** (86 test files):
-- `test/api/customers.test.ts` - Customer management API
-- `test/api/jobs.test.ts` - Job listing and creation
-- `test/api/jobs-id.test.ts` - Job operations by ID
-- `test/api/jobs-complete.test.ts` - Job completion workflow
-- `test/api/invoices.test.ts` - Invoice management
-- `test/api/invoices-payments.test.ts` - Invoice payment processing
-- `test/api/estimates.test.ts` - Estimate creation and listing
-- `test/api/estimates-approve.test.ts` - Estimate approval workflow
-- `test/api/proposals.test.ts` - Proposal management
-- `test/api/proposals-id.test.ts` - Proposal operations
-- `test/api/proposals-sign.test.ts` - Proposal signing
-- `test/api/analytics.test.ts` - Analytics endpoints
-- `test/api/settings-pricing.test.ts` - Pricing configuration
-- `test/api/integrations.test.ts` - External integrations
-- `test/api/integrations-quickbooks-customer.test.ts` - QuickBooks customer sync
-- `test/api/integrations-quickbooks-invoice.test.ts` - QuickBooks invoice sync
-- `test/api/commissions.test.ts` - Commission management
-- `test/api/billing-checkout.test.ts` - Stripe checkout
-- `test/api/billing-subscription.test.ts` - Subscription management
-- `test/api/billing-portal.test.ts` - Customer billing portal
-- `test/api/billing-plans.test.ts` - Subscription plans
-- `test/api/billing-features.test.ts` - Feature gating
-- `test/api/billing-invoices.test.ts` - Stripe invoices
-- `test/api/webhooks-stripe.test.ts` - Stripe webhooks
-- `test/api/ai-estimate.test.ts` - AI estimate generation
-- `test/api/ai-photo-analysis.test.ts` - AI photo analysis
+The **`test/`** directory is the source of truth. Layout:
 
-**Service Tests** (6 test files):
-- `test/services/customers.test.ts` - Customer service
-- `test/services/estimate-calculator.test.ts` - Estimate calculations (24 tests)
-- `test/services/quickbooks-service.test.ts` - QuickBooks integration
-- `test/services/sms-service.test.ts` - SMS communications
-- `test/services/ai-estimate-service.test.ts` - AI estimate service
-- `test/services/api-key-service.test.ts` - API key management
+| Area | Path | Role |
+|------|------|------|
+| API route handlers | `test/api/` | `GET`/`POST`/… on `app/api/**/route.ts` |
+| Dashboard & pages | `test/pages/` | Smoke tests for `app/(dashboard)/**`, auth, portal |
+| UI components | `test/components/` | Radix/shadcn and feature components |
+| Services & lib | `test/services/`, `test/lib/` | Business logic, utilities, hooks |
+| RLS | `test/rls/` | Policy checks against Supabase (when configured) |
+| Integration | `test/integration/` | Cross-cutting flows |
 
-**Middleware Tests** (2 test files):
-- `test/middleware/rate-limit.test.ts` - Rate limiting middleware
-- `test/middleware/api-key-auth.test.ts` - API key authentication
+There are **400+** `*.test.ts` / `*.test.tsx` files; the exact number changes weekly. Run `npm run test:run` for the current total.
 
-**Auth Tests** (1 test file):
-- `test/lib/api-handler-auth.test.ts` - API authentication handlers
+### Instrumented line coverage (`npm run test:coverage`)
 
-**Hook Tests** (2 test files):
-- `test/hooks/use-customers.test.tsx` - Customer hooks
-- `test/hooks/use-multi-tenant-auth.test.tsx` - Multi-tenant auth hooks
+Vitest instruments **`app/`, `components/`, `lib/`, `types/`** (see `vitest.config.ts`). Reports go to **`coverage/`** (HTML + JSON).
 
-**Integration Tests** (2 test files):
-- `test/integration/customer-workflow.test.tsx` - End-to-end customer flow
-- `test/integration/auth-multi-tenant-isolation.test.ts` - Multi-tenant isolation
+**Thresholds** (ratchet — fail the run if coverage drops):
 
-### Coverage Goals
+- Lines **40%**, statements **38%**, functions **38%**, branches **31%**
 
-| Category | Target | Current | Status |
-|----------|--------|---------|--------|
-| **Overall** | 80% | ~40% | In Progress |
-| **Critical Paths** | 100% | ~65% | In Progress |
-| **API Routes** | 90% | ~56% (26/46) | In Progress |
-| **Services** | 95% | ~85% (6/7) | Good |
-| **Middleware** | 100% | 100% (2/2) | Excellent |
-| **Auth Handlers** | 100% | 100% | Excellent |
-| **Components** | 70% | ~8% (5/61) | Pending |
-| **Utilities** | 100% | ~85% | Good |
-| **Integration Tests** | - | 2 workflows | Good |
+A full local run recently landed near **~37–38% lines** and **~28% branches** on those globs: validations and many API routes are strong; large dashboard pages and parts of `lib/services` / `lib/supabase` remain under-covered until more tests are added.
 
-**Test Suite Statistics:**
-- Total Test Files: 114
-- Total Test Cases: ~1,800+
-- Lines of Test Code: ~20,000+
-- API Test Files: 86
-- Service Test Files: 6
-- Component Test Files: 5
-- Middleware Test Files: 2
-- Integration Test Files: 2
+`npm run test:coverage` must pass (tests green **and** thresholds met) before treating CI as green.
 
-### API Test Suite Details
+### Dashboard page smoke tests (`test/pages/`)
 
-#### Test Coverage by Route
+Examples include jobs list/detail, work orders index/detail, messages index and thread, company/team/roles/email/security settings, webhooks index, site survey detail, and mobile survey shell. Common patterns:
 
-**Customers API** (`test/api/customers.test.ts` - 15 test cases):
-- GET /api/customers - List, search, filter, pagination
-- POST /api/customers - Create with validation
-- Authentication and authorization
-- Input sanitization and security
-- Error handling (database errors, malformed JSON)
+- **Async server components**: mock `@/lib/supabase/server` where needed; `const ui = await Page(props); render(ui as ReactElement)`.
+- **Client pages**: stub `global.fetch` (and `useToast` when the UI shows toasts).
+- **React 19 `use(params)`**: wrap in `<Suspense>` and `await act(async () => { render(...) })` so param promises resolve under jsdom.
 
-**Jobs API** (`test/api/jobs.test.ts` - 11 test cases):
-- GET /api/jobs - List jobs with filtering
-- POST /api/jobs - Create new jobs
-- Status filtering and pagination
-- Secure error handling
-- Foreign key validation
+Work order detail also mocks **`@/lib/hooks/use-work-order-documents`** so the page does not require a live **QueryClient** tree for document queries.
 
-**Jobs [id] API** (`test/api/jobs-id.test.ts` - 9 test cases):
-- GET /api/jobs/[id] - Retrieve job by ID
-- PATCH /api/jobs/[id] - Update job
-- DELETE /api/jobs/[id] - Delete job
-- Not found scenarios
-- Permission checks
+### API tests (`test/api/`)
 
-**Invoices API** (`test/api/invoices.test.ts` - 8 test cases):
-- GET /api/invoices - List with pagination
-- POST /api/invoices - Create invoices
-- Status filtering
-- Database constraint handling
-- Complex query support
-
-**Estimates API** (`test/api/estimates.test.ts` - 8 test cases):
-- GET /api/estimates - List estimates
-- POST /api/estimates - Create estimates
-- Validation and error handling
-- Foreign key constraints
-- Search functionality
-
-**Proposals API** (`test/api/proposals.test.ts` - 8 test cases):
-- GET /api/proposals - List proposals
-- POST /api/proposals - Create proposals
-- Estimate linkage validation
-- RPC function calls
-- Malformed input handling
-
-**Proposals [id] API** (`test/api/proposals-id.test.ts` - 6 test cases):
-- GET /api/proposals/[id] - Retrieve proposal
-- PATCH /api/proposals/[id] - Update proposal
-- Status transitions
-- Not found scenarios
-
-**Analytics API** (`test/api/analytics.test.ts` - 8 test cases):
-- GET /api/analytics/jobs-by-status - Job distribution
-- GET /api/analytics/revenue - Revenue analytics
-- Date range filtering
-- RPC function error handling
-- Permission-based access control
-
-**Settings Pricing API** (`test/api/settings-pricing.test.ts` - 6 test cases):
-- GET /api/settings/pricing - Retrieve pricing configuration
-- PATCH /api/settings/pricing - Update pricing
-- Validation of pricing data
-- Multi-tenant isolation
-
-**Integrations API** (`test/api/integrations.test.ts` - 5 test cases):
-- QuickBooks OAuth flow
-- Sync operations
-- Connection status
-- Error handling
+Broad coverage exists for customers, jobs, invoices, estimates, proposals, billing, SMS, webhooks, integrations, analytics, settings, and many more. File names map closely to route segments (for example `jobs-id.test.ts`, `billing-subscription.test.ts`). For endpoint behavior, prefer these tests plus **`GET /api/openapi`** over static markdown tables, which go stale quickly.
 
 ### Test Quality Standards
 

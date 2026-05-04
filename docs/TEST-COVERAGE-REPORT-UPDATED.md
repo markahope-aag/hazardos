@@ -1,5 +1,7 @@
 # HazardOS Updated Test Coverage Report
 
+> **Archived snapshot (Feb 2026)** — For **current** policy, thresholds, and layout, see **[TESTING.md](./TESTING.md)**. Historical numbers below are not maintained.
+
 **Generated**: February 2, 2026  
 **Analysis Method**: Fresh test execution and file analysis  
 **Total Test Files**: 267 test files (+58 new files)  
