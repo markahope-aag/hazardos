@@ -3,6 +3,12 @@ import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/billing/checkout/route'
 import { StripeService } from '@/lib/services/stripe-service'
 
+// `mustBeAppUrl` validates against NEXT_PUBLIC_APP_URL (or the hazardos.app
+// fallback). CI sets it to http://localhost:3000; locally it's usually
+// unset. Derive happy-path URLs from the same env so the tests pass
+// regardless of where they run.
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://hazardos.app'
+
 // Mock dependencies
 const mockSupabaseClient = {
   auth: {
@@ -39,8 +45,8 @@ describe('POST /api/billing/checkout', () => {
   const validCheckoutData = {
     plan_slug: 'professional',
     billing_cycle: 'monthly' as const,
-    success_url: 'https://hazardos.app/success',
-    cancel_url: 'https://hazardos.app/cancel'
+    success_url: `${APP_URL}/success`,
+    cancel_url: `${APP_URL}/cancel`
   }
 
   const mockProfile = {
@@ -85,8 +91,8 @@ describe('POST /api/billing/checkout', () => {
       'org-123',
       'professional',
       'monthly',
-      'https://hazardos.app/success',
-      'https://hazardos.app/cancel'
+      `${APP_URL}/success`,
+      `${APP_URL}/cancel`
     )
   })
 
@@ -187,8 +193,8 @@ describe('POST /api/billing/checkout', () => {
       'org-123',
       'professional',
       'yearly',
-      'https://hazardos.app/success',
-      'https://hazardos.app/cancel'
+      `${APP_URL}/success`,
+      `${APP_URL}/cancel`
     )
   })
 
@@ -213,8 +219,8 @@ describe('POST /api/billing/checkout', () => {
 
     const dataWithoutCycle = {
       plan_slug: 'professional',
-      success_url: 'https://hazardos.app/success',
-      cancel_url: 'https://hazardos.app/cancel'
+      success_url: `${APP_URL}/success`,
+      cancel_url: `${APP_URL}/cancel`
     }
 
     const request = new NextRequest('http://localhost:3000/api/billing/checkout', {
@@ -228,8 +234,8 @@ describe('POST /api/billing/checkout', () => {
       'org-123',
       'professional',
       'monthly',
-      'https://hazardos.app/success',
-      'https://hazardos.app/cancel'
+      `${APP_URL}/success`,
+      `${APP_URL}/cancel`
     )
   })
 
@@ -300,8 +306,8 @@ describe('POST /api/billing/checkout', () => {
     const invalidData = {
       plan_slug: '',
       billing_cycle: 'monthly',
-      success_url: 'https://hazardos.app/success',
-      cancel_url: 'https://hazardos.app/cancel'
+      success_url: `${APP_URL}/success`,
+      cancel_url: `${APP_URL}/cancel`
     }
 
     const request = new NextRequest('http://localhost:3000/api/billing/checkout', {
@@ -337,7 +343,7 @@ describe('POST /api/billing/checkout', () => {
       plan_slug: 'professional',
       billing_cycle: 'monthly',
       success_url: 'not-a-url',
-      cancel_url: 'https://hazardos.app/cancel'
+      cancel_url: `${APP_URL}/cancel`
     }
 
     const request = new NextRequest('http://localhost:3000/api/billing/checkout', {
@@ -372,7 +378,7 @@ describe('POST /api/billing/checkout', () => {
     const invalidData = {
       plan_slug: 'professional',
       billing_cycle: 'monthly',
-      success_url: 'https://hazardos.app/success',
+      success_url: `${APP_URL}/success`,
       cancel_url: 'invalid-url'
     }
 

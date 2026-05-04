@@ -6,6 +6,12 @@ import {
   updateSubscriptionSchema,
 } from '@/lib/validations/billing'
 
+// `mustBeAppUrl` reads NEXT_PUBLIC_APP_URL at parse time, falling back to
+// hazardos.app. Different envs (local empty, CI=localhost:3000) would
+// otherwise reject our happy-path URLs — derive them from the same env so
+// the tests pass everywhere.
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://hazardos.app'
+
 describe('cancelSubscriptionSchema', () => {
   it('accepts valid cancellation', () => {
     const result = cancelSubscriptionSchema.safeParse({
@@ -39,8 +45,8 @@ describe('cancelSubscriptionSchema', () => {
 describe('createCheckoutSchema', () => {
   const validCheckout = {
     plan_slug: 'pro',
-    success_url: 'https://hazardos.app/success',
-    cancel_url: 'https://hazardos.app/cancel',
+    success_url: `${APP_URL}/success`,
+    cancel_url: `${APP_URL}/cancel`,
   }
 
   it('accepts valid checkout', () => {
@@ -50,8 +56,8 @@ describe('createCheckoutSchema', () => {
 
   it('requires plan_slug', () => {
     const result = createCheckoutSchema.safeParse({
-      success_url: 'https://hazardos.app/success',
-      cancel_url: 'https://hazardos.app/cancel',
+      success_url: `${APP_URL}/success`,
+      cancel_url: `${APP_URL}/cancel`,
     })
     expect(result.success).toBe(false)
   })
@@ -59,8 +65,8 @@ describe('createCheckoutSchema', () => {
   it('rejects empty plan_slug', () => {
     const result = createCheckoutSchema.safeParse({
       plan_slug: '',
-      success_url: 'https://hazardos.app/success',
-      cancel_url: 'https://hazardos.app/cancel',
+      success_url: `${APP_URL}/success`,
+      cancel_url: `${APP_URL}/cancel`,
     })
     expect(result.success).toBe(false)
   })
@@ -68,7 +74,7 @@ describe('createCheckoutSchema', () => {
   it('requires success_url', () => {
     const result = createCheckoutSchema.safeParse({
       plan_slug: 'pro',
-      cancel_url: 'https://hazardos.app/cancel',
+      cancel_url: `${APP_URL}/cancel`,
     })
     expect(result.success).toBe(false)
   })
@@ -76,7 +82,7 @@ describe('createCheckoutSchema', () => {
   it('requires cancel_url', () => {
     const result = createCheckoutSchema.safeParse({
       plan_slug: 'pro',
-      success_url: 'https://hazardos.app/success',
+      success_url: `${APP_URL}/success`,
     })
     expect(result.success).toBe(false)
   })
@@ -85,7 +91,7 @@ describe('createCheckoutSchema', () => {
     const result = createCheckoutSchema.safeParse({
       plan_slug: 'pro',
       success_url: 'not-a-url',
-      cancel_url: 'https://hazardos.app/cancel',
+      cancel_url: `${APP_URL}/cancel`,
     })
     expect(result.success).toBe(false)
   })
@@ -93,7 +99,7 @@ describe('createCheckoutSchema', () => {
   it('requires valid URL for cancel_url', () => {
     const result = createCheckoutSchema.safeParse({
       plan_slug: 'pro',
-      success_url: 'https://hazardos.app/success',
+      success_url: `${APP_URL}/success`,
       cancel_url: 'not-a-url',
     })
     expect(result.success).toBe(false)
@@ -130,7 +136,7 @@ describe('createCheckoutSchema', () => {
 describe('createPortalSchema', () => {
   it('accepts valid portal request', () => {
     const result = createPortalSchema.safeParse({
-      return_url: 'https://hazardos.app/settings',
+      return_url: `${APP_URL}/settings`,
     })
     expect(result.success).toBe(true)
   })
