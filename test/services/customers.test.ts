@@ -220,7 +220,7 @@ describe('CustomersService', () => {
 
   describe('getCustomerStats', () => {
     it('should return customer statistics', async () => {
-      // The service uses Promise.all with 4 count queries
+      // The service uses Promise.all with 5 count queries (one per status)
       // Each query: from().select().eq('organization_id').eq('status')
       // Need to mock second .eq() call to return { count, error }
       let eqCallCount = 0
@@ -229,7 +229,7 @@ describe('CustomersService', () => {
         // Every second call is the final .eq('status', ...) that returns the promise
         if (eqCallCount % 2 === 0) {
           // Return different counts for each status query
-          const counts = [25, 30, 40, 5] // lead, prospect, customer, inactive
+          const counts = [25, 30, 40, 12, 5] // inquiry, prospect, customer, past_customer, inactive
           const index = Math.floor((eqCallCount - 2) / 2)
           return Promise.resolve({ count: counts[index], error: null })
         }
@@ -240,10 +240,11 @@ describe('CustomersService', () => {
       const result = await CustomersService.getCustomerStats('org-1')
 
       expect(result).toEqual({
-        total: 100,
+        total: 112,
         inquiries: 25,
         prospects: 30,
         customers: 40,
+        pastCustomers: 12,
         inactive: 5
       })
     })
@@ -267,7 +268,7 @@ describe('CustomersService', () => {
     })
 
     it('should validate status values', async () => {
-      const validStatuses = ['inquiry', 'prospect', 'customer', 'inactive'] as const
+      const validStatuses = ['inquiry', 'prospect', 'customer', 'past_customer', 'inactive'] as const
 
       // Ensure select() returns mockSupabase for .single() to work
       mockSupabase.select.mockReturnValue(mockSupabase)

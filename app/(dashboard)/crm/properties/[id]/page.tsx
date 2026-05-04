@@ -14,11 +14,19 @@ import {
   UserMinus, Save,
 } from 'lucide-react'
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
+import {
   usePropertyHistory,
   useUpdateProperty,
   useMarkContactMovedOut,
 } from '@/lib/hooks/use-properties'
-import type { PropertyContactRole } from '@/types/database'
+import type { PropertyContactRole, PropertyType } from '@/types/database'
+import {
+  PROPERTY_TYPE_LABEL,
+  propertyTypeBadgeClass,
+  residentialOrCommercial,
+} from '@/lib/utils/property-type'
 
 const ROLE_LABEL: Record<PropertyContactRole, string> = {
   owner: 'Owner',
@@ -112,18 +120,69 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
 
       <Card>
         <CardContent className="p-6">
-          <div className="flex items-start gap-3">
-            <MapPin className="h-6 w-6 text-primary mt-1" />
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {property.address_line1}
-              </h1>
-              {property.address_line2 && (
-                <div className="text-gray-600">{property.address_line2}</div>
-              )}
-              <div className="text-gray-600">
-                {[property.city, property.state, property.zip].filter(Boolean).join(', ') || '—'}
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-start gap-3">
+              <MapPin className="h-6 w-6 text-primary mt-1" />
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    {property.address_line1}
+                  </h1>
+                  {property.property_type && (
+                    <Badge
+                      variant="outline"
+                      className={propertyTypeBadgeClass(property.property_type)}
+                      title={PROPERTY_TYPE_LABEL[property.property_type]}
+                    >
+                      {residentialOrCommercial(property.property_type) === 'residential'
+                        ? 'Residential'
+                        : 'Commercial'}
+                    </Badge>
+                  )}
+                </div>
+                {property.address_line2 && (
+                  <div className="text-gray-600">{property.address_line2}</div>
+                )}
+                <div className="text-gray-600">
+                  {[property.city, property.state, property.zip].filter(Boolean).join(', ') || '—'}
+                </div>
               </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-500">Property type</label>
+              <Select
+                value={property.property_type || 'unset'}
+                onValueChange={(value) =>
+                  updateProperty.mutate({
+                    id: property.id,
+                    updates: {
+                      property_type: value === 'unset' ? null : (value as PropertyType),
+                    },
+                  })
+                }
+              >
+                <SelectTrigger className="w-[220px]">
+                  <SelectValue placeholder="Set type…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">— Not set —</SelectItem>
+                  <SelectItem value="residential_single_family">
+                    {PROPERTY_TYPE_LABEL.residential_single_family}
+                  </SelectItem>
+                  <SelectItem value="residential_multi_family">
+                    {PROPERTY_TYPE_LABEL.residential_multi_family}
+                  </SelectItem>
+                  <SelectItem value="commercial">
+                    {PROPERTY_TYPE_LABEL.commercial}
+                  </SelectItem>
+                  <SelectItem value="industrial">
+                    {PROPERTY_TYPE_LABEL.industrial}
+                  </SelectItem>
+                  <SelectItem value="government">
+                    {PROPERTY_TYPE_LABEL.government}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>

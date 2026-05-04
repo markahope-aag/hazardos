@@ -177,7 +177,7 @@ describe('Customer Validation Schema', () => {
   })
 
   describe('Status Validation', () => {
-    const validStatuses = ['inquiry', 'prospect', 'customer', 'inactive']
+    const validStatuses = ['inquiry', 'prospect', 'customer', 'past_customer', 'inactive']
 
     validStatuses.forEach(status => {
       it(`should accept status: ${status}`, () => {
@@ -308,8 +308,8 @@ describe('Customer Validation Schema', () => {
   })
 
   describe('Customer Status Options', () => {
-    it('should have 4 status options', () => {
-      expect(CUSTOMER_STATUS_OPTIONS.length).toBe(4)
+    it('should have 5 status options', () => {
+      expect(CUSTOMER_STATUS_OPTIONS.length).toBe(5)
     })
 
     it('should have inquiry status option', () => {
@@ -328,6 +328,12 @@ describe('Customer Validation Schema', () => {
       const customer = CUSTOMER_STATUS_OPTIONS.find(o => o.value === 'customer')
       expect(customer).toBeDefined()
       expect(customer?.label).toBe('Customer')
+    })
+
+    it('should have past_customer status option', () => {
+      const past = CUSTOMER_STATUS_OPTIONS.find(o => o.value === 'past_customer')
+      expect(past).toBeDefined()
+      expect(past?.label).toBe('Past Customer')
     })
 
     it('should have inactive status option', () => {

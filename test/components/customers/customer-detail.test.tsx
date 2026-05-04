@@ -217,10 +217,12 @@ describe('CustomerDetail Component', () => {
   it('should render tab navigation', () => {
     render(<CustomerDetail customer={mockCustomer} />)
 
-    expect(screen.getByText('Overview')).toBeInTheDocument()
-    expect(screen.getByText('Activity')).toBeInTheDocument()
-    expect(screen.getByText('Opportunities')).toBeInTheDocument()
-    expect(screen.getByText('Jobs')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Overview' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Activity' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Opportunities' })).toBeInTheDocument()
+    // "Jobs" also appears as a stat label in the sidebar; scope to the
+    // tab button so we're testing the navigation, not the page text.
+    expect(screen.getByRole('button', { name: 'Jobs' })).toBeInTheDocument()
   })
 
   it('should handle customer without company name', () => {

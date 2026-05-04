@@ -6,10 +6,11 @@ import { UserMenu } from '@/components/layout/user-menu'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { AuthProvider, useMultiTenantAuth } from '@/components/providers/auth-provider'
 import { useRouter, usePathname } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Home, FileText, Calculator, Calendar, DollarSign, LayoutGrid, Briefcase, MessageCircle, ClipboardList, FlaskConical, Settings, type LucideIcon } from 'lucide-react'
+import { Home, FileText, Calculator, Calendar, DollarSign, LayoutGrid, Briefcase, MessageCircle, ClipboardList, FlaskConical, Settings, Menu, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import LoginForm from '@/components/auth/login-form'
 
 // Single source of truth for main-nav order, labels, and active-matching.
@@ -83,12 +84,19 @@ function DashboardLayoutInner({
   const { user, profile, organization, loading, canAccessPlatformAdmin } = useMultiTenantAuth()
   const router = useRouter()
   const pathname = usePathname()
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   useEffect(() => {
     if (!loading && user && profile && !profile.organization_id && !profile.is_platform_user) {
       router.push('/onboard')
     }
   }, [user, profile, loading, router])
+
+  // Auto-close the mobile drawer on route change so it doesn't linger
+  // open over the new page.
+  useEffect(() => {
+    setMobileNavOpen(false)
+  }, [pathname])
 
   if (loading) {
     return (
@@ -126,17 +134,27 @@ function DashboardLayoutInner({
           we only stick the main nav when we're outside /crm. */}
       <div className="sticky top-0 z-40">
         <header className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-          <div className="container flex h-14 items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <Link className="flex items-center space-x-2" href="/">
+          <div className="container flex h-14 items-center justify-between gap-2">
+            <div className="flex items-center space-x-3 sm:space-x-6 min-w-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="lg:hidden -ml-2"
+                onClick={() => setMobileNavOpen(true)}
+                aria-label="Open menu"
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+
+              <Link className="flex items-center space-x-2 flex-shrink-0" href="/">
                 <LogoHorizontal size="md" />
               </Link>
 
               {organization && (
                 <>
-                  <div className="h-6 w-px bg-gray-300" />
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">{organization.name}</div>
+                  <div className="hidden sm:block h-6 w-px bg-gray-300" />
+                  <div className="hidden sm:block min-w-0">
+                    <div className="text-sm font-medium text-gray-900 truncate">{organization.name}</div>
                     <div className="text-xs text-gray-500 capitalize">{organization.subscription_tier}</div>
                   </div>
                 </>
@@ -184,9 +202,10 @@ function DashboardLayoutInner({
           </div>
         </header>
 
-        {/* Navigation - hidden when inside CRM */}
+        {/* Desktop nav strip — hidden on mobile (use hamburger) and on
+            CRM pages (which have their own chrome). */}
         {!pathname.startsWith('/crm') && (
-          <nav className="border-b bg-white" aria-label="Main navigation">
+          <nav className="hidden lg:block border-b bg-white" aria-label="Main navigation">
             <div className="container">
               <div className="flex space-x-8 overflow-x-auto">
                 {MAIN_NAV_ITEMS.map((item) => {
@@ -212,6 +231,44 @@ function DashboardLayoutInner({
           </nav>
         )}
       </div>
+
+      {/* Mobile nav drawer — slides in from the left when the hamburger
+          is tapped. Closes itself on route change via effect above. */}
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <SheetContent side="left" className="w-[280px] p-0">
+          <div className="flex items-center px-4 py-4 border-b">
+            <SheetTitle>
+              <LogoHorizontal size="md" />
+            </SheetTitle>
+          </div>
+          {organization && (
+            <div className="px-4 py-3 border-b">
+              <div className="text-sm font-medium text-gray-900 truncate">{organization.name}</div>
+              <div className="text-xs text-gray-500 capitalize">{organization.subscription_tier}</div>
+            </div>
+          )}
+          <nav className="px-2 py-2 space-y-1" aria-label="Main navigation">
+            {MAIN_NAV_ITEMS.map((item) => {
+              const isActive = item.match(pathname)
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  <span>{item.label}</span>
+                </Link>
+              )
+            })}
+          </nav>
+        </SheetContent>
+      </Sheet>
 
       <main id="main-content" className="container py-6">
         {children}

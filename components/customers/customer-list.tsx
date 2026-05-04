@@ -22,9 +22,10 @@ interface CustomerListProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  lead: 'bg-blue-100 text-blue-700',
+  inquiry: 'bg-blue-100 text-blue-700',
   prospect: 'bg-yellow-100 text-yellow-700',
   customer: 'bg-green-100 text-green-700',
+  past_customer: 'bg-indigo-100 text-indigo-700',
   inactive: 'bg-gray-100 text-gray-500',
 }
 
@@ -130,12 +131,13 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
             </SelectContent>
           </Select>
           <Select value={status} onValueChange={(v) => { setStatus(v as CustomerStatus | 'all'); setPage(1) }}>
-            <SelectTrigger className="w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="inquiry">Inquiry</SelectItem>
               <SelectItem value="prospect">Prospect</SelectItem>
               <SelectItem value="customer">Customer</SelectItem>
+              <SelectItem value="past_customer">Past Customer</SelectItem>
               <SelectItem value="inactive">Inactive</SelectItem>
             </SelectContent>
           </Select>
@@ -294,7 +296,7 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
                         <TableCell>
                           <div className="space-y-1">
                             <Badge className={`text-xs border-0 ${statusColor}`}>
-                              {customer.status}
+                              {customer.status === 'past_customer' ? 'Past Customer' : customer.status}
                             </Badge>
                             {customer.contact_status && customer.contact_status !== 'active' && (
                               <Badge className={`text-xs border-0 block w-fit ${contactStatusColor}`}>

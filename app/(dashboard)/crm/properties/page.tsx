@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
@@ -15,6 +16,11 @@ import {
 } from 'lucide-react'
 import { useProperties, type PropertiesSortKey, type PropertiesSortDir } from '@/lib/hooks/use-properties'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
+import {
+  PROPERTY_TYPE_LABEL,
+  propertyTypeBadgeClass,
+  residentialOrCommercial,
+} from '@/lib/utils/property-type'
 
 const PAGE_SIZE = 25
 
@@ -131,6 +137,7 @@ export default function PropertiesPage() {
                       {sortIcon('city')}
                     </button>
                   </TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead className="text-right">Contacts</TableHead>
                   <TableHead className="text-right">
                     <button
@@ -160,6 +167,21 @@ export default function PropertiesPage() {
                     </TableCell>
                     <TableCell className="text-sm text-gray-600">
                       {[p.city, p.state, p.zip].filter(Boolean).join(', ') || '—'}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {p.property_type ? (
+                        <Badge
+                          variant="outline"
+                          className={propertyTypeBadgeClass(p.property_type)}
+                          title={PROPERTY_TYPE_LABEL[p.property_type]}
+                        >
+                          {residentialOrCommercial(p.property_type) === 'residential'
+                            ? 'Residential'
+                            : 'Commercial'}
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right text-sm">
                       <span className="inline-flex items-center gap-1 text-gray-700">

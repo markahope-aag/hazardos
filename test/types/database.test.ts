@@ -108,7 +108,7 @@ describe('Database Types', () => {
 
   describe('Enum Types', () => {
     it('should validate CustomerStatus enum values', () => {
-      const validStatuses: CustomerStatus[] = ['inquiry', 'prospect', 'customer', 'inactive']
+      const validStatuses: CustomerStatus[] = ['inquiry', 'prospect', 'customer', 'past_customer', 'inactive']
       
       validStatuses.forEach(status => {
         expectTypeOf(status).toEqualTypeOf<CustomerStatus>()

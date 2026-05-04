@@ -283,7 +283,7 @@ describe('CustomerListItem Component', () => {
   })
 
   it('should handle different customer statuses', () => {
-    const statuses = ['inquiry', 'prospect', 'customer', 'inactive'] as const
+    const statuses = ['inquiry', 'prospect', 'customer', 'past_customer', 'inactive'] as const
 
     statuses.forEach((status) => {
       const customerWithStatus = { ...mockCustomer, status }

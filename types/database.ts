@@ -82,10 +82,20 @@ export type OrganizationDocumentCategory =
   | 'safety_plan'
   | 'references'
   | 'other'
-export type CustomerStatus = 'inquiry' | 'prospect' | 'customer' | 'inactive'
+export type CustomerStatus = 'inquiry' | 'prospect' | 'customer' | 'past_customer' | 'inactive'
 export type CustomerSource = 'phone' | 'website' | 'mail' | 'referral' | 'other'
 export type AppointmentStatus = 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
 export type DisposalHazardType = 'asbestos_friable' | 'asbestos_non_friable' | 'mold' | 'lead' | 'other'
+
+// Per-organization boilerplate for the four Protective Measures
+// paragraphs of an Occupant Protection Plan. Pre-fills the OPP wizard
+// so the office isn't retyping the same text per job.
+export interface OppDefaults {
+  containment?: string
+  ventilation?: string
+  work_practices?: string
+  final_cleaning?: string
+}
 
 // Mobile survey JSONB types
 export interface SurveyAccessInfo {
@@ -244,6 +254,7 @@ export interface Database {
           email_accent_color: string | null
           email_logo_url: string | null
           email_signature: string | null
+          opp_defaults: OppDefaults
           status: OrganizationStatus
           subscription_tier: SubscriptionTier
           trial_ends_at: string | null
@@ -278,6 +289,7 @@ export interface Database {
           email_accent_color?: string | null
           email_logo_url?: string | null
           email_signature?: string | null
+          opp_defaults?: OppDefaults
           billing_managed_externally?: boolean
           created_at?: string
           updated_at?: string
@@ -305,6 +317,7 @@ export interface Database {
           email_accent_color?: string | null
           email_logo_url?: string | null
           email_signature?: string | null
+          opp_defaults?: OppDefaults
           billing_managed_externally?: boolean
           created_at?: string
           updated_at?: string
@@ -1529,6 +1542,7 @@ export interface Database {
           normalized_address: string
           latitude: number | null
           longitude: number | null
+          property_type: PropertyType | null
           notes: string | null
           created_by: string | null
           created_at: string
@@ -1544,6 +1558,7 @@ export interface Database {
           zip?: string | null
           latitude?: number | null
           longitude?: number | null
+          property_type?: PropertyType | null
           notes?: string | null
           created_by?: string | null
           created_at?: string
@@ -1559,6 +1574,7 @@ export interface Database {
           zip?: string | null
           latitude?: number | null
           longitude?: number | null
+          property_type?: PropertyType | null
           notes?: string | null
           created_by?: string | null
           created_at?: string

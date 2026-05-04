@@ -37,7 +37,7 @@ export const customerSchema = z.object({
   city: z.string().min(1, 'City is required').max(100, 'City is too long'),
   state: z.string().min(1, 'State is required').max(50, 'State is too long'),
   zip: z.string().min(1, 'ZIP code is required').max(10, 'ZIP code is too long'),
-  status: z.enum(['inquiry', 'prospect', 'customer', 'inactive']),
+  status: z.enum(['inquiry', 'prospect', 'customer', 'past_customer', 'inactive']),
   source: z.enum(['phone', 'website', 'mail', 'referral', 'other']).optional(),
   marketing_consent: z.boolean(),
   opted_into_email: z.boolean().optional(),
@@ -114,12 +114,16 @@ export const US_STATES = [
   { value: 'WY', label: 'Wyoming' },
 ]
 
-// Customer status options for dropdowns
+// Customer status options for dropdowns. Order reflects lifecycle:
+// inquiry → prospect → customer → past_customer (had work, none active)
+// → inactive (no engagement at all). Past customer is a distinct
+// category from inactive so we can target win-back campaigns separately.
 export const CUSTOMER_STATUS_OPTIONS = [
   { value: 'inquiry' as CustomerStatus, label: 'Inquiry', description: 'Initial contact' },
   { value: 'prospect' as CustomerStatus, label: 'Prospect', description: 'Survey scheduled/completed' },
-  { value: 'customer' as CustomerStatus, label: 'Customer', description: 'Job completed' },
-  { value: 'inactive' as CustomerStatus, label: 'Inactive', description: 'No recent activity' },
+  { value: 'customer' as CustomerStatus, label: 'Customer', description: 'Active customer with current or recent jobs' },
+  { value: 'past_customer' as CustomerStatus, label: 'Past Customer', description: 'Completed work in the past — no active jobs' },
+  { value: 'inactive' as CustomerStatus, label: 'Inactive', description: 'Cold lead — never converted' },
 ]
 
 // Customer source options for dropdowns

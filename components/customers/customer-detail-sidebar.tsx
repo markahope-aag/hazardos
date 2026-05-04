@@ -11,6 +11,7 @@ import {
   Briefcase,
   Building2,
   CalendarPlus,
+  DollarSign,
   Mail,
   MapPin,
   MessageSquare,
@@ -183,6 +184,38 @@ export function CustomerDetailSidebar({
               </div>
             </>
           )}
+
+          <Separator />
+
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-xs text-muted-foreground">Value</p>
+              <p className="font-semibold tabular-nums flex items-center justify-center text-sm">
+                <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                {customer.lifetime_value > 0
+                  ? customer.lifetime_value.toLocaleString()
+                  : '0'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Jobs</p>
+              <p className="font-semibold tabular-nums flex items-center justify-center text-sm">
+                <Briefcase className="h-3.5 w-3.5 text-muted-foreground mr-1" />
+                {customer.total_jobs || 0}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Last job</p>
+              <p className="font-semibold text-sm">
+                {customer.last_job_date
+                  ? new Date(customer.last_job_date).toLocaleDateString(undefined, {
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : '—'}
+              </p>
+            </div>
+          </div>
 
           <Separator />
 

@@ -200,6 +200,7 @@ describe('CUSTOMER_STATUS_OPTIONS', () => {
     expect(values).toContain('inquiry')
     expect(values).toContain('prospect')
     expect(values).toContain('customer')
+    expect(values).toContain('past_customer')
     expect(values).toContain('inactive')
   })
 

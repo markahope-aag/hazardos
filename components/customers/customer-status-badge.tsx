@@ -27,6 +27,12 @@ export default function CustomerStatusBadge({ status, className }: CustomerStatu
           variant: 'default' as const,
           className: 'bg-green-100 text-green-800 hover:bg-green-100'
         }
+      case 'past_customer':
+        return {
+          label: 'Past Customer',
+          variant: 'secondary' as const,
+          className: 'bg-indigo-100 text-indigo-800 hover:bg-indigo-100'
+        }
       case 'inactive':
         return {
           label: 'Inactive',

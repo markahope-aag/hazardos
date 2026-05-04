@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 // Customer status
-export const customerStatusSchema = z.enum(['inquiry', 'prospect', 'customer', 'inactive'])
+export const customerStatusSchema = z.enum(['inquiry', 'prospect', 'customer', 'past_customer', 'inactive'])
 
 // Customer source - matches database type
 export const customerSourceSchema = z.enum(['phone', 'website', 'mail', 'referral', 'other'])

@@ -103,7 +103,7 @@ describe('Customer Validation Schema', () => {
     })
 
     it('should validate valid customer status values', () => {
-      const statuses = ['inquiry', 'prospect', 'customer', 'inactive'] as const
+      const statuses = ['inquiry', 'prospect', 'customer', 'past_customer', 'inactive'] as const
 
       statuses.forEach(status => {
         const customer = {
@@ -252,7 +252,7 @@ describe('Customer Validation Schema', () => {
     })
 
     it('should have valid default status', () => {
-      expect(['inquiry', 'prospect', 'customer', 'inactive']).toContain(defaultCustomerValues.status)
+      expect(['inquiry', 'prospect', 'customer', 'past_customer', 'inactive']).toContain(defaultCustomerValues.status)
     })
 
     it('should validate against schema when combined with required fields', () => {
@@ -295,7 +295,7 @@ describe('Customer Validation Schema', () => {
 
   describe('CUSTOMER_STATUS_OPTIONS', () => {
     it('should contain all valid status options', () => {
-      const expectedStatuses = ['inquiry', 'prospect', 'customer', 'inactive']
+      const expectedStatuses = ['inquiry', 'prospect', 'customer', 'past_customer', 'inactive']
       expect(CUSTOMER_STATUS_OPTIONS).toHaveLength(expectedStatuses.length)
 
       expectedStatuses.forEach(status => {

@@ -13,7 +13,7 @@ import {
 
 describe('customerStatusSchema', () => {
   it('accepts valid statuses', () => {
-    const statuses = ['inquiry', 'prospect', 'customer', 'inactive']
+    const statuses = ['inquiry', 'prospect', 'customer', 'past_customer', 'inactive']
     for (const status of statuses) {
       const result = customerStatusSchema.safeParse(status)
       expect(result.success).toBe(true)
