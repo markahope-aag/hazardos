@@ -16,6 +16,7 @@ import {
   subWeeks,
   addDays,
   subDays,
+  differenceInCalendarDays,
   parseISO,
 } from 'date-fns'
 import { Card, CardContent } from '@/components/ui/card'
@@ -49,6 +50,7 @@ import {
   ClipboardList,
   AlertTriangle,
   CalendarIcon,
+  CheckCircle2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { jobStatusConfig } from '@/types/jobs'
@@ -174,6 +176,89 @@ const DEFAULT_TYPE_FILTER: Record<EventKind, boolean> = {
   external: true,
 }
 
+// Statuses that mean the work is finished — hidden by default so the
+// calendar shows what's still on the books, not the archive.
+const FINISHED_JOB_STATUSES = new Set([
+  'completed',
+  'invoiced',
+  'paid',
+  'closed',
+  'cancelled',
+])
+const FINISHED_SURVEY_STATUSES = new Set(['completed', 'cancelled'])
+const FINISHED_APPOINTMENT_STATUSES = new Set(['completed', 'cancelled', 'no_show'])
+
+function isEventFinished(event: CalendarEvent): boolean {
+  if (event.raw.kind === 'job') {
+    return FINISHED_JOB_STATUSES.has(event.raw.job.status)
+  }
+  if (event.raw.kind === 'survey') {
+    const s = event.raw.survey
+    return (
+      FINISHED_SURVEY_STATUSES.has(s.status) ||
+      (s.appointment_status !== null && FINISHED_APPOINTMENT_STATUSES.has(s.appointment_status))
+    )
+  }
+  return false
+}
+
+// Multi-day events render as continuous bands like Google Calendar.
+// Lanes stack vertically inside each week row; overflow becomes a
+// "+N more" link on the affected day cell.
+const LANE_HEIGHT = 22
+const MAX_LANES_MONTH = 4
+const MAX_LANES_WEEK = 18
+
+interface PlacedBand {
+  event: CalendarEvent
+  startCol: number // 0-6 within the week
+  endCol: number // 0-6 within the week
+  lane: number
+  isStart: boolean // event begins on or after this week's start
+  isEnd: boolean // event ends on or before this week's end
+}
+
+// Greedy lane assignment: longer events go first so they win lower
+// lanes and stay anchored to the top of the row. Ties break by start
+// date so order is stable across re-renders.
+function layoutWeek(events: CalendarEvent[], weekStart: Date, weekEnd: Date): PlacedBand[] {
+  const overlapping = events.filter(
+    (ev) => ev.endDate >= weekStart && ev.startDate <= weekEnd,
+  )
+
+  overlapping.sort((a, b) => {
+    const lenA = differenceInCalendarDays(a.endDate, a.startDate)
+    const lenB = differenceInCalendarDays(b.endDate, b.startDate)
+    if (lenA !== lenB) return lenB - lenA
+    const startCmp = a.startDate.getTime() - b.startDate.getTime()
+    if (startCmp !== 0) return startCmp
+    return a.id.localeCompare(b.id)
+  })
+
+  const lanes: number[] = [] // lanes[i] = endCol of latest band in lane i
+  const placed: PlacedBand[] = []
+
+  for (const ev of overlapping) {
+    const startCol = ev.startDate < weekStart ? 0 : differenceInCalendarDays(ev.startDate, weekStart)
+    const endCol = ev.endDate > weekEnd ? 6 : differenceInCalendarDays(ev.endDate, weekStart)
+
+    let lane = 0
+    while (lane < lanes.length && lanes[lane] >= startCol) lane++
+    lanes[lane] = endCol
+
+    placed.push({
+      event: ev,
+      startCol,
+      endCol,
+      lane,
+      isStart: ev.startDate >= weekStart,
+      isEnd: ev.endDate <= weekEnd,
+    })
+  }
+
+  return placed
+}
+
 export function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<ViewMode>('month')
@@ -188,6 +273,7 @@ export function CalendarView() {
 
   const [typeFilter, setTypeFilter] = useState<Record<EventKind, boolean>>(DEFAULT_TYPE_FILTER)
   const [memberFilter, setMemberFilter] = useState<string>('all')
+  const [showCompleted, setShowCompleted] = useState(false)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -338,6 +424,7 @@ export function CalendarView() {
   const filteredEvents = useMemo(() => {
     return allEvents.filter((ev) => {
       if (!typeFilter[ev.kind]) return false
+      if (!showCompleted && isEventFinished(ev)) return false
       if (memberFilter !== 'all') {
         // Deadlines have no assignees. Filter them in along with their
         // owning job — practically: keep deadlines when *anything* the
@@ -349,7 +436,7 @@ export function CalendarView() {
       }
       return true
     })
-  }, [allEvents, typeFilter, memberFilter])
+  }, [allEvents, typeFilter, memberFilter, showCompleted])
 
   const navigate = (direction: 'prev' | 'next') => {
     if (viewMode === 'month') {
@@ -363,30 +450,17 @@ export function CalendarView() {
 
   const goToToday = () => setCurrentDate(new Date())
 
-  // For every visible day, decide which events touch it and where in
-  // the event's range this day sits. The position lets the renderer
-  // draw a continuous bar across multiple days instead of repeating
-  // the same tile.
-  type EventOnDay = {
-    event: CalendarEvent
-    isStart: boolean
-    isEnd: boolean
-  }
-
-  const getEventsForDate = (date: Date): EventOnDay[] => {
-    const out: EventOnDay[] = []
+  const getEventsForDate = (date: Date): CalendarEvent[] => {
+    const out: CalendarEvent[] = []
     for (const ev of filteredEvents) {
-      const onStart = isSameDay(ev.startDate, date)
-      const onEnd = isSameDay(ev.endDate, date)
-      const inMiddle = date > ev.startDate && date < ev.endDate
-      if (onStart || onEnd || inMiddle) {
-        out.push({ event: ev, isStart: onStart, isEnd: onEnd })
-      }
+      const inRange =
+        isSameDay(ev.startDate, date) ||
+        isSameDay(ev.endDate, date) ||
+        (date > ev.startDate && date < ev.endDate)
+      if (inRange) out.push(ev)
     }
-    // Stable order: jobs first (multi-day bars), then surveys,
-    // deadlines, external.
     const order: Record<EventKind, number> = { job: 0, survey: 1, deadline: 2, external: 3 }
-    out.sort((a, b) => order[a.event.kind] - order[b.event.kind])
+    out.sort((a, b) => order[a.kind] - order[b.kind])
     return out
   }
 
@@ -395,191 +469,57 @@ export function CalendarView() {
     setSheetOpen(true)
   }
 
-  const renderEventTile = (
-    eventOnDay: EventOnDay,
-    options: { compact?: boolean } = {},
-  ) => {
-    const { event, isStart, isEnd } = eventOnDay
-
-    if (event.kind === 'job') {
-      const job = event.raw.kind === 'job' ? event.raw.job : null
-      const statusConfig = job ? jobStatusConfig[job.status as keyof typeof jobStatusConfig] : null
-      return (
-        <button
-          key={`${event.id}-${isStart ? 's' : isEnd ? 'e' : 'm'}`}
-          onClick={() => handleEventClick(event)}
-          className={cn(
-            'w-full text-left text-xs p-1 truncate hover:opacity-80 transition-opacity',
-            statusConfig?.bgColor || 'bg-gray-100',
-            statusConfig?.color || 'text-gray-800',
-            isStart && 'rounded-l',
-            isEnd && 'rounded-r',
-            !isStart && !isEnd && 'rounded-none',
-            isStart && isEnd && 'rounded',
-          )}
-          title={event.title}
-        >
-          {isStart ? (
-            <>
-              {event.startTime && (
-                <span className="font-medium">
-                  {format(parseISO(`2000-01-01T${event.startTime}`), 'h:mma')}
-                </span>
-              )}{' '}
-              {event.title}
-            </>
-          ) : (
-            <span className="opacity-60">{options.compact ? '↳' : '↳ continued'}</span>
-          )}
-        </button>
-      )
-    }
-
-    if (event.kind === 'survey') {
-      return (
-        <button
-          key={event.id}
-          onClick={() => handleEventClick(event)}
-          className={cn(
-            'w-full text-left text-xs p-1 rounded truncate transition-opacity hover:opacity-80',
-            'bg-purple-100 text-purple-900 border-l-2 border-purple-500',
-          )}
-          title={event.title}
-        >
-          <ClipboardList className="h-3 w-3 inline mr-1" />
-          {event.startTime && (
-            <span className="font-medium">
-              {format(parseISO(`2000-01-01T${event.startTime}`), 'h:mma')}{' '}
-            </span>
-          )}
-          {event.title}
-        </button>
-      )
-    }
-
-    if (event.kind === 'deadline') {
-      return (
-        <button
-          key={event.id}
-          onClick={() => handleEventClick(event)}
-          className={cn(
-            'w-full text-left text-xs p-1 rounded truncate transition-opacity hover:opacity-80',
-            'bg-red-50 text-red-800 border border-red-300',
-          )}
-          title={event.title}
-        >
-          <AlertTriangle className="h-3 w-3 inline mr-1" />
-          {event.title}
-        </button>
-      )
-    }
-
-    // external (Google Calendar)
-    if (event.raw.kind === 'external') {
-      const ev = event.raw.event
-      return (
-        <a
-          key={event.id}
-          href={ev.html_link || '#'}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full text-left text-xs p-1 rounded truncate bg-white text-gray-700 border border-dashed border-gray-300 hover:bg-gray-50"
-          title={`Google Calendar: ${ev.summary}`}
-        >
-          {!ev.all_day && ev.start && (
-            <span className="font-medium">
-              {format(parseISO(ev.start), 'h:mma')}{' '}
-            </span>
-          )}
-          {ev.summary}
-        </a>
-      )
-    }
-
-    return null
-  }
-
   const renderMonthView = () => {
     const monthStart = startOfMonth(currentDate)
     const monthEnd = endOfMonth(currentDate)
     const calendarStart = startOfWeek(monthStart)
     const calendarEnd = endOfWeek(monthEnd)
     const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
+    const weekStarts: Date[] = []
+    for (let i = 0; i < days.length; i += 7) {
+      weekStarts.push(days[i])
+    }
 
     return (
-      <div className="grid grid-cols-7 gap-px bg-muted rounded-lg overflow-hidden">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-          <div
-            key={day}
-            className="bg-background p-2 text-center text-sm font-medium text-muted-foreground"
-          >
-            {day}
-          </div>
-        ))}
-        {days.map((day) => {
-          const dayEvents = getEventsForDate(day)
-          const isToday = isSameDay(day, new Date())
-          const isCurrentMonth = isSameMonth(day, currentDate)
-
-          const MAX = 4
-          const visible = dayEvents.slice(0, MAX)
-          const overflow = dayEvents.length - visible.length
-
-          return (
+      <div className="rounded-lg overflow-hidden border bg-muted">
+        <div className="grid grid-cols-7 gap-px bg-muted">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
             <div
-              key={day.toISOString()}
-              className={cn('bg-background min-h-[120px] p-2', !isCurrentMonth && 'bg-muted/50')}
+              key={day}
+              className="bg-background p-2 text-center text-sm font-medium text-muted-foreground"
             >
-              <div
-                className={cn(
-                  'text-sm font-medium mb-1',
-                  isToday &&
-                    'bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center',
-                  !isCurrentMonth && 'text-muted-foreground',
-                )}
-              >
-                {format(day, 'd')}
-              </div>
-              <div className="space-y-1">
-                {visible.map((eod) => renderEventTile(eod, { compact: true }))}
-                {overflow > 0 && (
-                  <div className="text-xs text-muted-foreground">+{overflow} more</div>
-                )}
-              </div>
+              {day}
             </div>
-          )
-        })}
+          ))}
+        </div>
+        <div className="space-y-px">
+          {weekStarts.map((weekStart) => (
+            <WeekRow
+              key={weekStart.toISOString()}
+              weekStart={weekStart}
+              currentDate={currentDate}
+              events={filteredEvents}
+              variant="month"
+              onEventClick={handleEventClick}
+            />
+          ))}
+        </div>
       </div>
     )
   }
 
   const renderWeekView = () => {
     const weekStart = startOfWeek(currentDate)
-    const days = eachDayOfInterval({ start: weekStart, end: endOfWeek(currentDate) })
 
     return (
-      <div className="grid grid-cols-7 gap-2">
-        {days.map((day) => {
-          const dayEvents = getEventsForDate(day)
-          const isToday = isSameDay(day, new Date())
-
-          return (
-            <div key={day.toISOString()} className="min-h-[400px]">
-              <div
-                className={cn(
-                  'text-center p-2 rounded-t-lg',
-                  isToday ? 'bg-primary text-primary-foreground' : 'bg-muted',
-                )}
-              >
-                <div className="text-sm font-medium">{format(day, 'EEE')}</div>
-                <div className="text-2xl font-bold">{format(day, 'd')}</div>
-              </div>
-              <div className="border border-t-0 rounded-b-lg p-2 space-y-2 min-h-[350px]">
-                {dayEvents.map((eod) => renderEventTile(eod))}
-              </div>
-            </div>
-          )
-        })}
+      <div className="rounded-lg overflow-hidden border bg-muted">
+        <WeekRow
+          weekStart={weekStart}
+          currentDate={currentDate}
+          events={filteredEvents}
+          variant="week"
+          onEventClick={handleEventClick}
+        />
       </div>
     )
   }
@@ -607,14 +547,14 @@ export function CalendarView() {
               </CardContent>
             </Card>
           ) : (
-            dayEvents.map((eod) => (
+            dayEvents.map((event) => (
               <Card
-                key={eod.event.id}
+                key={event.id}
                 className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => handleEventClick(eod.event)}
+                onClick={() => handleEventClick(event)}
               >
                 <CardContent className="p-4">
-                  <DayCardContent eventOnDay={eod} />
+                  <DayCardContent event={event} />
                 </CardContent>
               </Card>
             ))
@@ -675,6 +615,8 @@ export function CalendarView() {
           setTypeFilter={setTypeFilter}
           memberFilter={memberFilter}
           setMemberFilter={setMemberFilter}
+          showCompleted={showCompleted}
+          setShowCompleted={setShowCompleted}
           members={members}
         />
 
@@ -700,17 +642,191 @@ export function CalendarView() {
   )
 }
 
+function WeekRow({
+  weekStart,
+  currentDate,
+  events,
+  variant,
+  onEventClick,
+}: {
+  weekStart: Date
+  currentDate: Date
+  events: CalendarEvent[]
+  variant: 'month' | 'week'
+  onEventClick: (event: CalendarEvent) => void
+}) {
+  const weekEnd = endOfWeek(weekStart)
+  const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
+  const placed = layoutWeek(events, weekStart, weekEnd)
+  const maxLanes = variant === 'month' ? MAX_LANES_MONTH : MAX_LANES_WEEK
+  const visible = placed.filter((p) => p.lane < maxLanes)
+  const overflow = days.map((_, col) =>
+    placed.filter((p) => p.lane >= maxLanes && p.startCol <= col && p.endCol >= col).length,
+  )
+
+  // Pixel offsets the band overlay layer needs so bands don't collide
+  // with the date number on each cell.
+  const bandsTop = variant === 'month' ? 36 : 78
+  const bandsHeight = maxLanes * LANE_HEIGHT
+  const cellMinHeight = variant === 'month' ? bandsTop + bandsHeight + 24 : bandsTop + bandsHeight + 16
+
+  return (
+    <div className="relative grid grid-cols-7 gap-px bg-muted">
+      {days.map((day, col) => {
+        const isToday = isSameDay(day, new Date())
+        const isCurrentMonth = isSameMonth(day, currentDate)
+        return (
+          <div
+            key={day.toISOString()}
+            className={cn(
+              'bg-background p-2 flex flex-col',
+              variant === 'month' && !isCurrentMonth && 'bg-muted/40',
+            )}
+            style={{ minHeight: `${cellMinHeight}px` }}
+          >
+            {variant === 'month' ? (
+              <div
+                className={cn(
+                  'text-sm font-medium',
+                  isToday &&
+                    'bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center',
+                  !isCurrentMonth && 'text-muted-foreground',
+                )}
+              >
+                {format(day, 'd')}
+              </div>
+            ) : (
+              <div
+                className={cn(
+                  'text-center -m-2 mb-0 p-2 rounded-t',
+                  isToday ? 'bg-primary text-primary-foreground' : 'bg-muted',
+                )}
+              >
+                <div className="text-sm font-medium">{format(day, 'EEE')}</div>
+                <div className="text-2xl font-bold leading-tight">{format(day, 'd')}</div>
+              </div>
+            )}
+            <div style={{ height: `${bandsHeight}px` }} aria-hidden="true" />
+            {overflow[col] > 0 && (
+              <div className="text-xs text-muted-foreground mt-auto">
+                +{overflow[col]} more
+              </div>
+            )}
+          </div>
+        )
+      })}
+      <div
+        className="absolute left-0 right-0 pointer-events-none"
+        style={{ top: `${bandsTop}px`, height: `${bandsHeight}px` }}
+      >
+        {visible.map((band) => (
+          <EventBand
+            key={`${band.event.id}-${band.lane}`}
+            band={band}
+            onClick={() => onEventClick(band.event)}
+            style={{
+              left: `calc(${(band.startCol / 7) * 100}% + 4px)`,
+              width: `calc(${((band.endCol - band.startCol + 1) / 7) * 100}% - 8px)`,
+              top: `${band.lane * LANE_HEIGHT}px`,
+              height: `${LANE_HEIGHT - 3}px`,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function EventBand({
+  band,
+  onClick,
+  style,
+}: {
+  band: PlacedBand
+  onClick: () => void
+  style: React.CSSProperties
+}) {
+  const { event, isStart, isEnd } = band
+
+  let bgClass = 'bg-gray-200 text-gray-800'
+  let icon: React.ReactNode = null
+
+  if (event.raw.kind === 'job') {
+    const statusConfig = jobStatusConfig[event.raw.job.status as keyof typeof jobStatusConfig]
+    bgClass = cn(statusConfig?.bgColor || 'bg-blue-100', statusConfig?.color || 'text-blue-900')
+  } else if (event.kind === 'survey') {
+    bgClass = 'bg-purple-100 text-purple-900 border-l-2 border-purple-500'
+    icon = <ClipboardList className="h-3 w-3 inline mr-1 flex-shrink-0" />
+  } else if (event.kind === 'deadline') {
+    bgClass = 'bg-red-50 text-red-800 border border-red-300'
+    icon = <AlertTriangle className="h-3 w-3 inline mr-1 flex-shrink-0" />
+  } else if (event.kind === 'external') {
+    bgClass = 'bg-white text-gray-700 border border-dashed border-gray-300'
+    icon = <CalendarIcon className="h-3 w-3 inline mr-1 flex-shrink-0" />
+  }
+
+  const externalLink =
+    event.raw.kind === 'external' ? event.raw.event.html_link || undefined : undefined
+
+  const className = cn(
+    'pointer-events-auto absolute text-left text-xs px-2 truncate transition-opacity hover:opacity-80 flex items-center',
+    bgClass,
+    isStart && isEnd && 'rounded',
+    isStart && !isEnd && 'rounded-l',
+    !isStart && isEnd && 'rounded-r',
+  )
+
+  const inner = isStart ? (
+    <span className="flex items-center min-w-0">
+      {icon}
+      {event.startTime && (
+        <span className="font-medium mr-1 flex-shrink-0">
+          {format(parseISO(`2000-01-01T${event.startTime}`), 'h:mma')}
+        </span>
+      )}
+      <span className="truncate">{event.title}</span>
+    </span>
+  ) : (
+    <span className="opacity-50 truncate">{event.title}</span>
+  )
+
+  if (event.kind === 'external' && externalLink) {
+    return (
+      <a
+        href={externalLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+        style={style}
+        title={event.title}
+      >
+        {inner}
+      </a>
+    )
+  }
+
+  return (
+    <button type="button" onClick={onClick} className={className} style={style} title={event.title}>
+      {inner}
+    </button>
+  )
+}
+
 function FilterBar({
   typeFilter,
   setTypeFilter,
   memberFilter,
   setMemberFilter,
+  showCompleted,
+  setShowCompleted,
   members,
 }: {
   typeFilter: Record<EventKind, boolean>
   setTypeFilter: (v: Record<EventKind, boolean>) => void
   memberFilter: string
   setMemberFilter: (v: string) => void
+  showCompleted: boolean
+  setShowCompleted: (v: boolean) => void
   members: TeamMember[]
 }) {
   const toggle = (kind: EventKind) => {
@@ -742,6 +858,25 @@ function FilterBar({
       {chip('deadline', 'Deadlines', 'bg-red-500', <AlertTriangle className="h-3 w-3" />)}
       {chip('external', 'External', 'bg-gray-400', <CalendarIcon className="h-3 w-3" />)}
 
+      <button
+        type="button"
+        onClick={() => setShowCompleted(!showCompleted)}
+        className={cn(
+          'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+          showCompleted
+            ? 'bg-foreground text-background border-foreground'
+            : 'bg-background text-muted-foreground border-border hover:bg-muted',
+        )}
+        title={
+          showCompleted
+            ? 'Hide finished jobs and surveys'
+            : 'Include completed, paid, invoiced, closed, and cancelled events'
+        }
+      >
+        <CheckCircle2 className="h-3 w-3" />
+        Completed
+      </button>
+
       <span className="ml-3 text-xs font-medium text-muted-foreground">Team member:</span>
       <Select value={memberFilter} onValueChange={setMemberFilter}>
         <SelectTrigger className="h-8 w-[180px] text-xs">
@@ -760,9 +895,7 @@ function FilterBar({
   )
 }
 
-function DayCardContent({ eventOnDay }: { eventOnDay: { event: CalendarEvent } }) {
-  const { event } = eventOnDay
-
+function DayCardContent({ event }: { event: CalendarEvent }) {
   if (event.raw.kind === 'job') {
     const job = event.raw.job
     const statusConfig = jobStatusConfig[job.status as keyof typeof jobStatusConfig]
