@@ -48,6 +48,8 @@ export interface Opportunity {
   service_zip: string | null
   property_type: import('@/types/database').PropertyType | null
   property_age: number | null
+  // Multi-location scoping
+  location_id: string | null
   // Hazard details
   hazard_types: string[] | null
   estimated_affected_area_sqft: number | null

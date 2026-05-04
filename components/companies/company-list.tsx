@@ -17,6 +17,7 @@ import { Building2, ChevronLeft, ChevronRight, Search, ArrowUpDown, ArrowUp, Arr
 import { useCompanies, useCompanyStats } from '@/lib/hooks/use-companies'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import { formatCurrency } from '@/lib/utils'
+import { LocationFilter, type LocationFilterValue } from '@/components/locations/location-filter'
 import type { AccountStatus, CompanyType } from '@/types/database'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -43,6 +44,7 @@ export default function CompanyList() {
   const [companyType, setCompanyType] = useState<CompanyType | 'all'>('all')
   const [activityFilter, setActivityFilter] = useState<'no_activity_30' | 'no_activity_90' | 'no_activity_365' | 'all'>('all')
   const [industry, setIndustry] = useState('')
+  const [locationId, setLocationId] = useState<LocationFilterValue>('all')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [page, setPage] = useState(1)
   const [sortBy, setSortBy] = useState<string>('name')
@@ -58,11 +60,12 @@ export default function CompanyList() {
     companyType,
     activityFilter,
     industry: debouncedIndustry || undefined,
+    locationId,
     page,
     pageSize,
     sortBy,
     sortOrder,
-  }), [debouncedSearch, status, companyType, activityFilter, debouncedIndustry, page, pageSize, sortBy, sortOrder])
+  }), [debouncedSearch, status, companyType, activityFilter, debouncedIndustry, locationId, page, pageSize, sortBy, sortOrder])
 
   const { data: companies = [], isLoading, error } = useCompanies(queryOptions)
   const { data: stats } = useCompanyStats()
@@ -72,6 +75,7 @@ export default function CompanyList() {
     setCompanyType('all')
     setActivityFilter('all')
     setIndustry('')
+    setLocationId('all')
     setSearch('')
     setShowAdvanced(false)
     setPage(1)
@@ -79,7 +83,7 @@ export default function CompanyList() {
 
   const hasNextPage = companies.length === pageSize
   const hasPrevPage = page > 1
-  const hasFilters = status !== 'all' || companyType !== 'all' || search !== '' || activityFilter !== 'all' || industry !== ''
+  const hasFilters = status !== 'all' || companyType !== 'all' || search !== '' || activityFilter !== 'all' || industry !== '' || locationId !== 'all'
 
   const toggleSort = useCallback((column: string) => {
     if (sortBy === column) {
@@ -144,6 +148,7 @@ export default function CompanyList() {
               ))}
             </SelectContent>
           </Select>
+          <LocationFilter value={locationId} onChange={(v) => { setLocationId(v); setPage(1) }} />
           <Button variant="ghost" size="sm" onClick={() => setShowAdvanced((v) => !v)}>
             {showAdvanced ? 'Less' : 'More'}
           </Button>

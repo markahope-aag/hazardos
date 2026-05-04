@@ -16,6 +16,8 @@ interface UseCustomersOptions {
   minJobs?: number
   referralSource?: string
   hasOpenJobs?: boolean | 'all'
+  // 'all' = no scope, 'unassigned' = location_id IS NULL, uuid = specific
+  locationId?: 'all' | 'unassigned' | string
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
   page?: number
@@ -28,7 +30,7 @@ export function useCustomers(options: UseCustomersOptions = {}) {
   const {
     search, status, source, contactType,
     activityFilter, minRevenue, maxRevenue, minJobs,
-    referralSource, hasOpenJobs,
+    referralSource, hasOpenJobs, locationId,
     sortBy, sortOrder,
     page = 1, pageSize = 25,
   } = options
@@ -36,7 +38,7 @@ export function useCustomers(options: UseCustomersOptions = {}) {
   return useQuery({
     queryKey: ['customers', organization?.id, search, status, source, contactType,
       activityFilter, minRevenue, maxRevenue, minJobs, referralSource, hasOpenJobs,
-      sortBy, sortOrder, page, pageSize],
+      locationId, sortBy, sortOrder, page, pageSize],
     queryFn: async () => {
       if (!organization?.id) {
         throw new Error('No organization found')
@@ -54,6 +56,7 @@ export function useCustomers(options: UseCustomersOptions = {}) {
         minJobs,
         referralSource: referralSource || undefined,
         hasOpenJobs: hasOpenJobs === 'all' ? undefined : hasOpenJobs,
+        locationId: locationId === 'all' ? undefined : locationId,
         sortBy,
         sortOrder,
         limit: pageSize,

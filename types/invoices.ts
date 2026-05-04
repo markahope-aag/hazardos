@@ -21,6 +21,7 @@ export interface Invoice {
   organization_id: string
   job_id: string | null
   customer_id: string
+  location_id: string | null
   invoice_number: string
   status: InvoiceStatus
   invoice_date: string

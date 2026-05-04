@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, ReactNode } from 'react'
+import { useState, useMemo, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { cn, formatCurrency } from '@/lib/utils'
 import { DataErrorBoundary } from '@/components/error-boundaries'
+import { LocationFilter, type LocationFilterValue } from '@/components/locations/location-filter'
 import type { PipelineStage, Opportunity } from '@/types/sales'
 
 /**
@@ -47,6 +48,15 @@ export function PipelineKanban({ stages, opportunities: initial }: PipelineKanba
   const { toast } = useToast()
   const [opportunities, setOpportunities] = useState(initial)
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [locationFilter, setLocationFilter] = useState<LocationFilterValue>('all')
+
+  const visibleOpportunities = useMemo(() => {
+    if (locationFilter === 'all') return opportunities
+    if (locationFilter === 'unassigned') {
+      return opportunities.filter((o) => !o.location_id)
+    }
+    return opportunities.filter((o) => o.location_id === locationFilter)
+  }, [opportunities, locationFilter])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -110,9 +120,12 @@ export function PipelineKanban({ stages, opportunities: initial }: PipelineKanba
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
+      <div className="mb-4 flex justify-end">
+        <LocationFilter value={locationFilter} onChange={setLocationFilter} />
+      </div>
       <div className="flex gap-4 overflow-x-auto pb-4">
         {stages.map(stage => {
-          const stageOpps = opportunities.filter(o => o.stage_id === stage.id)
+          const stageOpps = visibleOpportunities.filter(o => o.stage_id === stage.id)
           const totalValue = stageOpps.reduce((sum, o) => sum + (o.estimated_value || 0), 0)
 
           return (

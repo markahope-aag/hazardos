@@ -12,6 +12,8 @@ interface UseCompaniesOptions {
   minRevenue?: number
   maxRevenue?: number
   industry?: string
+  // 'all' = no scope, 'unassigned' = location_id IS NULL, uuid = specific
+  locationId?: 'all' | 'unassigned' | string
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
   page?: number
@@ -22,14 +24,14 @@ export function useCompanies(options: UseCompaniesOptions = {}) {
   const { organization } = useMultiTenantAuth()
   const {
     search, status, companyType, activityFilter,
-    minRevenue, maxRevenue, industry,
+    minRevenue, maxRevenue, industry, locationId,
     sortBy, sortOrder,
     page = 1, pageSize = 25,
   } = options
 
   return useQuery({
     queryKey: ['companies', organization?.id, search, status, companyType,
-      activityFilter, minRevenue, maxRevenue, industry,
+      activityFilter, minRevenue, maxRevenue, industry, locationId,
       sortBy, sortOrder, page, pageSize],
     queryFn: async () => {
       if (!organization?.id) throw new Error('No organization found')
@@ -42,6 +44,7 @@ export function useCompanies(options: UseCompaniesOptions = {}) {
         minRevenue,
         maxRevenue,
         industry: industry || undefined,
+        locationId: locationId === 'all' ? undefined : locationId,
         sortBy,
         sortOrder,
         limit: pageSize,

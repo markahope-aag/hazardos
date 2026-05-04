@@ -26,6 +26,7 @@ import { createClient } from '@/lib/supabase/client'
 import { SurveyStatusBadge, HazardTypeBadge } from '@/components/surveys/survey-status-badge'
 import { SurveyFilters } from './survey-filters'
 import { CreateSurveyButton } from './create-survey-modal'
+import { LocationFilter, type LocationFilterValue } from '@/components/locations/location-filter'
 import { logger, formatError } from '@/lib/utils/logger'
 import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
@@ -45,6 +46,7 @@ interface SurveyWithRelations {
   scheduled_date: string | null
   scheduled_time_start: string | null
   assigned_to: string | null
+  location_id: string | null
   created_at: string
   submitted_at: string | null
   version: number
@@ -79,6 +81,7 @@ export default function SiteSurveysPage() {
   const [surveys, setSurveys] = useState<SurveyWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [showAllVersions, setShowAllVersions] = useState(false)
+  const [locationFilter, setLocationFilter] = useState<LocationFilterValue>('all')
 
   const isEstimatePickerMode = searchParams.get('action') === 'estimate'
 
@@ -162,6 +165,7 @@ export default function SiteSurveysPage() {
           version,
           survey_root_id,
           parent_survey_id,
+          location_id,
           customer:customers!customer_id(id, company_name, name),
           technician:profiles!assigned_to(id, first_name, last_name),
           job:jobs!site_survey_id(id, job_number, status),
@@ -181,6 +185,11 @@ export default function SiteSurveysPage() {
       }
       if (filters.to) {
         query = query.lte('scheduled_date', filters.to)
+      }
+      if (locationFilter === 'unassigned') {
+        query = query.is('location_id', null)
+      } else if (locationFilter !== 'all') {
+        query = query.eq('location_id', locationFilter)
       }
 
       const { data, error } = await query
@@ -243,7 +252,7 @@ export default function SiteSurveysPage() {
     } finally {
       setLoading(false)
     }
-  }, [organization?.id, filters, toast])
+  }, [organization?.id, filters, locationFilter, toast])
 
   useEffect(() => {
     loadSurveys()
@@ -448,14 +457,17 @@ export default function SiteSurveysPage() {
       {/* Filters */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <SurveyFilters />
-        <Button
-          variant={showAllVersions ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setShowAllVersions((v) => !v)}
-          title={showAllVersions ? 'Showing every version' : 'Showing only the latest version per chain'}
-        >
-          {showAllVersions ? 'All versions' : 'Latest only'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <LocationFilter value={locationFilter} onChange={setLocationFilter} />
+          <Button
+            variant={showAllVersions ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setShowAllVersions((v) => !v)}
+            title={showAllVersions ? 'Showing every version' : 'Showing only the latest version per chain'}
+          >
+            {showAllVersions ? 'All versions' : 'Latest only'}
+          </Button>
+        </div>
       </div>
 
       {/* Surveys Table */}

@@ -5,6 +5,19 @@ import { locationSchema } from '@/lib/validations/location'
 import { ROLES } from '@/lib/auth/roles'
 
 /**
+ * GET /api/locations
+ * List the caller's org locations. Used by location filter dropdowns
+ * across the CRM.
+ */
+export const GET = createApiHandler(
+  { rateLimit: 'general' },
+  async (_request, context) => {
+    const locations = await LocationService.list(context.profile.organization_id)
+    return NextResponse.json({ locations })
+  },
+)
+
+/**
  * POST /api/locations
  * Create a new location for the caller's organization.
  */

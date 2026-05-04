@@ -36,6 +36,9 @@ export const updateInvoiceSchema = z.object({
   notes: z.string().max(2000).optional(),
   payment_terms: z.string().max(500).optional(),
   tax_percent: z.number().min(0).max(100).optional(),
+  // Flat-amount discount applied to the invoice. The DB trigger
+  // recalculates total + balance_due automatically.
+  discount_amount: z.number().min(0).max(10_000_000).optional(),
   status: invoiceStatusSchema.optional(),
 })
 

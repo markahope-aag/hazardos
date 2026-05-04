@@ -7,6 +7,7 @@ import { User, MapPin, FileText, Calendar } from 'lucide-react'
 import type { Invoice } from '@/types/invoices'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
+import { InvoiceDiscountEditor } from '@/components/invoices/invoice-discount-editor'
 
 interface InvoiceDetailsProps {
   invoice: Invoice
@@ -33,12 +34,13 @@ export function InvoiceDetails({ invoice }: InvoiceDetailsProps) {
               <span>{formatCurrency(invoice.tax_amount)}</span>
             </div>
           )}
-          {invoice.discount_amount > 0 && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Discount</span>
-              <span className="text-red-600">-{formatCurrency(invoice.discount_amount)}</span>
-            </div>
-          )}
+          <InvoiceDiscountEditor
+            invoiceId={invoice.id}
+            subtotal={invoice.subtotal}
+            taxAmount={invoice.tax_amount}
+            currentDiscount={invoice.discount_amount}
+            locked={invoice.status === 'paid' || invoice.status === 'void'}
+          />
           <Separator />
           <div className="flex justify-between font-medium">
             <span>Total</span>

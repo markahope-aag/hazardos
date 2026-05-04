@@ -19,6 +19,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import { formatCurrency } from '@/lib/utils'
+import { LocationFilter, type LocationFilterValue } from '@/components/locations/location-filter'
 
 const URGENCY_COLORS: Record<string, string> = {
   routine: 'bg-gray-100 text-gray-600',
@@ -31,12 +32,13 @@ export default function OpportunitiesPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [urgencyFilter, setUrgencyFilter] = useState('all')
+  const [locationFilter, setLocationFilter] = useState<LocationFilterValue>('all')
   const [page, setPage] = useState(1)
   const pageSize = 25
   const debouncedSearch = useDebouncedValue(search, 300)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['opportunities', organization?.id, debouncedSearch, statusFilter, urgencyFilter, page],
+    queryKey: ['opportunities', organization?.id, debouncedSearch, statusFilter, urgencyFilter, locationFilter, page],
     queryFn: async () => {
       const supabase = createClient()
       let query = supabase
@@ -58,6 +60,11 @@ export default function OpportunitiesPage() {
       if (urgencyFilter !== 'all') {
         query = query.eq('urgency', urgencyFilter)
       }
+      if (locationFilter === 'unassigned') {
+        query = query.is('location_id', null)
+      } else if (locationFilter !== 'all') {
+        query = query.eq('location_id', locationFilter)
+      }
 
       const { data: opps, count, error } = await query
       if (error) throw error
@@ -71,7 +78,7 @@ export default function OpportunitiesPage() {
   const total = data?.total || 0
   const hasNextPage = opportunities.length === pageSize
   const hasPrevPage = page > 1
-  const hasFilters = statusFilter !== 'all' || urgencyFilter !== 'all' || search !== ''
+  const hasFilters = statusFilter !== 'all' || urgencyFilter !== 'all' || search !== '' || locationFilter !== 'all'
 
   const stats = useMemo(() => ({
     count: total,
@@ -151,7 +158,8 @@ export default function OpportunitiesPage() {
               <SelectItem value="emergency">Emergency</SelectItem>
             </SelectContent>
           </Select>
-          {hasFilters && <Button variant="ghost" size="sm" onClick={() => { setStatusFilter('all'); setUrgencyFilter('all'); setSearch(''); setPage(1) }}>Clear</Button>}
+          <LocationFilter value={locationFilter} onChange={(v) => { setLocationFilter(v); setPage(1) }} />
+          {hasFilters && <Button variant="ghost" size="sm" onClick={() => { setStatusFilter('all'); setUrgencyFilter('all'); setLocationFilter('all'); setSearch(''); setPage(1) }}>Clear</Button>}
         </div>
       </div>
 

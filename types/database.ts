@@ -487,6 +487,8 @@ export interface Database {
           average_job_value: number
           payment_terms: string | null
           quickbooks_customer_id: string | null
+          // Multi-location scoping
+          location_id: string | null
           // Meta
           notes: string | null
           status: CompanyStatus
@@ -530,6 +532,7 @@ export interface Database {
           referred_by_contact_id?: string | null
           payment_terms?: string | null
           quickbooks_customer_id?: string | null
+          location_id?: string | null
           notes?: string | null
           status?: CompanyStatus
           created_at?: string
@@ -572,6 +575,7 @@ export interface Database {
           referred_by_contact_id?: string | null
           payment_terms?: string | null
           quickbooks_customer_id?: string | null
+          location_id?: string | null
           notes?: string | null
           status?: CompanyStatus
           created_at?: string
@@ -642,6 +646,8 @@ export interface Database {
           insurance_adjuster_email: string | null
           // Property
           property_id: string | null
+          // Multi-location scoping
+          location_id: string | null
           // Meta
           created_at: string
           updated_at: string
@@ -669,6 +675,7 @@ export interface Database {
           city?: string | null
           state?: string | null
           zip?: string | null
+          location_id?: string | null
           account_owner_id?: string | null
           contact_role?: ContactRole | null
           is_primary_contact?: boolean
@@ -728,6 +735,7 @@ export interface Database {
           city?: string | null
           state?: string | null
           zip?: string | null
+          location_id?: string | null
           account_owner_id?: string | null
           contact_role?: ContactRole | null
           is_primary_contact?: boolean

@@ -44,6 +44,11 @@ export const GET = createApiHandler(
     if (query.customer_id) {
       dbQuery = dbQuery.eq('customer_id', query.customer_id)
     }
+    if (query.location_id === 'unassigned') {
+      dbQuery = dbQuery.is('location_id', null)
+    } else if (query.location_id) {
+      dbQuery = dbQuery.eq('location_id', query.location_id)
+    }
 
     const { data, error, count } = await dbQuery
 

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Link from 'next/link'
-import { FlaskConical, Plus, Search, Filter, FileText } from 'lucide-react'
+import { FlaskConical, Plus, Search, Filter, FileText, Upload, Download, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -23,6 +23,7 @@ import {
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
+import { LocationFilter, type LocationFilterValue } from '@/components/locations/location-filter'
 import {
   LAB_REPORT_STATUS_CONFIG,
   LAB_SAMPLE_TYPE_LABELS,
@@ -38,6 +39,65 @@ export default function LabReportsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<LabReportStatus | 'all'>('all')
   const [sampleTypeFilter, setSampleTypeFilter] = useState<LabSampleType | 'all'>('all')
+  const [locationFilter, setLocationFilter] = useState<LocationFilterValue>('all')
+  const [uploadingId, setUploadingId] = useState<string | null>(null)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const pendingUploadIdRef = useRef<string | null>(null)
+
+  const triggerUpload = (reportId: string) => {
+    pendingUploadIdRef.current = reportId
+    fileInputRef.current?.click()
+  }
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    const reportId = pendingUploadIdRef.current
+    pendingUploadIdRef.current = null
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    if (!file || !reportId) return
+
+    setUploadingId(reportId)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch(`/api/lab-reports/${reportId}/upload`, {
+        method: 'POST',
+        body: formData,
+      })
+      if (!res.ok) throw new Error('Upload failed')
+      const updated = await res.json()
+      setReports((prev) =>
+        prev.map((r) => (r.id === reportId ? { ...r, ...updated } : r)),
+      )
+      toast({ title: 'Lab report uploaded', description: file.name })
+    } catch {
+      toast({ title: 'Upload failed', variant: 'destructive' })
+    } finally {
+      setUploadingId(null)
+    }
+  }
+
+  const openFile = async (reportId: string, fileName: string | null) => {
+    setDownloadingId(reportId)
+    try {
+      const res = await fetch(`/api/lab-reports/${reportId}/file`)
+      if (!res.ok) throw new Error()
+      const data = (await res.json()) as { url: string; file_name: string | null }
+      const a = document.createElement('a')
+      a.href = data.url
+      a.target = '_blank'
+      a.rel = 'noopener noreferrer'
+      a.download = data.file_name || fileName || 'lab-report'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    } catch {
+      toast({ title: 'Could not open file', variant: 'destructive' })
+    } finally {
+      setDownloadingId(null)
+    }
+  }
 
   const loadReports = useCallback(async () => {
     try {
@@ -45,6 +105,7 @@ export default function LabReportsPage() {
       const params = new URLSearchParams()
       if (statusFilter !== 'all') params.set('status', statusFilter)
       if (sampleTypeFilter !== 'all') params.set('sample_type', sampleTypeFilter)
+      if (locationFilter !== 'all') params.set('location_id', locationFilter)
 
       const res = await fetch(`/api/lab-reports?${params.toString()}`)
       if (!res.ok) throw new Error('Failed to fetch lab reports')
@@ -59,7 +120,7 @@ export default function LabReportsPage() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, sampleTypeFilter, toast])
+  }, [statusFilter, sampleTypeFilter, locationFilter, toast])
 
   useEffect(() => {
     loadReports()
@@ -150,6 +211,7 @@ export default function LabReportsPage() {
             ))}
           </SelectContent>
         </Select>
+        <LocationFilter value={locationFilter} onChange={setLocationFilter} />
       </div>
 
       <Card>
@@ -163,7 +225,7 @@ export default function LabReportsPage() {
               <TableHead>Site</TableHead>
               <TableHead>Linked</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-[40px]"></TableHead>
+              <TableHead className="w-[120px]">File</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -264,7 +326,56 @@ export default function LabReportsPage() {
                         </div>
                       )}
                     </TableCell>
-                    <TableCell />
+                    <TableCell>
+                      {r.file_name ? (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openFile(r.id, r.file_name)}
+                            disabled={downloadingId === r.id}
+                            aria-label={`Open ${r.file_name}`}
+                            title="Open file"
+                          >
+                            {downloadingId === r.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => triggerUpload(r.id)}
+                            disabled={uploadingId === r.id}
+                            aria-label="Replace file"
+                            title="Replace file"
+                          >
+                            {uploadingId === r.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Upload className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      ) : r.status === 'cancelled' ? (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => triggerUpload(r.id)}
+                          disabled={uploadingId === r.id}
+                        >
+                          {uploadingId === r.id ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4 mr-1" />
+                          )}
+                          Upload
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                 )
               })
@@ -272,6 +383,14 @@ export default function LabReportsPage() {
           </TableBody>
         </Table>
       </Card>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept=".pdf,image/*,.doc,.docx"
+        onChange={handleFileSelected}
+      />
     </div>
   )
 }

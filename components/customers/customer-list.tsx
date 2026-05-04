@@ -14,6 +14,7 @@ import {
 import { Users, ChevronLeft, ChevronRight, Search, Phone, Mail, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { useCustomers, useCustomerStats } from '@/lib/hooks/use-customers'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
+import { LocationFilter, type LocationFilterValue } from '@/components/locations/location-filter'
 import type { Customer, CustomerStatus, ContactType } from '@/types/database'
 
 interface CustomerListProps {
@@ -41,6 +42,7 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
   const [contactType, setContactType] = useState<ContactType | 'all'>('all')
   const [activityFilter, setActivityFilter] = useState<'no_contact_30' | 'no_contact_90' | 'no_contact_365' | 'all'>('all')
   const [hasOpenJobs, setHasOpenJobs] = useState<boolean | 'all'>('all')
+  const [locationId, setLocationId] = useState<LocationFilterValue>('all')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [page, setPage] = useState(1)
   const [sortBy, setSortBy] = useState<string>('created_at')
@@ -55,11 +57,12 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
     contactType,
     activityFilter,
     hasOpenJobs,
+    locationId,
     page,
     pageSize,
     sortBy,
     sortOrder,
-  }), [debouncedSearch, status, contactType, activityFilter, hasOpenJobs, page, pageSize, sortBy, sortOrder])
+  }), [debouncedSearch, status, contactType, activityFilter, hasOpenJobs, locationId, page, pageSize, sortBy, sortOrder])
 
   const { data: customers = [], isLoading, error } = useCustomers(queryOptions)
   const { data: stats } = useCustomerStats()
@@ -69,6 +72,7 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
     setContactType('all')
     setActivityFilter('all')
     setHasOpenJobs('all')
+    setLocationId('all')
     setSearch('')
     setShowAdvanced(false)
     setPage(1)
@@ -76,7 +80,7 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
 
   const hasNextPage = customers.length === pageSize
   const hasPrevPage = page > 1
-  const hasFilters = status !== 'all' || contactType !== 'all' || search !== '' || activityFilter !== 'all' || hasOpenJobs !== 'all'
+  const hasFilters = status !== 'all' || contactType !== 'all' || search !== '' || activityFilter !== 'all' || hasOpenJobs !== 'all' || locationId !== 'all'
 
   const toggleSort = useCallback((column: string) => {
     if (sortBy === column) {
@@ -141,6 +145,7 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
               <SelectItem value="inactive">Inactive</SelectItem>
             </SelectContent>
           </Select>
+          <LocationFilter value={locationId} onChange={(v) => { setLocationId(v); setPage(1) }} />
           <Button variant="ghost" size="sm" onClick={() => setShowAdvanced((v) => !v)}>
             {showAdvanced ? 'Less' : 'More'}
           </Button>

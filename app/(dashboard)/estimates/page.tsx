@@ -58,6 +58,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
+import { LocationFilter, type LocationFilterValue } from '@/components/locations/location-filter'
 import { formatCurrency } from '@/lib/utils'
 import type { EstimateWithRelations, EstimateStatus, ESTIMATE_STATUS_CONFIG } from '@/types/estimates'
 
@@ -155,6 +156,7 @@ export default function EstimatesPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [locationFilter, setLocationFilter] = useState<LocationFilterValue>('all')
   const [showAllVersions, setShowAllVersions] = useState(false)
 
   // Follow-up scheduling dialog state
@@ -172,6 +174,9 @@ export default function EstimatesPage() {
       if (statusFilter !== 'all') {
         params.set('status', statusFilter)
       }
+      if (locationFilter !== 'all') {
+        params.set('location_id', locationFilter)
+      }
       params.set('include', showAllVersions ? 'all' : 'latest')
 
       const response = await fetch(`/api/estimates?${params.toString()}`)
@@ -188,7 +193,7 @@ export default function EstimatesPage() {
     } finally {
       setLoading(false)
     }
-  }, [organization?.id, statusFilter, showAllVersions, toast])
+  }, [organization?.id, statusFilter, locationFilter, showAllVersions, toast])
 
   useEffect(() => {
     loadEstimates()
@@ -418,6 +423,7 @@ export default function EstimatesPage() {
             <SelectItem value="converted">Converted</SelectItem>
           </SelectContent>
         </Select>
+        <LocationFilter value={locationFilter} onChange={setLocationFilter} />
         <Button
           variant={showAllVersions ? 'default' : 'outline'}
           onClick={() => setShowAllVersions((v) => !v)}

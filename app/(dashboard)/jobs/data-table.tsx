@@ -32,6 +32,7 @@ import { cn, formatCurrency } from '@/lib/utils'
 import type { Job } from '@/types/jobs'
 import { jobStatusConfig } from '@/types/jobs'
 import Link from 'next/link'
+import { LocationFilter, type LocationFilterValue } from '@/components/locations/location-filter'
 
 // Memoized table row component
 interface JobRowProps {
@@ -134,6 +135,7 @@ export function JobsDataTable({ data }: JobsDataTableProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [locationFilter, setLocationFilter] = useState<LocationFilterValue>('all')
 
   // Memoize filtered data
   const filteredData = useMemo(() => {
@@ -146,9 +148,13 @@ export function JobsDataTable({ data }: JobsDataTableProps) {
 
       const matchesStatus = statusFilter === 'all' || job.status === statusFilter
 
-      return matchesSearch && matchesStatus
+      const matchesLocation =
+        locationFilter === 'all' ||
+        (locationFilter === 'unassigned' ? !job.location_id : job.location_id === locationFilter)
+
+      return matchesSearch && matchesStatus && matchesLocation
     })
-  }, [data, search, statusFilter])
+  }, [data, search, statusFilter, locationFilter])
 
   const handleRowClick = useCallback((id: string) => {
     router.push(`/jobs/${id}`)
@@ -183,6 +189,7 @@ export function JobsDataTable({ data }: JobsDataTableProps) {
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
+        <LocationFilter value={locationFilter} onChange={setLocationFilter} />
       </div>
 
       {/* Table */}

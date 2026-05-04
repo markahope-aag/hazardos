@@ -41,6 +41,11 @@ export const GET = createApiHandler(
     if (query.work_order_id) supaQuery = supaQuery.eq('work_order_id', query.work_order_id)
     if (query.invoice_id) supaQuery = supaQuery.eq('invoice_id', query.invoice_id)
     if (query.customer_id) supaQuery = supaQuery.eq('customer_id', query.customer_id)
+    if (query.location_id === 'unassigned') {
+      supaQuery = supaQuery.is('location_id', null)
+    } else if (query.location_id) {
+      supaQuery = supaQuery.eq('location_id', query.location_id)
+    }
     if (query.from_date) supaQuery = supaQuery.gte('ordered_date', query.from_date)
     if (query.to_date) supaQuery = supaQuery.lte('ordered_date', query.to_date)
 

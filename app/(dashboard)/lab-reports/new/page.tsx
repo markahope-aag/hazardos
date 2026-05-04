@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, FlaskConical, Plus, Loader2 } from 'lucide-react'
+import { ArrowLeft, FlaskConical, Plus, Loader2, Upload, X, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -62,6 +62,8 @@ export default function NewLabReportPage() {
   const [customerId, setCustomerId] = useState<string>(NONE_VALUE)
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [labDialogOpen, setLabDialogOpen] = useState(false)
   const [newLabName, setNewLabName] = useState('')
@@ -152,7 +154,30 @@ export default function NewLabReportPage() {
       })
       if (!res.ok) throw new Error('Failed to create')
       const created = await res.json()
-      toast({ title: 'Lab report created', description: created.report_number })
+
+      if (pendingFile) {
+        try {
+          const formData = new FormData()
+          formData.append('file', pendingFile)
+          const uploadRes = await fetch(`/api/lab-reports/${created.id}/upload`, {
+            method: 'POST',
+            body: formData,
+          })
+          if (!uploadRes.ok) throw new Error('Upload failed')
+          toast({
+            title: 'Lab report created',
+            description: `${created.report_number} · ${pendingFile.name} attached`,
+          })
+        } catch {
+          toast({
+            title: 'Lab report created, but file upload failed',
+            description: 'Open the report and try uploading again.',
+            variant: 'destructive',
+          })
+        }
+      } else {
+        toast({ title: 'Lab report created', description: created.report_number })
+      }
       router.push(`/lab-reports/${created.id}`)
     } catch {
       toast({ title: 'Could not create lab report', variant: 'destructive' })
@@ -303,6 +328,65 @@ export default function NewLabReportPage() {
               <Input id="site-zip" value={siteZip} onChange={(e) => setSiteZip(e.target.value)} />
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Lab report file (optional)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {pendingFile ? (
+            <div className="rounded-md border border-gray-200 p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{pendingFile.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {pendingFile.size < 1024 * 1024
+                      ? `${Math.round(pendingFile.size / 1024)} KB`
+                      : `${(pendingFile.size / (1024 * 1024)).toFixed(1)} MB`}
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setPendingFile(null)
+                  if (fileInputRef.current) fileInputRef.current.value = ''
+                }}
+                aria-label="Remove file"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-md border border-dashed border-gray-300 p-6 text-center">
+              <FileText className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground mb-3">
+                Attach the lab&apos;s returned report now, or skip and upload it later.
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                type="button"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Choose file
+              </Button>
+            </div>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept=".pdf,image/*,.doc,.docx"
+            onChange={(e) => {
+              const f = e.target.files?.[0] || null
+              setPendingFile(f)
+            }}
+          />
         </CardContent>
       </Card>
 

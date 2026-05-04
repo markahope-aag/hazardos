@@ -34,6 +34,7 @@ import type { Invoice } from '@/types/invoices'
 import { invoiceStatusConfig } from '@/types/invoices'
 import Link from 'next/link'
 import { useToast } from '@/components/ui/use-toast'
+import { LocationFilter, type LocationFilterValue } from '@/components/locations/location-filter'
 
 // Memoized helper for days overdue calculation
 const getDaysOverdue = (dueDate: string) => {
@@ -158,6 +159,7 @@ export function InvoicesDataTable({ data }: InvoicesDataTableProps) {
   const { toast } = useToast()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [locationFilter, setLocationFilter] = useState<LocationFilterValue>('all')
 
   // Memoize filtered data
   const filteredData = useMemo(() => {
@@ -169,9 +171,15 @@ export function InvoicesDataTable({ data }: InvoicesDataTableProps) {
 
       const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter
 
-      return matchesSearch && matchesStatus
+      const matchesLocation =
+        locationFilter === 'all' ||
+        (locationFilter === 'unassigned'
+          ? !invoice.location_id
+          : invoice.location_id === locationFilter)
+
+      return matchesSearch && matchesStatus && matchesLocation
     })
-  }, [data, search, statusFilter])
+  }, [data, search, statusFilter, locationFilter])
 
   const handleRowClick = useCallback((id: string) => {
     router.push(`/invoices/${id}`)
@@ -242,6 +250,7 @@ export function InvoicesDataTable({ data }: InvoicesDataTableProps) {
             <SelectItem value="void">Void</SelectItem>
           </SelectContent>
         </Select>
+        <LocationFilter value={locationFilter} onChange={setLocationFilter} />
       </div>
 
       {/* Table */}

@@ -17,6 +17,8 @@ export class CustomersService {
       minJobs?: number
       referralSource?: string
       hasOpenJobs?: boolean
+      // 'unassigned' matches records where location_id IS NULL
+      locationId?: string | 'unassigned'
       sortBy?: string
       sortOrder?: 'asc' | 'desc'
       limit?: number
@@ -68,6 +70,13 @@ export class CustomersService {
     if (options.referralSource) {
       const safe = sanitizeSearchQuery(options.referralSource)
       query = query.or(`referral_source.ilike.%${safe}%,lead_source.ilike.%${safe}%`)
+    }
+
+    // Location scope
+    if (options.locationId === 'unassigned') {
+      query = query.is('location_id', null)
+    } else if (options.locationId) {
+      query = query.eq('location_id', options.locationId)
     }
 
     if (options.limit) {

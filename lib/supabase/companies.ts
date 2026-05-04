@@ -26,6 +26,8 @@ export class CompaniesService {
       minRevenue?: number
       maxRevenue?: number
       industry?: string
+      // 'unassigned' matches companies where location_id IS NULL
+      locationId?: string | 'unassigned'
       sortBy?: string
       sortOrder?: 'asc' | 'desc'
       limit?: number
@@ -71,6 +73,13 @@ export class CompaniesService {
     if (options.industry) {
       const safe = sanitizeSearchQuery(options.industry)
       query = query.ilike('industry', `%${safe}%`)
+    }
+
+    // Location scope
+    if (options.locationId === 'unassigned') {
+      query = query.is('location_id', null)
+    } else if (options.locationId) {
+      query = query.eq('location_id', options.locationId)
     }
 
     if (options.limit) {

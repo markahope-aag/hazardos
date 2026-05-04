@@ -66,6 +66,7 @@ export interface Job {
   inspection_notes: string | null
   internal_notes: string | null
   special_instructions: string | null
+  location_id: string | null
   created_by: string | null
   created_at: string
   updated_at: string

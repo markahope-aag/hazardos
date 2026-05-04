@@ -91,6 +91,8 @@ export const estimateListQuerySchema = z.object({
   survey_id: z.string().optional(),
   from_date: z.string().optional(),
   to_date: z.string().optional(),
+  // 'unassigned' = location_id IS NULL, uuid = specific location
+  location_id: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
   offset: z.coerce.number().int().min(0).optional(),
   // 'latest' (default) returns one row per chain — the highest version.

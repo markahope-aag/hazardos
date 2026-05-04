@@ -49,6 +49,8 @@ export const listLabReportsQuerySchema = z.object({
   work_order_id: z.string().uuid().optional(),
   invoice_id: z.string().uuid().optional(),
   customer_id: z.string().uuid().optional(),
+  // 'unassigned' = location_id IS NULL, uuid = specific location
+  location_id: z.string().optional(),
   from_date: isoDate.optional(),
   to_date: isoDate.optional(),
 })
