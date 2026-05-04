@@ -8,7 +8,8 @@ import { AuthProvider, useMultiTenantAuth } from '@/components/providers/auth-pr
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { Home, FileText, Calculator, Calendar, Settings, DollarSign, LayoutGrid, Briefcase, MessageCircle, ClipboardList, FlaskConical, type LucideIcon } from 'lucide-react'
+import { Home, FileText, Calculator, Calendar, DollarSign, LayoutGrid, Briefcase, MessageCircle, ClipboardList, FlaskConical, Settings, type LucideIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import LoginForm from '@/components/auth/login-form'
 
 // Single source of truth for main-nav order, labels, and active-matching.
@@ -30,8 +31,6 @@ const MAIN_NAV_ITEMS: MainNavItem[] = [
   { href: '/work-orders', label: 'Work Orders', icon: ClipboardList, match: (p) => p.startsWith('/work-orders') },
   { href: '/invoices', label: 'Invoices', icon: DollarSign, match: (p) => p.startsWith('/invoices') },
   { href: '/calendar', label: 'Calendar', icon: Calendar, match: (p) => p.startsWith('/calendar') },
-  { href: '/messages', label: 'Messaging', icon: MessageCircle, match: (p) => p.startsWith('/messages') },
-  { href: '/settings', label: 'Settings', icon: Settings, match: (p) => p.startsWith('/settings') },
 ]
 
 function InlineLogin() {
@@ -154,7 +153,31 @@ function DashboardLayoutInner({
                 </a>
               )}
 
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className={pathname.startsWith('/messages') ? 'text-primary' : ''}
+                aria-label="Messages"
+              >
+                <Link href="/messages">
+                  <MessageCircle className="w-5 h-5" />
+                </Link>
+              </Button>
+
               <NotificationBell />
+
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className={pathname.startsWith('/settings') ? 'text-primary' : ''}
+                aria-label="Settings"
+              >
+                <Link href="/settings">
+                  <Settings className="w-5 h-5" />
+                </Link>
+              </Button>
 
               <UserMenu user={user} profile={profile} />
             </div>

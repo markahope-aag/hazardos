@@ -39,7 +39,6 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
-  Plus,
   MapPin,
   Clock,
   User,
@@ -601,12 +600,6 @@ export function CalendarView() {
                 <SelectItem value="day">Day</SelectItem>
               </SelectContent>
             </Select>
-            <Button asChild>
-              <Link href={`/jobs/new?date=${format(currentDate, 'yyyy-MM-dd')}`}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Job
-              </Link>
-            </Button>
           </div>
         </div>
 
