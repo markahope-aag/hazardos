@@ -39,8 +39,8 @@ describe('POST /api/billing/checkout', () => {
   const validCheckoutData = {
     plan_slug: 'professional',
     billing_cycle: 'monthly' as const,
-    success_url: 'https://example.com/success',
-    cancel_url: 'https://example.com/cancel'
+    success_url: 'https://hazardos.app/success',
+    cancel_url: 'https://hazardos.app/cancel'
   }
 
   const mockProfile = {
@@ -85,8 +85,8 @@ describe('POST /api/billing/checkout', () => {
       'org-123',
       'professional',
       'monthly',
-      'https://example.com/success',
-      'https://example.com/cancel'
+      'https://hazardos.app/success',
+      'https://hazardos.app/cancel'
     )
   })
 
@@ -187,8 +187,8 @@ describe('POST /api/billing/checkout', () => {
       'org-123',
       'professional',
       'yearly',
-      'https://example.com/success',
-      'https://example.com/cancel'
+      'https://hazardos.app/success',
+      'https://hazardos.app/cancel'
     )
   })
 
@@ -213,8 +213,8 @@ describe('POST /api/billing/checkout', () => {
 
     const dataWithoutCycle = {
       plan_slug: 'professional',
-      success_url: 'https://example.com/success',
-      cancel_url: 'https://example.com/cancel'
+      success_url: 'https://hazardos.app/success',
+      cancel_url: 'https://hazardos.app/cancel'
     }
 
     const request = new NextRequest('http://localhost:3000/api/billing/checkout', {
@@ -228,8 +228,8 @@ describe('POST /api/billing/checkout', () => {
       'org-123',
       'professional',
       'monthly',
-      'https://example.com/success',
-      'https://example.com/cancel'
+      'https://hazardos.app/success',
+      'https://hazardos.app/cancel'
     )
   })
 
@@ -300,8 +300,8 @@ describe('POST /api/billing/checkout', () => {
     const invalidData = {
       plan_slug: '',
       billing_cycle: 'monthly',
-      success_url: 'https://example.com/success',
-      cancel_url: 'https://example.com/cancel'
+      success_url: 'https://hazardos.app/success',
+      cancel_url: 'https://hazardos.app/cancel'
     }
 
     const request = new NextRequest('http://localhost:3000/api/billing/checkout', {
@@ -337,7 +337,7 @@ describe('POST /api/billing/checkout', () => {
       plan_slug: 'professional',
       billing_cycle: 'monthly',
       success_url: 'not-a-url',
-      cancel_url: 'https://example.com/cancel'
+      cancel_url: 'https://hazardos.app/cancel'
     }
 
     const request = new NextRequest('http://localhost:3000/api/billing/checkout', {
@@ -372,7 +372,7 @@ describe('POST /api/billing/checkout', () => {
     const invalidData = {
       plan_slug: 'professional',
       billing_cycle: 'monthly',
-      success_url: 'https://example.com/success',
+      success_url: 'https://hazardos.app/success',
       cancel_url: 'invalid-url'
     }
 

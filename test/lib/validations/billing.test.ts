@@ -39,8 +39,8 @@ describe('cancelSubscriptionSchema', () => {
 describe('createCheckoutSchema', () => {
   const validCheckout = {
     plan_slug: 'pro',
-    success_url: 'https://example.com/success',
-    cancel_url: 'https://example.com/cancel',
+    success_url: 'https://hazardos.app/success',
+    cancel_url: 'https://hazardos.app/cancel',
   }
 
   it('accepts valid checkout', () => {
@@ -50,8 +50,8 @@ describe('createCheckoutSchema', () => {
 
   it('requires plan_slug', () => {
     const result = createCheckoutSchema.safeParse({
-      success_url: 'https://example.com/success',
-      cancel_url: 'https://example.com/cancel',
+      success_url: 'https://hazardos.app/success',
+      cancel_url: 'https://hazardos.app/cancel',
     })
     expect(result.success).toBe(false)
   })
@@ -59,8 +59,8 @@ describe('createCheckoutSchema', () => {
   it('rejects empty plan_slug', () => {
     const result = createCheckoutSchema.safeParse({
       plan_slug: '',
-      success_url: 'https://example.com/success',
-      cancel_url: 'https://example.com/cancel',
+      success_url: 'https://hazardos.app/success',
+      cancel_url: 'https://hazardos.app/cancel',
     })
     expect(result.success).toBe(false)
   })
@@ -68,7 +68,7 @@ describe('createCheckoutSchema', () => {
   it('requires success_url', () => {
     const result = createCheckoutSchema.safeParse({
       plan_slug: 'pro',
-      cancel_url: 'https://example.com/cancel',
+      cancel_url: 'https://hazardos.app/cancel',
     })
     expect(result.success).toBe(false)
   })
@@ -76,7 +76,7 @@ describe('createCheckoutSchema', () => {
   it('requires cancel_url', () => {
     const result = createCheckoutSchema.safeParse({
       plan_slug: 'pro',
-      success_url: 'https://example.com/success',
+      success_url: 'https://hazardos.app/success',
     })
     expect(result.success).toBe(false)
   })
@@ -85,7 +85,7 @@ describe('createCheckoutSchema', () => {
     const result = createCheckoutSchema.safeParse({
       plan_slug: 'pro',
       success_url: 'not-a-url',
-      cancel_url: 'https://example.com/cancel',
+      cancel_url: 'https://hazardos.app/cancel',
     })
     expect(result.success).toBe(false)
   })
@@ -93,7 +93,7 @@ describe('createCheckoutSchema', () => {
   it('requires valid URL for cancel_url', () => {
     const result = createCheckoutSchema.safeParse({
       plan_slug: 'pro',
-      success_url: 'https://example.com/success',
+      success_url: 'https://hazardos.app/success',
       cancel_url: 'not-a-url',
     })
     expect(result.success).toBe(false)
@@ -130,7 +130,7 @@ describe('createCheckoutSchema', () => {
 describe('createPortalSchema', () => {
   it('accepts valid portal request', () => {
     const result = createPortalSchema.safeParse({
-      return_url: 'https://example.com/settings',
+      return_url: 'https://hazardos.app/settings',
     })
     expect(result.success).toBe(true)
   })

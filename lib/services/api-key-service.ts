@@ -193,11 +193,16 @@ export class ApiKeyService {
       .eq('id', keyId)
       .single();
 
+    if (!apiKey) {
+      // Unknown key — fail closed so a stray request can't bypass limits.
+      return { allowed: false, remaining: 0, resetAt: new Date() };
+    }
+
     const now = new Date();
     const resetTime = new Date(apiKey.rate_limit_reset_at);
-    
-    let count = apiKey.rate_limit_count;
-    
+
+    const count = apiKey.rate_limit_count;
+
     // Reset if window has passed
     if (now > resetTime) {
       const newResetTime = new Date(now.getTime() + 3600000); // 1 hour
@@ -207,10 +212,8 @@ export class ApiKeyService {
           rate_limit_count: 1,
           rate_limit_reset_at: newResetTime.toISOString()
         })
-        .eq('id', keyId)
-        .select()
-        .single();
-      
+        .eq('id', keyId);
+
       return {
         allowed: true,
         remaining: apiKey.rate_limit - 1,
@@ -231,9 +234,7 @@ export class ApiKeyService {
     await client
       .from('api_keys')
       .update({ rate_limit_count: count + 1 })
-      .eq('id', keyId)
-      .select()
-      .single();
+      .eq('id', keyId);
 
     return {
       allowed: true,

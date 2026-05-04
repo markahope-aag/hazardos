@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
-import { POST } from '@/app/api/errors/report/route'
+
+// Sentry's Next instrumentation calls into Next runtime hooks at import
+// time — those aren't available in vitest, so the route's import fails
+// with "next_1.default is not a function". Stubbing the surface we use
+// keeps the test focused on the request handler.
+vi.mock('@sentry/nextjs', () => ({
+  captureException: vi.fn(),
+}))
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() }
@@ -33,6 +40,7 @@ vi.mock('@/lib/utils/logger', () => {
 })
 
 import { logger } from '@/lib/utils/logger'
+import { POST } from '@/app/api/errors/report/route'
 
 describe('Error Report API', () => {
   beforeEach(() => {
