@@ -10,14 +10,28 @@ export async function GET(request: NextRequest) {
   const rateLimitResponse = await applyUnifiedRateLimit(request, 'auth')
   if (rateLimitResponse) return rateLimitResponse
 
+  // Check for Vercel cron header OR Bearer token
+  const vercelCronHeader = request.headers.get('x-vercel-cron')
   const authHeader = request.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
+
   if (!cronSecret) {
-    return NextResponse.json({ error: 'Cron not configured' }, { status: 500 })
+    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 })
   }
-  const expected = Buffer.from(`Bearer ${cronSecret}`)
-  const provided = Buffer.from(authHeader || '')
-  const isAuthorized = expected.length === provided.length && timingSafeEqual(expected, provided)
+
+  let isAuthorized = false
+
+  // Accept Vercel's cron header
+  if (vercelCronHeader === '1') {
+    isAuthorized = true
+  } 
+  // Or accept Bearer token with timing-safe comparison
+  else if (authHeader) {
+    const expected = Buffer.from(`Bearer ${cronSecret}`)
+    const provided = Buffer.from(authHeader)
+    isAuthorized = expected.length === provided.length && timingSafeEqual(expected, provided)
+  }
+
   if (!isAuthorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

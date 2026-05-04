@@ -14,7 +14,7 @@ function mustBeAppUrl(url: string): boolean {
 // Checkout session
 export const createCheckoutSchema = z.object({
   plan_slug: z.string().min(1, 'Plan slug is required'),
-  billing_cycle: z.enum(['monthly', 'yearly']).optional().default('monthly'),
+  billing_cycle: z.enum(['monthly', 'yearly']).default('monthly'),
   success_url: z.string().url().refine(mustBeAppUrl, 'URL must be on the application domain'),
   cancel_url: z.string().url().refine(mustBeAppUrl, 'URL must be on the application domain'),
 })

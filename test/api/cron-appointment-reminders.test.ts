@@ -74,7 +74,8 @@ describe('GET /api/cron/appointment-reminders', () => {
     })
     const response = await GET(request)
     expect(response.status).toBe(200)
-    expect(processDueRemindersMock).toHaveBeenCalled()
+    expect(processDueRemindersMock).toHaveBeenCalledTimes(1)
+    expect(withCronLoggingMock).toHaveBeenCalledTimes(1)
   })
 
   it('returns 500 when CRON_SECRET is not configured', async () => {

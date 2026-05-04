@@ -18,7 +18,7 @@ export const POST = createApiHandler(
     const checkoutUrl = await StripeService.createCheckoutSession(
       context.profile.organization_id,
       body.plan_slug,
-      body.billing_cycle || 'monthly',
+      body.billing_cycle,
       body.success_url,
       body.cancel_url
     )
