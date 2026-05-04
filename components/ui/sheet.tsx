@@ -2,6 +2,7 @@ import React from 'react'
 
 type SheetProps = {
   children: React.ReactNode
+  open?: boolean
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
   [key: string]: unknown
@@ -31,12 +32,14 @@ type SheetCloseProps = {
   [key: string]: unknown
 }
 
-export function Sheet({ children, defaultOpen, onOpenChange, ...props }: SheetProps) {
-  const [isOpen, setIsOpen] = React.useState(defaultOpen || false)
+export function Sheet({ children, open, defaultOpen, onOpenChange, ...props }: SheetProps) {
+  const [internalOpen, setInternalOpen] = React.useState(defaultOpen || false)
+  const isControlled = open !== undefined
+  const isOpen = isControlled ? open : internalOpen
 
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open)
-    onOpenChange?.(open)
+  const handleOpenChange = (next: boolean) => {
+    if (!isControlled) setInternalOpen(next)
+    onOpenChange?.(next)
   }
 
   return (
