@@ -1,196 +1,133 @@
-import React from 'react'
+'use client'
 
-type SheetProps = {
-  children: React.ReactNode
-  open?: boolean
-  defaultOpen?: boolean
-  onOpenChange?: (open: boolean) => void
-  [key: string]: unknown
+import * as React from 'react'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
+import { X } from 'lucide-react'
+
+import { cn } from '@/lib/utils'
+
+// Thin wrapper over Radix Dialog so the rest of the app keeps the
+// existing Sheet / SheetContent / SheetTrigger API while we get a real
+// slide-in side panel with overlay, focus management, and Escape-to-close.
+
+const Sheet = DialogPrimitive.Root
+
+const SheetTrigger = DialogPrimitive.Trigger
+
+const SheetClose = DialogPrimitive.Close
+
+const SheetPortal = DialogPrimitive.Portal
+
+const SheetOverlay = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Overlay>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Overlay
+    ref={ref}
+    className={cn(
+      'fixed inset-0 z-50 bg-black/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+      className,
+    )}
+    {...props}
+  />
+))
+SheetOverlay.displayName = DialogPrimitive.Overlay.displayName
+
+type SheetSide = 'top' | 'right' | 'bottom' | 'left'
+
+const sideClasses: Record<SheetSide, string> = {
+  top: 'inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top',
+  bottom:
+    'inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
+  left: 'inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left',
+  right:
+    'inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-md data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right',
 }
 
-type SheetContentProps = {
-  children: React.ReactNode
-  onClose?: () => void
-  className?: string
-  [key: string]: unknown
+interface SheetContentProps
+  extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
+  side?: SheetSide
 }
 
-type SheetChildProps = {
-  children: React.ReactNode
-  [key: string]: unknown
-}
-
-type SheetTriggerProps = {
-  children: React.ReactNode
-  asChild?: boolean
-  [key: string]: unknown
-}
-
-type SheetCloseProps = {
-  children: React.ReactNode
-  asChild?: boolean
-  [key: string]: unknown
-}
-
-export function Sheet({ children, open, defaultOpen, onOpenChange, ...props }: SheetProps) {
-  const [internalOpen, setInternalOpen] = React.useState(defaultOpen || false)
-  const isControlled = open !== undefined
-  const isOpen = isControlled ? open : internalOpen
-
-  const handleOpenChange = (next: boolean) => {
-    if (!isControlled) setInternalOpen(next)
-    onOpenChange?.(next)
-  }
-
-  return (
-    <div {...props}>
-      {React.Children.map(children, child => {
-        if (!React.isValidElement(child)) return child
-
-        const childProps = child.props as Record<string, unknown>
-
-        if (child.type === SheetTrigger) {
-          return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
-            onClick: () => handleOpenChange(true),
-            ...childProps
-          })
-        }
-        if (child.type === SheetContent && isOpen) {
-          return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
-            onClose: () => handleOpenChange(false),
-            ...childProps
-          })
-        }
-        if (child.type === SheetContent && !isOpen) {
-          return null
-        }
-        return child
-      })}
-    </div>
-  )
-}
-
-export function SheetContent({ children, onClose, className, ...props }: SheetContentProps) {
-  const titleId = React.useId()
-  const descriptionId = React.useId()
-
-  React.useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && onClose) {
-        onClose()
-      }
-    }
-
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [onClose])
-
-  return (
-    <div
-      role="dialog"
-      aria-labelledby={titleId}
-      aria-describedby={descriptionId}
-      className={className}
+const SheetContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  SheetContentProps
+>(({ side = 'right', className, children, ...props }, ref) => (
+  <SheetPortal>
+    <SheetOverlay />
+    <DialogPrimitive.Content
+      ref={ref}
+      className={cn(
+        'fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=open]:duration-300 overflow-y-auto',
+        sideClasses[side],
+        className,
+      )}
       {...props}
     >
-      {React.Children.map(children, child => {
-        if (!React.isValidElement(child)) return child
+      {children}
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
+        <X className="h-4 w-4" aria-hidden="true" />
+        <span className="sr-only">Close</span>
+      </DialogPrimitive.Close>
+    </DialogPrimitive.Content>
+  </SheetPortal>
+))
+SheetContent.displayName = DialogPrimitive.Content.displayName
 
-        const childProps = child.props as Record<string, unknown>
-
-        if (child.type === SheetClose) {
-          return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
-            onClick: onClose,
-            ...childProps
-          })
-        }
-        if (child.type === SheetTitle) {
-          return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
-            id: titleId,
-            ...childProps
-          })
-        }
-        if (child.type === SheetDescription) {
-          return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
-            id: descriptionId,
-            ...childProps
-          })
-        }
-        if (child.type === SheetHeader) {
-          const headerChildren = childProps.children as React.ReactNode
-          return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
-            children: React.Children.map(headerChildren, headerChild => {
-              if (!React.isValidElement(headerChild)) return headerChild
-
-              const headerChildProps = headerChild.props as Record<string, unknown>
-
-              if (headerChild.type === SheetTitle) {
-                return React.cloneElement(headerChild as React.ReactElement<Record<string, unknown>>, {
-                  id: titleId,
-                  ...headerChildProps
-                })
-              }
-              if (headerChild.type === SheetDescription) {
-                return React.cloneElement(headerChild as React.ReactElement<Record<string, unknown>>, {
-                  id: descriptionId,
-                  ...headerChildProps
-                })
-              }
-              return headerChild
-            })
-          })
-        }
-        if (child.type === SheetFooter) {
-          const footerChildren = childProps.children as React.ReactNode
-          return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
-            children: React.Children.map(footerChildren, footerChild => {
-              if (!React.isValidElement(footerChild)) return footerChild
-
-              if (footerChild.type === SheetClose) {
-                const footerChildProps = footerChild.props as Record<string, unknown>
-                return React.cloneElement(footerChild as React.ReactElement<Record<string, unknown>>, {
-                  onClick: onClose,
-                  ...footerChildProps
-                })
-              }
-              return footerChild
-            })
-          })
-        }
-        return child
-      })}
-    </div>
+function SheetHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn('flex flex-col space-y-2 text-center sm:text-left', className)}
+      {...props}
+    />
   )
 }
 
-export function SheetHeader({ children, ...props }: SheetChildProps) {
-  return <div {...props}>{children}</div>
+function SheetFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        'flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2',
+        className,
+      )}
+      {...props}
+    />
+  )
 }
 
-export function SheetTitle({ children, ...props }: SheetChildProps) {
-  return <h2 {...props}>{children}</h2>
-}
+const SheetTitle = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Title>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Title
+    ref={ref}
+    className={cn('text-lg font-semibold text-foreground', className)}
+    {...props}
+  />
+))
+SheetTitle.displayName = DialogPrimitive.Title.displayName
 
-export function SheetDescription({ children, ...props }: SheetChildProps) {
-  return <p {...props}>{children}</p>
-}
+const SheetDescription = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Description>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Description
+    ref={ref}
+    className={cn('text-sm text-muted-foreground', className)}
+    {...props}
+  />
+))
+SheetDescription.displayName = DialogPrimitive.Description.displayName
 
-export function SheetTrigger({ children, asChild, ...props }: SheetTriggerProps) {
-  if (asChild && React.isValidElement(children)) {
-    const childProps = children.props as Record<string, unknown>
-    return React.cloneElement(children as React.ReactElement<Record<string, unknown>>, { ...props, ...childProps })
-  }
-  return <button {...props}>{children}</button>
-}
-
-export function SheetFooter({ children, ...props }: SheetChildProps) {
-  return <div {...props}>{children}</div>
-}
-
-export function SheetClose({ children, asChild, ...props }: SheetCloseProps) {
-  if (asChild && React.isValidElement(children)) {
-    const childProps = children.props as Record<string, unknown>
-    return React.cloneElement(children as React.ReactElement<Record<string, unknown>>, { ...props, ...childProps })
-  }
-  return <button {...props}>{children}</button>
+export {
+  Sheet,
+  SheetPortal,
+  SheetOverlay,
+  SheetTrigger,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetFooter,
+  SheetTitle,
+  SheetDescription,
 }

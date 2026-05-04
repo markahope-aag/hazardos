@@ -55,17 +55,17 @@ describe('Sheet Components', () => {
           <div>Main content</div>
           <SheetFooter>
             <SheetClose asChild>
-              <button>Close</button>
+              <button>Dismiss</button>
             </SheetClose>
           </SheetFooter>
         </SheetContent>
       </Sheet>
     )
-    
+
     expect(screen.getByText('Test Sheet')).toBeInTheDocument()
     expect(screen.getByText('This is a test sheet')).toBeInTheDocument()
     expect(screen.getByText('Main content')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument()
   })
 
   it('should close sheet when close button is clicked', async () => {
@@ -180,17 +180,16 @@ describe('Sheet Components', () => {
           <button>Button 1</button>
           <button>Button 2</button>
           <SheetClose asChild>
-            <button>Close</button>
+            <button>Dismiss</button>
           </SheetClose>
         </SheetContent>
       </Sheet>
     )
-    
-    // Focus should be trapped within sheet
+
     const button1 = screen.getByRole('button', { name: 'Button 1' })
     const button2 = screen.getByRole('button', { name: 'Button 2' })
-    const closeButton = screen.getByRole('button', { name: 'Close' })
-    
+    const closeButton = screen.getByRole('button', { name: 'Dismiss' })
+
     expect(button1).toBeInTheDocument()
     expect(button2).toBeInTheDocument()
     expect(closeButton).toBeInTheDocument()
@@ -271,22 +270,22 @@ describe('Sheet Components', () => {
         <SheetContent>
           <SheetTitle>Callback Test</SheetTitle>
           <SheetClose asChild>
-            <button>Close</button>
+            <button>Dismiss</button>
           </SheetClose>
         </SheetContent>
       </Sheet>
     )
-    
+
     const trigger = screen.getByRole('button', { name: 'Open' })
     fireEvent.click(trigger)
-    
+
     expect(onOpenChange).toHaveBeenCalledWith(true)
-    
+
     await waitFor(() => {
       expect(screen.getByText('Callback Test')).toBeInTheDocument()
     })
-    
-    const closeButton = screen.getByRole('button', { name: 'Close' })
+
+    const closeButton = screen.getByRole('button', { name: 'Dismiss' })
     fireEvent.click(closeButton)
     
     expect(onOpenChange).toHaveBeenCalledWith(false)
