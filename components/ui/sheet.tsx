@@ -9,6 +9,11 @@ import { cn } from '@/lib/utils'
 // Thin wrapper over Radix Dialog so the rest of the app keeps the
 // existing Sheet / SheetContent / SheetTrigger API while we get a real
 // slide-in side panel with overlay, focus management, and Escape-to-close.
+//
+// Animations are written with core Tailwind utilities (transform +
+// transition + Radix's data-state attribute) rather than the
+// tailwindcss-animate plugin, which targets Tailwind v3 — under
+// Tailwind v4 its slide-in utilities don't reliably compile.
 
 const Sheet = DialogPrimitive.Root
 
@@ -25,7 +30,7 @@ const SheetOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'fixed inset-0 z-50 bg-black/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+      'fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity data-[state=closed]:opacity-0 data-[state=open]:opacity-100',
       className,
     )}
     {...props}
@@ -35,13 +40,23 @@ SheetOverlay.displayName = DialogPrimitive.Overlay.displayName
 
 type SheetSide = 'top' | 'right' | 'bottom' | 'left'
 
+// Each side gets a base anchor + a hidden ("closed") and visible ("open")
+// transform driven by Radix's data-state. Using simple translate
+// utilities means we don't depend on the animate plugin's slide-in-from-*
+// classes, which are v3-only.
 const sideClasses: Record<SheetSide, string> = {
-  top: 'inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top',
+  top:
+    'inset-x-0 top-0 border-b ' +
+    'data-[state=closed]:-translate-y-full data-[state=open]:translate-y-0',
   bottom:
-    'inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
-  left: 'inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left',
+    'inset-x-0 bottom-0 border-t ' +
+    'data-[state=closed]:translate-y-full data-[state=open]:translate-y-0',
+  left:
+    'inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm ' +
+    'data-[state=closed]:-translate-x-full data-[state=open]:translate-x-0',
   right:
-    'inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-md data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right',
+    'inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-md ' +
+    'data-[state=closed]:translate-x-full data-[state=open]:translate-x-0',
 }
 
 interface SheetContentProps
@@ -58,7 +73,8 @@ const SheetContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=open]:duration-300 overflow-y-auto',
+        'fixed z-50 bg-background p-6 shadow-lg overflow-y-auto',
+        'transform transition-transform duration-300 ease-in-out will-change-transform',
         sideClasses[side],
         className,
       )}
