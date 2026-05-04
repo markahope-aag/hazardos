@@ -134,14 +134,18 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
           </div>
 
           <div className="flex gap-2">
-            {invoice.status === 'draft' && (
-              <Button onClick={sendInvoice} disabled={loading}>
+            {invoice.status !== 'paid' && invoice.status !== 'void' && (
+              <Button
+                onClick={sendInvoice}
+                disabled={loading}
+                variant={invoice.status === 'draft' ? 'default' : 'outline'}
+              >
                 {loading ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <Send className="h-4 w-4 mr-2" />
                 )}
-                Send Invoice
+                {invoice.status === 'draft' ? 'Send Invoice' : 'Resend Invoice'}
               </Button>
             )}
             {invoice.balance_due > 0 && invoice.status !== 'void' && invoice.status !== 'draft' && (
@@ -163,9 +167,11 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
                 <DropdownMenuItem asChild>
                   <Link href={`/invoices/${invoice.id}/edit`}>Edit Invoice</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Download className="h-4 w-4 mr-2" />
-                  Download PDF
+                <DropdownMenuItem asChild>
+                  <a href={`/api/invoices/${invoice.id}/pdf`}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download PDF
+                  </a>
                 </DropdownMenuItem>
                 {invoice.job && (
                   <DropdownMenuItem asChild>

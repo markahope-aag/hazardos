@@ -5,11 +5,24 @@ import { SmsService } from '@/lib/services/sms-service'
 import { InvoicesService } from '@/lib/services/invoices-service'
 import { EmailService } from '@/lib/services/email/email-service'
 import { wrapEmailHtml } from '@/lib/services/email/template-wrapper'
+import {
+  generateInvoicePDFBase64,
+  invoicePdfFilename,
+} from '@/lib/services/invoice-pdf-generator'
 import { formatCurrency } from '@/lib/utils'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type { Invoice } from '@/types/invoices'
 
 const log = createServiceLogger('InvoiceDeliveryService')
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
 /**
  * Invoice delivery: email, SMS, and the scheduled_reminders cadence that
@@ -179,6 +192,103 @@ export class InvoiceDeliveryService {
     }
   }
 
+  /**
+   * Fetch the bytes of every job document attached to the invoice and
+   * return them shaped for an email attachment payload. Per-document
+   * failures (RLS, missing storage object, oversized file) skip just
+   * that file and log a warning so the rest of the email still goes.
+   */
+  private static async loadUserAttachments(
+    invoiceId: string,
+  ): Promise<Array<{ filename: string; content: string; contentType: string }>> {
+    const supabase = await createClient()
+
+    const { data: rows, error } = await supabase
+      .from('invoice_attached_documents')
+      .select(`
+        document:job_documents!job_document_id(
+          id, file_name, mime_type, storage_path
+        )
+      `)
+      .eq('invoice_id', invoiceId)
+
+    if (error) {
+      log.warn(
+        { invoiceId, err: formatError(error) },
+        'Failed to load invoice attachments; sending without user-attached files',
+      )
+      return []
+    }
+
+    const out: Array<{ filename: string; content: string; contentType: string }> = []
+    for (const row of rows || []) {
+      const doc = Array.isArray(row.document) ? row.document[0] : row.document
+      if (!doc?.storage_path) continue
+
+      const { data: blob, error: dlErr } = await supabase.storage
+        .from('job-documents')
+        .download(doc.storage_path)
+
+      if (dlErr || !blob) {
+        log.warn(
+          { invoiceId, documentId: doc.id, err: formatError(dlErr) },
+          'Skipping invoice attachment: storage download failed',
+        )
+        continue
+      }
+
+      const arrayBuffer = await blob.arrayBuffer()
+      out.push({
+        filename: doc.file_name,
+        content: Buffer.from(arrayBuffer).toString('base64'),
+        contentType: doc.mime_type || 'application/octet-stream',
+      })
+    }
+
+    // Lab reports linked to this invoice come through their own pointer
+    // (lab_reports.invoice_id) rather than the join table. Pull each
+    // report's stored PDF/file from the lab-reports bucket.
+    const { data: labRows, error: labErr } = await supabase
+      .from('lab_reports')
+      .select('id, report_number, file_name, mime_type, storage_path')
+      .eq('invoice_id', invoiceId)
+      .not('storage_path', 'is', null)
+      .neq('status', 'cancelled')
+
+    if (labErr) {
+      log.warn(
+        { invoiceId, err: formatError(labErr) },
+        'Failed to load invoice lab reports; sending without them',
+      )
+      return out
+    }
+
+    for (const row of labRows || []) {
+      if (!row.storage_path) continue
+      const { data: blob, error: dlErr } = await supabase.storage
+        .from('lab-reports')
+        .download(row.storage_path)
+      if (dlErr || !blob) {
+        log.warn(
+          { invoiceId, labReportId: row.id, err: formatError(dlErr) },
+          'Skipping lab report attachment: storage download failed',
+        )
+        continue
+      }
+      const arrayBuffer = await blob.arrayBuffer()
+      // Prefer the original filename, but fall back to the report number
+      // so the customer always sees something descriptive.
+      const filename = row.file_name || `${row.report_number}.pdf`
+      out.push({
+        filename,
+        content: Buffer.from(arrayBuffer).toString('base64'),
+        contentType: row.mime_type || 'application/pdf',
+      })
+    }
+
+    return out
+  }
+
   private static async sendInvoiceEmail(
     invoice: Invoice,
     customer: NonNullable<Invoice['customer']>,
@@ -211,6 +321,41 @@ export class InvoiceDeliveryService {
       </tr>
     `).join('') || ''
 
+    // Build the attachment payload before the body so we can list each
+    // attached filename inline ("Attached files: lab-report.pdf, …").
+    // The rendered invoice PDF is generated first; user-attached job
+    // documents (lab reports, clearance, photos) are appended.
+    const attachments: Array<{ filename: string; content: string; contentType: string }> = []
+    try {
+      const pdfBase64 = generateInvoicePDFBase64(invoice, organization)
+      attachments.push({
+        filename: invoicePdfFilename(invoice),
+        content: pdfBase64,
+        contentType: 'application/pdf',
+      })
+    } catch (error) {
+      log.warn(
+        { invoiceId: invoice.id, err: formatError(error) },
+        'Failed to generate invoice PDF; sending email without attachment',
+      )
+    }
+
+    // Per-document fetch failures skip just that file rather than
+    // blocking the email — better to deliver the invoice missing one
+    // attachment than not at all.
+    const userAttachments = await this.loadUserAttachments(invoice.id)
+    for (const att of userAttachments) {
+      attachments.push(att)
+    }
+
+    const userAttachmentsHtml =
+      userAttachments.length > 0
+        ? `<p style="margin:16px 0 4px 0;"><strong>Attached files:</strong></p>
+           <ul style="margin:0 0 16px 18px;padding:0;">
+             ${userAttachments.map((a) => `<li>${escapeHtml(a.filename)}</li>`).join('')}
+           </ul>`
+        : ''
+
     // Body content only — wrapper supplies the header bar, signature,
     // CTA button and the surrounding chrome based on org appearance
     // settings so changes from Settings → Email propagate here.
@@ -241,6 +386,8 @@ export class InvoiceDeliveryService {
       </div>
 
       ${invoice.notes ? `<p style="margin-top:20px;padding:12px;background-color:#f3f4f6;border-radius:4px;"><strong>Notes:</strong> ${invoice.notes}</p>` : ''}
+
+      ${userAttachmentsHtml}
     `
 
     const emailHtml = await wrapEmailHtml(organizationId, {
@@ -256,6 +403,7 @@ export class InvoiceDeliveryService {
         to: customer.email,
         subject: `Invoice ${invoice.invoice_number} from ${companyName} - ${formatCurrency(invoice.balance_due)} Due`,
         html: emailHtml,
+        attachments: attachments.length > 0 ? attachments : undefined,
         tags: ['invoice'],
         relatedEntity: { type: 'invoice', id: invoice.id },
       },

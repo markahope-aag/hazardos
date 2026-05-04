@@ -4,6 +4,7 @@ import { InvoiceHeader } from './invoice-header'
 import { InvoiceDetails } from './invoice-details'
 import { InvoiceLineItems } from './invoice-line-items'
 import { InvoicePayments } from './invoice-payments'
+import { InvoiceAttachments } from '@/components/invoices/invoice-attachments'
 
 export default async function InvoiceDetailPage({
   params,
@@ -58,8 +59,12 @@ export default async function InvoiceDetailPage({
             payments={transformedInvoice.payments}
           />
         </div>
-        <div>
+        <div className="space-y-6">
           <InvoiceDetails invoice={transformedInvoice} />
+          <InvoiceAttachments
+            invoiceId={transformedInvoice.id}
+            jobId={transformedInvoice.job?.id ?? null}
+          />
         </div>
       </div>
     </div>

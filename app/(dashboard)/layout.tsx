@@ -8,7 +8,7 @@ import { AuthProvider, useMultiTenantAuth } from '@/components/providers/auth-pr
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { Home, FileText, Calculator, Calendar, Settings, DollarSign, LayoutGrid, Briefcase, MessageCircle, ClipboardList, type LucideIcon } from 'lucide-react'
+import { Home, FileText, Calculator, Calendar, Settings, DollarSign, LayoutGrid, Briefcase, MessageCircle, ClipboardList, FlaskConical, type LucideIcon } from 'lucide-react'
 import LoginForm from '@/components/auth/login-form'
 
 // Single source of truth for main-nav order, labels, and active-matching.
@@ -24,6 +24,7 @@ const MAIN_NAV_ITEMS: MainNavItem[] = [
   { href: '/', label: 'Dashboard', icon: Home, match: (p) => p === '/' },
   { href: '/crm', label: 'CRM', icon: LayoutGrid, match: (p) => p.startsWith('/crm') },
   { href: '/site-surveys', label: 'Surveys', icon: FileText, match: (p) => p.startsWith('/site-surveys') },
+  { href: '/lab-reports', label: 'Lab Reports', icon: FlaskConical, match: (p) => p.startsWith('/lab-reports') },
   { href: '/estimates', label: 'Estimates', icon: Calculator, match: (p) => p.startsWith('/estimates') },
   { href: '/jobs', label: 'Jobs', icon: Briefcase, match: (p) => p.startsWith('/jobs') },
   { href: '/work-orders', label: 'Work Orders', icon: ClipboardList, match: (p) => p.startsWith('/work-orders') },

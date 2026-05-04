@@ -132,6 +132,24 @@ describe('InvoiceDeliveryService', () => {
             })),
           }
         }
+        if (table === 'invoice_attached_documents') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+            })),
+          }
+        }
+        if (table === 'lab_reports') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                not: vi.fn(() => ({
+                  neq: vi.fn().mockResolvedValue({ data: [], error: null }),
+                })),
+              })),
+            })),
+          }
+        }
         return {}
       })
 
