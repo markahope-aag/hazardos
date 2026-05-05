@@ -9,12 +9,12 @@ import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { customerSchema, CUSTOMER_STATUS_OPTIONS, CUSTOMER_SOURCE_OPTIONS, CONTACT_TYPE_OPTIONS, CONTACT_ROLE_OPTIONS } from '@/lib/validations/customer'
+import { customerSchema, CUSTOMER_STATUS_OPTIONS, CUSTOMER_SOURCE_OPTIONS, CONTACT_TYPE_OPTIONS, CONTACT_ROLE_OPTIONS } from '@/lib/validations/customer-form'
 import { useFormAnalytics } from '@/lib/hooks/use-analytics'
 import { useSearchCompanies } from '@/lib/hooks/use-companies'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import { logger, formatError } from '@/lib/utils/logger'
-import type { CustomerFormData } from '@/lib/validations/customer'
+import type { CustomerFormData } from '@/lib/validations/customer-form'
 import type { Customer, CustomerStatus, CustomerSource, ContactType, ContactRole } from '@/types/database'
 
 interface CustomerFormProps {

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -26,22 +25,28 @@ export function ForgotPasswordForm() {
     }
 
     try {
-      const supabase = createClient()
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      // Hits our own endpoint so the email comes from HazardOS via
+      // Resend (branded), not Supabase's default unbranded template.
+      // The endpoint always returns 200 — anti-enumeration — so the
+      // UI shows the same confirmation regardless of whether the
+      // address has an account.
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       })
 
-      if (error) {
+      if (!res.ok) {
         toast({
           title: 'Error',
-          description: error.message,
+          description: 'Could not send reset email. Please try again.',
           variant: 'destructive',
         })
       } else {
         setSubmitted(true)
         toast({
           title: 'Check your email',
-          description: 'We sent you a password reset link.',
+          description: 'If that address has an account, a reset link is on its way.',
         })
       }
     } catch {
@@ -59,7 +64,7 @@ export function ForgotPasswordForm() {
     return (
       <div className="text-center space-y-2">
         <p className="text-sm text-muted-foreground">
-          Check your email for a password reset link. If you don&apos;t see it, check your spam folder.
+          If that email address is associated with a HazardOS account, you&apos;ll receive a reset link shortly. If you don&apos;t see it within a few minutes, check your spam folder.
         </p>
       </div>
     )

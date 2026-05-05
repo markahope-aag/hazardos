@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { ROLES } from '@/lib/auth/roles'
-import { customerListQuerySchema, createCustomerSchema } from '@/lib/validations/customers'
+import { customerListQuerySchema, createCustomerSchema } from '@/lib/validations/customer-api'
 import { sanitizeSearchQuery } from '@/lib/utils/sanitize'
 import { throwDbError } from '@/lib/utils/secure-error-handler'
 import type { CustomerInsert } from '@/types/database'

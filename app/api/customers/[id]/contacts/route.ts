@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { ContactsService } from '@/lib/services/contacts-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
-import { createContactSchema } from '@/lib/validations/customers'
+import { createContactSchema } from '@/lib/validations/customer-api'
 
 /**
  * GET /api/customers/[id]/contacts

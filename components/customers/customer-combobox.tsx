@@ -110,10 +110,15 @@ export function CustomerCombobox({
     return () => clearTimeout(debounce)
   }, [search, organization?.id])
 
+  const getPersonName = (customer: Customer): string => {
+    const fromParts = [customer.first_name, customer.last_name].filter(Boolean).join(' ').trim()
+    return fromParts || customer.name || ''
+  }
+
   const getDisplayName = (customer: Customer) => {
-    if (customer.company_name) return customer.company_name
-    const personName = [customer.first_name, customer.last_name].filter(Boolean).join(' ')
-    return personName || customer.name || 'Unnamed'
+    const person = getPersonName(customer)
+    if (person) return person
+    return customer.company_name || 'Unnamed'
   }
 
   const handleSelect = (customerId: string) => {
@@ -153,30 +158,46 @@ export function CustomerCombobox({
               {isLoading ? 'Searching...' : 'No customers found.'}
             </CommandEmpty>
             <CommandGroup>
-              {customers.map((customer) => (
-                <CommandItem
-                  key={customer.id}
-                  value={customer.id}
-                  onSelect={handleSelect}
-                >
-                  <Check
-                    className={cn(
-                      'mr-2 h-4 w-4',
-                      value === customer.id ? 'opacity-100' : 'opacity-0'
-                    )}
-                  />
-                  <div className="flex flex-col">
-                    <span>{getDisplayName(customer)}</span>
-                    {customer.address_line1 && (
-                      <span className="text-sm text-muted-foreground">
-                        {customer.address_line1}
-                        {customer.city ? `, ${customer.city}` : ''}
-                        {customer.state ? ` ${customer.state}` : ''}
-                      </span>
-                    )}
-                  </div>
-                </CommandItem>
-              ))}
+              {customers.map((customer) => {
+                const person = getPersonName(customer)
+                // When a row has both a person and a company, surface the
+                // company as secondary context so the personal name stays
+                // searchable but the affiliation isn't lost.
+                const subtitle =
+                  person && customer.company_name
+                    ? customer.company_name
+                    : customer.address_line1
+                      ? [
+                          customer.address_line1,
+                          customer.city,
+                          customer.state,
+                        ]
+                          .filter(Boolean)
+                          .join(', ')
+                      : customer.email || customer.phone || ''
+                return (
+                  <CommandItem
+                    key={customer.id}
+                    value={customer.id}
+                    onSelect={handleSelect}
+                  >
+                    <Check
+                      className={cn(
+                        'mr-2 h-4 w-4',
+                        value === customer.id ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                    <div className="flex flex-col">
+                      <span>{getDisplayName(customer)}</span>
+                      {subtitle && (
+                        <span className="text-sm text-muted-foreground">
+                          {subtitle}
+                        </span>
+                      )}
+                    </div>
+                  </CommandItem>
+                )
+              })}
             </CommandGroup>
           </CommandList>
         </Command>

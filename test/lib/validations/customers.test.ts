@@ -9,7 +9,7 @@ import {
   customerListQuerySchema,
   createContactSchema,
   updateContactSchema,
-} from '@/lib/validations/customers'
+} from '@/lib/validations/customer-api'
 
 describe('customerStatusSchema', () => {
   it('accepts valid statuses', () => {

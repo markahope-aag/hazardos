@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { CustomersService } from '@/lib/supabase/customers'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
-import { updateCustomerSchema } from '@/lib/validations/customers'
+import { updateCustomerSchema } from '@/lib/validations/customer-api'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
 import type { CustomerUpdate } from '@/types/database'
@@ -14,16 +13,21 @@ export const GET = createApiHandlerWithParams(
   {
     rateLimit: 'general',
   },
-  async (_request, _context, params) => {
-    try {
-      const customer = await CustomersService.getCustomer(params.id)
-      return NextResponse.json({ customer })
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('Failed to fetch customer')) {
-        throw new SecureError('NOT_FOUND', 'Customer not found')
-      }
-      throw error
+  async (_request, context, params) => {
+    // Use the server-side, RLS-aware client from the handler context.
+    // CustomersService binds to a browser client at module load, so it
+    // can't see the authenticated session when called from a route.
+    const { data: customer, error } = await context.supabase
+      .from('customers')
+      .select('*')
+      .eq('id', params.id)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!customer) {
+      throw new SecureError('NOT_FOUND', 'Customer not found')
     }
+    return NextResponse.json({ customer })
   }
 )
 
@@ -36,7 +40,7 @@ export const PATCH = createApiHandlerWithParams(
     rateLimit: 'general',
     bodySchema: updateCustomerSchema,
   },
-  async (_request, _context, params, body) => {
+  async (_request, context, params, body) => {
     const updateData: CustomerUpdate = {}
 
     if (body.name !== undefined) updateData.name = body.name
@@ -55,15 +59,18 @@ export const PATCH = createApiHandlerWithParams(
     if (body.marketing_consent_date !== undefined) updateData.marketing_consent_date = body.marketing_consent_date
     if (body.notes !== undefined) updateData.notes = body.notes
 
-    try {
-      const customer = await CustomersService.updateCustomer(params.id, updateData)
-      return NextResponse.json({ customer })
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('Failed to update customer')) {
-        throw new SecureError('NOT_FOUND', 'Customer not found')
-      }
-      throw error
+    const { data: customer, error } = await context.supabase
+      .from('customers')
+      .update(updateData)
+      .eq('id', params.id)
+      .select()
+      .maybeSingle()
+
+    if (error) throw error
+    if (!customer) {
+      throw new SecureError('NOT_FOUND', 'Customer not found')
     }
+    return NextResponse.json({ customer })
   }
 )
 
@@ -76,15 +83,13 @@ export const DELETE = createApiHandlerWithParams(
     rateLimit: 'general',
     allowedRoles: ROLES.TENANT_ADMIN,
   },
-  async (_request, _context, params) => {
-    try {
-      await CustomersService.deleteCustomer(params.id)
-      return NextResponse.json({ message: 'Customer deleted successfully' })
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('Failed to delete customer')) {
-        throw new SecureError('NOT_FOUND', 'Customer not found')
-      }
-      throw error
-    }
+  async (_request, context, params) => {
+    const { error } = await context.supabase
+      .from('customers')
+      .delete()
+      .eq('id', params.id)
+
+    if (error) throw error
+    return NextResponse.json({ message: 'Customer deleted successfully' })
   }
 )

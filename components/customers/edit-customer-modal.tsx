@@ -10,7 +10,7 @@ import { Trash2 } from 'lucide-react'
 import CustomerForm from './customer-form'
 import DeleteCustomerDialog from './delete-customer-dialog'
 import { useUpdateCustomer } from '@/lib/hooks/use-customers'
-import type { CustomerFormData } from '@/lib/validations/customer'
+import type { CustomerFormData } from '@/lib/validations/customer-form'
 import type { Customer } from '@/types/database'
 
 interface EditCustomerModalProps {

@@ -15,7 +15,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import CustomerStatusBadge from './customer-status-badge'
 import { useUpdateCustomerStatus } from '@/lib/hooks/use-customers'
-import { CUSTOMER_STATUS_OPTIONS } from '@/lib/validations/customer'
+import { CUSTOMER_STATUS_OPTIONS } from '@/lib/validations/customer-form'
 import type { Customer, CustomerStatus } from '@/types/database'
 
 interface CustomerListItemProps {

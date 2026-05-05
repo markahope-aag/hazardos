@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/dialog'
 import CustomerForm from './customer-form'
 import { useCreateCustomer } from '@/lib/hooks/use-customers'
-import type { CustomerFormData } from '@/lib/validations/customer'
+import type { CustomerFormData } from '@/lib/validations/customer-form'
 
 interface CreateCustomerModalProps {
   open: boolean

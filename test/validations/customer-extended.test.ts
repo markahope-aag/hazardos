@@ -5,7 +5,7 @@ import {
   US_STATES,
   CUSTOMER_STATUS_OPTIONS,
   CUSTOMER_SOURCE_OPTIONS
-} from '@/lib/validations/customer'
+} from '@/lib/validations/customer-form'
 
 describe('Customer Validation Schema', () => {
   const validCustomerData = {

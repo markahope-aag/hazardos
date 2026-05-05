@@ -8,7 +8,7 @@ describe('validations index', () => {
   })
 
   it('should export customer validations', async () => {
-    const customerModule = await import('@/lib/validations/customer')
+    const customerModule = await import('@/lib/validations/customer-form')
     expect(customerModule).toBeDefined()
     expect(typeof customerModule.customerSchema).toBe('object')
   })

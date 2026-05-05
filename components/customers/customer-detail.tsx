@@ -30,7 +30,7 @@ import { CustomerDetailSidebar } from './customer-detail-sidebar'
 import { CustomerDetailOverview } from './customer-detail-overview'
 import { LogCallDialog, FollowUpDialog } from './customer-detail-dialogs'
 import { useUpdateCustomerStatus } from '@/lib/hooks/use-customers'
-import { CUSTOMER_STATUS_OPTIONS } from '@/lib/validations/customer'
+import { CUSTOMER_STATUS_OPTIONS } from '@/lib/validations/customer-form'
 import { createClient } from '@/lib/supabase/client'
 import type { Customer, CustomerStatus } from '@/types/database'
 

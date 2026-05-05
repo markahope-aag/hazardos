@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { ContactsService } from '@/lib/services/contacts-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
-import { updateContactSchema, UpdateContactInput } from '@/lib/validations/customers'
+import { updateContactSchema, UpdateContactInput } from '@/lib/validations/customer-api'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 
 type Params = { id: string; contactId: string }

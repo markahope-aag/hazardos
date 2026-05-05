@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { customerSchema, defaultCustomerValues, US_STATES, CUSTOMER_STATUS_OPTIONS, CUSTOMER_SOURCE_OPTIONS } from '@/lib/validations/customer'
+import { customerSchema, defaultCustomerValues, US_STATES, CUSTOMER_STATUS_OPTIONS, CUSTOMER_SOURCE_OPTIONS } from '@/lib/validations/customer-form'
 
 describe('Customer Validation Schema', () => {
   describe('customerSchema', () => {
