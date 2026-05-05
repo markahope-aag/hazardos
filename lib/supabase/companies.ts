@@ -36,7 +36,16 @@ export class CompaniesService {
   ): Promise<CompanyWithPrimaryContact[]> {
     let query = this.supabase
       .from('companies')
-      .select('*, primary_contact:customers!company_id(id, first_name, last_name, name, email, mobile_phone)')
+      // Explicit column list — the companies table is wide (attribution
+      // touchpoints, billing/service addresses, payment terms, QuickBooks
+      // refs, notes). The list view renders 13 fields; everything else
+      // is loaded on the detail page.
+      .select(
+        `id, organization_id, name, company_type, industry, account_status, status,
+         phone, email, website, billing_city, billing_state, service_city, service_state,
+         location_id, lifetime_value, total_jobs_completed, updated_at, created_at,
+         primary_contact:customers!company_id(id, first_name, last_name, name, email, mobile_phone)`,
+      )
       .eq('organization_id', organizationId)
 
     if (options.search) {

@@ -40,7 +40,7 @@ export function UserMenu({ user, profile }: UserMenuProps) {
               {profile.first_name} {profile.last_name}
             </div>
             <div className="text-xs text-gray-500 capitalize">
-              {profile.role.replace('_', ' ')}
+              {(profile.role ?? '').replace('_', ' ')}
             </div>
           </div>
           <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium" aria-hidden="true">

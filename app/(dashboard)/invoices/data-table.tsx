@@ -35,6 +35,7 @@ import { invoiceStatusConfig } from '@/types/invoices'
 import Link from 'next/link'
 import { useToast } from '@/components/ui/use-toast'
 import { LocationFilter, type LocationFilterValue } from '@/components/locations/location-filter'
+import { MobileListCard } from '@/components/ui/mobile-list-card'
 
 // Memoized helper for days overdue calculation
 const getDaysOverdue = (dueDate: string) => {
@@ -253,8 +254,61 @@ export function InvoicesDataTable({ data }: InvoicesDataTableProps) {
         <LocationFilter value={locationFilter} onChange={setLocationFilter} />
       </div>
 
-      {/* Table */}
-      <div className="border rounded-lg">
+      {/* Mobile card list (under md) */}
+      <div className="md:hidden space-y-2">
+        {filteredData.length === 0 ? (
+          <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
+            No invoices found
+          </div>
+        ) : (
+          filteredData.map((invoice) => {
+            const isOverdue =
+              invoice.status !== 'paid' &&
+              invoice.status !== 'void' &&
+              invoice.balance_due > 0 &&
+              new Date(invoice.due_date) < new Date()
+            const daysOverdue = isOverdue ? getDaysOverdue(invoice.due_date) : 0
+            const cfg = isOverdue ? invoiceStatusConfig.overdue : invoiceStatusConfig[invoice.status]
+            return (
+              <MobileListCard
+                key={invoice.id}
+                href={`/invoices/${invoice.id}`}
+                identifier={invoice.invoice_number}
+                badge={
+                  <Badge className={cn(cfg?.bgColor, cfg?.color)}>
+                    {isOverdue ? 'Overdue' : cfg?.label || invoice.status}
+                  </Badge>
+                }
+                title={invoice.customer?.company_name || invoice.customer?.name || undefined}
+                subtitle={invoice.job?.job_number ? `Job ${invoice.job.job_number}` : undefined}
+                meta={
+                  <>
+                    <span>Due {format(parseISO(invoice.due_date), 'MMM d, yyyy')}</span>
+                    {isOverdue && (
+                      <span className="text-red-600 font-medium">
+                        {daysOverdue}d overdue
+                      </span>
+                    )}
+                    <span className="font-semibold text-foreground">
+                      {formatCurrency(invoice.total)}
+                    </span>
+                    {invoice.balance_due > 0 ? (
+                      <span className={cn(isOverdue && 'text-red-600 font-medium')}>
+                        Bal {formatCurrency(invoice.balance_due)}
+                      </span>
+                    ) : (
+                      <span className="text-green-600 font-medium">Paid</span>
+                    )}
+                  </>
+                }
+              />
+            )
+          })
+        )}
+      </div>
+
+      {/* Desktop table (md and up) */}
+      <div className="hidden md:block border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow>

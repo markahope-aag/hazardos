@@ -6,6 +6,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { MobileListCard } from '@/components/ui/mobile-list-card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -187,7 +188,7 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
       )}
 
       {/* Table */}
-      <Card>
+      <Card className="border-0 shadow-none md:border md:shadow-sm">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6 space-y-3">
@@ -216,7 +217,66 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
             </div>
           ) : (
             <>
-              <Table>
+              {/* Mobile card list (under md) */}
+              <div className="md:hidden p-3 space-y-2">
+                {customers.map((customer: Customer & { open_jobs_count?: number }) => {
+                  const displayName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.name
+                  const statusColor = STATUS_COLORS[customer.status] || ''
+                  const openJobCount = (customer as Record<string, unknown>).open_jobs_count as number || 0
+                  const phone = customer.mobile_phone || customer.office_phone || customer.phone
+                  return (
+                    <MobileListCard
+                      key={customer.id}
+                      href={`/crm/contacts/${customer.id}`}
+                      identifier={
+                        <span className="flex items-center gap-1.5">
+                          {displayName}
+                          {openJobCount > 0 && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">
+                              {openJobCount} active
+                            </span>
+                          )}
+                        </span>
+                      }
+                      badge={
+                        <Badge className={`text-xs border-0 ${statusColor}`}>
+                          {customer.status === 'past_customer' ? 'Past' : customer.status}
+                        </Badge>
+                      }
+                      title={customer.company_name || undefined}
+                      subtitle={customer.title || undefined}
+                      meta={
+                        <>
+                          {customer.email && (
+                            <span className="inline-flex items-center gap-1">
+                              <Mail className="h-3 w-3" />
+                              <span className="truncate max-w-[180px]">{customer.email}</span>
+                            </span>
+                          )}
+                          {phone && (
+                            <span className="inline-flex items-center gap-1">
+                              <Phone className="h-3 w-3" />
+                              {phone}
+                            </span>
+                          )}
+                          <span className="capitalize">{customer.contact_type}</span>
+                          {(customer.lifetime_value ?? 0) > 0 && (
+                            <span className="font-medium text-foreground">
+                              ${(customer.lifetime_value ?? 0).toLocaleString()}
+                            </span>
+                          )}
+                          {(customer.total_jobs ?? 0) > 0 && (
+                            <span>{customer.total_jobs} job{(customer.total_jobs ?? 0) !== 1 ? 's' : ''}</span>
+                          )}
+                        </>
+                      }
+                    />
+                  )
+                })}
+              </div>
+
+              {/* Desktop table (md and up) */}
+              <Table className="hidden md:table">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('first_name')}>
@@ -248,7 +308,7 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
                   {customers.map((customer: Customer & { open_jobs_count?: number }) => {
                     const displayName = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.name
                     const statusColor = STATUS_COLORS[customer.status] || ''
-                    const contactStatusColor = CONTACT_STATUS_COLORS[customer.contact_status] || ''
+                    const contactStatusColor = customer.contact_status ? CONTACT_STATUS_COLORS[customer.contact_status] || '' : ''
                     const openJobCount = (customer as Record<string, unknown>).open_jobs_count as number || 0
 
                     return (
@@ -311,14 +371,14 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-right tabular-nums">
-                          {customer.lifetime_value > 0 ? (
-                            <span className="font-medium">${customer.lifetime_value.toLocaleString()}</span>
+                          {(customer.lifetime_value ?? 0) > 0 ? (
+                            <span className="font-medium">${(customer.lifetime_value ?? 0).toLocaleString()}</span>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
                         <TableCell className="text-sm text-center tabular-nums">
-                          {customer.total_jobs > 0 ? customer.total_jobs : <span className="text-muted-foreground">—</span>}
+                          {(customer.total_jobs ?? 0) > 0 ? customer.total_jobs : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {customer.last_job_date ? (

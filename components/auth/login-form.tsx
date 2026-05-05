@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { FormField } from '@/components/ui/form-field'
 import { useToast } from '@/components/ui/use-toast'
 
 export default function LoginForm() {
@@ -107,8 +107,7 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+      <FormField label="Email" required error={errors.email}>
         <Input
           id="email"
           name="email"
@@ -116,31 +115,18 @@ export default function LoginForm() {
           placeholder="name@example.com"
           required
           disabled={isLoading}
-          aria-invalid={!!errors.email}
-          aria-describedby={errors.email ? 'email-error' : undefined}
         />
-        {errors.email && (
-          <p id="email-error" className="text-sm text-destructive mt-1" role="alert">
-            {errors.email}
-          </p>
-        )}
-      </div>
+      </FormField>
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          required
-          disabled={isLoading}
-          aria-invalid={!!errors.password}
-          aria-describedby={errors.password ? 'password-error' : undefined}
-        />
-        {errors.password && (
-          <p id="password-error" className="text-sm text-destructive mt-1" role="alert">
-            {errors.password}
-          </p>
-        )}
+        <FormField label="Password" required error={errors.password}>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            required
+            disabled={isLoading}
+          />
+        </FormField>
         <div className="text-right">
           <Link
             href="/forgot-password"

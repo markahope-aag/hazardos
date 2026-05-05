@@ -271,8 +271,25 @@ export class InvoicesService {
 
     let query = supabase
       .from('invoices')
+      // Explicit column list — the invoices table has ~30 columns
+      // (tax_rate/tax_amount, sent_via, viewed_at, qb_invoice_id,
+      // qb_synced_at, payment_terms, notes, etc.) and the list view
+      // only renders 10. Status pills and the dashboard stats card
+      // both work off this same query, so the column list also
+      // covers their needs.
       .select(`
-        *,
+        id,
+        organization_id,
+        invoice_number,
+        status,
+        invoice_date,
+        due_date,
+        total,
+        balance_due,
+        amount_paid,
+        location_id,
+        customer_id,
+        job_id,
         customer:customers(id, name, company_name, email),
         job:jobs(id, job_number)
       `)
@@ -309,7 +326,7 @@ export class InvoicesService {
       ...inv,
       customer: Array.isArray(inv.customer) ? inv.customer[0] : inv.customer,
       job: Array.isArray(inv.job) ? inv.job[0] : inv.job,
-    }))
+    })) as unknown as Invoice[]
   }
 
   static async update(id: string, updates: Partial<Invoice>): Promise<Invoice> {

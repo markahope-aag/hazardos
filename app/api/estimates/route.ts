@@ -49,6 +49,18 @@ export const GET = createApiHandler(
     } else if (query.location_id) {
       dbQuery = dbQuery.eq('location_id', query.location_id)
     }
+    if (query.q) {
+      // Quote-escape user input for the OR expression — Supabase's
+      // .or() takes a comma-separated filter string, so a literal
+      // comma in the search would otherwise split the clause.
+      const safe = query.q.replace(/[%,()]/g, ' ').trim()
+      if (safe.length > 0) {
+        const pattern = `%${safe}%`
+        dbQuery = dbQuery.or(
+          `estimate_number.ilike.${pattern},project_name.ilike.${pattern}`,
+        )
+      }
+    }
 
     const { data, error, count } = await dbQuery
 

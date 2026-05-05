@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { InvoicesDataTable } from './data-table'
+import type { Invoice } from '@/types/invoices'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -28,8 +29,21 @@ export default async function InvoicesPage({
 
   let query = supabase
     .from('invoices')
+    // Explicit column list — the list view + stats cards together
+    // touch ~10 invoice fields. Skipping tax_rate/tax_amount,
+    // sent_via, viewed_at, qb_*, payment_terms, notes, etc.
     .select(`
-      *,
+      id,
+      invoice_number,
+      status,
+      invoice_date,
+      due_date,
+      total,
+      balance_due,
+      amount_paid,
+      location_id,
+      customer_id,
+      job_id,
       customer:customers(id, name, company_name, email),
       job:jobs(id, job_number)
     `)
@@ -59,12 +73,14 @@ export default async function InvoicesPage({
 
   const { data: invoicesData } = await query
 
-  // Transform data
+  // Transform data. Cast through unknown because the SELECT is
+  // narrowed — runtime rows lack tax_*, payment_terms, qb_*, notes,
+  // etc. that the Invoice type declares but the list view never reads.
   const invoices = (invoicesData || []).map(inv => ({
     ...inv,
     customer: Array.isArray(inv.customer) ? inv.customer[0] : inv.customer,
     job: Array.isArray(inv.job) ? inv.job[0] : inv.job,
-  }))
+  })) as unknown as Invoice[]
 
   // Calculate stats
   const today = new Date().toISOString().split('T')[0]

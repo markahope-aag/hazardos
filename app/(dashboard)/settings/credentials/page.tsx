@@ -119,9 +119,10 @@ export default function CredentialsPage() {
     const map = new Map<OrganizationDocumentCategory, DocRow[]>()
     for (const cat of CATEGORY_ORDER) map.set(cat, [])
     for (const d of docs) {
-      const list = map.get(d.category) ?? []
+      const cat = d.category as OrganizationDocumentCategory
+      const list = map.get(cat) ?? []
       list.push(d)
-      map.set(d.category, list)
+      map.set(cat, list)
     }
     return map
   }, [docs])

@@ -97,7 +97,7 @@ export function JobDocuments({
     [excludeCategories],
   )
   const documents = useMemo(
-    () => allDocuments.filter((d) => !excluded.has(d.category)),
+    () => allDocuments.filter((d) => !excluded.has(d.category as JobDocumentCategory)),
     [allDocuments, excluded],
   )
   const visibleCategories = useMemo(
@@ -301,8 +301,8 @@ export function JobDocuments({
                       >
                         {doc.file_name}
                       </button>
-                      <Badge className={CATEGORY_BADGE[doc.category]}>
-                        {CATEGORY_LABEL[doc.category]}
+                      <Badge className={CATEGORY_BADGE[doc.category as JobDocumentCategory]}>
+                        {CATEGORY_LABEL[doc.category as JobDocumentCategory]}
                       </Badge>
                     </div>
                     <div className="text-xs text-gray-500 mt-0.5">

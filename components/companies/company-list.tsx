@@ -246,8 +246,11 @@ export default function CompanyList() {
                 </TableHeader>
                 <TableBody>
                   {companies.map((company) => {
-                    const statusColor = STATUS_COLORS[company.account_status] || STATUS_COLORS[company.status] || ''
-                    const displayStatus = company.account_status || company.status
+                    const statusColor =
+                      (company.account_status && STATUS_COLORS[company.account_status]) ||
+                      (company.status && STATUS_COLORS[company.status]) ||
+                      ''
+                    const displayStatus = company.account_status || company.status || ''
                     const location = [
                       company.service_city || company.billing_city,
                       company.service_state || company.billing_state,

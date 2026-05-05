@@ -11,7 +11,7 @@ export function usePermissions() {
   const auth = useMultiTenantAuth()
 
   const hasRole = (roles: string | string[]) => {
-    if (!auth.profile) return false
+    if (!auth.profile?.role) return false
     const roleArray = Array.isArray(roles) ? roles : [roles]
     return roleArray.includes(auth.profile.role)
   }

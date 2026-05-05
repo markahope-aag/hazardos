@@ -289,7 +289,7 @@ export default function SurveyDetailPage() {
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold">{displayName}</h1>
-            <SurveyStatusBadge status={survey.status} />
+            <SurveyStatusBadge status={survey.status ?? 'draft'} />
             <HazardTypeBadge hazardType={survey.hazard_type} />
             {versionInfo && (
               <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">

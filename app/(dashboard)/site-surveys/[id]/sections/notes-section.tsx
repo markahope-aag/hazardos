@@ -137,11 +137,11 @@ export function NotesSection({ survey }: NotesSectionProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <label className="text-muted-foreground">Created</label>
-              <p className="font-medium">{new Date(survey.created_at).toLocaleString()}</p>
+              <p className="font-medium">{survey.created_at ? new Date(survey.created_at).toLocaleString() : '—'}</p>
             </div>
             <div>
               <label className="text-muted-foreground">Last Updated</label>
-              <p className="font-medium">{new Date(survey.updated_at).toLocaleString()}</p>
+              <p className="font-medium">{survey.updated_at ? new Date(survey.updated_at).toLocaleString() : '—'}</p>
             </div>
             {survey.started_at && (
               <div>

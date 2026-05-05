@@ -2,6 +2,10 @@ import { createClient } from '@/lib/supabase/client'
 import { sanitizeSearchQuery } from '@/lib/utils/sanitize'
 import type { Customer, CustomerInsert, CustomerUpdate, CustomerStatus, ContactType } from '@/types/database'
 
+// Job statuses that count as "open" — i.e. work the customer still has on the
+// books. 'invoiced' is included because the job is considered open until paid.
+const OPEN_JOB_STATUSES = ['scheduled', 'in_progress', 'invoiced'] as const
+
 export class CustomersService {
   private static supabase = createClient()
 
@@ -25,10 +29,35 @@ export class CustomersService {
       offset?: number
     } = {}
   ): Promise<Customer[]> {
+    // For hasOpenJobs === true we use a PostgREST !inner join so customers
+    // without an open job are filtered out at the database level — that lets
+    // pagination work correctly. The other cases keep a left-join.
+    const wantsOpenOnly = options.hasOpenJobs === true
+    const openJobsJoin = wantsOpenOnly
+      ? 'open_jobs:jobs!customer_id!inner(id, status)'
+      : 'open_jobs:jobs!customer_id(id, status)'
+
     let query = this.supabase
       .from('customers')
-      .select('*, company:companies!company_id(id, name), account_owner:profiles!account_owner_id(id, first_name, last_name, full_name), open_jobs:jobs!customer_id(id)')
+      // Explicit column list rather than '*' — the customers table has
+      // ~50 columns (full attribution, communication prefs, marketing
+      // consent, notes, etc.) and the list view only renders ~14. Keep
+      // the filter/sort columns in the SELECT so the API still works.
+      .select(
+        `id, organization_id, name, first_name, last_name, company_name, company_id,
+         email, phone, mobile_phone, office_phone, title, contact_type, contact_role,
+         status, source, lead_source, referral_source, is_primary_contact,
+         location_id, account_owner_id, lifetime_value, total_jobs, last_job_date,
+         created_at, updated_at,
+         company:companies!company_id(id, name),
+         account_owner:profiles!account_owner_id(id, first_name, last_name, full_name),
+         ${openJobsJoin}`,
+      )
       .eq('organization_id', organizationId)
+      // Constrain the embedded jobs to truly open ones — without this filter
+      // the join returns terminal jobs (completed/cancelled/etc.) too, which
+      // would over-count "open jobs" for every customer.
+      .in('open_jobs.status', [...OPEN_JOB_STATUSES])
 
     if (options.search) {
       const sanitizedSearch = sanitizeSearchQuery(options.search)
@@ -98,15 +127,21 @@ export class CustomersService {
       throw new Error(`Failed to fetch customers: ${error.message}`)
     }
 
-    // Post-process: count open jobs from the joined data and filter if needed
+    // Post-process: count open jobs from the joined data. The embedded
+    // resource is already filtered to open statuses via the .in() above,
+    // and hasOpenJobs === true is enforced server-side via !inner — so
+    // open_jobs_count > 0 is guaranteed for that case.
+    // Cast through unknown — the SELECT is narrowed and rows are missing
+    // address fields, attribution columns, etc. The list view never reads them.
     const results = (data || []).map((c) => {
       const openJobs = Array.isArray((c as Record<string, unknown>).open_jobs) ? ((c as Record<string, unknown>).open_jobs as unknown[]).length : 0
-      return { ...c, open_jobs_count: openJobs } as Customer & { open_jobs_count: number }
+      return { ...c, open_jobs_count: openJobs } as unknown as Customer & { open_jobs_count: number }
     })
 
-    if (options.hasOpenJobs === true) {
-      return results.filter((c) => c.open_jobs_count > 0)
-    }
+    // hasOpenJobs === false: PostgREST can't express "NOT EXISTS open_jobs"
+    // directly, so we still post-filter. This is best-effort — combined with
+    // pagination, some customers without open jobs may not appear if the
+    // page-of-N is filled by ones that do. Acceptable for a niche filter.
     if (options.hasOpenJobs === false) {
       return results.filter((c) => c.open_jobs_count === 0)
     }

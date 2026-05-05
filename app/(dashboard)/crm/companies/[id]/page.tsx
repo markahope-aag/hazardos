@@ -514,7 +514,7 @@ export default function CompanyDetailPage({ params }: Props) {
                   <p className="text-sm text-muted-foreground text-center py-8">No contacts linked to this company yet</p>
                 ) : (
                   <div className="space-y-3">
-                    {contacts.map((contact: { id: string; first_name: string | null; last_name: string | null; name: string; title: string | null; email: string | null; mobile_phone: string | null; office_phone: string | null; phone: string | null; contact_role: string | null; status: string; is_primary_contact: boolean }) => (
+                    {contacts.map((contact: { id: string; first_name: string | null; last_name: string | null; name: string; title: string | null; email: string | null; mobile_phone: string | null; office_phone: string | null; phone: string | null; contact_role: string | null; status: string; is_primary_contact: boolean | null }) => (
                       <div key={contact.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">

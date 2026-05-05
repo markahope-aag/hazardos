@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { FlaskConical, Plus, Search, Filter, FileText, Upload, Download, Loader2 } from 'lucide-react'
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -20,7 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Card } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
+import { MobileListCard } from '@/components/ui/mobile-list-card'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { LocationFilter, type LocationFilterValue } from '@/components/locations/location-filter'
@@ -37,6 +39,7 @@ export default function LabReportsPage() {
   const [reports, setReports] = useState<LabReportWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearch = useDebouncedValue(searchQuery, 300)
   const [statusFilter, setStatusFilter] = useState<LabReportStatus | 'all'>('all')
   const [sampleTypeFilter, setSampleTypeFilter] = useState<LabSampleType | 'all'>('all')
   const [locationFilter, setLocationFilter] = useState<LocationFilterValue>('all')
@@ -106,6 +109,10 @@ export default function LabReportsPage() {
       if (statusFilter !== 'all') params.set('status', statusFilter)
       if (sampleTypeFilter !== 'all') params.set('sample_type', sampleTypeFilter)
       if (locationFilter !== 'all') params.set('location_id', locationFilter)
+      // Search runs server-side via the API's `q` param (which already
+      // ilike-matches report_number / sample_description / site_address)
+      // so the search doesn't degrade to "only the visible page".
+      if (debouncedSearch.trim()) params.set('q', debouncedSearch.trim())
 
       const res = await fetch(`/api/lab-reports?${params.toString()}`)
       if (!res.ok) throw new Error('Failed to fetch lab reports')
@@ -120,37 +127,15 @@ export default function LabReportsPage() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, sampleTypeFilter, locationFilter, toast])
+  }, [statusFilter, sampleTypeFilter, locationFilter, debouncedSearch, toast])
 
   useEffect(() => {
     loadReports()
   }, [loadReports])
 
-  const filtered = useMemo(() => {
-    if (!searchQuery.trim()) return reports
-    const q = searchQuery.toLowerCase()
-    return reports.filter((r) => {
-      const haystack = [
-        r.report_number,
-        r.sample_description,
-        r.site_address,
-        r.site_city,
-        r.site_state,
-        r.site_zip,
-        r.lab?.name,
-        r.estimate?.estimate_number,
-        r.estimate?.project_name,
-        r.work_order?.work_order_number,
-        r.invoice?.invoice_number,
-        r.customer?.company_name,
-        r.customer?.name,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-      return haystack.includes(q)
-    })
-  }, [reports, searchQuery])
+  // Filtering happens server-side (status/sample-type/location/search
+  // via the API's q param). What we render is the API response itself.
+  const filtered = reports
 
   return (
     <div className="space-y-6">
@@ -214,7 +199,93 @@ export default function LabReportsPage() {
         <LocationFilter value={locationFilter} onChange={setLocationFilter} />
       </div>
 
-      <Card>
+      {/* Mobile card list (under md) */}
+      <div className="md:hidden space-y-2">
+        {loading ? (
+          <Card><CardContent className="p-8 text-center text-muted-foreground">Loading lab reports…</CardContent></Card>
+        ) : filtered.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-muted-foreground">No lab reports found</p>
+              <Button asChild variant="link" className="mt-2">
+                <Link href="/lab-reports/new">Create your first lab report</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          filtered.map((r) => {
+            const statusConfig = LAB_REPORT_STATUS_CONFIG[r.status]
+            const links: { label: string; href: string }[] = []
+            if (r.estimate) links.push({ label: r.estimate.estimate_number, href: `/estimates/${r.estimate.id}` })
+            if (r.work_order) links.push({ label: r.work_order.work_order_number, href: `/work-orders/${r.work_order.id}` })
+            if (r.invoice) links.push({ label: r.invoice.invoice_number, href: `/invoices/${r.invoice.id}` })
+            const siteLabel = r.site_address
+              ? [r.site_address, r.site_city, r.site_state].filter(Boolean).join(', ')
+              : null
+
+            return (
+              <MobileListCard
+                key={r.id}
+                href={`/lab-reports/${r.id}`}
+                identifier={r.report_number}
+                badge={
+                  <Badge
+                    variant="outline"
+                    className={`${statusConfig.bgColor} ${statusConfig.color} border-0`}
+                  >
+                    {statusConfig.label}
+                  </Badge>
+                }
+                title={r.lab?.name || LAB_SAMPLE_TYPE_LABELS[r.sample_type]}
+                subtitle={siteLabel}
+                meta={
+                  <>
+                    <span>Ordered {new Date(r.ordered_date).toLocaleDateString()}</span>
+                    <span className="capitalize">{LAB_SAMPLE_TYPE_LABELS[r.sample_type]}</span>
+                    {links.length > 0 && (
+                      <span className="inline-flex flex-wrap gap-1">
+                        {links.map((l) => (
+                          <Link
+                            key={l.href}
+                            href={l.href}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-primary hover:underline"
+                          >
+                            {l.label}
+                          </Link>
+                        ))}
+                      </span>
+                    )}
+                    {r.file_name ? (
+                      <span className="inline-flex items-center gap-1">
+                        <FileText className="h-3 w-3" />
+                        <span className="truncate max-w-[140px]">{r.file_name}</span>
+                      </span>
+                    ) : r.status !== 'cancelled' ? (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); triggerUpload(r.id) }}
+                        disabled={uploadingId === r.id}
+                        className="inline-flex items-center gap-1 text-primary hover:underline disabled:opacity-50"
+                      >
+                        {uploadingId === r.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Upload className="h-3 w-3" />
+                        )}
+                        Upload file
+                      </button>
+                    ) : null}
+                  </>
+                }
+              />
+            )
+          })
+        )}
+      </div>
+
+      {/* Desktop table (md and up) */}
+      <Card className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>

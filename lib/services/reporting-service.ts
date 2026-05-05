@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUser } from '@/lib/auth/server-auth'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
@@ -61,6 +62,15 @@ export class ReportingService {
 
   // ========== RUN REPORTS ==========
 
+  /**
+   * Reports read from `v_*` wrapper views (not the `mv_*` matviews directly).
+   * Each wrapper view filters by `get_user_organization_id()` server-side, so
+   * the cookie-bound authenticated client only ever sees the caller's own
+   * organization's rows — no application-level org filter required for
+   * security. The underlying matviews are revoked from authenticated; only
+   * the views are accessible.
+   */
+
   static async runSalesReport(config: ReportConfig): Promise<SalesPerformanceRow[]> {
     const supabase = await createClient()
     const { start, end } = this.getDateRange(config.date_range)
@@ -68,18 +78,9 @@ export class ReportingService {
     const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
-
     const { data, error } = await supabase
-      .from('mv_sales_performance')
+      .from('v_sales_performance')
       .select('organization_id, month, total_proposals, proposals_won, proposals_lost, total_value, won_value, win_rate, avg_deal_size')
-      .eq('organization_id', profile.organization_id)
       .gte('month', start)
       .lte('month', end)
       .order('month', { ascending: false })
@@ -95,18 +96,9 @@ export class ReportingService {
     const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
-
     const { data, error } = await supabase
-      .from('mv_job_costs')
+      .from('v_job_costs')
       .select('*')
-      .eq('organization_id', profile.organization_id)
       .gte('month', start)
       .lte('month', end)
       .order('month', { ascending: false })
@@ -122,18 +114,9 @@ export class ReportingService {
     const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
-
     const { data, error } = await supabase
-      .from('mv_lead_source_roi')
+      .from('v_lead_source_roi')
       .select('*')
-      .eq('organization_id', profile.organization_id)
       .gte('month', start)
       .lte('month', end)
       .order('source')
@@ -274,8 +257,11 @@ export class ReportingService {
   // ========== REFRESH VIEWS ==========
 
   static async refreshViews(): Promise<void> {
-    const supabase = await createClient()
-    const { error } = await supabase.rpc('refresh_report_views')
+    // refresh_report_views is no longer callable by `authenticated` (it's
+    // SECURITY DEFINER but locked to service_role per the security lockdown
+    // migration). Use the admin client.
+    const admin = createAdminClient()
+    const { error } = await admin.rpc('refresh_report_views')
     if (error) throwDbError(error, 'refresh report views')
   }
 }

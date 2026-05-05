@@ -33,6 +33,7 @@ import type { Job } from '@/types/jobs'
 import { jobStatusConfig } from '@/types/jobs'
 import Link from 'next/link'
 import { LocationFilter, type LocationFilterValue } from '@/components/locations/location-filter'
+import { MobileListCard } from '@/components/ui/mobile-list-card'
 
 // Memoized table row component
 interface JobRowProps {
@@ -192,8 +193,62 @@ export function JobsDataTable({ data }: JobsDataTableProps) {
         <LocationFilter value={locationFilter} onChange={setLocationFilter} />
       </div>
 
-      {/* Table */}
-      <div className="border rounded-lg">
+      {/* Mobile card list (under md) */}
+      <div className="md:hidden space-y-2">
+        {filteredData.length === 0 ? (
+          <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
+            No jobs found
+          </div>
+        ) : (
+          filteredData.map((job) => {
+            const cityState = [job.job_city, job.job_state].filter(Boolean).join(', ')
+            const cfg = jobStatusConfig[job.status]
+            return (
+              <MobileListCard
+                key={job.id}
+                href={`/jobs/${job.id}`}
+                identifier={job.job_number}
+                badge={
+                  cfg ? (
+                    <Badge className={cn(cfg.bgColor, cfg.color)}>
+                      {cfg.label}
+                    </Badge>
+                  ) : (
+                    <Badge>{job.status}</Badge>
+                  )
+                }
+                title={job.name || job.customer?.company_name || job.customer?.name || undefined}
+                subtitle={
+                  <span className="inline-flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
+                    {[job.job_address, cityState].filter(Boolean).join(' · ')}
+                  </span>
+                }
+                meta={
+                  <>
+                    <span>{format(parseISO(job.scheduled_start_date), 'MMM d, yyyy')}</span>
+                    {job.scheduled_start_time && (
+                      <span>{format(parseISO(`2000-01-01T${job.scheduled_start_time}`), 'h:mm a')}</span>
+                    )}
+                    {job.crew && job.crew.length > 0 && (
+                      <span className="inline-flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        {job.crew.length}
+                      </span>
+                    )}
+                    <span className="font-semibold text-foreground">
+                      {formatCurrency(job.final_amount || job.contract_amount)}
+                    </span>
+                  </>
+                }
+              />
+            )
+          })
+        )}
+      </div>
+
+      {/* Desktop table (md and up) */}
+      <div className="hidden md:block border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow>

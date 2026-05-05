@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { FormField } from '@/components/ui/form-field'
 import { useToast } from '@/components/ui/use-toast'
 import { Loader2 } from 'lucide-react'
 
@@ -141,8 +141,7 @@ export function SignupForm() {
         </div>
       )}
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="firstName">First Name</Label>
+        <FormField label="First Name" required error={errors.firstName}>
           <Input
             id="firstName"
             name="firstName"
@@ -150,17 +149,9 @@ export function SignupForm() {
             placeholder="John"
             required
             disabled={isLoading}
-            aria-invalid={!!errors.firstName}
-            aria-describedby={errors.firstName ? 'firstName-error' : undefined}
           />
-          {errors.firstName && (
-            <p id="firstName-error" className="text-sm text-destructive mt-1" role="alert">
-              {errors.firstName}
-            </p>
-          )}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="lastName">Last Name</Label>
+        </FormField>
+        <FormField label="Last Name" required error={errors.lastName}>
           <Input
             id="lastName"
             name="lastName"
@@ -168,18 +159,10 @@ export function SignupForm() {
             placeholder="Doe"
             required
             disabled={isLoading}
-            aria-invalid={!!errors.lastName}
-            aria-describedby={errors.lastName ? 'lastName-error' : undefined}
           />
-          {errors.lastName && (
-            <p id="lastName-error" className="text-sm text-destructive mt-1" role="alert">
-              {errors.lastName}
-            </p>
-          )}
-        </div>
+        </FormField>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+      <FormField label="Email" required error={errors.email}>
         <Input
           id="email"
           name="email"
@@ -187,17 +170,14 @@ export function SignupForm() {
           placeholder="name@example.com"
           required
           disabled={isLoading}
-          aria-invalid={!!errors.email}
-          aria-describedby={errors.email ? 'email-error' : undefined}
         />
-        {errors.email && (
-          <p id="email-error" className="text-sm text-destructive mt-1" role="alert">
-            {errors.email}
-          </p>
-        )}
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+      </FormField>
+      <FormField
+        label="Password"
+        required
+        error={errors.password}
+        hint="Must be at least 8 characters"
+      >
         <Input
           id="password"
           name="password"
@@ -206,21 +186,9 @@ export function SignupForm() {
           required
           minLength={8}
           disabled={isLoading}
-          aria-invalid={!!errors.password}
-          aria-describedby={errors.password ? 'password-error' : 'password-help'}
         />
-        {errors.password ? (
-          <p id="password-error" className="text-sm text-destructive mt-1" role="alert">
-            {errors.password}
-          </p>
-        ) : (
-          <p id="password-help" className="text-xs text-muted-foreground">
-            Must be at least 8 characters
-          </p>
-        )}
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm Password</Label>
+      </FormField>
+      <FormField label="Confirm Password" required error={errors.confirmPassword}>
         <Input
           id="confirmPassword"
           name="confirmPassword"
@@ -229,15 +197,8 @@ export function SignupForm() {
           required
           minLength={8}
           disabled={isLoading}
-          aria-invalid={!!errors.confirmPassword}
-          aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
         />
-        {errors.confirmPassword && (
-          <p id="confirmPassword-error" className="text-sm text-destructive mt-1" role="alert">
-            {errors.confirmPassword}
-          </p>
-        )}
-      </div>
+      </FormField>
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? (
           <>

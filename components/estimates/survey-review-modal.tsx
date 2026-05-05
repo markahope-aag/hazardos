@@ -116,7 +116,7 @@ export function SurveyReviewModal({ surveyId, open, onOpenChange }: SurveyReview
             {survey && (
               <>
                 <Badge variant="outline" className="capitalize">
-                  {survey.status.replace('_', ' ')}
+                  {(survey.status ?? 'draft').replace('_', ' ')}
                 </Badge>
                 {survey.hazard_type && (
                   <Badge variant="outline" className="capitalize">

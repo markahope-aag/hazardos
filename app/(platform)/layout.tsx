@@ -48,6 +48,9 @@ export default async function PlatformLayout({
             <a href="/platform-admin/audit" className="text-sm font-medium text-gray-600 hover:text-primary">
               Audit Logs
             </a>
+            <a href="/platform-admin/query-performance" className="text-sm font-medium text-gray-600 hover:text-primary">
+              Query Performance
+            </a>
           </div>
         </nav>
 

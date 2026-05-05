@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import {
   Calculator,
   Plus,
@@ -56,6 +57,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { MobileListCard } from '@/components/ui/mobile-list-card'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
@@ -156,6 +158,7 @@ export default function EstimatesPage() {
   const [estimates, setEstimates] = useState<EstimateWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearch = useDebouncedValue(searchQuery, 300)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [locationFilter, setLocationFilter] = useState<LocationFilterValue>('all')
   const [showAllVersions, setShowAllVersions] = useState(false)
@@ -178,6 +181,11 @@ export default function EstimatesPage() {
       if (locationFilter !== 'all') {
         params.set('location_id', locationFilter)
       }
+      // Server-side search across estimate_number + project_name so the
+      // search isn't capped at the visible page (was a 50-row window).
+      if (debouncedSearch.trim()) {
+        params.set('q', debouncedSearch.trim())
+      }
       params.set('include', showAllVersions ? 'all' : 'latest')
 
       const response = await fetch(`/api/estimates?${params.toString()}`)
@@ -194,7 +202,7 @@ export default function EstimatesPage() {
     } finally {
       setLoading(false)
     }
-  }, [organization?.id, statusFilter, locationFilter, showAllVersions, toast])
+  }, [organization?.id, statusFilter, locationFilter, showAllVersions, debouncedSearch, toast])
 
   useEffect(() => {
     loadEstimates()
@@ -266,19 +274,11 @@ export default function EstimatesPage() {
     }
   }
 
-  const filteredEstimates = useMemo(() => {
-    return estimates.filter(estimate => {
-      if (!searchQuery) return true
-      const query = searchQuery.toLowerCase()
-      return (
-        estimate.estimate_number?.toLowerCase().includes(query) ||
-        estimate.project_name?.toLowerCase().includes(query) ||
-        estimate.customer?.company_name?.toLowerCase().includes(query) ||
-        estimate.customer?.first_name?.toLowerCase().includes(query) ||
-        estimate.customer?.last_name?.toLowerCase().includes(query)
-      )
-    })
-  }, [estimates, searchQuery])
+  // Filtering happens server-side via the q param. The list view
+  // renders the API response directly. Customer-name search is dropped
+  // here — it required a join filter that was already broken (it only
+  // worked across the 50-row window). Use the Contacts page instead.
+  const filteredEstimates = estimates
 
   // KPIs come from a SQL aggregate (`get_estimate_metrics`) rather
   // than a client-side reduce over the visible page — the previous
@@ -479,8 +479,89 @@ export default function EstimatesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Table */}
-      <Card>
+      {/* Mobile card list (under md) */}
+      <div className="md:hidden space-y-2">
+        {loading ? (
+          <Card><CardContent className="p-8 text-center text-muted-foreground">Loading estimates...</CardContent></Card>
+        ) : filteredEstimates.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-muted-foreground">No estimates found</p>
+              <Button asChild variant="link" className="mt-2">
+                <Link href="/site-surveys?action=estimate">Create your first estimate</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          filteredEstimates.map((estimate) => {
+            const customerName = estimate.customer
+              ? estimate.customer.company_name ||
+                [estimate.customer.first_name, estimate.customer.last_name].filter(Boolean).join(' ') ||
+                estimate.customer.name ||
+                'No name'
+              : 'No customer'
+            const sentAt = estimate.proposals?.find((p) => p.sent_at)?.sent_at ?? null
+            const validUntil = estimate.valid_until
+            const today = new Date().toISOString().split('T')[0]
+            const isExpiredButSent = estimate.status === 'sent' && validUntil && validUntil < today
+            const linkedJob = estimate.jobs && estimate.jobs.length > 0 ? estimate.jobs[0] : null
+            const chainTotal =
+              (estimate as EstimateWithRelations & { chain_total?: number }).chain_total ?? estimate.version
+            const projectName = estimate.project_name || estimate.site_survey?.job_name || null
+
+            return (
+              <MobileListCard
+                key={estimate.id}
+                href={`/estimates/${estimate.id}`}
+                identifier={
+                  <span className="flex items-center gap-2">
+                    {estimate.estimate_number}
+                    <span className="text-xs text-muted-foreground font-normal">
+                      v{estimate.version}/{chainTotal}
+                    </span>
+                  </span>
+                }
+                badge={<EstimateStatusBadge status={estimate.status} />}
+                title={projectName}
+                subtitle={customerName}
+                meta={
+                  <>
+                    <span className="font-semibold text-foreground">
+                      {formatCurrency(estimate.total)}
+                    </span>
+                    {sentAt && <span>Sent {new Date(sentAt).toLocaleDateString()}</span>}
+                    {validUntil && (
+                      <span className={isExpiredButSent ? 'text-amber-600 font-medium' : ''}>
+                        {isExpiredButSent ? 'Expired ' : 'Expires '}
+                        {new Date(validUntil).toLocaleDateString()}
+                      </span>
+                    )}
+                    {linkedJob && (
+                      <Link
+                        href={`/crm/jobs/${linkedJob.id}`}
+                        className="inline-flex items-center gap-1 text-primary hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Briefcase className="h-3 w-3" />
+                        {linkedJob.job_number}
+                      </Link>
+                    )}
+                    {estimate.next_follow_up && (
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        FU {new Date(estimate.next_follow_up.due_date).toLocaleDateString()}
+                      </span>
+                    )}
+                  </>
+                }
+              />
+            )
+          })
+        )}
+      </div>
+
+      {/* Desktop table (md and up) */}
+      <Card className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>

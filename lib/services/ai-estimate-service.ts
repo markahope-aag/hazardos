@@ -382,10 +382,13 @@ Respond in JSON format:
   private static async getPricingData(organizationId: string): Promise<PricingData> {
     const supabase = await createClient();
 
-    // Fetch labor rates
+    // Fetch labor rates. The legacy schema had a `hazard_type`/`rate` shape,
+    // but labor_rates was reworked into named day rates (`name`,
+    // `rate_per_day`) — the old columns no longer exist, so the previous
+    // SELECT silently returned no data and the AI got an empty pricing map.
     const { data: laborRates } = await supabase
       .from('labor_rates')
-      .select('hazard_type, rate')
+      .select('name, rate_per_day')
       .eq('organization_id', organizationId);
 
     // Fetch material costs
@@ -401,7 +404,7 @@ Respond in JSON format:
       .eq('organization_id', organizationId);
 
     return {
-      laborRates: (laborRates || []).reduce((acc, r) => ({ ...acc, [r.hazard_type]: r.rate }), {}),
+      laborRates: (laborRates || []).reduce((acc, r) => ({ ...acc, [r.name]: r.rate_per_day }), {}),
       materialCosts: (materialCosts || []).reduce((acc, m) => ({ ...acc, [m.name]: m.cost_per_unit }), {}),
       disposalFees: (disposalFees || []).reduce((acc, d) => ({ ...acc, [d.hazard_type]: d.cost_per_cubic_yard }), {}),
     };

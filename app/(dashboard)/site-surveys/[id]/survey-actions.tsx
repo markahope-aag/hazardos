@@ -166,7 +166,7 @@ export function SurveyActions({ survey, onStatusChange }: SurveyActionsProps) {
   }
 
   const canMarkReviewed = survey.status === 'submitted'
-  const canCancel = !['cancelled', 'completed'].includes(survey.status)
+  const canCancel = !['cancelled', 'completed'].includes(survey.status ?? '')
 
   return (
     <>

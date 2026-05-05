@@ -14,6 +14,13 @@ import type {
 
 const log = createServiceLogger('NotificationService')
 
+// Columns the bell + any future list view actually render. Skips
+// user_id / organization_id / entity_type / entity_id / action_label /
+// priority / metadata / read_at / updated_at — none of them are ever
+// shown. Halves payload size on the 30s poll.
+const NOTIFICATION_LIST_FIELDS =
+  'id, type, title, message, action_url, is_read, created_at, expires_at'
+
 export class NotificationService {
   // ========== NOTIFICATIONS ==========
 
@@ -120,7 +127,7 @@ export class NotificationService {
 
     const { data, error, count } = await supabase
       .from('notifications')
-      .select('*', { count: 'exact' })
+      .select(NOTIFICATION_LIST_FIELDS, { count: 'exact' })
       .eq('user_id', targetUserId)
       .eq('is_read', false)
       .or('expires_at.is.null,expires_at.gt.now()')
@@ -129,7 +136,15 @@ export class NotificationService {
 
     if (error) throwDbError(error, 'fetch unread notifications')
 
-    return { notifications: data || [], total: count || 0, limit, offset }
+    return {
+      // Narrowed projection — runtime is missing org/user/entity/etc.
+      // Cast through unknown to keep the public type stable for callers
+      // that only read the bell-rendered fields.
+      notifications: (data || []) as unknown as Notification[],
+      total: count || 0,
+      limit,
+      offset,
+    }
   }
 
   static async getAll(options?: {
@@ -148,7 +163,7 @@ export class NotificationService {
 
     const { data, error, count } = await supabase
       .from('notifications')
-      .select('*', { count: 'exact' })
+      .select(NOTIFICATION_LIST_FIELDS, { count: 'exact' })
       .eq('user_id', targetUserId)
       .or('expires_at.is.null,expires_at.gt.now()')
       .order('created_at', { ascending: false })
@@ -156,7 +171,12 @@ export class NotificationService {
 
     if (error) throwDbError(error, 'fetch notifications')
 
-    return { notifications: data || [], total: count || 0, limit, offset }
+    return {
+      notifications: (data || []) as unknown as Notification[],
+      total: count || 0,
+      limit,
+      offset,
+    }
   }
 
   static async getUnreadCount(userId?: string): Promise<number> {

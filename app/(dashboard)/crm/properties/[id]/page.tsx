@@ -215,7 +215,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                         >
                           {pc.contact?.name || 'Unknown contact'}
                         </Link>
-                        <Badge className={ROLE_BADGE[pc.role]}>{ROLE_LABEL[pc.role]}</Badge>
+                        <Badge className={ROLE_BADGE[pc.role as PropertyContactRole]}>{ROLE_LABEL[pc.role as PropertyContactRole]}</Badge>
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
                         {pc.contact?.phone || pc.contact?.mobile_phone || pc.contact?.email || '—'}
@@ -293,7 +293,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                         >
                           {pc.contact?.name || 'Unknown contact'}
                         </Link>
-                        <Badge className={ROLE_BADGE[pc.role]}>{ROLE_LABEL[pc.role]}</Badge>
+                        <Badge className={ROLE_BADGE[pc.role as PropertyContactRole]}>{ROLE_LABEL[pc.role as PropertyContactRole]}</Badge>
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
                         {pc.moved_in_date && `moved in ${formatDate(pc.moved_in_date)} · `}

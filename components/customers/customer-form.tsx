@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
+import { FormField } from '@/components/ui/form-field'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -51,8 +52,8 @@ export default function CustomerForm({
       first_name: customer.first_name || '',
       last_name: customer.last_name || '',
       title: customer.title || '',
-      contact_type: customer.contact_type || 'residential',
-      contact_role: customer.contact_role || undefined,
+      contact_type: (customer.contact_type as ContactType | null) || 'residential',
+      contact_role: (customer.contact_role as ContactRole | null) || undefined,
       company_name: customer.company_name || '',
       company_id: customer.company_id || '',
       email: customer.email || '',
@@ -65,9 +66,9 @@ export default function CustomerForm({
       city: customer.city || '',
       state: customer.state || '',
       zip: customer.zip || '',
-      status: customer.status,
-      source: customer.source || undefined,
-      marketing_consent: customer.marketing_consent,
+      status: (customer.status as CustomerStatus | null) ?? 'inquiry',
+      source: (customer.source as CustomerSource | null) || undefined,
+      marketing_consent: customer.marketing_consent ?? false,
       opted_into_email: customer.opted_into_email || false,
       opted_into_sms: customer.opted_into_sms || false,
       lead_source: customer.lead_source || '',
@@ -150,46 +151,44 @@ export default function CustomerForm({
       <div className="space-y-4">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Basic Information</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="first_name">First Name *</Label>
+          <FormField label="First Name" required error={errors.first_name?.message}>
             <Input id="first_name" {...register('first_name')} />
-            {errors.first_name && <p className="text-sm text-destructive mt-1">{errors.first_name.message}</p>}
-          </div>
-          <div>
-            <Label htmlFor="last_name">Last Name</Label>
+          </FormField>
+          <FormField label="Last Name" error={errors.last_name?.message}>
             <Input id="last_name" {...register('last_name')} />
-          </div>
+          </FormField>
         </div>
         {watchedContactType === 'commercial' && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="title">Title / Role</Label>
+            <FormField label="Title / Role" error={errors.title?.message}>
               <Input id="title" {...register('title')} placeholder="e.g., Facilities Manager" />
-            </div>
-            <div>
-              <Label htmlFor="contact_role">Contact Role</Label>
+            </FormField>
+            <FormField label="Contact Role" error={errors.contact_role?.message}>
               <Select value={watch('contact_role') || ''} onValueChange={(v) => setValue('contact_role', v as ContactRole)}>
-                <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
+                <SelectTrigger id="contact_role"><SelectValue placeholder="Select role" /></SelectTrigger>
                 <SelectContent>
                   {CONTACT_ROLE_OPTIONS.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </FormField>
           </div>
         )}
         {watchedContactType === 'commercial' && (
-          <div>
-            <Label htmlFor="company_name">Company *</Label>
+          <FormField
+            label="Company"
+            required
+            error={errors.company_name?.message}
+            hint="Type to search existing or enter new"
+          >
             <Input id="company_name" {...register('company_name')} placeholder="Search or enter company name" list="company-suggestions" />
-            {companyResults.length > 0 && watchedCompanyName && (
-              <datalist id="company-suggestions">
-                {companyResults.map((c) => (<option key={c.id} value={c.name} />))}
-              </datalist>
-            )}
-            <p className="text-xs text-muted-foreground mt-1">Type to search existing or enter new</p>
-          </div>
+          </FormField>
+        )}
+        {watchedContactType === 'commercial' && companyResults.length > 0 && watchedCompanyName && (
+          <datalist id="company-suggestions">
+            {companyResults.map((c) => (<option key={c.id} value={c.name} />))}
+          </datalist>
         )}
       </div>
 
@@ -197,27 +196,25 @@ export default function CustomerForm({
       <div className="space-y-4">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact Methods</h3>
         <div className={`grid grid-cols-1 gap-4 ${watchedContactType === 'commercial' ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
-          <div>
-            <Label htmlFor="email">Email</Label>
+          <FormField label="Email" error={errors.email?.message}>
             <Input id="email" type="email" {...register('email')} />
-            {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
-          </div>
-          <div>
-            <Label htmlFor="mobile_phone">{watchedContactType === 'commercial' ? 'Mobile Phone' : 'Phone'}</Label>
+          </FormField>
+          <FormField
+            label={watchedContactType === 'commercial' ? 'Mobile Phone' : 'Phone'}
+            error={errors.mobile_phone?.message}
+          >
             <Input id="mobile_phone" type="tel" {...register('mobile_phone')} />
-          </div>
+          </FormField>
           {watchedContactType === 'commercial' && (
-            <div>
-              <Label htmlFor="office_phone">Office Phone</Label>
+            <FormField label="Office Phone" error={errors.office_phone?.message}>
               <Input id="office_phone" type="tel" {...register('office_phone')} />
-            </div>
+            </FormField>
           )}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <Label>Preferred Contact Method</Label>
+          <FormField label="Preferred Contact Method" error={errors.preferred_contact_method?.message}>
             <Select value={watch('preferred_contact_method') || ''} onValueChange={(v) => setValue('preferred_contact_method', v as 'email' | 'phone' | 'text' | 'mail')}>
-              <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
+              <SelectTrigger id="preferred_contact_method"><SelectValue placeholder="Select method" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="email">Email</SelectItem>
                 <SelectItem value="phone">Phone</SelectItem>
@@ -225,7 +222,7 @@ export default function CustomerForm({
                 <SelectItem value="mail">Mail</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </FormField>
         </div>
         <div className="flex gap-6">
           <div className="flex items-center space-x-2">
@@ -243,28 +240,26 @@ export default function CustomerForm({
       <div className="space-y-4">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Relationship</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <Label>Status *</Label>
+          <FormField label="Status" required error={errors.status?.message}>
             <Select value={watch('status')} onValueChange={(v) => setValue('status', v as CustomerStatus)}>
-              <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+              <SelectTrigger id="status"><SelectValue placeholder="Select status" /></SelectTrigger>
               <SelectContent>
                 {CUSTOMER_STATUS_OPTIONS.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div>
-            <Label>Source</Label>
+          </FormField>
+          <FormField label="Source" error={errors.source?.message}>
             <Select value={watch('source') || ''} onValueChange={(v) => setValue('source', v as CustomerSource)}>
-              <SelectTrigger><SelectValue placeholder="Select source" /></SelectTrigger>
+              <SelectTrigger id="source"><SelectValue placeholder="Select source" /></SelectTrigger>
               <SelectContent>
                 {CUSTOMER_SOURCE_OPTIONS.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FormField>
         </div>
       </div>
 
@@ -278,64 +273,51 @@ export default function CustomerForm({
             </span>
           )}
         </div>
-        <div>
-          <Label htmlFor="address_line1">Street Address *</Label>
+        <FormField label="Street Address" required error={errors.address_line1?.message}>
           <Input id="address_line1" {...register('address_line1')} readOnly={addressLocked} />
-          {errors.address_line1 && <p className="text-sm text-destructive mt-1">{errors.address_line1.message}</p>}
-        </div>
+        </FormField>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div>
-            <Label htmlFor="city">City *</Label>
+          <FormField label="City" required error={errors.city?.message}>
             <Input id="city" {...register('city')} readOnly={addressLocked} />
-            {errors.city && <p className="text-sm text-destructive mt-1">{errors.city.message}</p>}
-          </div>
-          <div>
-            <Label htmlFor="state">State *</Label>
+          </FormField>
+          <FormField label="State" required error={errors.state?.message}>
             <Input id="state" {...register('state')} placeholder="CO" maxLength={2} readOnly={addressLocked} />
-            {errors.state && <p className="text-sm text-destructive mt-1">{errors.state.message}</p>}
-          </div>
-          <div>
-            <Label htmlFor="zip">ZIP *</Label>
+          </FormField>
+          <FormField label="ZIP" required error={errors.zip?.message}>
             <Input id="zip" {...register('zip')} readOnly={addressLocked} />
-            {errors.zip && <p className="text-sm text-destructive mt-1">{errors.zip.message}</p>}
-          </div>
+          </FormField>
         </div>
       </div>
 
       {/* Section 6: Lead Source */}
       <div className="space-y-4">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Lead Source</h3>
-        <div className="grid grid-cols-1 gap-4">
-          <div>
-            <Label htmlFor="lead_source">How did they find us?</Label>
-            <Input
-              id="lead_source"
-              {...register('lead_source')}
-              placeholder="Google, Nextdoor, referral from John Smith, repeat customer, walk-in, ..."
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Free text — specific is better. This is what drives the Lead Sources chart on the dashboard.
-            </p>
-          </div>
-        </div>
+        <FormField
+          label="How did they find us?"
+          error={errors.lead_source?.message}
+          hint="Free text — specific is better. This is what drives the Lead Sources chart on the dashboard."
+        >
+          <Input
+            id="lead_source"
+            {...register('lead_source')}
+            placeholder="Google, Nextdoor, referral from John Smith, repeat customer, walk-in, ..."
+          />
+        </FormField>
       </div>
 
       {/* Section 7: Notes & Follow-up */}
       <div className="space-y-4">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Notes & Follow-up</h3>
-        <div>
-          <Label htmlFor="notes">Notes</Label>
+        <FormField label="Notes" error={errors.notes?.message}>
           <Textarea id="notes" rows={3} {...register('notes')} placeholder="Add any notes about this contact..." />
-        </div>
+        </FormField>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="next_followup_date">Next Follow-up Date</Label>
+          <FormField label="Next Follow-up Date" error={errors.next_followup_date?.message}>
             <Input id="next_followup_date" type="date" {...register('next_followup_date')} />
-          </div>
-          <div>
-            <Label htmlFor="next_followup_note">Follow-up Note</Label>
+          </FormField>
+          <FormField label="Follow-up Note" error={errors.next_followup_note?.message}>
             <Input id="next_followup_note" {...register('next_followup_note')} placeholder="e.g., Call to discuss estimate" />
-          </div>
+          </FormField>
         </div>
       </div>
 

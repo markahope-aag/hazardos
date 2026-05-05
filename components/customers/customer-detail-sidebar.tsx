@@ -192,8 +192,8 @@ export function CustomerDetailSidebar({
               <p className="text-xs text-muted-foreground">Value</p>
               <p className="font-semibold tabular-nums flex items-center justify-center text-sm">
                 <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                {customer.lifetime_value > 0
-                  ? customer.lifetime_value.toLocaleString()
+                {(customer.lifetime_value ?? 0) > 0
+                  ? (customer.lifetime_value ?? 0).toLocaleString()
                   : '0'}
               </p>
             </div>

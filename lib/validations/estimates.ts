@@ -93,6 +93,9 @@ export const estimateListQuerySchema = z.object({
   to_date: z.string().optional(),
   // 'unassigned' = location_id IS NULL, uuid = specific location
   location_id: z.string().optional(),
+  // Free-text search across estimate_number + project_name + customer
+  // names. Server-side so search isn't restricted to the visible page.
+  q: z.string().max(200).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
   offset: z.coerce.number().int().min(0).optional(),
   // 'latest' (default) returns one row per chain — the highest version.

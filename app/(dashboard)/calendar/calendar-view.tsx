@@ -1435,7 +1435,7 @@ function SelectedJobAttachments({
                   <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
                   <span className="truncate">{doc.file_name}</span>
                   <span className="text-[10px] uppercase tracking-wide text-muted-foreground whitespace-nowrap">
-                    {CATEGORY_LABEL[doc.category]}
+                    {CATEGORY_LABEL[doc.category as JobDocumentCategory]}
                   </span>
                 </span>
                 <Download className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />

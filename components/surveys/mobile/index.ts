@@ -1,9 +1,5 @@
 // Mobile Survey Wizard Components
 export { default as MobileSurveyWizard, MobileSurveyWizardErrorBoundary } from './mobile-survey-wizard'
-export { SurveyWizard, SurveyWizardErrorBoundary } from './survey-wizard'
-export { WizardNavigation, WizardNavigationLabel } from './wizard-navigation'
-export { WizardFooter } from './wizard-footer'
-export { SyncStatusIndicator, InlineSyncStatus } from './sync-status-indicator'
 
 // Re-export section components
 export * from './sections'
