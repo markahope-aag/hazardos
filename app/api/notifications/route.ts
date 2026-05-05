@@ -17,17 +17,24 @@ export const GET = createApiHandler(
   async (_request, _context, _body, query) => {
     const unreadOnly = query.unread === 'true'
 
-    const result = unreadOnly
-      ? await NotificationService.getUnread({
-          limit: query.limit,
-          offset: query.offset,
-        })
-      : await NotificationService.getAll({
-          limit: query.limit,
-          offset: query.offset,
-        })
+    // Fetch the list and the unread count in a single round-trip so
+    // the notification bell can render badge + dropdown from one
+    // request instead of polling /api/notifications + /count every
+    // 30 seconds.
+    const [result, unreadCount] = await Promise.all([
+      unreadOnly
+        ? NotificationService.getUnread({
+            limit: query.limit,
+            offset: query.offset,
+          })
+        : NotificationService.getAll({
+            limit: query.limit,
+            offset: query.offset,
+          }),
+      NotificationService.getUnreadCount(),
+    ])
 
-    return NextResponse.json(result)
+    return NextResponse.json({ ...result, unread_count: unreadCount })
   }
 )
 

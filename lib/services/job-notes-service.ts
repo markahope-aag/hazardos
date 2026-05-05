@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import { throwDbError } from '@/lib/utils/secure-error-handler'
 import type { JobNote, AddJobNoteInput } from '@/types/jobs'
 
 export class JobNotesService {
   static async add(jobId: string, input: AddJobNoteInput): Promise<JobNote> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     const { data, error } = await supabase
       .from('job_notes')

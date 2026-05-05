@@ -1,5 +1,5 @@
 import { redirect, notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import { ReportingService } from '@/lib/services/reporting-service'
 import { reportTypeConfig, dateRangePresets } from '@/types/reporting'
 import type { ReportType, ReportConfig, DateRangeType } from '@/types/reporting'
@@ -12,9 +12,8 @@ interface Props {
 }
 
 export default async function ReportTypePage({ params, searchParams }: Props) {
-  const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
 
   const { type } = await params

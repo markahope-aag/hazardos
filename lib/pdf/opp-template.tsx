@@ -235,13 +235,13 @@ export function OppPdf(data: OppGenerateInput) {
 
         <View style={styles.introBox}>
           <Text>
-            <Text style={styles.introLabel}>Contractor —</Text> Describe the actions taken to
+            <Text style={styles.introLabel}>Contractor -</Text> Describe the actions taken to
             ensure the health and safety of building occupants during this project in space below.
             If handwritten, write clearly and legibly. Post this plan in plain view outside the
             regulated area for the project.
           </Text>
           <Text style={{ marginTop: 4 }}>
-            <Text style={styles.introLabel}>Occupants —</Text> Asbestos is a hazardous substance.
+            <Text style={styles.introLabel}>Occupants -</Text> Asbestos is a hazardous substance.
             The actions described below are meant to protect you and others nearby during this
             asbestos removal project. It is important to stay out of work areas while work is in
             progress and until permission is given to re-enter upon completion. The contractor
@@ -330,7 +330,7 @@ export function OppPdf(data: OppGenerateInput) {
           <Text style={styles.sectionHeader}>
             PROTECTIVE MEASURES{' '}
             <Text style={{ fontWeight: 'normal', fontSize: 8, color: colors.hint }}>
-              (Describe below actions taken to ensure occupant safety)
+              (Describe below actions taken to ensure occupant safety – attach additional sheet, if needed)
             </Text>
           </Text>
           <ProtectiveSection
@@ -357,7 +357,7 @@ export function OppPdf(data: OppGenerateInput) {
 
         <View style={styles.footer}>
           <Text style={styles.footerHeader}>
-            WISCONSIN DEPARTMENT OF HEALTH SERVICES — ASBESTOS PROGRAM
+            WISCONSIN DEPARTMENT OF HEALTH SERVICES – ASBESTOS PROGRAM
           </Text>
           <Text style={styles.footerNote}>
             Questions or Concerns? Contact the Asbestos and Lead Section at: 608-261-6876

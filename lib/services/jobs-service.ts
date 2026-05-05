@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import { Activity } from '@/lib/services/activity-service'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import {
@@ -41,7 +42,7 @@ async function generateJobNumber(
 export class JobsService {
   static async create(input: CreateJobInput): Promise<Job> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import { Activity } from '@/lib/services/activity-service'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
@@ -13,7 +14,7 @@ export class ContactsService {
    */
   static async list(customerId: string): Promise<CustomerContact[]> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -34,7 +35,7 @@ export class ContactsService {
    */
   static async get(contactId: string): Promise<CustomerContact | null> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -54,7 +55,7 @@ export class ContactsService {
    */
   static async create(input: CreateContactInput): Promise<CustomerContact> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -111,7 +112,7 @@ export class ContactsService {
    */
   static async update(contactId: string, input: UpdateContactInput): Promise<CustomerContact> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -155,7 +156,7 @@ export class ContactsService {
    */
   static async delete(contactId: string): Promise<void> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -184,7 +185,7 @@ export class ContactsService {
    */
   static async setPrimary(contactId: string): Promise<CustomerContact> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -211,7 +212,7 @@ export class ContactsService {
    */
   static async getByRole(customerId: string, role: string): Promise<CustomerContact[]> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -232,7 +233,7 @@ export class ContactsService {
    */
   static async getPrimary(customerId: string): Promise<CustomerContact | null> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 

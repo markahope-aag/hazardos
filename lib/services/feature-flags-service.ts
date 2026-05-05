@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import type {
   FeatureFlag,
   UsageLimits,
@@ -15,7 +16,7 @@ export class FeatureFlagsService {
   static async isFeatureEnabled(featureKey: FeatureFlag): Promise<boolean> {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) return false
 
     const { data: profile } = await supabase
@@ -69,7 +70,7 @@ export class FeatureFlagsService {
   static async getFeatureFlags(): Promise<Record<FeatureFlag, boolean>> {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) return this.getDefaultFlags()
 
     const { data: profile } = await supabase
@@ -127,7 +128,7 @@ export class FeatureFlagsService {
   static async getUsageLimits(): Promise<UsageLimits> {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) return this.getDefaultLimits()
 
     const { data: profile } = await supabase

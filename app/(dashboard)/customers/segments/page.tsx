@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import { SegmentationService } from '@/lib/services/segmentation-service';
 import { SegmentList } from '@/components/customers/segment-list';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import Link from 'next/link';
 export default async function SegmentsPage() {
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   const { data: profile } = await supabase
     .from('profiles')
     .select('organization_id')

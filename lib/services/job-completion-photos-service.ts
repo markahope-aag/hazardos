@@ -1,4 +1,5 @@
 import { nanoid } from 'nanoid'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
@@ -11,7 +12,7 @@ import type {
 export class JobCompletionPhotosService {
   static async getPhotos(jobId: string): Promise<JobCompletionPhoto[]> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -34,7 +35,7 @@ export class JobCompletionPhotosService {
 
   static async createPhoto(input: CreateCompletionPhotoInput): Promise<JobCompletionPhoto> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -71,7 +72,7 @@ export class JobCompletionPhotosService {
 
   static async updatePhoto(id: string, input: UpdateCompletionPhotoInput): Promise<JobCompletionPhoto> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -91,7 +92,7 @@ export class JobCompletionPhotosService {
 
   static async deletePhoto(id: string): Promise<void> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -123,7 +124,7 @@ export class JobCompletionPhotosService {
     file: File,
   ): Promise<{ url: string; path: string }> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 

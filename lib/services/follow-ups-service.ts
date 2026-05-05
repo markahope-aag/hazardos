@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import { Activity } from '@/lib/services/activity-service'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
@@ -122,7 +123,7 @@ export class FollowUpsService {
 
   static async create(input: CreateFollowUpInput): Promise<FollowUp> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
@@ -164,7 +165,7 @@ export class FollowUpsService {
 
   static async update(id: string, updates: UpdateFollowUpInput): Promise<FollowUp> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
     // Fetch existing to drive activity logging on transitions.

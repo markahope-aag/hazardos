@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import { Activity } from '@/lib/services/activity-service'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
@@ -11,7 +12,7 @@ import type {
 export class JobChecklistService {
   static async getChecklist(jobId: string): Promise<JobCompletionChecklist[]> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -56,7 +57,7 @@ export class JobChecklistService {
 
   static async initializeChecklist(jobId: string): Promise<JobCompletionChecklist[]> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -86,7 +87,7 @@ export class JobChecklistService {
     notes?: string,
   ): Promise<JobCompletionChecklist> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -112,7 +113,7 @@ export class JobChecklistService {
     input: UpdateChecklistItemInput,
   ): Promise<JobCompletionChecklist> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 

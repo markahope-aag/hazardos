@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import { PipelineService } from '@/lib/services/pipeline-service'
 import { CommissionService } from '@/lib/services/commission-service'
 import { ApprovalService } from '@/lib/services/approval-service'
@@ -17,9 +17,8 @@ import {
 import { formatCurrency } from '@/lib/utils'
 
 export default async function SalesPage() {
-  const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
 
   const [pipelineMetrics, commissionSummary, pendingApprovals] = await Promise.all([

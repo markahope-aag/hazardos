@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import { PipelineService } from '@/lib/services/pipeline-service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,9 +9,8 @@ import { PipelineKanbanLazy } from '@/components/pipeline/pipeline-kanban-lazy'
 import { formatCurrency } from '@/lib/utils'
 
 export default async function PipelinePage() {
-  const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
 
   // Kanban shows every opportunity so closed ones stay visible in their

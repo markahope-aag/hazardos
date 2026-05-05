@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import { throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
   PlatformStats,
@@ -17,7 +18,7 @@ export class PlatformAdminService {
   static async isPlatformAdmin(): Promise<boolean> {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) return false
 
     const { data: profile } = await supabase

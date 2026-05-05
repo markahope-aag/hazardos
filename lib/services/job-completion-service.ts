@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import { Activity } from '@/lib/services/activity-service'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { JobTimeEntriesService } from '@/lib/services/job-time-entries-service'
@@ -154,7 +155,7 @@ export class JobCompletionService {
 
   static async getCompletion(jobId: string): Promise<JobCompletion | null> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -181,7 +182,7 @@ export class JobCompletionService {
 
   static async createCompletion(input: CreateCompletionInput): Promise<JobCompletion> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -230,7 +231,7 @@ export class JobCompletionService {
     input: UpdateCompletionInput,
   ): Promise<JobCompletion> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -259,7 +260,7 @@ export class JobCompletionService {
     input?: SubmitCompletionInput,
   ): Promise<JobCompletion> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -294,7 +295,7 @@ export class JobCompletionService {
     input?: ApproveCompletionInput,
   ): Promise<JobCompletion> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -330,7 +331,7 @@ export class JobCompletionService {
     input: RejectCompletionInput,
   ): Promise<JobCompletion> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 

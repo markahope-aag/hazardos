@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import { ReportingService } from '@/lib/services/reporting-service'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,9 +27,8 @@ const reportIcons: Record<ReportType, React.ElementType> = {
 }
 
 export default async function ReportsPage() {
-  const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
 
   const reports = await ReportingService.listReports()

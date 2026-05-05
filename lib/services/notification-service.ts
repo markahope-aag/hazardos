@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import { EmailService } from '@/lib/services/email/email-service'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
@@ -18,7 +19,7 @@ export class NotificationService {
 
   static async create(input: CreateNotificationInput): Promise<Notification> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -74,7 +75,7 @@ export class NotificationService {
 
   static async createForRole(input: CreateNotificationForRoleInput): Promise<Notification[]> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -109,7 +110,7 @@ export class NotificationService {
     offset?: number
   }): Promise<{ notifications: Notification[]; total: number; limit: number; offset: number }> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -137,7 +138,7 @@ export class NotificationService {
     offset?: number
   }): Promise<{ notifications: Notification[]; total: number; limit: number; offset: number }> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -160,7 +161,7 @@ export class NotificationService {
 
   static async getUnreadCount(userId?: string): Promise<number> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -176,7 +177,7 @@ export class NotificationService {
 
   static async markAsRead(id: string): Promise<void> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -194,7 +195,7 @@ export class NotificationService {
 
   static async markAllAsRead(): Promise<void> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -212,7 +213,7 @@ export class NotificationService {
 
   static async delete(id: string): Promise<void> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -244,7 +245,7 @@ export class NotificationService {
     targetUserId?: string,
   ): Promise<{ userId: string; organizationId: string | null }> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
     if (!targetUserId || targetUserId === user.id) {

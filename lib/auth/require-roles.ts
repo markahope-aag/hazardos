@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from './server-auth'
 import { ROLES, type UserRole } from './roles'
 
 /**
@@ -17,7 +18,7 @@ import { ROLES, type UserRole } from './roles'
 export async function requireRoles(allowed: readonly string[] | UserRole[]) {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase

@@ -60,7 +60,7 @@ import { JobDocumentsService } from '@/lib/supabase/job-documents'
 import type { JobDocumentCategory } from '@/types/database'
 
 type ViewMode = 'month' | 'week' | 'day'
-type EventKind = 'job' | 'survey' | 'deadline' | 'external'
+type EventKind = 'job' | 'survey' | 'deadline' | 'external' | 'industry'
 
 // Postgres DATE columns come across the wire as bare 'YYYY-MM-DD' strings.
 // date-fns' parseISO treats those as UTC midnight per the ISO spec, which
@@ -143,6 +143,18 @@ interface ExternalEvent {
   html_link: string | null
 }
 
+interface IndustryEvent {
+  id: string
+  category: string
+  title: string
+  start_at: string
+  end_at: string
+  all_day: boolean
+  location: string | null
+  description: string | null
+  registration_url: string | null
+}
+
 interface TeamMember {
   id: string
   first_name: string | null
@@ -166,6 +178,7 @@ interface CalendarEvent {
     | { kind: 'survey'; survey: CalendarSurvey }
     | { kind: 'deadline'; deadline: RegulatoryDeadline }
     | { kind: 'external'; event: ExternalEvent }
+    | { kind: 'industry'; event: IndustryEvent }
 }
 
 const DEFAULT_TYPE_FILTER: Record<EventKind, boolean> = {
@@ -173,6 +186,7 @@ const DEFAULT_TYPE_FILTER: Record<EventKind, boolean> = {
   survey: true,
   deadline: true,
   external: true,
+  industry: true,
 }
 
 // Statuses that mean the work is finished — hidden by default so the
@@ -265,6 +279,7 @@ export function CalendarView() {
   const [surveys, setSurveys] = useState<CalendarSurvey[]>([])
   const [deadlines, setDeadlines] = useState<RegulatoryDeadline[]>([])
   const [externalEvents, setExternalEvents] = useState<ExternalEvent[]>([])
+  const [industryEvents, setIndustryEvents] = useState<IndustryEvent[]>([])
   const [members, setMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<CalendarEvent | null>(null)
@@ -296,11 +311,12 @@ export function CalendarView() {
       // Pull every event source in parallel. A failure on any one
       // shouldn't blank the calendar — surveys/deadlines/external
       // each fall back to empty.
-      const [jobsRes, surveysRes, deadlinesRes, externalRes] = await Promise.all([
+      const [jobsRes, surveysRes, deadlinesRes, externalRes, industryRes] = await Promise.all([
         fetch(`/api/jobs/calendar?start=${startParam}&end=${endParam}`),
         fetch(`/api/site-surveys/calendar?start=${startParam}&end=${endParam}`),
         fetch(`/api/calendar/regulatory-deadlines?start=${startParam}&end=${endParam}`),
         fetch(`/api/calendar/external-events?start=${startParam}&end=${endParam}`),
+        fetch(`/api/calendar/industry-events?start=${startParam}&end=${endParam}`),
       ])
 
       const jobsData = await jobsRes.json().catch(() => ({}))
@@ -327,6 +343,13 @@ export function CalendarView() {
       } else {
         setExternalEvents([])
       }
+
+      if (industryRes.ok) {
+        const data = await industryRes.json().catch(() => ({ events: [] }))
+        setIndustryEvents(data.events || [])
+      } else {
+        setIndustryEvents([])
+      }
     } catch (error) {
       logger.error(
         { error: formatError(error, 'CALENDAR_FETCH_ERROR') },
@@ -339,6 +362,15 @@ export function CalendarView() {
 
   useEffect(() => {
     fetchData()
+  }, [fetchData])
+
+  // The "Import event series" button on the page header dispatches
+  // this event after a successful import so the calendar refetches
+  // immediately instead of waiting for the user to navigate.
+  useEffect(() => {
+    const handler = () => fetchData()
+    window.addEventListener('industry-events-imported', handler)
+    return () => window.removeEventListener('industry-events-imported', handler)
   }, [fetchData])
 
   useEffect(() => {
@@ -417,8 +449,23 @@ export function CalendarView() {
       })
     }
 
+    for (const ev of industryEvents) {
+      const start = ev.all_day ? parseLocalDate(ev.start_at) : parseISO(ev.start_at)
+      const end = ev.all_day ? parseLocalDate(ev.end_at) : parseISO(ev.end_at)
+      out.push({
+        id: `industry-${ev.id}`,
+        kind: 'industry',
+        title: ev.title,
+        startDate: start,
+        endDate: end,
+        startTime: ev.all_day ? null : format(start, 'HH:mm'),
+        assigneeIds: [],
+        raw: { kind: 'industry', event: ev },
+      })
+    }
+
     return out
-  }, [jobs, surveys, deadlines, externalEvents])
+  }, [jobs, surveys, deadlines, externalEvents, industryEvents])
 
   const filteredEvents = useMemo(() => {
     return allEvents.filter((ev) => {
@@ -430,7 +477,7 @@ export function CalendarView() {
         // user owns lives nearby. Simplest correct rule: hide deadlines
         // when filtering by member, since they're org-wide compliance
         // pins.
-        if (ev.kind === 'deadline' || ev.kind === 'external') return false
+        if (ev.kind === 'deadline' || ev.kind === 'external' || ev.kind === 'industry') return false
         if (!ev.assigneeIds.includes(memberFilter)) return false
       }
       return true
@@ -458,7 +505,7 @@ export function CalendarView() {
         (date > ev.startDate && date < ev.endDate)
       if (inRange) out.push(ev)
     }
-    const order: Record<EventKind, number> = { job: 0, survey: 1, deadline: 2, external: 3 }
+    const order: Record<EventKind, number> = { job: 0, survey: 1, deadline: 2, industry: 3, external: 4 }
     out.sort((a, b) => order[a.kind] - order[b.kind])
     return out
   }
@@ -756,6 +803,9 @@ function EventBand({
   } else if (event.kind === 'external') {
     bgClass = 'bg-white text-gray-700 border border-dashed border-gray-300'
     icon = <CalendarIcon className="h-3 w-3 inline mr-1 flex-shrink-0" />
+  } else if (event.kind === 'industry') {
+    bgClass = 'bg-amber-50 text-amber-900 border-l-2 border-amber-500'
+    icon = <CalendarIcon className="h-3 w-3 inline mr-1 flex-shrink-0" />
   }
 
   const externalLink =
@@ -849,6 +899,7 @@ function FilterBar({
       {chip('job', 'Jobs', 'bg-blue-500')}
       {chip('survey', 'Surveys', 'bg-purple-500', <ClipboardList className="h-3 w-3" />)}
       {chip('deadline', 'Deadlines', 'bg-red-500', <AlertTriangle className="h-3 w-3" />)}
+      {chip('industry', 'Industry', 'bg-amber-500', <CalendarIcon className="h-3 w-3" />)}
       {chip('external', 'External', 'bg-gray-400', <CalendarIcon className="h-3 w-3" />)}
 
       <button
@@ -1007,6 +1058,35 @@ function DayCardContent({ event }: { event: CalendarEvent }) {
     )
   }
 
+  if (event.raw.kind === 'industry') {
+    const ev = event.raw.event
+    return (
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <CalendarIcon className="h-4 w-4 text-amber-600" />
+            <span className="font-bold">{ev.title}</span>
+            <Badge variant="outline" className="border-amber-300 text-amber-900">
+              {INDUSTRY_CATEGORY_LABELS[ev.category] || 'Industry'}
+            </Badge>
+          </div>
+          {ev.location && (
+            <p className="text-sm text-muted-foreground mt-1">
+              <MapPin className="h-4 w-4 inline mr-1" />
+              {ev.location}
+            </p>
+          )}
+        </div>
+        <div className="text-right text-sm">
+          {!ev.all_day && (
+            <div className="font-medium">{format(parseISO(ev.start_at), 'h:mm a')}</div>
+          )}
+          {ev.all_day && <div className="text-muted-foreground">All day</div>}
+        </div>
+      </div>
+    )
+  }
+
   return null
 }
 
@@ -1015,7 +1095,72 @@ function EventDetail({ event }: { event: CalendarEvent }) {
   if (event.raw.kind === 'survey') return <SurveyDetail survey={event.raw.survey} />
   if (event.raw.kind === 'deadline') return <DeadlineDetail deadline={event.raw.deadline} />
   if (event.raw.kind === 'external') return <ExternalDetail event={event.raw.event} />
+  if (event.raw.kind === 'industry') return <IndustryDetail event={event.raw.event} />
   return null
+}
+
+const INDUSTRY_CATEGORY_LABELS: Record<string, string> = {
+  'nari-madison': 'NARI of Madison',
+  general: 'Industry event',
+}
+
+function IndustryDetail({ event }: { event: IndustryEvent }) {
+  const label = INDUSTRY_CATEGORY_LABELS[event.category] || 'Industry event'
+  const startDate = event.all_day ? parseLocalDate(event.start_at) : parseISO(event.start_at)
+  const endDate = event.all_day ? parseLocalDate(event.end_at) : parseISO(event.end_at)
+  const multiDay = !isSameDay(startDate, endDate)
+  return (
+    <>
+      <SheetHeader>
+        <SheetTitle className="flex items-center gap-2">
+          <CalendarIcon className="h-5 w-5 text-amber-600" />
+          {event.title}
+          <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300">
+            {label}
+          </Badge>
+        </SheetTitle>
+      </SheetHeader>
+      <div className="mt-6 space-y-4">
+        <div>
+          <h4 className="text-sm font-medium text-muted-foreground">When</h4>
+          <p className="mt-1">
+            {event.all_day
+              ? multiDay
+                ? `${format(startDate, 'MMM d')} – ${format(endDate, 'MMM d, yyyy')} (all day)`
+                : `${format(startDate, 'MMM d, yyyy')} (all day)`
+              : multiDay
+                ? `${format(startDate, 'MMM d, h:mm a')} – ${format(endDate, 'MMM d, h:mm a')}`
+                : `${format(startDate, 'MMM d, yyyy')} · ${format(startDate, 'h:mm a')} – ${format(endDate, 'h:mm a')}`}
+          </p>
+        </div>
+        {event.location && (
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground">Location</h4>
+            <p className="mt-1 flex items-center gap-1">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              {event.location}
+            </p>
+          </div>
+        )}
+        {event.description && (
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground">Details</h4>
+            <p className="mt-1 text-sm whitespace-pre-wrap">{event.description}</p>
+          </div>
+        )}
+        {event.registration_url && (
+          <div className="pt-4">
+            <Button asChild variant="outline" className="w-full">
+              <a href={event.registration_url} target="_blank" rel="noopener noreferrer">
+                Register / more info
+                <ExternalLink className="h-3.5 w-3.5 ml-2" />
+              </a>
+            </Button>
+          </div>
+        )}
+      </div>
+    </>
+  )
 }
 
 function JobDetail({ job }: { job: CalendarJob }) {

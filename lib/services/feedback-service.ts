@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import { Activity } from '@/lib/services/activity-service'
 import { EmailService } from '@/lib/services/email/email-service'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
@@ -21,7 +22,7 @@ export class FeedbackService {
 
   static async createSurvey(input: CreateSurveyInput): Promise<FeedbackSurvey> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -83,7 +84,7 @@ export class FeedbackService {
 
   static async getSurvey(id: string): Promise<FeedbackSurvey | null> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -222,7 +223,7 @@ export class FeedbackService {
 
   static async sendSurvey(surveyId: string, recipientEmail?: string): Promise<void> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -300,7 +301,7 @@ export class FeedbackService {
     offset?: number
   }): Promise<{ surveys: FeedbackSurvey[]; total: number; limit: number; offset: number }> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -345,7 +346,7 @@ export class FeedbackService {
 
   static async approveTestimonial(surveyId: string): Promise<FeedbackSurvey> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -369,7 +370,7 @@ export class FeedbackService {
 
   static async rejectTestimonial(surveyId: string): Promise<FeedbackSurvey> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -391,7 +392,7 @@ export class FeedbackService {
 
   static async getApprovedTestimonials(): Promise<Testimonial[]> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -430,7 +431,7 @@ export class FeedbackService {
 
   static async getFeedbackStats(): Promise<FeedbackStats> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
@@ -477,7 +478,7 @@ export class FeedbackService {
 
   static async createReviewRequest(input: CreateReviewRequestInput): Promise<ReviewRequest> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 

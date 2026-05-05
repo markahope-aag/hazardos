@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -279,46 +280,41 @@ export default function EstimatesPage() {
     })
   }, [estimates, searchQuery])
 
-  const stats = useMemo(() => {
-    // "Open" = still in the pipeline. Once an estimate is rejected,
-    // expired, or converted into a job it's closed from the office's
-    // perspective and shouldn't count against active capacity metrics.
-    const OPEN_STATUSES = ['draft', 'pending_approval', 'approved', 'sent', 'accepted']
-    const openEstimates = estimates.filter(e => OPEN_STATUSES.includes(e.status))
-    const open = openEstimates.length
+  // KPIs come from a SQL aggregate (`get_estimate_metrics`) rather
+  // than a client-side reduce over the visible page — the previous
+  // useMemo() iterated only the first 50 rows and silently
+  // under-counted any org with more estimates than that.
+  const { data: serverStats } = useQuery({
+    queryKey: ['estimates', 'stats', locationFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      if (locationFilter !== 'all') params.set('location_id', locationFilter)
+      const res = await fetch(`/api/estimates/stats?${params.toString()}`)
+      if (!res.ok) throw new Error('Failed to fetch estimate stats')
+      return (await res.json()) as {
+        open: number
+        draft: number
+        overdue: number
+        win_rate: number
+        avg_value: number
+        total_value: number
+        total_count: number
+      }
+    },
+    staleTime: 30_000,
+  })
 
-    // Win rate: of estimates that reached a customer-facing decision
-    // (sent / accepted / rejected / expired / converted), how many ended
-    // up producing a non-cancelled job? Previous version divided withJobs
-    // by sent-count but counted withJobs across all statuses — that let
-    // a draft with a linked job push the ratio above 100%.
-    const decidedEstimates = estimates.filter(e =>
-      ['sent', 'accepted', 'rejected', 'expired', 'converted'].includes(e.status)
-    )
-    const withJobs = decidedEstimates.filter(e =>
-      (e.jobs?.length ?? 0) > 0 &&
-      !e.jobs?.every(j => j.status === 'cancelled')
-    ).length
-    const winRate = decidedEstimates.length > 0
-      ? Math.min(100, Math.round((withJobs / decidedEstimates.length) * 100))
-      : 0
-
-    const today = new Date().toISOString().split('T')[0]
-    const overdue = estimates.filter(e =>
-      e.status === 'sent' && e.valid_until && e.valid_until < today
-    ).length
-
-    // Avg / total value scoped to open estimates so the metric reflects
-    // pipeline value, not historical noise from years of closed records.
-    const openWithValue = openEstimates.filter(e => e.total > 0)
-    const avgValue = openWithValue.length > 0
-      ? openWithValue.reduce((sum, e) => sum + e.total, 0) / openWithValue.length
-      : 0
-    const totalValue = openEstimates.reduce((sum, e) => sum + (e.total || 0), 0)
-    const draft = estimates.filter(e => e.status === 'draft').length
-
-    return { open, draft, winRate, overdue, avgValue, totalValue }
-  }, [estimates])
+  const stats = useMemo(
+    () => ({
+      open: serverStats?.open ?? 0,
+      draft: serverStats?.draft ?? 0,
+      overdue: serverStats?.overdue ?? 0,
+      winRate: serverStats?.win_rate ?? 0,
+      avgValue: Number(serverStats?.avg_value ?? 0),
+      totalValue: Number(serverStats?.total_value ?? 0),
+    }),
+    [serverStats],
+  )
 
   return (
     <div className="space-y-6">

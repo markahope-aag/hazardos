@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import { Activity } from '@/lib/services/activity-service'
 import { NotificationService } from '@/lib/services/notification-service'
 import { EmailService } from '@/lib/services/email/email-service'
@@ -44,7 +45,7 @@ export class ApprovalService {
   }): Promise<ApprovalThreshold> {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
@@ -176,7 +177,7 @@ export class ApprovalService {
   }): Promise<ApprovalRequest> {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
@@ -223,7 +224,7 @@ export class ApprovalService {
   static async decideLevel1(id: string, decision: ApprovalDecisionInput): Promise<ApprovalRequest> {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
     const request = await this.getRequest(id)
@@ -266,7 +267,7 @@ export class ApprovalService {
   static async decideLevel2(id: string, decision: ApprovalDecisionInput): Promise<ApprovalRequest> {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
     const request = await this.getRequest(id)
@@ -320,7 +321,7 @@ export class ApprovalService {
   static async getMyPendingApprovals(): Promise<ApprovalRequest[]> {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
     // Get user's role to determine what they can approve
@@ -386,7 +387,7 @@ export class ApprovalService {
 
   static async submitEstimateForApproval(estimateId: string): Promise<ApprovalRequest> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
@@ -454,7 +455,7 @@ export class ApprovalService {
     decision: ApprovalDecisionInput,
   ): Promise<{ request: ApprovalRequest; level: 1 | 2; finalized: boolean }> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
@@ -603,7 +604,7 @@ export class ApprovalService {
   // in a half-approved state. Errors are logged for follow-up.
   static async createAndSendProposalFromEstimate(estimateId: string): Promise<void> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) return
 
     const { data: estimate } = await supabase

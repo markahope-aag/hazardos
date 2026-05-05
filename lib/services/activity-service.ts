@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/auth/server-auth'
 
 export interface LogActivityInput {
   action: string;
@@ -28,7 +29,7 @@ export interface ActivityLogEntry {
 export async function logActivity(input: LogActivityInput): Promise<void> {
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return;
 
   const { data: profile } = await supabase

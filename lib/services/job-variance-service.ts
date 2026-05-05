@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
   VarianceAnalysis,
@@ -40,7 +41,7 @@ export class JobVarianceService {
 
   static async getVarianceAnalysis(filters?: VarianceFilters): Promise<VarianceAnalysis[]> {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 

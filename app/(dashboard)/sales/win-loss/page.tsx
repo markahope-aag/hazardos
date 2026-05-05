@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import { PipelineService } from '@/lib/services/pipeline-service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -17,9 +17,8 @@ import { Trophy, XCircle, TrendingUp, PieChart } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
 export default async function WinLossPage() {
-  const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
 
   const [wonOpps, lostOpps, lossReasons] = await Promise.all([

@@ -81,19 +81,21 @@ function formatTimeAgo(dateString: string): string {
   return date.toLocaleDateString()
 }
 
-async function fetchNotifications(): Promise<Notification[]> {
+interface NotificationsBundle {
+  notifications: Notification[]
+  unreadCount: number
+}
+
+async function fetchNotificationsBundle(): Promise<NotificationsBundle> {
+  // Single endpoint returns the list + unread count, halving auth
+  // round-trips at every 30s poll cycle.
   const res = await fetch('/api/notifications?limit=20')
   if (!res.ok) throw new Error('Failed to fetch notifications')
   const data = await res.json()
-  // /api/notifications returns { notifications, total, limit, offset } — not a bare array.
-  return Array.isArray(data) ? data : data.notifications ?? []
-}
-
-async function fetchUnreadCount(): Promise<number> {
-  const res = await fetch('/api/notifications/count')
-  if (!res.ok) throw new Error('Failed to fetch unread count')
-  const data = await res.json()
-  return data.count
+  return {
+    notifications: Array.isArray(data) ? data : data.notifications ?? [],
+    unreadCount: data?.unread_count ?? 0,
+  }
 }
 
 export function NotificationBell() {
@@ -103,19 +105,15 @@ export function NotificationBell() {
   const [markingRead, setMarkingRead] = useState<string | null>(null)
   const [markingAllRead, setMarkingAllRead] = useState(false)
 
-  const { data: notifications = [], isLoading: loading } = useQuery({
-    queryKey: ['notifications', 'list'],
-    queryFn: fetchNotifications,
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['notifications', 'bundle'],
+    queryFn: fetchNotificationsBundle,
     refetchInterval: POLL_INTERVAL,
     refetchIntervalInBackground: false,
   })
 
-  const { data: unreadCount = 0 } = useQuery({
-    queryKey: ['notifications', 'unread-count'],
-    queryFn: fetchUnreadCount,
-    refetchInterval: POLL_INTERVAL,
-    refetchIntervalInBackground: false,
-  })
+  const notifications = data?.notifications ?? []
+  const unreadCount = data?.unreadCount ?? 0
 
   // Mark single notification as read
   async function handleMarkAsRead(notification: Notification) {
@@ -135,14 +133,15 @@ export function NotificationBell() {
       })
 
       if (res.ok) {
-        queryClient.setQueryData<Notification[]>(['notifications', 'list'], (prev) =>
-          (prev ?? []).map((n) =>
-            n.id === notification.id ? { ...n, is_read: true } : n
-          )
-        )
-        queryClient.setQueryData<number>(['notifications', 'unread-count'], (prev) =>
-          Math.max(0, (prev ?? 1) - 1)
-        )
+        queryClient.setQueryData<NotificationsBundle>(['notifications', 'bundle'], (prev) => {
+          if (!prev) return prev
+          return {
+            notifications: prev.notifications.map((n) =>
+              n.id === notification.id ? { ...n, is_read: true } : n,
+            ),
+            unreadCount: Math.max(0, prev.unreadCount - 1),
+          }
+        })
 
         if (notification.action_url) {
           router.push(notification.action_url)
@@ -172,10 +171,13 @@ export function NotificationBell() {
       })
 
       if (res.ok) {
-        queryClient.setQueryData<Notification[]>(['notifications', 'list'], (prev) =>
-          (prev ?? []).map((n) => ({ ...n, is_read: true }))
-        )
-        queryClient.setQueryData<number>(['notifications', 'unread-count'], 0)
+        queryClient.setQueryData<NotificationsBundle>(['notifications', 'bundle'], (prev) => {
+          if (!prev) return prev
+          return {
+            notifications: prev.notifications.map((n) => ({ ...n, is_read: true })),
+            unreadCount: 0,
+          }
+        })
       }
     } catch (error) {
       logger.error(

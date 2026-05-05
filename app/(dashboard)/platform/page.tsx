@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import { PlatformAdminService } from '@/lib/services/platform-admin-service'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -107,9 +107,8 @@ function PlanDistributionBar({ distribution }: PlanDistributionBarProps) {
 }
 
 export default async function PlatformDashboardPage() {
-  const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
 
   const isAdmin = await PlatformAdminService.isPlatformAdmin()

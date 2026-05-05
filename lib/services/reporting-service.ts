@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/server-auth'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import type {
   SavedReport,
@@ -64,7 +65,7 @@ export class ReportingService {
     const supabase = await createClient()
     const { start, end } = this.getDateRange(config.date_range)
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
@@ -91,7 +92,7 @@ export class ReportingService {
     const supabase = await createClient()
     const { start, end } = this.getDateRange(config.date_range)
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
@@ -118,7 +119,7 @@ export class ReportingService {
     const supabase = await createClient()
     const { start, end } = this.getDateRange(config.date_range)
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
@@ -171,7 +172,7 @@ export class ReportingService {
   static async createReport(input: CreateReportInput): Promise<SavedReport> {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
@@ -248,7 +249,7 @@ export class ReportingService {
   }): Promise<void> {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
     const { data: profile } = await supabase
