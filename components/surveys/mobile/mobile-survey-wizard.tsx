@@ -386,14 +386,13 @@ export default function MobileSurveyWizard({
     }
   }, [isDirty, saveDraft, onExit, router])
 
-  // Exit with confirmation if dirty
+  // Always show the exit dialog so the user can reach Discard even when the
+  // current draft has just been auto-saved. Without this, a saved-but-unwanted
+  // draft persists in localStorage and silently rehydrates into the next
+  // wizard mount.
   const handleExitRequest = useCallback(() => {
-    if (isDirty) {
-      setShowExitConfirm(true)
-    } else {
-      handleSaveAndExit()
-    }
-  }, [isDirty, handleSaveAndExit])
+    setShowExitConfirm(true)
+  }, [])
 
   // Manual save
   const handleManualSave = useCallback(async () => {
@@ -569,6 +568,7 @@ export default function MobileSurveyWizard({
 
         <MobileWizardExitDialog
           open={showExitConfirm}
+          isDirty={isDirty}
           onOpenChange={setShowExitConfirm}
           onContinueEditing={() => setShowExitConfirm(false)}
           onDiscard={() => {

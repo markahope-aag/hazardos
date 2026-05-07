@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import MobileSurveyWizard from '@/components/surveys/mobile/mobile-survey-wizard'
 import { CustomerCombobox } from '@/components/customers/customer-combobox'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
+import { useSurveyStore } from '@/lib/stores/survey-store'
 
 interface Customer {
   id: string
@@ -29,9 +30,19 @@ function NewSiteSurveyContent() {
   const searchParams = useSearchParams()
   const customerIdFromUrl = searchParams.get('customer_id')
   const { organization } = useMultiTenantAuth()
+  const resetSurvey = useSurveyStore((s) => s.resetSurvey)
 
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(customerIdFromUrl || '')
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+
+  // /new is the unambiguous "start fresh" entry. Without this reset, a
+  // draft persisted in localStorage from a previous session (e.g. user
+  // closed the tab without using Discard) would rehydrate into the new
+  // wizard mount and silently overwrite the just-created survey with
+  // stale data.
+  useEffect(() => {
+    resetSurvey()
+  }, [resetSurvey])
 
   // If we got a customer_id via URL, fetch the preview card data for the summary.
   // The wizard itself reads customerId as a prop; this fetch is only to render

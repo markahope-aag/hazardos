@@ -13,6 +13,7 @@ import {
 
 interface Props {
   open: boolean
+  isDirty: boolean
   onOpenChange: (open: boolean) => void
   onContinueEditing: () => void
   onDiscard: () => void
@@ -20,11 +21,13 @@ interface Props {
 }
 
 /**
- * "You have unsaved changes" dialog shown when the user taps Exit on a
- * dirty wizard. Three outcomes: keep editing, discard, or save & exit.
+ * Exit dialog. Always offered when the user taps Exit so Discard is reachable
+ * even from a clean (auto-saved) state — otherwise a saved-but-unwanted draft
+ * persists in localStorage and silently rehydrates next time.
  */
 export function MobileWizardExitDialog({
   open,
+  isDirty,
   onOpenChange,
   onContinueEditing,
   onDiscard,
@@ -34,9 +37,11 @@ export function MobileWizardExitDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+          <AlertDialogTitle>{isDirty ? 'Unsaved Changes' : 'Exit Survey'}</AlertDialogTitle>
           <AlertDialogDescription>
-            You have unsaved changes. Would you like to save before exiting?
+            {isDirty
+              ? 'You have unsaved changes. Would you like to save before exiting?'
+              : 'Save the draft to keep working on it later, or discard it to start fresh next time.'}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -45,7 +50,7 @@ export function MobileWizardExitDialog({
             onClick={onDiscard}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            Discard Changes
+            {isDirty ? 'Discard Changes' : 'Discard Draft'}
           </AlertDialogAction>
           <AlertDialogAction onClick={onSaveAndExit}>Save &amp; Exit</AlertDialogAction>
         </AlertDialogFooter>
