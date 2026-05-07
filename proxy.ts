@@ -12,13 +12,28 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from './lib/supabase/middleware'
 import { corsMiddleware } from './lib/middleware/cors'
 
-const AUTH_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password']
+// AUTH_ROUTES bounce authenticated users away (so logged-in users don't see
+// login/signup again). /reset-password is intentionally NOT in this list:
+// the recovery flow logs the user in via verifyOtp before landing them on
+// /reset-password to pick a new password — they need to access it while
+// authenticated.
+const AUTH_ROUTES = ['/login', '/signup', '/forgot-password']
 // /api/webhooks/* is provider-to-server (Resend, Stripe, etc.) — no
 // session cookies present, so the dashboard redirect must not fire.
 // Webhook handlers authenticate the call internally via signature check.
 // /api/auth/* is called from unauthenticated auth pages (e.g. forgot-password
 // posts here) — redirecting to /login would 405 the POST and break the flow.
-const PUBLIC_ROUTES = [...AUTH_ROUTES, '/auth/callback', '/onboard', '/api/webhooks', '/api/auth']
+// /auth/* covers /auth/callback (OAuth) and /auth/confirm (recovery/magic-link
+// verification). Recovery links land on /auth/confirm before any session
+// exists, so it must not require auth.
+const PUBLIC_ROUTES = [
+  ...AUTH_ROUTES,
+  '/reset-password',
+  '/auth/',
+  '/onboard',
+  '/api/webhooks',
+  '/api/auth',
+]
 
 export async function proxy(request: NextRequest) {
   // Handle CORS first (short-circuits for OPTIONS requests)
