@@ -16,7 +16,9 @@ const AUTH_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password']
 // /api/webhooks/* is provider-to-server (Resend, Stripe, etc.) — no
 // session cookies present, so the dashboard redirect must not fire.
 // Webhook handlers authenticate the call internally via signature check.
-const PUBLIC_ROUTES = [...AUTH_ROUTES, '/auth/callback', '/onboard', '/api/webhooks']
+// /api/auth/* is called from unauthenticated auth pages (e.g. forgot-password
+// posts here) — redirecting to /login would 405 the POST and break the flow.
+const PUBLIC_ROUTES = [...AUTH_ROUTES, '/auth/callback', '/onboard', '/api/webhooks', '/api/auth']
 
 export async function proxy(request: NextRequest) {
   // Handle CORS first (short-circuits for OPTIONS requests)
