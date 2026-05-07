@@ -278,6 +278,15 @@ export default function MobileSurveyWizard({
   // another app can leave the React tree out of sync with what Zustand
   // has in localStorage. Pushing the persisted state back onto the store
   // avoids the blank-screen-on-return behavior.
+  //
+  // Critical: do NOT overwrite formData.photos. The persist partialize
+  // strips blob/dataUrl off every photo before writing to localStorage
+  // (to keep within mobile Safari's 5–10 MB origin quota). When the
+  // camera launches it backgrounds the page, and returning fires this
+  // handler — restoring formData wholesale would replace the live
+  // photos (with dataUrl in memory) with the stripped persisted ones,
+  // blanking every unuploaded thumbnail. Keep the in-memory photo
+  // array; merge everything else.
   useEffect(() => {
     const onVisibilityChange = () => {
       if (document.visibilityState !== 'visible') return
@@ -287,17 +296,23 @@ export default function MobileSurveyWizard({
         const parsed = JSON.parse(raw)
         const persisted = parsed?.state
         if (persisted && typeof persisted === 'object') {
-          // Only merge fields the persist config writes back — avoids
-          // clobbering transient UI state like validation caches.
-          useSurveyStore.setState((current) => ({
-            ...current,
-            currentSection: persisted.currentSection ?? current.currentSection,
-            currentSurveyId: persisted.currentSurveyId ?? current.currentSurveyId,
-            customerId: persisted.customerId ?? current.customerId,
-            organizationId: persisted.organizationId ?? current.organizationId,
-            formData: persisted.formData ?? current.formData,
-            lastSavedAt: persisted.lastSavedAt ?? current.lastSavedAt,
-          }))
+          useSurveyStore.setState((current) => {
+            const mergedFormData = persisted.formData
+              ? {
+                  ...persisted.formData,
+                  photos: current.formData.photos,
+                }
+              : current.formData
+            return {
+              ...current,
+              currentSection: persisted.currentSection ?? current.currentSection,
+              currentSurveyId: persisted.currentSurveyId ?? current.currentSurveyId,
+              customerId: persisted.customerId ?? current.customerId,
+              organizationId: persisted.organizationId ?? current.organizationId,
+              formData: mergedFormData,
+              lastSavedAt: persisted.lastSavedAt ?? current.lastSavedAt,
+            }
+          })
         }
       } catch (err) {
         logger.error(

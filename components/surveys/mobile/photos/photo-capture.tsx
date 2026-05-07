@@ -11,7 +11,7 @@ import {
   uploadSurveyMediaBlob,
 } from '@/lib/services/photo-upload-service'
 import { PhotoCategory } from '@/lib/stores/survey-types'
-import { Camera, Loader2, ImagePlus, RotateCcw } from 'lucide-react'
+import { Camera, Loader2, ImagePlus, RotateCcw, Image as ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logger, formatError } from '@/lib/utils/logger'
 
@@ -218,13 +218,19 @@ export function PhotoCapture({
 }: PhotoCaptureProps) {
   const { addPhoto, currentSurveyId, organizationId } = useSurveyStore()
   const { addPhoto: addToQueue } = usePhotoQueueStore()
-  const inputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const libraryInputRef = useRef<HTMLInputElement>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleClick = useCallback(() => {
+  const handleCameraClick = useCallback(() => {
     setError(null)
-    inputRef.current?.click()
+    cameraInputRef.current?.click()
+  }, [])
+
+  const handleLibraryClick = useCallback(() => {
+    setError(null)
+    libraryInputRef.current?.click()
   }, [])
 
   const handleFileChange = useCallback(
@@ -243,7 +249,18 @@ export function PhotoCapture({
       if (!organizationId) {
         setError('Still loading your account — give it a second and try again.')
         setIsProcessing(false)
-        if (inputRef.current) inputRef.current.value = ''
+        e.target.value = ''
+        return
+      }
+
+      // Same reasoning for currentSurveyId: without it, the photo is added to
+      // local state but never queued for upload (the if-currentSurveyId branch
+      // below is skipped), so the user sees a "Loading…" thumbnail forever
+      // once dataUrl is stripped from localStorage on the next persist write.
+      if (!currentSurveyId) {
+        setError("Survey isn't ready yet — give it a moment, then take the photo again.")
+        setIsProcessing(false)
+        e.target.value = ''
         return
       }
 
@@ -403,31 +420,47 @@ export function PhotoCapture({
         setError(err instanceof Error ? err.message : 'Failed to process file')
       } finally {
         setIsProcessing(false)
-        if (inputRef.current) {
-          inputRef.current.value = ''
-        }
+        e.target.value = ''
       }
     },
     [addPhoto, addToQueue, category, currentSurveyId, organizationId, onCapture]
   )
 
+  // Two file inputs: one bound to the camera (capture="environment") and one
+  // for the photo library (no capture attribute). Picking one vs. the other
+  // is the only way to give iOS users a real "choose from gallery" path
+  // — `capture` forces the camera and hides the library option entirely.
+  const fileInputs = (
+    <>
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleFileChange}
+        className="hidden"
+        aria-label="Take a photo with the camera"
+      />
+      <input
+        ref={libraryInputRef}
+        type="file"
+        accept="image/*,video/*"
+        onChange={handleFileChange}
+        className="hidden"
+        aria-label="Choose a photo or video from your device"
+      />
+    </>
+  )
+
   if (variant === 'compact') {
     return (
       <>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handleFileChange}
-          className="hidden"
-          aria-label="Take a photo with the camera"
-        />
+        {fileInputs}
         <Button
           type="button"
           variant="outline"
           size="sm"
-          onClick={handleClick}
+          onClick={handleCameraClick}
           disabled={isProcessing}
           className={cn('touch-manipulation min-h-[44px]', className)}
         >
@@ -444,44 +477,49 @@ export function PhotoCapture({
   if (variant === 'inline') {
     return (
       <div className={cn('space-y-2', className)}>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handleFileChange}
-          className="hidden"
-          aria-label="Take a photo with the camera"
-        />
-        <button
-          type="button"
-          onClick={handleClick}
-          disabled={isProcessing}
-          className={cn(
-            'flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed',
-            'rounded-xl text-muted-foreground hover:text-foreground hover:border-primary/50',
-            'transition-colors touch-manipulation min-h-[80px]',
-            isProcessing && 'opacity-50 cursor-not-allowed'
-          )}
-        >
-          {isProcessing ? (
-            <>
+        {fileInputs}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={handleCameraClick}
+            disabled={isProcessing}
+            className={cn(
+              'flex items-center justify-center gap-2 p-4 border-2 border-dashed',
+              'rounded-xl text-muted-foreground hover:text-foreground hover:border-primary/50',
+              'transition-colors touch-manipulation min-h-[80px]',
+              isProcessing && 'opacity-50 cursor-not-allowed'
+            )}
+          >
+            {isProcessing ? (
               <Loader2 className="w-6 h-6 animate-spin" />
-              <span>Processing...</span>
-            </>
-          ) : (
-            <>
-              <ImagePlus className="w-6 h-6" />
-              <span>Take Photo</span>
-            </>
-          )}
-        </button>
+            ) : (
+              <>
+                <ImagePlus className="w-6 h-6" />
+                <span>Take Photo</span>
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={handleLibraryClick}
+            disabled={isProcessing}
+            className={cn(
+              'flex items-center justify-center gap-2 p-4 border-2 border-dashed',
+              'rounded-xl text-muted-foreground hover:text-foreground hover:border-primary/50',
+              'transition-colors touch-manipulation min-h-[80px]',
+              isProcessing && 'opacity-50 cursor-not-allowed'
+            )}
+          >
+            <ImageIcon className="w-6 h-6" />
+            <span>From Library</span>
+          </button>
+        </div>
         {error && (
           <div className="flex items-center justify-between p-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
             <span>{error}</span>
             <button
               type="button"
-              onClick={handleClick}
+              onClick={handleCameraClick}
               className="flex items-center gap-1 text-red-600 hover:text-red-700"
             >
               <RotateCcw className="w-4 h-4" />
@@ -496,18 +534,10 @@ export function PhotoCapture({
   // Default variant
   return (
     <div className={cn('space-y-2', className)}>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleFileChange}
-        className="hidden"
-        aria-label="Take a photo with the camera"
-      />
+      {fileInputs}
       <Button
         type="button"
-        onClick={handleClick}
+        onClick={handleCameraClick}
         disabled={isProcessing}
         className="w-full min-h-[64px] text-lg touch-manipulation"
         size="lg"
@@ -524,12 +554,22 @@ export function PhotoCapture({
           </>
         )}
       </Button>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={handleLibraryClick}
+        disabled={isProcessing}
+        className="w-full min-h-[48px] touch-manipulation"
+      >
+        <ImageIcon className="w-5 h-5 mr-2" />
+        Choose from Library
+      </Button>
       {error && (
         <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
           <span>{error}</span>
           <button
             type="button"
-            onClick={handleClick}
+            onClick={handleCameraClick}
             className="flex items-center gap-1 px-2 py-1 text-red-600 hover:text-red-700 hover:bg-red-100 rounded"
           >
             <RotateCcw className="w-4 h-4" />
