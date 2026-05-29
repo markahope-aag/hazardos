@@ -35,6 +35,67 @@ from this document as a row, with empty columns for tracking.
 Columns: `Pass | Pass Name | Section | Test ID | Test Step | Status |
 Notes | Bug Link | Tester | Date`.
 
+## Splitting between two testers
+
+HazardOS QA is split between two testers. The CSV's `Tester` column
+is pre-filled with the owner of each step — filter to your own name
+to see your worklist.
+
+| Tester | Owns | Persona |
+|---|---|---|
+| **Sophie Hope** (`sophie.hope@asymmetric.pro`) | Auth + multi-tenant isolation, CRM, estimates, jobs (scheduling + variance), invoices (creation + delivery), pipeline + analytics, commissions, settings + integrations, billing | The internal / back-office user — what the remediation company sees |
+| **Roy Tolosa** (`roy.tolosa@asymmetric.pro`) | Mobile site survey + offline sync, proposal customer portal, customer feedback portal, SMS opt-in / TCPA, mobile + offline cross-cutting, invoices received as a customer | The field user + the customer experience |
+
+**Both** are owners of: smoke pass (whoever's first to a deploy runs
+it), security-conscious testing (sanity-check each other's findings,
+especially cross-tenant), accessibility cross-cutting (each on their
+own surfaces), and exploratory.
+
+### Cross-boundary workflows (these require pairing)
+
+These touch both halves of the product and need explicit handoffs.
+Schedule a 30-minute pairing session for each. Both testers should be
+signed in at the same time.
+
+1. **Estimate → proposal → signature → job creation**
+   - Sophie creates an estimate from a survey, sends as a proposal
+   - Roy receives the customer-portal link, opens in incognito as the
+     customer, reviews and e-signs
+   - Sophie verifies the signed proposal auto-creates a job in her
+     scheduler view, with correct status updates
+
+2. **Job completion → invoice → customer receipt**
+   - Roy completes a job from the mobile flow (or Sophie marks a
+     manually-created job complete)
+   - Sophie reviews variance, approves, triggers invoice
+   - Roy receives the invoice via email AND SMS (depending on
+     customer's communication preferences)
+   - Roy opens the customer-facing invoice view, confirms it's clean
+     (no internal IDs, no leaked details)
+
+3. **Customer feedback loop**
+   - Sophie marks a paid job complete, triggers the feedback survey
+   - Roy receives the link, opens it, submits NPS + testimonial
+   - Sophie verifies the score lands in her analytics dashboard
+
+4. **Multi-tenant isolation verification**
+   - Both testers sign up fresh `+otherorg@asymmetric.pro` aliases as
+     separate organizations
+   - Each captures a few resource URLs from their own org
+   - Each attempts to access the other's URLs while signed in to their
+     own org — every attempt must be blocked
+
+### Shared tracking sheet
+
+Use one Google Sheet (not two). Filter the `Tester` column to see
+just your rows; sort by Pass # to work through them in order. When
+you finish a row, fill in Status, Notes, Bug Link (if any), and
+Date. Save changes as you go — Mark is watching the same sheet.
+
+When a bug crosses your boundary (e.g., Sophie creates the
+configuration but the bug surfaces in Roy's customer portal), tag
+Mark in a comment so triage knows it's a handoff.
+
 ## Test passes (run in order)
 
 ### Pass 1 — Smoke (60 minutes)
