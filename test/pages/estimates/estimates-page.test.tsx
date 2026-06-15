@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import EstimatesPage from '@/app/(dashboard)/estimates/page'
+
+function renderWithQuery(ui: React.ReactElement) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>)
+}
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
@@ -41,44 +47,47 @@ describe('EstimatesPage', () => {
   })
 
   it('renders without crashing', () => {
-    expect(() => render(<EstimatesPage />)).not.toThrow()
+    expect(() => renderWithQuery(<EstimatesPage />)).not.toThrow()
   })
 
   it('displays page heading', () => {
-    render(<EstimatesPage />)
+    renderWithQuery(<EstimatesPage />)
     expect(screen.getByText('Estimates')).toBeInTheDocument()
   })
 
   it('displays page description', () => {
-    render(<EstimatesPage />)
+    renderWithQuery(<EstimatesPage />)
     expect(screen.getByText('Manage cost estimates for site surveys')).toBeInTheDocument()
   })
 
   it('displays create estimate button', () => {
-    render(<EstimatesPage />)
+    renderWithQuery(<EstimatesPage />)
     expect(screen.getByRole('link', { name: /create estimate/i })).toBeInTheDocument()
   })
 
   it('displays stats cards', () => {
-    render(<EstimatesPage />)
+    renderWithQuery(<EstimatesPage />)
     expect(screen.getByText('Open Estimates')).toBeInTheDocument()
     expect(screen.getByText('Win Rate')).toBeInTheDocument()
   })
 
   it('displays search input', () => {
-    render(<EstimatesPage />)
+    renderWithQuery(<EstimatesPage />)
     expect(screen.getByPlaceholderText('Search estimates...')).toBeInTheDocument()
   })
 
   it('displays loading state initially', () => {
     // Keep fetch pending
     mockFetch.mockReturnValue(new Promise(() => {}))
-    render(<EstimatesPage />)
-    expect(screen.getByText('Loading estimates...')).toBeInTheDocument()
+    renderWithQuery(<EstimatesPage />)
+    // "Loading estimates..." renders in both the mobile card and the desktop
+    // table (jsdom renders both regardless of responsive CSS), so assert on
+    // at least one rather than a single match.
+    expect(screen.getAllByText('Loading estimates...').length).toBeGreaterThan(0)
   })
 
   it('shows table headers even when no estimates', async () => {
-    render(<EstimatesPage />)
+    renderWithQuery(<EstimatesPage />)
     // Wait for the component to finish loading
     await screen.findByText('Estimate #')
     // Verify table structure
@@ -86,7 +95,7 @@ describe('EstimatesPage', () => {
   })
 
   it('displays table headers', () => {
-    render(<EstimatesPage />)
+    renderWithQuery(<EstimatesPage />)
     expect(screen.getByText('Estimate #')).toBeInTheDocument()
     expect(screen.getByText('Customer')).toBeInTheDocument()
     expect(screen.getByText('Project')).toBeInTheDocument()

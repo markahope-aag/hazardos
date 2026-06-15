@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import SiteSurveysPage from '@/app/(dashboard)/site-surveys/page'
+
+// Supplies a QueryClient for any TanStack Query hooks reached in the tree,
+// so the post-load render doesn't throw "No QueryClient set".
+function renderWithQuery(ui: React.ReactElement) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>)
+}
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
@@ -37,6 +45,14 @@ vi.mock('@/lib/supabase/client', () => ({
   }),
 }))
 
+// Mock useLocations — the LocationFilter child calls it. Returning a stable
+// value (instead of letting the real TanStack Query hook resolve mid-test)
+// keeps the post-load render from re-rendering and detaching stat nodes,
+// which made the stats-card assertions flaky.
+vi.mock('@/lib/hooks/use-locations', () => ({
+  useLocations: () => ({ data: [], isLoading: false }),
+}))
+
 // Mock the survey filters component
 vi.mock('@/app/(dashboard)/site-surveys/survey-filters', () => ({
   SurveyFilters: () => <div data-testid="survey-filters">Filters</div>,
@@ -59,26 +75,26 @@ describe('SiteSurveysPage', () => {
   })
 
   it('renders without crashing', () => {
-    expect(() => render(<SiteSurveysPage />)).not.toThrow()
+    expect(() => renderWithQuery(<SiteSurveysPage />)).not.toThrow()
   })
 
   it('displays page heading', () => {
-    render(<SiteSurveysPage />)
+    renderWithQuery(<SiteSurveysPage />)
     expect(screen.getByText('Site Surveys')).toBeInTheDocument()
   })
 
   it('displays page description', () => {
-    render(<SiteSurveysPage />)
+    renderWithQuery(<SiteSurveysPage />)
     expect(screen.getByText('Manage and review site surveys')).toBeInTheDocument()
   })
 
   it('displays mobile survey link', async () => {
-    render(<SiteSurveysPage />)
+    renderWithQuery(<SiteSurveysPage />)
     expect(await screen.findByRole('link', { name: /mobile survey/i })).toBeInTheDocument()
   })
 
   it('displays stats cards', async () => {
-    render(<SiteSurveysPage />)
+    renderWithQuery(<SiteSurveysPage />)
     expect(await screen.findByText('Total Open')).toBeInTheDocument()
     expect(await screen.findByText('Scheduled')).toBeInTheDocument()
     expect(await screen.findByText('Completed')).toBeInTheDocument()
@@ -87,17 +103,17 @@ describe('SiteSurveysPage', () => {
   })
 
   it('displays empty state when no surveys', async () => {
-    render(<SiteSurveysPage />)
+    renderWithQuery(<SiteSurveysPage />)
     expect(await screen.findByText('No surveys yet')).toBeInTheDocument()
   })
 
   it('displays survey filters', async () => {
-    render(<SiteSurveysPage />)
+    renderWithQuery(<SiteSurveysPage />)
     expect(await screen.findByTestId('survey-filters')).toBeInTheDocument()
   })
 
   it('displays create survey button', async () => {
-    render(<SiteSurveysPage />)
+    renderWithQuery(<SiteSurveysPage />)
     // Multiple create-survey-buttons may exist (in header and empty state)
     const buttons = await screen.findAllByTestId('create-survey-button')
     expect(buttons.length).toBeGreaterThan(0)

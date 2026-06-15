@@ -1,6 +1,12 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import CalendarPage from '@/app/(dashboard)/calendar/page'
+
+function renderWithQuery(ui: React.ReactElement) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>)
+}
 
 // Mock the CalendarSkeleton
 vi.mock('@/app/(dashboard)/calendar/calendar-skeleton', () => ({
@@ -17,21 +23,21 @@ vi.mock('next/dynamic', () => ({
 
 describe('CalendarPage', () => {
   it('renders without crashing', () => {
-    expect(() => render(<CalendarPage />)).not.toThrow()
+    expect(() => renderWithQuery(<CalendarPage />)).not.toThrow()
   })
 
   it('displays page heading', () => {
-    render(<CalendarPage />)
+    renderWithQuery(<CalendarPage />)
     expect(screen.getByText('Calendar')).toBeInTheDocument()
   })
 
   it('displays page description', () => {
-    render(<CalendarPage />)
-    expect(screen.getByText('View and manage scheduled jobs')).toBeInTheDocument()
+    renderWithQuery(<CalendarPage />)
+    expect(screen.getByText(/View and manage scheduled jobs/)).toBeInTheDocument()
   })
 
   it('renders skeleton loading state initially', () => {
-    render(<CalendarPage />)
+    renderWithQuery(<CalendarPage />)
     expect(screen.getByTestId('calendar-skeleton')).toBeInTheDocument()
   })
 })
