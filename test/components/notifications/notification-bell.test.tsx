@@ -59,6 +59,23 @@ const mockNotifications = [
   },
 ]
 
+// The component fetches a single endpoint that returns the list plus the
+// unread count in one payload: { notifications: [...], unread_count: N }.
+type MockNotification = (typeof mockNotifications)[number]
+
+function bundleResponse(
+  notifications: MockNotification[],
+  unreadCount: number,
+) {
+  return {
+    ok: true,
+    json: async () => ({
+      notifications,
+      unread_count: unreadCount,
+    }),
+  }
+}
+
 describe('NotificationBell', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -70,15 +87,7 @@ describe('NotificationBell', () => {
   })
 
   it('should render notification bell button', async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockNotifications,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ count: 2 }),
-      })
+    mockFetch.mockResolvedValueOnce(bundleResponse(mockNotifications, 2))
 
     renderWithQuery(<NotificationBell />)
 
@@ -88,36 +97,20 @@ describe('NotificationBell', () => {
   })
 
   it('should show unread count badge', async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockNotifications,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ count: 2 }),
-      })
+    mockFetch.mockResolvedValueOnce(bundleResponse(mockNotifications, 2))
 
     renderWithQuery(<NotificationBell />)
-    
+
     await waitFor(() => {
       expect(screen.getByText('2')).toBeInTheDocument()
     })
   })
 
   it('should show bell ring icon when there are unread notifications', async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockNotifications,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ count: 2 }),
-      })
+    mockFetch.mockResolvedValueOnce(bundleResponse(mockNotifications, 2))
 
     renderWithQuery(<NotificationBell />)
-    
+
     await waitFor(() => {
       const button = screen.getByRole('button', { name: /notifications.*2 unread/i })
       expect(button).toBeInTheDocument()
@@ -125,15 +118,7 @@ describe('NotificationBell', () => {
   })
 
   it('should show regular bell icon when no unread notifications', async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [],
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ count: 0 }),
-      })
+    mockFetch.mockResolvedValueOnce(bundleResponse([], 0))
 
     renderWithQuery(<NotificationBell />)
     
@@ -145,15 +130,7 @@ describe('NotificationBell', () => {
   })
 
   it('should open popover when bell is clicked', async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockNotifications,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ count: 2 }),
-      })
+    mockFetch.mockResolvedValueOnce(bundleResponse(mockNotifications, 2))
 
     renderWithQuery(<NotificationBell />)
     
@@ -166,15 +143,7 @@ describe('NotificationBell', () => {
   })
 
   it('should display notifications in popover', async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockNotifications,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ count: 2 }),
-      })
+    mockFetch.mockResolvedValueOnce(bundleResponse(mockNotifications, 2))
 
     renderWithQuery(<NotificationBell />)
     
@@ -203,15 +172,7 @@ describe('NotificationBell', () => {
   })
 
   it('should show empty state when no notifications', async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [],
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ count: 0 }),
-      })
+    mockFetch.mockResolvedValueOnce(bundleResponse([], 0))
 
     renderWithQuery(<NotificationBell />)
     
@@ -224,15 +185,7 @@ describe('NotificationBell', () => {
   })
 
   it('should show mark all read button when there are unread notifications', async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockNotifications,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ count: 2 }),
-      })
+    mockFetch.mockResolvedValueOnce(bundleResponse(mockNotifications, 2))
 
     renderWithQuery(<NotificationBell />)
     
@@ -246,14 +199,7 @@ describe('NotificationBell', () => {
 
   it('should mark single notification as read when clicked', async () => {
     mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockNotifications,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ count: 2 }),
-      })
+      .mockResolvedValueOnce(bundleResponse(mockNotifications, 2))
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({}),
@@ -278,14 +224,7 @@ describe('NotificationBell', () => {
 
   it('should navigate when notification with action URL is clicked', async () => {
     mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockNotifications,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ count: 2 }),
-      })
+      .mockResolvedValueOnce(bundleResponse(mockNotifications, 2))
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({}),
@@ -308,14 +247,7 @@ describe('NotificationBell', () => {
 
   it('should mark all notifications as read', async () => {
     mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockNotifications,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ count: 2 }),
-      })
+      .mockResolvedValueOnce(bundleResponse(mockNotifications, 2))
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({}),
@@ -340,14 +272,7 @@ describe('NotificationBell', () => {
 
   it('should show loading state when marking notification as read', async () => {
     mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockNotifications,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ count: 2 }),
-      })
+      .mockResolvedValueOnce(bundleResponse(mockNotifications, 2))
       .mockImplementationOnce(() => new Promise(() => {})) // Never resolves
 
     renderWithQuery(<NotificationBell />)
@@ -367,31 +292,22 @@ describe('NotificationBell', () => {
   })
 
   it('should poll for notifications at regular intervals', async () => {
-    mockFetch.mockImplementation((url) => {
-      if (url.includes('/count')) {
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({ count: 0 }),
-        })
-      }
-      return Promise.resolve({
-        ok: true,
-        json: async () => [],
-      })
-    })
+    mockFetch.mockImplementation(() =>
+      Promise.resolve(bundleResponse([], 0)),
+    )
 
     renderWithQuery(<NotificationBell />)
 
-    // Initial fetch (2 calls: notifications list + count)
+    // Initial fetch (single bundled call: list + unread count together)
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledTimes(2)
+      expect(mockFetch).toHaveBeenCalledTimes(1)
     })
 
     // Advance timer by 30 seconds
     vi.advanceTimersByTime(30000)
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledTimes(4) // 2 more calls
+      expect(mockFetch).toHaveBeenCalledTimes(2) // one more call
     })
   })
 
@@ -410,15 +326,7 @@ describe('NotificationBell', () => {
   })
 
   it('should navigate to all notifications page', async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockNotifications,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ count: 2 }),
-      })
+    mockFetch.mockResolvedValueOnce(bundleResponse(mockNotifications, 2))
 
     renderWithQuery(<NotificationBell />)
     
@@ -439,15 +347,7 @@ describe('NotificationBell', () => {
       created_at: new Date(Date.now() - 120000).toISOString(), // 2 minutes ago
     }
 
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [recentNotification],
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ count: 1 }),
-      })
+    mockFetch.mockResolvedValueOnce(bundleResponse([recentNotification], 1))
 
     renderWithQuery(<NotificationBell />)
     
@@ -460,15 +360,7 @@ describe('NotificationBell', () => {
   })
 
   it('should show unread indicator for unread notifications', async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockNotifications,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ count: 2 }),
-      })
+    mockFetch.mockResolvedValueOnce(bundleResponse(mockNotifications, 2))
 
     renderWithQuery(<NotificationBell />)
     
@@ -489,14 +381,7 @@ describe('NotificationBell', () => {
     }
 
     mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [notificationNoAction],
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ count: 1 }),
-      })
+      .mockResolvedValueOnce(bundleResponse([notificationNoAction], 1))
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({}),

@@ -20,6 +20,7 @@ vi.mock('@/lib/services/notification-service', () => ({
   NotificationService: {
     getAll: vi.fn(),
     getUnread: vi.fn(),
+    getUnreadCount: vi.fn(),
     create: vi.fn()
   }
 }))
@@ -65,14 +66,23 @@ describe('Notifications API', () => {
         { id: 'notif-2', title: 'Payment', message: 'Payment received', is_read: true }
       ]
 
-      vi.mocked(NotificationService.getAll).mockResolvedValue(mockNotifications)
+      // The route now returns a paginated envelope from getAll merged
+      // with an unread_count from getUnreadCount in a single response.
+      const mockResult = {
+        notifications: mockNotifications,
+        total: mockNotifications.length,
+        limit: 50,
+        offset: 0,
+      }
+      vi.mocked(NotificationService.getAll).mockResolvedValue(mockResult)
+      vi.mocked(NotificationService.getUnreadCount).mockResolvedValue(1)
 
       const request = new NextRequest('http://localhost:3000/api/notifications')
       const response = await GET(request)
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data).toEqual(mockNotifications)
+      expect(data).toEqual({ ...mockResult, unread_count: 1 })
     })
 
     it('should get unread notifications only', async () => {
@@ -82,20 +92,33 @@ describe('Notifications API', () => {
         { id: 'notif-1', title: 'New Job', message: 'Job assigned', is_read: false }
       ]
 
-      vi.mocked(NotificationService.getUnread).mockResolvedValue(mockUnread)
+      const mockResult = {
+        notifications: mockUnread,
+        total: mockUnread.length,
+        limit: 50,
+        offset: 0,
+      }
+      vi.mocked(NotificationService.getUnread).mockResolvedValue(mockResult)
+      vi.mocked(NotificationService.getUnreadCount).mockResolvedValue(1)
 
       const request = new NextRequest('http://localhost:3000/api/notifications?unread=true')
       const response = await GET(request)
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data).toEqual(mockUnread)
+      expect(data).toEqual({ ...mockResult, unread_count: 1 })
     })
 
     it('should respect limit parameter', async () => {
       setupAuthenticatedUser()
 
-      vi.mocked(NotificationService.getAll).mockResolvedValue([])
+      vi.mocked(NotificationService.getAll).mockResolvedValue({
+        notifications: [],
+        total: 0,
+        limit: 10,
+        offset: 0,
+      })
+      vi.mocked(NotificationService.getUnreadCount).mockResolvedValue(0)
 
       const request = new NextRequest('http://localhost:3000/api/notifications?limit=10')
       await GET(request)

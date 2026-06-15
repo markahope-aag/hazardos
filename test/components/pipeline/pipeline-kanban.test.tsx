@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
+import { renderWithClient } from '@/test/helpers/render-with-client'
 import { PipelineKanban, PipelineKanbanErrorBoundary } from '@/components/pipeline/pipeline-kanban'
 import type { PipelineStage, Opportunity } from '@/types/sales'
 
@@ -21,6 +22,13 @@ vi.mock('@/components/ui/use-toast', () => ({
 // Mock error boundaries
 vi.mock('@/components/error-boundaries', () => ({
   DataErrorBoundary: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}))
+
+// Mock the location filter so it doesn't fire its own `/api/locations`
+// fetch, which would otherwise pollute the global fetch mock used to
+// assert pipeline move API calls.
+vi.mock('@/components/locations/location-filter', () => ({
+  LocationFilter: () => <div data-testid="location-filter" />,
 }))
 
 // Mock @dnd-kit/core
@@ -199,9 +207,15 @@ describe('PipelineKanban', () => {
     vi.clearAllMocks()
   })
 
+  // Unmount between tests so accumulated DndContext instances don't leave
+  // stale drag handlers on the shared `__dndHandlers` global.
+  afterEach(() => {
+    cleanup()
+  })
+
   describe('rendering', () => {
     it('should render all pipeline stages', () => {
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       expect(screen.getByText('Lead')).toBeInTheDocument()
       expect(screen.getByText('Qualified')).toBeInTheDocument()
@@ -210,13 +224,13 @@ describe('PipelineKanban', () => {
     })
 
     it('should render DndContext wrapper', () => {
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       expect(screen.getByTestId('dnd-context')).toBeInTheDocument()
     })
 
     it('should render opportunity counts per stage', () => {
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       // Lead has 1 opportunity
       // Qualified has 1 opportunity
@@ -227,7 +241,7 @@ describe('PipelineKanban', () => {
     })
 
     it('should render stage total values', () => {
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       // formatCurrency with showDecimals=false is used
       // Lead: $25,000 - will appear twice (stage total + card)
@@ -244,7 +258,7 @@ describe('PipelineKanban', () => {
     })
 
     it('should render opportunity cards', () => {
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       expect(screen.getByText('Commercial Building Abatement')).toBeInTheDocument()
       expect(screen.getByText('Residential Lead Paint')).toBeInTheDocument()
@@ -252,7 +266,7 @@ describe('PipelineKanban', () => {
     })
 
     it('should render customer names on cards', () => {
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       expect(screen.getByText('ABC Corporation')).toBeInTheDocument()
       expect(screen.getByText('Jane Smith')).toBeInTheDocument()
@@ -260,7 +274,7 @@ describe('PipelineKanban', () => {
     })
 
     it('should render opportunity values on cards', () => {
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       // Values appear on both stage totals and cards
       const values25k = screen.getAllByText('$25,000')
@@ -272,7 +286,7 @@ describe('PipelineKanban', () => {
     })
 
     it('should render expected close dates', () => {
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       // The component uses toLocaleDateString() which formats dates based on locale
       // Match any date pattern after "Close:"
@@ -281,7 +295,7 @@ describe('PipelineKanban', () => {
     })
 
     it('should render links to opportunity detail pages', () => {
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       const links = screen.getAllByRole('link')
       expect(links.find(link => link.getAttribute('href') === '/crm/opportunities/opp_001')).toBeInTheDocument()
@@ -292,7 +306,7 @@ describe('PipelineKanban', () => {
 
   describe('empty states', () => {
     it('should render empty stages', () => {
-      render(<PipelineKanban stages={mockStages} opportunities={[]} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={[]} />)
 
       expect(screen.getByText('Lead')).toBeInTheDocument()
       expect(screen.getByText('Qualified')).toBeInTheDocument()
@@ -303,7 +317,7 @@ describe('PipelineKanban', () => {
     })
 
     it('should render with no stages', () => {
-      render(<PipelineKanban stages={[]} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={[]} opportunities={mockOpportunities} />)
 
       // Should not crash, just show empty container
       expect(screen.getByTestId('dnd-context')).toBeInTheDocument()
@@ -312,13 +326,13 @@ describe('PipelineKanban', () => {
 
   describe('customer name display', () => {
     it('should show company name when available', () => {
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       expect(screen.getByText('ABC Corporation')).toBeInTheDocument()
     })
 
     it('should show full name when no company name', () => {
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       // Jane Smith has no company_name
       expect(screen.getByText('Jane Smith')).toBeInTheDocument()
@@ -331,7 +345,7 @@ describe('PipelineKanban', () => {
         customer: undefined,
       }
 
-      render(<PipelineKanban stages={mockStages} opportunities={[oppNoCustomer]} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={[oppNoCustomer]} />)
 
       expect(screen.getByText('Unknown')).toBeInTheDocument()
     })
@@ -348,7 +362,7 @@ describe('PipelineKanban', () => {
         },
       }
 
-      render(<PipelineKanban stages={mockStages} opportunities={[oppEmptyNames]} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={[oppEmptyNames]} />)
 
       expect(screen.getByText('Unknown')).toBeInTheDocument()
     })
@@ -361,7 +375,7 @@ describe('PipelineKanban', () => {
         json: async () => ({ success: true }),
       })
 
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       // Simulate drag end via the stored handler
       const handlers = (global as any).__dndHandlers
@@ -385,7 +399,7 @@ describe('PipelineKanban', () => {
         json: async () => ({ success: true }),
       })
 
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       const handlers = (global as any).__dndHandlers
       handlers.onDragEnd({
@@ -407,7 +421,7 @@ describe('PipelineKanban', () => {
         json: async () => ({ success: true }),
       })
 
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       const handlers = (global as any).__dndHandlers
       handlers.onDragEnd({
@@ -426,7 +440,7 @@ describe('PipelineKanban', () => {
         status: 500,
       })
 
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       const handlers = (global as any).__dndHandlers
       handlers.onDragEnd({
@@ -444,7 +458,7 @@ describe('PipelineKanban', () => {
     })
 
     it('should not call API when dropped on same stage', () => {
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       const handlers = (global as any).__dndHandlers
       handlers.onDragEnd({
@@ -456,7 +470,7 @@ describe('PipelineKanban', () => {
     })
 
     it('should not call API when dropped outside any stage', () => {
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       const handlers = (global as any).__dndHandlers
       handlers.onDragEnd({
@@ -468,7 +482,7 @@ describe('PipelineKanban', () => {
     })
 
     it('should handle drag start', () => {
-      render(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
 
       const handlers = (global as any).__dndHandlers
       handlers.onDragStart({
@@ -487,7 +501,7 @@ describe('PipelineKanban', () => {
         status: 500,
       })
 
-      const { rerender: _rerender } = render(
+      const { rerender: _rerender } = renderWithClient(
         <PipelineKanban stages={mockStages} opportunities={mockOpportunities} />
       )
 
@@ -512,7 +526,7 @@ describe('PipelineKanban', () => {
 
   describe('stage colors', () => {
     it('should apply stage colors to indicators', () => {
-      const { container } = render(
+      const { container } = renderWithClient(
         <PipelineKanban stages={mockStages} opportunities={mockOpportunities} />
       )
 
@@ -524,7 +538,7 @@ describe('PipelineKanban', () => {
 
   describe('error boundary wrapper', () => {
     it('should render children within error boundary', () => {
-      render(
+      renderWithClient(
         <PipelineKanbanErrorBoundary>
           <PipelineKanban stages={mockStages} opportunities={mockOpportunities} />
         </PipelineKanbanErrorBoundary>
@@ -542,7 +556,7 @@ describe('PipelineKanban', () => {
         estimated_value: null,
       }
 
-      render(<PipelineKanban stages={mockStages} opportunities={[oppNoValue]} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={[oppNoValue]} />)
 
       // Should render without crashing
       expect(screen.getByText('Commercial Building Abatement')).toBeInTheDocument()
@@ -555,7 +569,7 @@ describe('PipelineKanban', () => {
         expected_close_date: null,
       }
 
-      render(<PipelineKanban stages={mockStages} opportunities={[oppNoDate]} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={[oppNoDate]} />)
 
       // Should render without crashing, no close date shown
       expect(screen.getByText('Commercial Building Abatement')).toBeInTheDocument()
@@ -572,7 +586,7 @@ describe('PipelineKanban', () => {
         sort_order: i,
       }))
 
-      render(<PipelineKanban stages={manyStages} opportunities={[]} />)
+      renderWithClient(<PipelineKanban stages={manyStages} opportunities={[]} />)
 
       manyStages.forEach(stage => {
         expect(screen.getByText(stage.name)).toBeInTheDocument()
@@ -588,7 +602,7 @@ describe('PipelineKanban', () => {
         estimated_value: 1000 * (i + 1),
       }))
 
-      render(<PipelineKanban stages={mockStages} opportunities={manyOpps} />)
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={manyOpps} />)
 
       // Should calculate total correctly: sum of 1000 + 2000 + ... + 50000
       const _totalValue = (50 * 51 / 2) * 1000 // = 1,275,000

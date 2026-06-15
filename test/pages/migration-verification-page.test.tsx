@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import MigrationVerificationPage from '@/app/(dashboard)/migration-verification/page'
+import MigrationVerificationPage from '@/app/(dashboard)/migration-verification/migration-verification-client'
 
 // Mock the auth hook
 vi.mock('@/lib/hooks/use-multi-tenant-auth', () => ({

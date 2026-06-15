@@ -56,7 +56,7 @@ describe('SignupForm', () => {
     expect(screen.getByLabelText(/first name/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/last name/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/password/i, { selector: '#password' })).toBeInTheDocument()
     expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /create account/i })).toBeInTheDocument()
   })
@@ -77,7 +77,7 @@ describe('SignupForm', () => {
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'John' } })
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Doe' } })
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'john@example.com' } })
-    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByLabelText(/password/i, { selector: '#password' }), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'different123' } })
     
     const submitButton = screen.getByRole('button', { name: /create account/i })
@@ -96,7 +96,7 @@ describe('SignupForm', () => {
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'John' } })
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Doe' } })
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'john@example.com' } })
-    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: '123' } })
+    fireEvent.change(screen.getByLabelText(/password/i, { selector: '#password' }), { target: { value: '123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: '123' } })
 
     const submitButton = screen.getByRole('button', { name: /create account/i })
@@ -123,7 +123,7 @@ describe('SignupForm', () => {
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'John' } })
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Doe' } })
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'john@example.com' } })
-    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByLabelText(/password/i, { selector: '#password' }), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
 
     const submitButton = screen.getByRole('button', { name: /create account/i })
@@ -162,7 +162,7 @@ describe('SignupForm', () => {
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'John' } })
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Doe' } })
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'john@example.com' } })
-    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByLabelText(/password/i, { selector: '#password' }), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
     
     const submitButton = screen.getByRole('button', { name: /create account/i })
@@ -185,7 +185,7 @@ describe('SignupForm', () => {
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'John' } })
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Doe' } })
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'john@example.com' } })
-    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByLabelText(/password/i, { selector: '#password' }), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
 
     const submitButton = screen.getByRole('button', { name: /create account/i })
@@ -213,7 +213,7 @@ describe('SignupForm', () => {
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'John' } })
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Doe' } })
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'invalid-email' } })
-    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByLabelText(/password/i, { selector: '#password' }), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
     
     const submitButton = screen.getByRole('button', { name: /create account/i })
@@ -237,7 +237,7 @@ describe('SignupForm', () => {
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'John' } })
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Doe' } })
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'john@example.com' } })
-    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByLabelText(/password/i, { selector: '#password' }), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
 
     const submitButton = screen.getByRole('button', { name: /create account/i })
@@ -267,7 +267,7 @@ describe('SignupForm', () => {
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: '  John  ' } })
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: '  Doe  ' } })
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: '  john@example.com  ' } })
-    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByLabelText(/password/i, { selector: '#password' }), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
 
     const submitButton = screen.getByRole('button', { name: /create account/i })
@@ -295,9 +295,9 @@ describe('SignupForm', () => {
     expect(screen.getByLabelText(/first name/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/last name/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/password/i, { selector: '#password' })).toBeInTheDocument()
     expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument()
-    
+
     // Submit button should be properly labeled
     expect(screen.getByRole('button', { name: /create account/i })).toBeInTheDocument()
   })
@@ -310,7 +310,7 @@ describe('SignupForm', () => {
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'John' } })
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Doe' } })
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'john@example.com' } })
-    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByLabelText(/password/i, { selector: '#password' }), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
 
     const submitButton = screen.getByRole('button', { name: /create account/i })

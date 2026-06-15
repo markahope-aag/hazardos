@@ -132,7 +132,7 @@ describe('PhotoCapture', () => {
   it('should render inline variant with take photo text', () => {
     render(<PhotoCapture category="exterior" variant="inline" />)
 
-    const button = screen.getByRole('button')
+    const button = screen.getByRole('button', { name: /take photo/i })
     expect(button).toBeInTheDocument()
     expect(screen.getByText('Take Photo')).toBeInTheDocument()
   })

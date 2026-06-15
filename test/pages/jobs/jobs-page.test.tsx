@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import type React from 'react'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
+import { renderWithClient } from '@/test/helpers/render-with-client'
 import JobsPage from '@/app/(dashboard)/jobs/page'
 
 /** Thenable Supabase-style builder: `await .from().select()...` → `{ data, error }`. */
@@ -26,7 +27,7 @@ async function renderPage(searchParams: Record<string, string> = {}) {
   const ui = (await JobsPage({
     searchParams: Promise.resolve(searchParams),
   })) as React.ReactElement
-  return render(ui)
+  return renderWithClient(ui)
 }
 
 describe('JobsPage (dashboard index)', () => {
@@ -34,7 +35,8 @@ describe('JobsPage (dashboard index)', () => {
     await renderPage()
     expect(screen.getByRole('heading', { name: 'Jobs' })).toBeInTheDocument()
     expect(screen.getByText('Manage scheduled and completed jobs')).toBeInTheDocument()
-    expect(screen.getByText('No jobs found')).toBeInTheDocument()
+    // Responsive table renders both mobile and desktop empty states.
+    expect(screen.getAllByText('No jobs found').length).toBeGreaterThan(0)
   })
 
   it('links to new job and calendar', async () => {

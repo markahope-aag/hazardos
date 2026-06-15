@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { renderWithClient } from '@/test/helpers/render-with-client'
 import CustomerList from '@/components/customers/customer-list'
 import type { Customer } from '@/types/database'
 
@@ -57,7 +58,7 @@ describe('CustomerList', () => {
   })
 
   it('renders search input', () => {
-    render(
+    renderWithClient(
       <CustomerList
         onEditCustomer={mockOnEditCustomer}
         onDeleteCustomer={mockOnDeleteCustomer}
@@ -68,7 +69,7 @@ describe('CustomerList', () => {
   })
 
   it('renders table headers', () => {
-    render(
+    renderWithClient(
       <CustomerList
         onEditCustomer={mockOnEditCustomer}
         onDeleteCustomer={mockOnDeleteCustomer}
@@ -86,7 +87,7 @@ describe('CustomerList', () => {
     mockIsLoading = true
     mockCustomers = []
 
-    render(
+    renderWithClient(
       <CustomerList
         onEditCustomer={mockOnEditCustomer}
         onDeleteCustomer={mockOnDeleteCustomer}
@@ -100,7 +101,7 @@ describe('CustomerList', () => {
   it('shows empty state when no customers', () => {
     mockCustomers = []
 
-    render(
+    renderWithClient(
       <CustomerList
         onEditCustomer={mockOnEditCustomer}
         onDeleteCustomer={mockOnDeleteCustomer}
@@ -115,7 +116,7 @@ describe('CustomerList', () => {
     mockError = new Error('Network error')
     mockCustomers = []
 
-    render(
+    renderWithClient(
       <CustomerList
         onEditCustomer={mockOnEditCustomer}
         onDeleteCustomer={mockOnDeleteCustomer}
@@ -127,16 +128,18 @@ describe('CustomerList', () => {
   })
 
   it('renders customer data in rows', () => {
-    render(
+    renderWithClient(
       <CustomerList
         onEditCustomer={mockOnEditCustomer}
         onDeleteCustomer={mockOnDeleteCustomer}
       />
     )
 
-    expect(screen.getByText('John Doe')).toBeInTheDocument()
-    expect(screen.getByText('Acme Inc')).toBeInTheDocument()
-    expect(screen.getByText('john@example.com')).toBeInTheDocument()
+    // Responsive layout renders both a mobile card list and a desktop
+    // table, so contact details appear in both variants.
+    expect(screen.getAllByText('John Doe').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Acme Inc').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('john@example.com').length).toBeGreaterThan(0)
   })
 
   it('shows pagination when more items available', () => {
@@ -145,7 +148,7 @@ describe('CustomerList', () => {
       id: `cust-${i}`,
     }))
 
-    render(
+    renderWithClient(
       <CustomerList
         onEditCustomer={mockOnEditCustomer}
         onDeleteCustomer={mockOnDeleteCustomer}
@@ -162,7 +165,7 @@ describe('CustomerList', () => {
       id: `cust-${i}`,
     }))
 
-    render(
+    renderWithClient(
       <CustomerList
         onEditCustomer={mockOnEditCustomer}
         onDeleteCustomer={mockOnDeleteCustomer}

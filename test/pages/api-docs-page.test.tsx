@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import ApiDocsPage from '@/app/(dashboard)/api-docs/page'
+import ApiDocsPage from '@/app/(dashboard)/api-docs/api-docs-client'
 
 // Mock SwaggerUI since it requires SSR=false
 vi.mock('next/dynamic', () => ({

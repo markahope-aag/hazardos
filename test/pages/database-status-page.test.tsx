@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import DatabaseStatusPage from '@/app/(dashboard)/database-status/page'
+import DatabaseStatusPage from '@/app/(dashboard)/database-status/database-status-client'
 
 // Mock the auth hook
 vi.mock('@/lib/hooks/use-multi-tenant-auth', () => ({

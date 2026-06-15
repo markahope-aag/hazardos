@@ -10,6 +10,10 @@ const mockSupabase = vi.hoisted(() => ({
   eq: vi.fn(),
   ilike: vi.fn(),
   or: vi.fn(),
+  in: vi.fn(),
+  is: vi.fn(),
+  gte: vi.fn(),
+  lte: vi.fn(),
   order: vi.fn(),
   range: vi.fn(),
   limit: vi.fn(),
@@ -27,6 +31,10 @@ const setupChainableMock = () => {
   mockSupabase.eq.mockReturnValue(mockSupabase)
   mockSupabase.ilike.mockReturnValue(mockSupabase)
   mockSupabase.or.mockReturnValue(mockSupabase)
+  mockSupabase.in.mockReturnValue(mockSupabase)
+  mockSupabase.is.mockReturnValue(mockSupabase)
+  mockSupabase.gte.mockReturnValue(mockSupabase)
+  mockSupabase.lte.mockReturnValue(mockSupabase)
   mockSupabase.order.mockReturnValue(mockSupabase)
   mockSupabase.range.mockReturnValue(mockSupabase)
   mockSupabase.limit.mockReturnValue(mockSupabase)

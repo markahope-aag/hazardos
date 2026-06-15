@@ -7,6 +7,16 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(),
 }))
 
+// refreshViews() now runs through the service-role admin client, not the
+// cookie-bound server client, so the admin client must be mocked separately.
+const mockAdmin = vi.hoisted(() => ({
+  rpc: vi.fn(),
+}))
+
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn(() => mockAdmin),
+}))
+
 import { createClient } from '@/lib/supabase/server'
 
 describe('ReportingService', () => {
@@ -154,24 +164,22 @@ describe('ReportingService', () => {
             })),
           }
         }
-        if (table === 'mv_sales_performance') {
+        if (table === 'v_sales_performance') {
           return {
             select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                gte: vi.fn(() => ({
-                  lte: vi.fn(() => ({
-                    order: vi.fn().mockResolvedValue({
-                      data: [
-                        {
-                          month: '2026-01',
-                          total_proposals: 10,
-                          proposals_won: 5,
-                          win_rate: 0.5,
-                        },
-                      ],
-                      error: null,
-                    }),
-                  })),
+              gte: vi.fn(() => ({
+                lte: vi.fn(() => ({
+                  order: vi.fn().mockResolvedValue({
+                    data: [
+                      {
+                        month: '2026-01',
+                        total_proposals: 10,
+                        proposals_won: 5,
+                        win_rate: 0.5,
+                      },
+                    ],
+                    error: null,
+                  }),
                 })),
               })),
             })),
@@ -202,41 +210,27 @@ describe('ReportingService', () => {
       ).rejects.toThrow('Authentication is required')
     })
 
-    it('should filter by organization', async () => {
-      let orgIdChecked = false
+    it('should read from the org-scoped sales view', async () => {
+      // Org scoping moved into the database: reports now read from the
+      // `v_sales_performance` wrapper view, which filters by
+      // get_user_organization_id() server-side. There's no longer an
+      // app-level .eq('organization_id', ...). This test verifies the
+      // service queries that org-scoped view rather than the raw matview.
+      const queriedTables: string[] = []
 
       mockSupabase.from = vi.fn((table) => {
-        if (table === 'profiles') {
+        queriedTables.push(table)
+        if (table === 'v_sales_performance') {
           return {
             select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                single: vi.fn().mockResolvedValue({
-                  data: { organization_id: 'org-123' },
-                  error: null,
-                }),
+              gte: vi.fn(() => ({
+                lte: vi.fn(() => ({
+                  order: vi.fn().mockResolvedValue({
+                    data: [],
+                    error: null,
+                  }),
+                })),
               })),
-            })),
-          }
-        }
-        if (table === 'mv_sales_performance') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn((field, value) => {
-                if (field === 'organization_id') {
-                  expect(value).toBe('org-123')
-                  orgIdChecked = true
-                }
-                return {
-                  gte: vi.fn(() => ({
-                    lte: vi.fn(() => ({
-                      order: vi.fn().mockResolvedValue({
-                        data: [],
-                        error: null,
-                      }),
-                    })),
-                  })),
-                }
-              }),
             })),
           }
         }
@@ -247,7 +241,7 @@ describe('ReportingService', () => {
         date_range: { type: 'this_month' },
       })
 
-      expect(orgIdChecked).toBe(true)
+      expect(queriedTables).toContain('v_sales_performance')
     })
   })
 
@@ -266,24 +260,22 @@ describe('ReportingService', () => {
             })),
           }
         }
-        if (table === 'mv_job_costs') {
+        if (table === 'v_job_costs') {
           return {
             select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                gte: vi.fn(() => ({
-                  lte: vi.fn(() => ({
-                    order: vi.fn().mockResolvedValue({
-                      data: [
-                        {
-                          month: '2026-01',
-                          total_costs: 15000,
-                          total_revenue: 20000,
-                          margin: 0.25,
-                        },
-                      ],
-                      error: null,
-                    }),
-                  })),
+              gte: vi.fn(() => ({
+                lte: vi.fn(() => ({
+                  order: vi.fn().mockResolvedValue({
+                    data: [
+                      {
+                        month: '2026-01',
+                        total_costs: 15000,
+                        total_revenue: 20000,
+                        margin: 0.25,
+                      },
+                    ],
+                    error: null,
+                  }),
                 })),
               })),
             })),
@@ -317,30 +309,28 @@ describe('ReportingService', () => {
             })),
           }
         }
-        if (table === 'mv_lead_source_roi') {
+        if (table === 'v_lead_source_roi') {
           return {
             select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                gte: vi.fn(() => ({
-                  lte: vi.fn(() => ({
-                    order: vi.fn().mockResolvedValue({
-                      data: [
-                        {
-                          source: 'Google Ads',
-                          leads: 50,
-                          conversions: 10,
-                          conversion_rate: 0.2,
-                        },
-                        {
-                          source: 'Referral',
-                          leads: 30,
-                          conversions: 15,
-                          conversion_rate: 0.5,
-                        },
-                      ],
-                      error: null,
-                    }),
-                  })),
+              gte: vi.fn(() => ({
+                lte: vi.fn(() => ({
+                  order: vi.fn().mockResolvedValue({
+                    data: [
+                      {
+                        source: 'Google Ads',
+                        leads: 50,
+                        conversions: 10,
+                        conversion_rate: 0.2,
+                      },
+                      {
+                        source: 'Referral',
+                        leads: 30,
+                        conversions: 15,
+                        conversion_rate: 0.5,
+                      },
+                    ],
+                    error: null,
+                  }),
                 })),
               })),
             })),
@@ -374,18 +364,16 @@ describe('ReportingService', () => {
             })),
           }
         }
-        if (table === 'mv_lead_source_roi') {
+        if (table === 'v_lead_source_roi') {
           return {
             select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                gte: vi.fn(() => ({
-                  lte: vi.fn(() => ({
-                    order: vi.fn((field) => {
-                      expect(field).toBe('source')
-                      orderCalled = true
-                      return Promise.resolve({ data: [], error: null })
-                    }),
-                  })),
+              gte: vi.fn(() => ({
+                lte: vi.fn(() => ({
+                  order: vi.fn((field) => {
+                    expect(field).toBe('source')
+                    orderCalled = true
+                    return Promise.resolve({ data: [], error: null })
+                  }),
                 })),
               })),
             })),
@@ -770,15 +758,17 @@ describe('ReportingService', () => {
 
   describe('refreshViews', () => {
     it('should call refresh RPC', async () => {
-      mockSupabase.rpc = vi.fn().mockResolvedValue({ error: null })
+      // refresh_report_views is locked to service_role, so the service now
+      // invokes it through the admin client rather than the cookie client.
+      mockAdmin.rpc.mockResolvedValue({ error: null })
 
       await ReportingService.refreshViews()
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('refresh_report_views')
+      expect(mockAdmin.rpc).toHaveBeenCalledWith('refresh_report_views')
     })
 
     it('should throw error on RPC failure', async () => {
-      mockSupabase.rpc = vi.fn().mockResolvedValue({
+      mockAdmin.rpc.mockResolvedValue({
         error: { message: 'RPC failed' },
       })
 
