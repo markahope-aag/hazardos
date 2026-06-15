@@ -125,12 +125,17 @@ export class NotificationService {
     const limit = options?.limit || 50
     const offset = options?.offset || 0
 
+    // PostgREST takes filter values literally — `now()` would be cast as
+    // the string 'now()' and fail (invalid timestamp). Pass an explicit
+    // ISO timestamp instead, matching how timestamps are compared elsewhere.
+    const nowIso = new Date().toISOString()
+
     const { data, error, count } = await supabase
       .from('notifications')
       .select(NOTIFICATION_LIST_FIELDS, { count: 'exact' })
       .eq('user_id', targetUserId)
       .eq('is_read', false)
-      .or('expires_at.is.null,expires_at.gt.now()')
+      .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
@@ -161,11 +166,14 @@ export class NotificationService {
     const limit = options?.limit || 50
     const offset = options?.offset || 0
 
+    // See getUnread: `now()` must be a literal ISO timestamp for PostgREST.
+    const nowIso = new Date().toISOString()
+
     const { data, error, count } = await supabase
       .from('notifications')
       .select(NOTIFICATION_LIST_FIELDS, { count: 'exact' })
       .eq('user_id', targetUserId)
-      .or('expires_at.is.null,expires_at.gt.now()')
+      .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 

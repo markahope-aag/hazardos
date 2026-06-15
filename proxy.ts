@@ -88,7 +88,10 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all paths except static assets
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Match all paths except static assets. manifest.json and sw.js are
+    // public PWA assets fetched on every page (including /login) — if the
+    // proxy redirects them to /login the browser parses the HTML as the
+    // web app manifest and reports a "Manifest syntax error".
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
