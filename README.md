@@ -8,12 +8,12 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1.18-38bdf8)](https://tailwindcss.com/)
 [![Vitest](https://img.shields.io/badge/Vitest-4.0.18-729B1B)](https://vitest.dev/)
 [![Test Coverage](https://img.shields.io/badge/Coverage-instrumented~38%25-yellow)](docs/TESTING.md)
-[![Security Status](https://img.shields.io/badge/Security-23_Vulnerabilities-red)](https://github.com/advisories)
+[![Security Status](https://img.shields.io/badge/Security-0_Vulnerabilities-brightgreen)](https://github.com/advisories)
 [![Performance](https://img.shields.io/badge/Performance-B--Grade-orange)](docs/PERFORMANCE-OPTIMIZATION-GUIDE.md)
 
 Mobile-first business management platform for asbestos, mold, lead paint, and hazardous material abatement services.
 
-> **⚠️ SECURITY ALERT**: 23 dependency vulnerabilities identified (1 critical). Run `npm audit fix` immediately.  
+> **✅ SECURITY**: 0 dependency vulnerabilities (resolved 2026-06-30 via `npm audit fix`; was 23, then 14). Re-run `npm audit` before each release.
 > **📊 AUDIT STATUS**: Comprehensive codebase audit completed April 7, 2026. See [Audit Report](docs/CODEBASE-AUDIT-2026-04-07.md).
 
 ## 🚀 Quick Start
