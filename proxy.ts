@@ -26,6 +26,10 @@ const AUTH_ROUTES = ['/login', '/signup', '/forgot-password']
 // /auth/* covers /auth/callback (OAuth) and /auth/confirm (recovery/magic-link
 // verification). Recovery links land on /auth/confirm before any session
 // exists, so it must not require auth.
+// /api/cron/* is invoked by the Vercel cron scheduler, which carries no
+// Supabase session cookie — without this exception the login redirect fires
+// and the job never reaches its handler. Each cron route authenticates the
+// call itself via CRON_SECRET / the Vercel-signed x-vercel-cron header.
 const PUBLIC_ROUTES = [
   ...AUTH_ROUTES,
   '/reset-password',
@@ -33,6 +37,7 @@ const PUBLIC_ROUTES = [
   '/onboard',
   '/api/webhooks',
   '/api/auth',
+  '/api/cron',
 ]
 
 export async function proxy(request: NextRequest) {
