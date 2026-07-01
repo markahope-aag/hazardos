@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ShieldAlert, ShieldCheck, Clock, Plus, Loader2 } from 'lucide-react'
 import { usePermissions } from '@/lib/hooks/use-multi-tenant-auth'
 import {
@@ -38,6 +39,8 @@ import {
   type CredentialFilters,
 } from '@/lib/hooks/use-credentials'
 import { CredentialStatusBadge } from '@/components/compliance/credential-status-badge'
+import { CredentialTypesPanel } from '@/components/compliance/credential-types-panel'
+import { suggestExpiry } from '@/lib/credentials/vocab'
 import type { CredentialStatus } from '@/lib/validations/credential'
 
 const MANAGE_ROLES = ['admin', 'tenant_owner', 'platform_owner', 'platform_admin']
@@ -46,6 +49,36 @@ export default function CompliancePage() {
   const { hasRole } = usePermissions()
   const canManage = hasRole(MANAGE_ROLES)
 
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Compliance</h1>
+        <p className="text-sm text-muted-foreground">
+          Worker credentials, expirations, and job-readiness.
+        </p>
+      </div>
+
+      {canManage ? (
+        <Tabs defaultValue="credentials">
+          <TabsList>
+            <TabsTrigger value="credentials">Credentials</TabsTrigger>
+            <TabsTrigger value="types">Credential types</TabsTrigger>
+          </TabsList>
+          <TabsContent value="credentials" className="mt-4">
+            <CredentialsView canManage={canManage} />
+          </TabsContent>
+          <TabsContent value="types" className="mt-4">
+            <CredentialTypesPanel />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        <CredentialsView canManage={canManage} />
+      )}
+    </div>
+  )
+}
+
+function CredentialsView({ canManage }: { canManage: boolean }) {
   const [statusFilter, setStatusFilter] = useState<CredentialStatus | 'all'>('all')
   const filters: CredentialFilters = statusFilter === 'all' ? {} : { status: statusFilter }
   const { data: credentials = [], isLoading } = useCredentials(filters)
@@ -59,16 +92,6 @@ export default function CompliancePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Compliance</h1>
-          <p className="text-sm text-muted-foreground">
-            Worker credentials, expirations, and job-readiness.
-          </p>
-        </div>
-        {canManage && <AddCredentialDialog />}
-      </div>
-
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
           label="Expired"
@@ -93,18 +116,21 @@ export default function CompliancePage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Credentials</CardTitle>
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as CredentialStatus | 'all')}>
-            <SelectTrigger className="w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="expired">Expired</SelectItem>
-              <SelectItem value="expiring_soon">Expiring soon</SelectItem>
-              <SelectItem value="valid">Valid</SelectItem>
-              <SelectItem value="no_expiry">No expiry</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as CredentialStatus | 'all')}>
+              <SelectTrigger className="w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="expired">Expired</SelectItem>
+                <SelectItem value="expiring_soon">Expiring soon</SelectItem>
+                <SelectItem value="valid">Valid</SelectItem>
+                <SelectItem value="no_expiry">No expiry</SelectItem>
+              </SelectContent>
+            </Select>
+            {canManage && <AddCredentialDialog />}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -190,12 +216,7 @@ function AddCredentialDialog() {
   const onTypeChange = (typeId: string) => {
     setForm((prev) => {
       const type = types.find((t) => t.id === typeId)
-      let expiry = prev.expiry_date
-      if (type?.default_valid_days && prev.issued_date && !prev.expiry_date) {
-        const d = new Date(`${prev.issued_date}T00:00:00Z`)
-        d.setUTCDate(d.getUTCDate() + type.default_valid_days)
-        expiry = d.toISOString().slice(0, 10)
-      }
+      const expiry = prev.expiry_date || suggestExpiry(prev.issued_date, type?.default_valid_days)
       return { ...prev, credential_type_id: typeId, expiry_date: expiry }
     })
   }
