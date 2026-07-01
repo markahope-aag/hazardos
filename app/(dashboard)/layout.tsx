@@ -8,7 +8,7 @@ import { AuthProvider, useMultiTenantAuth } from '@/components/providers/auth-pr
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Home, FileText, Calculator, Calendar, DollarSign, LayoutGrid, Briefcase, MessageCircle, ClipboardList, FlaskConical, Settings, Menu, type LucideIcon } from 'lucide-react'
+import { Home, FileText, Calculator, Calendar, DollarSign, LayoutGrid, Briefcase, MessageCircle, ClipboardList, FlaskConical, ShieldCheck, Settings, Menu, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import LoginForm from '@/components/auth/login-form'
@@ -30,6 +30,7 @@ const MAIN_NAV_ITEMS: MainNavItem[] = [
   { href: '/estimates', label: 'Estimates', icon: Calculator, match: (p) => p.startsWith('/estimates') },
   { href: '/jobs', label: 'Jobs', icon: Briefcase, match: (p) => p.startsWith('/jobs') },
   { href: '/work-orders', label: 'Work Orders', icon: ClipboardList, match: (p) => p.startsWith('/work-orders') },
+  { href: '/compliance', label: 'Compliance', icon: ShieldCheck, match: (p) => p.startsWith('/compliance') },
   { href: '/invoices', label: 'Invoices', icon: DollarSign, match: (p) => p.startsWith('/invoices') },
   { href: '/calendar', label: 'Calendar', icon: Calendar, match: (p) => p.startsWith('/calendar') },
 ]

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -33,10 +33,16 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { UserPlus, UserMinus, Crown, Loader2 } from 'lucide-react'
+import { UserPlus, UserMinus, Crown, Loader2, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { cn } from '@/lib/utils'
 import { crewRoleConfig } from '@/types/jobs'
+import {
+  useJobCompliance,
+  fetchWorkerJobCheck,
+  type AssignmentCheckDTO,
+} from '@/lib/hooks/use-credentials'
+import { CrewReadinessBadge } from '@/components/compliance/credential-status-badge'
 
 interface CrewMember {
   id: string
@@ -92,8 +98,38 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
     lead_profile_id: '',
   })
 
+  // Credential compliance for the assignment gate.
+  const { data: compliance } = useJobCompliance(job.id)
+  const [workerChecks, setWorkerChecks] = useState<Record<string, AssignmentCheckDTO>>({})
+
   const assignedProfileIds = crew.map(c => c.profile_id)
   const unassignedCrew = availableCrew.filter(c => !assignedProfileIds.includes(c.id))
+
+  // Fetch each selected worker's job-compliance check to warn before assigning.
+  useEffect(() => {
+    let cancelled = false
+    const missing = assignForm.profile_ids.filter((id) => !workerChecks[id])
+    if (missing.length === 0) return
+    Promise.all(
+      missing.map((id) =>
+        fetchWorkerJobCheck(job.id, id)
+          .then((c) => [id, c] as const)
+          .catch(() => null),
+      ),
+    ).then((results) => {
+      if (cancelled) return
+      setWorkerChecks((prev) => {
+        const next = { ...prev }
+        for (const r of results) if (r) next[r[0]] = r[1]
+        return next
+      })
+    })
+    return () => {
+      cancelled = true
+    }
+    // workerChecks intentionally omitted: we only fetch newly-selected workers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignForm.profile_ids, job.id])
 
   const toggleMemberSelected = (id: string) => {
     setAssignForm(prev => {
@@ -208,7 +244,12 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
     <>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Assigned Crew</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle>Assigned Crew</CardTitle>
+            {compliance && crew.length > 0 && (
+              <CrewReadinessBadge readiness={compliance.overall} />
+            )}
+          </div>
           {canModifyCrew && unassignedCrew.length > 0 && (
             <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
               <DialogTrigger asChild>
@@ -256,6 +297,39 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
                         {assignForm.profile_ids.length} selected
                       </p>
                     )}
+                    {assignForm.profile_ids.map((id) => {
+                      const check = workerChecks[id]
+                      if (!check) return null
+                      const issues = check.requirements.filter((r) => r.state !== 'valid')
+                      if (issues.length === 0) return null
+                      const blocked =
+                        check.enforcement === 'block' &&
+                        issues.some((r) => r.state === 'missing' || r.state === 'expired')
+                      return (
+                        <div
+                          key={id}
+                          className={cn(
+                            'rounded-md border p-2 text-xs',
+                            blocked
+                              ? 'border-red-200 bg-red-50 text-red-800'
+                              : 'border-amber-200 bg-amber-50 text-amber-800',
+                          )}
+                        >
+                          <div className="flex items-center gap-1 font-medium">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            {check.worker_name ?? 'Worker'} —{' '}
+                            {blocked ? 'assignment will be blocked' : 'missing/expiring credentials'}
+                          </div>
+                          <ul className="mt-1 list-disc pl-5">
+                            {issues.map((r) => (
+                              <li key={r.credential_type_id}>
+                                {r.name} — {r.state.replace('_', ' ')}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )
+                    })}
                   </div>
                   <div className="space-y-2">
                     <Label>Role (applies to all selected)</Label>
