@@ -135,6 +135,12 @@ anything else.
 - [ ] Sign back in — session is restored
 
 **Invites and roles**
+
+> Ready-made role accounts already exist in **Acme Remediation** — see
+> "Ready-made role accounts" in the QA Product Guide. Use them to test
+> what each role can and can't do without re-running the invite flow.
+> The steps below still exercise the invite/role flow itself.
+
 - [ ] From `/settings/team` invite a second alias email as Admin —
   invite email arrives
 - [ ] Accept invite from the email link (use incognito or different
@@ -142,9 +148,20 @@ anything else.
 - [ ] Repeat for Estimator role
 - [ ] Repeat for Technician role
 - [ ] Repeat for Viewer role
+- [ ] Confirm the invite dialog offers **only** Admin/Estimator/
+  Technician/Viewer — Tenant Owner is intentionally not invitable
 - [ ] Each role can do what their permissions allow and nothing more
   (test by trying to access /settings/billing as a non-owner)
 - [ ] Remove a team member — they lose access on next page load
+
+**Tenant Owner (created by promotion, not invite)**
+- [ ] Sign in as the owner (`roy.tolosa+owner@asymmetric.pro`) and, from
+  `/settings/team`, change another member's role to Tenant Owner —
+  succeeds (the org allows more than one owner)
+- [ ] The newly-promoted owner has full owner access (billing, team,
+  API keys)
+- [ ] A non-owner (admin) does NOT see Tenant Owner as a role option in
+  the team editor
 
 **Multi-tenant isolation**
 - [ ] Sign up a brand-new alias (not invited to your org) — creates a

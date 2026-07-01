@@ -49,11 +49,10 @@ jobs:
 
       - run: npm ci
 
-      - name: Run tests
-        run: npm run test -- --run
-
+      # Run once, with coverage, on every event (push + pull_request) so the
+      # threshold gate applies to main too — otherwise main can drift below its
+      # own floor while every PR fails the check.
       - name: Run tests with coverage
-        if: github.event_name == 'pull_request'
         run: npm run test -- --run --coverage --coverage.reporter=text-summary
 
   build:

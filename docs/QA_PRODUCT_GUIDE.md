@@ -201,37 +201,58 @@ issues:
 
 ## Test environment / accounts
 
-### Self-serve test accounts
+### Ready-made role accounts (Acme Remediation)
 
-Use the `+designator` alias trick on your real work email
-(`sophie.hope+designator@asymmetric.pro`). Every alias lands in your
-real inbox but Supabase treats it as a completely separate account —
-which means you can be signed in as multiple test roles in different
-browser sessions, and the alias itself tells you what scenario you're
-working in.
+Each tester has a full set of role accounts pre-provisioned in the
+**Acme Remediation** test org, so you can jump straight into
+role-permission testing without running the signup/invite dance every
+time. Each tester drives their **own** pool — so the two of you can test
+concurrently without colliding on sessions or data. They use the
+`+alias` trick: every alias lands in the tester's real inbox but
+Supabase treats each as a separate account, so one person can also be
+signed in as multiple roles across different browser sessions.
 
-Suggested aliases:
+| Role | Roy (field tester) | Sophie (back-office tester) |
+|---|---|---|
+| Tenant Owner | `roy.tolosa+owner@asymmetric.pro` | `sophie.hope+owner@asymmetric.pro` |
+| Admin | `roy.tolosa+admin@asymmetric.pro` | `sophie.hope+admin@asymmetric.pro` |
+| Estimator | `roy.tolosa+estimator@asymmetric.pro` | `sophie.hope+estimator@asymmetric.pro` |
+| Technician | `roy.tolosa+technician@asymmetric.pro` | `sophie.hope+technician@asymmetric.pro` |
+| Viewer (read-only) | `roy.tolosa+viewer@asymmetric.pro` | `sophie.hope+viewer@asymmetric.pro` |
 
-| Purpose | Sign up with |
-|---|---|
-| Your default tenant owner | `sophie.hope+owner@asymmetric.pro` |
-| Admin inside the same org | `sophie.hope+admin@asymmetric.pro` (invited from above) |
-| Estimator (typical field user) | `sophie.hope+estimator@asymmetric.pro` (invited) |
-| Technician (job completion) | `sophie.hope+tech@asymmetric.pro` (invited) |
-| Viewer (read-only) | `sophie.hope+viewer@asymmetric.pro` (invited) |
-| Second organization (for tenant isolation) | `sophie.hope+otherorg@asymmetric.pro` (fresh signup, NOT invited) |
-| Stripe test buyer | re-use any of the above; same Stripe test card flow |
+- **Shared password:** `HazardOS-QA-2026!` (emails are pre-confirmed —
+  sign in immediately, no confirmation step).
+- Roy's base account `roy.tolosa@asymmetric.pro` is also an **Admin** in
+  the same org.
+- The old `sophie.hope+tech@asymmetric.pro` alias is superseded by
+  `+technician` (deactivated); use `+technician`.
+- Need to reset passwords or add an alias? Re-run
+  `scripts/qa-setup-tester-accounts.mjs` — it's idempotent and resets the
+  shared password for both pools.
+
+For **cross-tenant / isolation** testing you still need a second org:
+sign up a fresh alias like `roy.tolosa+otherorg@asymmetric.pro` (NOT
+invited to Acme) — it auto-creates its own org so you can confirm Acme's
+data is invisible from it.
 
 ### Walking up the role hierarchy
 
-- **Fresh signup → tenant_owner**: any alias not previously invited.
-  Auto-creates a new org with you as owner.
-- **Other roles**: from your tenant_owner account, invite the next
-  alias via `/settings/team` and pick the role. Accept the invite from
-  the email link in a different browser / incognito.
-- **Cross-tenant test**: sign up a totally separate alias as a fresh
-  account — confirm Org A's data is completely invisible from Org B's
-  session.
+- **Pre-provisioned roles**: just sign in with the alias above for the
+  role you want to exercise.
+- **Signup → tenant_owner** (feature under test): any alias not
+  previously invited auto-creates a new org with you as owner.
+- **Invited roles** (feature under test): from an owner/admin account,
+  invite the next alias via `/settings/team` and pick the role, then
+  accept from the email link in a different browser / incognito.
+- **Tenant Owner note**: the in-app **invite** flow deliberately does
+  not offer Tenant Owner — only Admin/Estimator/Technician/Viewer. A
+  second owner is created by **promotion**: an existing owner opens
+  `/settings/team` and changes a member's role to Tenant Owner. The org
+  supports multiple owners (no single-owner constraint); the
+  `+owner` alias above is one such pre-provisioned owner.
+- **Cross-tenant test**: sign in to Acme in one browser and the fresh
+  second-org alias in another — confirm Org A's data is completely
+  invisible from Org B's session.
 
 ### Stripe billing
 
