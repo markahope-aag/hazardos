@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 
 const log = createServiceLogger('cron-runner')
@@ -33,7 +33,12 @@ export async function withCronLogging<T extends CronResult>(
   cronName: string,
   work: () => Promise<T>,
 ): Promise<CronRunRecord> {
-  const supabase = await createClient()
+  // Crons carry no user session (they authenticate via CRON_SECRET), so the
+  // cookie-based server client would hit cron_runs as an anonymous user and be
+  // rejected by RLS — leaving run_id null and no durable audit trail. The
+  // service-role client is the intended writer here (see the cron_runs
+  // migration: "Service-role writes from the crons themselves bypass RLS").
+  const supabase = createAdminClient()
   const startedAt = Date.now()
 
   const { data: runRow, error: insertErr } = await supabase
