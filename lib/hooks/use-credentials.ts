@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast'
 import type {
   CreateCredentialInput,
   CreateCredentialTypeInput,
+  UpdateCredentialTypeInput,
   CredentialStatus,
 } from '@/lib/validations/credential'
 
@@ -221,6 +222,66 @@ export function useCreateCredentialType() {
     onError: (error) => {
       toast({
         title: 'Could not save credential type',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
+export function useUpdateCredentialType() {
+  const queryClient = useQueryClient()
+  const { organization } = useMultiTenantAuth()
+  const { toast } = useToast()
+  return useMutation({
+    mutationFn: async ({ id, input }: { id: string; input: UpdateCredentialTypeInput }) => {
+      const res = await fetch(`/api/credential-types/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.error || body?.message || 'Failed to update credential type')
+      }
+      return res.json() as Promise<CredentialTypeDTO>
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['credential-types', organization?.id] })
+      toast({ title: 'Credential type updated' })
+    },
+    onError: (error) => {
+      toast({
+        title: 'Could not update credential type',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
+export function useDeleteCredentialType() {
+  const queryClient = useQueryClient()
+  const { organization } = useMultiTenantAuth()
+  const { toast } = useToast()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/credential-types/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.error || body?.message || 'Failed to delete credential type')
+      }
+      return res.json() as Promise<{ success: boolean }>
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['credential-types', organization?.id] })
+      toast({ title: 'Credential type deleted' })
+    },
+    onError: (error) => {
+      // A type in use returns a friendly VALIDATION_ERROR telling the admin to
+      // deactivate instead — surface that message verbatim.
+      toast({
+        title: 'Could not delete credential type',
         description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       })
