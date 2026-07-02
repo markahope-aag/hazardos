@@ -512,4 +512,47 @@ describe.skipIf(!canRunRlsTests)('RLS Policy Tests', () => {
       }
     })
   })
+
+  // ========================================
+  // PUBLIC / ANON LOCKDOWN
+  // Regression guard for the "USING(true) / unvalidated public-token" RLS class
+  // of bug. The anon key ships in every browser bundle, so ANY row it can read
+  // is world-readable. Public token flows (feedback, proposal portal) must go
+  // through SECURITY DEFINER RPCs, never raw-table anon SELECT.
+  // ========================================
+
+  describe('public anon lockdown', () => {
+    const anon = createClient(supabaseUrl!, anonKey!, { auth: { persistSession: false } })
+
+    // Tables that must never yield rows to an unauthenticated caller.
+    const lockedTables = [
+      'feedback_surveys',
+      'proposals',
+      'invoices',
+      'invoice_line_items',
+      'customers',
+      'opportunities',
+      'jobs',
+    ] as const
+
+    for (const table of lockedTables) {
+      it(`anon CANNOT read ${table}`, async () => {
+        const { data, error } = await anon.from(table).select('id').limit(1)
+        // Acceptable: RLS returns zero rows, OR the query is rejected outright.
+        // Failure = actual rows returned to an unauthenticated caller.
+        const leaked = !error && (data ?? []).length > 0
+        expect(leaked).toBe(false)
+      })
+    }
+
+    it('anon can still reach the public feedback survey via its SECURITY DEFINER RPC', async () => {
+      // Public token flow must remain callable by anon (it validates the token
+      // internally). An unknown token returns a graceful "not found" shape, NOT
+      // a permission error — that would mean we broke the customer-facing route.
+      const { error } = await anon.rpc('get_feedback_survey_by_token', {
+        p_token: '00000000-0000-0000-0000-000000000000',
+      })
+      expect(error).toBeNull()
+    })
+  })
 })

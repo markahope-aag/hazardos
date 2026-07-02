@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { throwDbError } from '@/lib/utils/secure-error-handler';
 import type { LeadWebhookEndpoint, LeadProvider } from '@/types/integrations';
@@ -103,7 +104,11 @@ export class LeadWebhookService {
   }
 
   static async getBySlug(slug: string): Promise<LeadWebhookEndpoint | null> {
-    const supabase = await createClient();
+    // Public webhook path: external callers carry no Supabase session, so the
+    // cookie client would run as anon and RLS would hide the endpoint. Use the
+    // service-role client — the caller is authenticated per-endpoint below via
+    // api_key / HMAC secret.
+    const supabase = createAdminClient();
 
     const { data, error } = await supabase
       .from('lead_webhook_endpoints')
@@ -190,7 +195,10 @@ export class LeadWebhookService {
     headers: Record<string, string>,
     ipAddress?: string
   ): Promise<{ success: boolean; customerId?: string; error?: string }> {
-    const supabase = await createClient();
+    // Public webhook path (service-role): the endpoint has already been
+    // resolved from the signed slug; per-endpoint api_key/HMAC verification
+    // happens below. Every write is explicitly scoped to endpoint.organization_id.
+    const supabase = createAdminClient();
 
     try {
       // Verify authentication if configured
@@ -341,7 +349,8 @@ export class LeadWebhookService {
     customerId?: string,
     opportunityId?: string
   ): Promise<void> {
-    const supabase = await createClient();
+    // Webhook path (service-role) — see processLead. Scoped to endpoint.organization_id.
+    const supabase = createAdminClient();
 
     await supabase.from('lead_webhook_log').insert({
       endpoint_id: endpoint.id,
@@ -440,7 +449,8 @@ export class LeadWebhookService {
     leadData: ParsedLead,
     provider: LeadProvider
   ): Promise<{ id: string } | null> {
-    const supabase = await createClient();
+    // Webhook path (service-role) — see processLead. Scoped to organizationId.
+    const supabase = createAdminClient();
 
     try {
       // Check if organization has auto-opportunity creation enabled
