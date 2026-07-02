@@ -501,6 +501,8 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
                               <img
                                 src={url}
                                 alt={m.caption || `Media ${m.id}`}
+                                loading="lazy"
+                                decoding="async"
                                 className="w-full h-full object-cover"
                               />
                             )

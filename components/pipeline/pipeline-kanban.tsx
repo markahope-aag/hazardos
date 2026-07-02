@@ -17,6 +17,15 @@ import {
 } from '@dnd-kit/core'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { MoveRight } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { cn, formatCurrency } from '@/lib/utils'
 import { DataErrorBoundary } from '@/components/error-boundaries'
@@ -82,7 +91,17 @@ export function PipelineKanban({ stages, opportunities: initial }: PipelineKanba
 
     if (!opp || opp.stage_id === newStageId) return
 
-    // Optimistic update
+    await moveOpportunity(oppId, newStageId)
+  }
+
+  // Shared move logic for both drag-and-drop and the keyboard "Move to…" menu.
+  async function moveOpportunity(oppId: string, newStageId: string) {
+    const opp = opportunities.find(o => o.id === oppId)
+    if (!opp || opp.stage_id === newStageId) return
+
+    // Snapshot the CURRENT state (not the mount-time `initial`) so a failed move
+    // rolls back only this change and preserves earlier successful moves.
+    const snapshot = opportunities
     setOpportunities(prev =>
       prev.map(o => o.id === oppId ? { ...o, stage_id: newStageId } : o)
     )
@@ -103,8 +122,7 @@ export function PipelineKanban({ stages, opportunities: initial }: PipelineKanba
 
       router.refresh()
     } catch {
-      // Revert on error
-      setOpportunities(initial)
+      setOpportunities(snapshot)
       toast({
         title: 'Error',
         description: 'Failed to move opportunity',
@@ -134,6 +152,8 @@ export function PipelineKanban({ stages, opportunities: initial }: PipelineKanba
               stage={stage}
               opportunities={stageOpps}
               totalValue={totalValue}
+              stages={stages}
+              onMove={moveOpportunity}
             />
           )
         })}
@@ -150,9 +170,11 @@ interface KanbanColumnProps {
   stage: PipelineStage
   opportunities: Opportunity[]
   totalValue: number
+  stages: PipelineStage[]
+  onMove: (oppId: string, stageId: string) => void
 }
 
-function KanbanColumn({ stage, opportunities, totalValue }: KanbanColumnProps) {
+function KanbanColumn({ stage, opportunities, totalValue, stages, onMove }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id })
 
   return (
@@ -182,7 +204,7 @@ function KanbanColumn({ stage, opportunities, totalValue }: KanbanColumnProps) {
 
       <div className="space-y-2 min-h-[200px]">
         {opportunities.map(opp => (
-          <OpportunityCard key={opp.id} opportunity={opp} />
+          <OpportunityCard key={opp.id} opportunity={opp} stages={stages} onMove={onMove} />
         ))}
       </div>
     </div>
@@ -192,9 +214,11 @@ function KanbanColumn({ stage, opportunities, totalValue }: KanbanColumnProps) {
 interface OpportunityCardProps {
   opportunity: Opportunity
   isDragging?: boolean
+  stages?: PipelineStage[]
+  onMove?: (oppId: string, stageId: string) => void
 }
 
-function OpportunityCard({ opportunity, isDragging }: OpportunityCardProps) {
+function OpportunityCard({ opportunity, isDragging, stages, onMove }: OpportunityCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging: isCurrentlyDragging } = useDraggable({
     id: opportunity.id,
   })
@@ -221,11 +245,40 @@ function OpportunityCard({ opportunity, isDragging }: OpportunityCardProps) {
       )}
     >
       <CardContent className="p-3">
-        <Link href={`/crm/opportunities/${opportunity.id}`} className="block">
-          <p className="font-medium text-sm truncate hover:text-primary">
-            {opportunity.name}
-          </p>
-        </Link>
+        <div className="flex items-start justify-between gap-2">
+          <Link href={`/crm/opportunities/${opportunity.id}`} className="block min-w-0 flex-1">
+            <p className="font-medium text-sm truncate hover:text-primary">
+              {opportunity.name}
+            </p>
+          </Link>
+          {/* Keyboard/pointer-accessible alternative to drag-and-drop. The
+              stopPropagation keeps the drag sensor from hijacking the click. */}
+          {stages && onMove && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 flex-shrink-0 -mr-1 -mt-1"
+                  aria-label={`Move ${opportunity.name} to another stage`}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <MoveRight className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onPointerDown={(e) => e.stopPropagation()}>
+                <DropdownMenuLabel>Move to</DropdownMenuLabel>
+                {stages
+                  .filter((s) => s.id !== opportunity.stage_id)
+                  .map((s) => (
+                    <DropdownMenuItem key={s.id} onSelect={() => onMove(opportunity.id, s.id)}>
+                      {s.name}
+                    </DropdownMenuItem>
+                  ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground truncate">
           {customerName}
         </p>

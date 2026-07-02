@@ -40,7 +40,7 @@ import {
 } from '@/lib/hooks/use-credentials'
 import { CredentialStatusBadge } from '@/components/compliance/credential-status-badge'
 import { CredentialTypesPanel } from '@/components/compliance/credential-types-panel'
-import { suggestExpiry } from '@/lib/credentials/vocab'
+import { suggestExpiry, formatDate } from '@/lib/credentials/vocab'
 import type { CredentialStatus } from '@/lib/validations/credential'
 
 const MANAGE_ROLES = ['admin', 'tenant_owner', 'platform_owner', 'platform_admin']
@@ -118,7 +118,7 @@ function CredentialsView({ canManage }: { canManage: boolean }) {
           <CardTitle className="text-base">Credentials</CardTitle>
           <div className="flex items-center gap-2">
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as CredentialStatus | 'all')}>
-              <SelectTrigger className="w-44">
+              <SelectTrigger className="w-44" aria-label="Filter credentials by status">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -156,7 +156,7 @@ function CredentialsView({ canManage }: { canManage: boolean }) {
                     <TableCell className="font-medium">{c.worker_name ?? '—'}</TableCell>
                     <TableCell>{c.credential_type_name}</TableCell>
                     <TableCell className="text-muted-foreground">{c.identifier ?? '—'}</TableCell>
-                    <TableCell>{c.expiry_date ?? '—'}</TableCell>
+                    <TableCell>{formatDate(c.expiry_date)}</TableCell>
                     <TableCell>
                       <CredentialStatusBadge status={c.status} />
                     </TableCell>
@@ -224,15 +224,20 @@ function AddCredentialDialog() {
   const canSubmit = form.worker_id && form.credential_type_id && !createCredential.isPending
 
   const handleSubmit = async () => {
-    await createCredential.mutateAsync({
-      worker_id: form.worker_id,
-      credential_type_id: form.credential_type_id,
-      identifier: form.identifier || undefined,
-      issued_date: form.issued_date || undefined,
-      expiry_date: form.expiry_date || undefined,
-    })
-    setForm({ worker_id: '', credential_type_id: '', identifier: '', issued_date: '', expiry_date: '' })
-    setOpen(false)
+    try {
+      await createCredential.mutateAsync({
+        worker_id: form.worker_id,
+        credential_type_id: form.credential_type_id,
+        identifier: form.identifier || undefined,
+        issued_date: form.issued_date || undefined,
+        expiry_date: form.expiry_date || undefined,
+      })
+      setForm({ worker_id: '', credential_type_id: '', identifier: '', issued_date: '', expiry_date: '' })
+      setOpen(false)
+    } catch {
+      // The mutation's onError surfaces a toast; keep the dialog open so the
+      // user can correct and retry rather than losing their input.
+    }
   }
 
   return (
@@ -251,7 +256,7 @@ function AddCredentialDialog() {
           <div className="space-y-2">
             <Label>Worker</Label>
             <Select value={form.worker_id} onValueChange={(v) => setForm((p) => ({ ...p, worker_id: v }))}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Worker">
                 <SelectValue placeholder="Select worker" />
               </SelectTrigger>
               <SelectContent>
@@ -266,7 +271,7 @@ function AddCredentialDialog() {
           <div className="space-y-2">
             <Label>Credential type</Label>
             <Select value={form.credential_type_id} onValueChange={onTypeChange}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Credential type">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>

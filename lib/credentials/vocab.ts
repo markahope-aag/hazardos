@@ -71,6 +71,18 @@ export function suggestExpiry(
   return d.toISOString().slice(0, 10)
 }
 
+/**
+ * Format a stored YYYY-MM-DD date for display in the user's locale. Parsed at
+ * local midnight so the calendar date shown matches what was entered. Returns
+ * '—' for empty values.
+ */
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const d = new Date(`${iso}T00:00:00`)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
 /** Short human summary of what jobs a type is required for (for table cells). */
 export function requiredForSummary(
   containmentLevels: string[] | null,

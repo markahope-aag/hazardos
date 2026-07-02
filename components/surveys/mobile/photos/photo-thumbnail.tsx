@@ -68,6 +68,8 @@ export function PhotoThumbnail({ photo, onClick }: PhotoThumbnailProps) {
           <img
             src={url}
             alt={photo.caption || 'Survey photo'}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover"
           />
         )
