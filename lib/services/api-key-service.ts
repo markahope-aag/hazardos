@@ -1,7 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { createHash, randomBytes } from 'crypto';
 import { throwDbError } from '@/lib/utils/secure-error-handler';
+import { createServiceLogger, formatError } from '@/lib/utils/logger';
 import type { ApiKey, ApiKeyScope } from '@/types/integrations';
+
+const log = createServiceLogger('ApiKeyService');
 
 export interface CreateApiKeyInput {
   name: string;
@@ -333,7 +336,7 @@ export class ApiKeyService {
 
       return !error;
     } catch (error) {
-      console.error('Rate limit reset exception:', error);
+      log.error({ err: formatError(error), keyId }, 'Rate limit reset exception');
       return false;
     }
   }
