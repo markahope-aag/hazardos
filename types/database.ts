@@ -8911,6 +8911,14 @@ export type Database = {
         }
         Returns: string
       }
+      create_job_from_proposal: {
+        Args: {
+          p_created_by: string
+          p_job: Json
+          p_proposal_id: string
+        }
+        Returns: string
+      }
       create_notification_for_role: {
         Args: {
           p_action_url?: string
