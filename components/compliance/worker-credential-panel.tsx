@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ShieldCheck } from 'lucide-react'
 import { useCredentials } from '@/lib/hooks/use-credentials'
+import { formatDate } from '@/lib/credentials/vocab'
 import { CredentialStatusBadge } from './credential-status-badge'
 
 interface WorkerCredentialPanelProps {
@@ -35,7 +36,7 @@ export function WorkerCredentialPanel({ workerId, title = 'Credentials' }: Worke
                   <p className="truncate text-sm font-medium">{c.credential_type_name}</p>
                   <p className="text-xs text-muted-foreground">
                     {c.identifier ? `#${c.identifier} · ` : ''}
-                    {c.expiry_date ? `Expires ${c.expiry_date}` : 'No expiry'}
+                    {c.expiry_date ? `Expires ${formatDate(c.expiry_date)}` : 'No expiry'}
                   </p>
                 </div>
                 <CredentialStatusBadge status={c.status} />
