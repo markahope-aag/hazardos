@@ -39,8 +39,9 @@ const mockSupabaseClient = {
   })),
 }
 
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(() => mockSupabaseClient),
+// The inbound webhook uses the service-role client (no session from Twilio).
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn(() => mockSupabaseClient),
 }))
 
 // Import after mocks
