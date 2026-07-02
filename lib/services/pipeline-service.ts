@@ -383,27 +383,33 @@ export class PipelineService {
   // ========== METRICS ==========
 
   static async getPipelineMetrics(): Promise<PipelineMetrics> {
-    // For metrics, get all opportunities (use high limit)
-    const { opportunities } = await this.getOpportunities({ limit: 10000 })
-    const stages = await this.getStages()
+    // Aggregate open-pipeline value/count per stage in SQL rather than pulling
+    // every opportunity (with three joins) to sum in JS. See migration
+    // 20260702000002_pipeline_metrics_aggregate.sql.
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('get_pipeline_metrics')
+    if (error) throwDbError(error, 'fetch pipeline metrics')
 
-    const total_value = opportunities.reduce((sum, o) => sum + (o.estimated_value || 0), 0)
-    const weighted_value = opportunities.reduce((sum, o) => sum + (o.weighted_value || 0), 0)
+    // COUNT/SUM come back as strings from PostgREST (bigint/numeric) — coerce.
+    const rows = (data ?? []) as Array<{
+      stage_id: string
+      stage_name: string
+      count: number | string
+      value: number | string
+      weighted: number | string
+    }>
 
-    const by_stage = stages.map(stage => {
-      const stageOpps = opportunities.filter(o => o.stage_id === stage.id)
-      return {
-        stage_id: stage.id,
-        stage_name: stage.name,
-        count: stageOpps.length,
-        value: stageOpps.reduce((sum, o) => sum + (o.estimated_value || 0), 0),
-      }
-    })
+    const by_stage = rows.map((r) => ({
+      stage_id: r.stage_id,
+      stage_name: r.stage_name,
+      count: Number(r.count),
+      value: Number(r.value),
+    }))
 
     return {
-      total_value,
-      weighted_value,
-      count: opportunities.length,
+      total_value: rows.reduce((sum, r) => sum + Number(r.value), 0),
+      weighted_value: rows.reduce((sum, r) => sum + Number(r.weighted), 0),
+      count: rows.reduce((sum, r) => sum + Number(r.count), 0),
       by_stage,
     }
   }

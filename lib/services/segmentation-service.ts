@@ -508,7 +508,7 @@ export class SegmentationService {
     // Sync each customer and add tag
     const tagName = `Segment: ${segment.name}`;
 
-    for (const customer of customers || []) {
+    await this.mapConcurrent(customers || [], async (customer) => {
       try {
         await MailchimpService.syncContact(segment.organization_id, customer.id, listId);
         await MailchimpService.addTagToContact(
@@ -519,7 +519,7 @@ export class SegmentationService {
         );
       } catch (error) {
         log.error(
-          { 
+          {
             error: formatError(error, 'MAILCHIMP_SYNC_ERROR'),
             customerId: customer.id,
             segmentId: segment.id
@@ -527,7 +527,7 @@ export class SegmentationService {
           'Failed to sync customer to Mailchimp'
         );
       }
-    }
+    });
 
     // Update segment sync status
     await supabase
@@ -537,6 +537,19 @@ export class SegmentationService {
         mailchimp_synced_at: new Date().toISOString(),
       })
       .eq('id', segmentId);
+  }
+
+  // Run an async worker over items with bounded concurrency, so large external
+  // syncs neither run fully sequentially (minutes → serverless timeout) nor all
+  // at once (provider rate limits). Failures are handled inside the worker.
+  private static readonly SYNC_CONCURRENCY = 5;
+  private static async mapConcurrent<T>(
+    items: T[],
+    worker: (item: T) => Promise<void>,
+  ): Promise<void> {
+    for (let i = 0; i < items.length; i += this.SYNC_CONCURRENCY) {
+      await Promise.allSettled(items.slice(i, i + this.SYNC_CONCURRENCY).map(worker));
+    }
   }
 
   static async syncToHubSpot(segmentId: string): Promise<void> {
@@ -560,12 +573,12 @@ export class SegmentationService {
       .in('id', members.map(m => m.customer_id));
 
     // Sync each customer
-    for (const customer of customers || []) {
+    await this.mapConcurrent(customers || [], async (customer) => {
       try {
         await HubSpotService.syncContact(segment.organization_id, customer.id);
       } catch (error) {
         log.error(
-          { 
+          {
             error: formatError(error, 'HUBSPOT_SYNC_ERROR'),
             customerId: customer.id,
             segmentId: segment.id
@@ -573,7 +586,7 @@ export class SegmentationService {
           'Failed to sync customer to HubSpot'
         );
       }
-    }
+    });
 
     // Update segment sync status
     await supabase
