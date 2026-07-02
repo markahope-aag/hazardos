@@ -8900,6 +8900,17 @@ export type Database = {
         Returns: boolean
       }
       cleanup_expired_notifications: { Args: never; Returns: number }
+      create_invoice_from_job: {
+        Args: {
+          p_created_by: string
+          p_discount_amount: number
+          p_due_date: string
+          p_job_id: string
+          p_line_items: Json
+          p_payment_terms: string
+        }
+        Returns: string
+      }
       create_notification_for_role: {
         Args: {
           p_action_url?: string
