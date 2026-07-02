@@ -347,6 +347,68 @@ describe('InvoicesService', () => {
       expect(invoiceLineItemsTable).toBeDefined()
     })
 
+    it('writes atomically via the create_invoice_from_job RPC with job + change-order lines', async () => {
+      const mockJob = {
+        id: 'job-1',
+        job_number: 'JOB-001',
+        customer_id: 'cust-1',
+        contract_amount: 5000,
+        final_amount: null,
+        status: 'completed',
+        change_orders: [
+          { id: 'co-1', status: 'approved', amount: 1000, description: 'Extra containment' },
+          { id: 'co-2', status: 'pending', amount: 500, description: 'Not approved' },
+        ],
+      }
+
+      mockSupabase.from = vi.fn((table) => {
+        if (table === 'jobs') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn().mockResolvedValue({ data: mockJob, error: null }),
+              })),
+            })),
+          }
+        }
+        if (table === 'invoices') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: 'inv-1', job_id: 'job-1', line_items: [], payments: [] },
+                  error: null,
+                }),
+              })),
+            })),
+          }
+        }
+        return {}
+      })
+
+      mockSupabase.rpc = vi.fn().mockResolvedValue({ data: 'inv-1', error: null })
+
+      await InvoicesService.createFromJob({ job_id: 'job-1' })
+
+      // The whole write must go through a single transactional RPC — not the
+      // old insert/insert/update round-trips.
+      expect(mockSupabase.rpc).toHaveBeenCalledTimes(1)
+      expect(mockSupabase.rpc).toHaveBeenCalledWith(
+        'create_invoice_from_job',
+        expect.objectContaining({
+          p_job_id: 'job-1',
+          p_created_by: 'user-1',
+          p_line_items: expect.arrayContaining([
+            expect.objectContaining({ unit_price: 5000, source_type: 'job' }),
+            expect.objectContaining({ unit_price: 1000, source_type: 'change_order' }),
+          ]),
+        }),
+      )
+      // Only the approved change order becomes a line item.
+      const args = mockSupabase.rpc.mock.calls[0][1]
+      expect(args.p_line_items).toHaveLength(2)
+    })
+
     it('should throw error when job not found', async () => {
       mockSupabase.from = vi.fn((table) => {
         if (table === 'jobs') {
@@ -367,6 +429,34 @@ describe('InvoicesService', () => {
       await expect(
         InvoicesService.createFromJob({ job_id: 'nonexistent' })
       ).rejects.toThrow('Job not found')
+    })
+
+    it('refuses to invoice a job that is not completed (before any write)', async () => {
+      const mockJob = {
+        id: 'job-1',
+        customer_id: 'cust-1',
+        contract_amount: 5000,
+        status: 'in_progress',
+        change_orders: [],
+      }
+      mockSupabase.from = vi.fn((table) => {
+        if (table === 'jobs') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn().mockResolvedValue({ data: mockJob, error: null }),
+              })),
+            })),
+          }
+        }
+        return {}
+      })
+      mockSupabase.rpc = vi.fn()
+
+      await expect(
+        InvoicesService.createFromJob({ job_id: 'job-1' })
+      ).rejects.toThrow(/completed/)
+      expect(mockSupabase.rpc).not.toHaveBeenCalled()
     })
   })
 

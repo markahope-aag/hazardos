@@ -176,15 +176,8 @@ export class InvoicesService {
     const dueDate = new Date()
     dueDate.setDate(dueDate.getDate() + dueDays)
 
-    const invoice = await this.create({
-      job_id: input.job_id,
-      customer_id: job.customer_id,
-      due_date: dueDate.toISOString().split('T')[0],
-      payment_terms: paymentTermsLabel,
-      discount_amount: estimateDiscountAmount,
-    })
-
-    // Collect all line items for batch insert (single query)
+    // Collect all line items up front so the whole invoice can be written in
+    // one transaction (see the RPC call below).
     const lineItems: AddLineItemInput[] = []
 
     const jobAmount = job.final_amount || job.contract_amount
@@ -216,16 +209,33 @@ export class InvoicesService {
       }
     }
 
-    if (lineItems.length > 0) {
-      await this.addLineItemsBatch(invoice.id, lineItems)
-    }
+    const user = await getCurrentUser()
+    if (!user) throw new SecureError('UNAUTHORIZED')
 
-    await supabase
-      .from('jobs')
-      .update({ status: 'invoiced', updated_at: new Date().toISOString() })
-      .eq('id', input.job_id)
+    // Atomic write: invoice + line items + job.status='invoiced' in a single
+    // Postgres transaction. Previously these were three separate round-trips,
+    // so a mid-sequence failure could leave an empty invoice or a job that
+    // could be invoiced twice. The RPC also re-checks the completed guard under
+    // a row lock, closing the race against concurrent invoicings.
+    const { data: invoiceId, error: rpcError } = await supabase.rpc('create_invoice_from_job', {
+      p_job_id: input.job_id,
+      p_due_date: dueDate.toISOString().split('T')[0],
+      p_payment_terms: paymentTermsLabel,
+      p_discount_amount: estimateDiscountAmount,
+      p_line_items: lineItems.map((li) => ({
+        description: li.description,
+        quantity: li.quantity,
+        unit: li.unit ?? null,
+        unit_price: li.unit_price,
+        source_type: li.source_type ?? null,
+        source_id: li.source_id ?? null,
+      })),
+      p_created_by: user.id,
+    })
 
-    return (await this.getById(invoice.id)) as Invoice
+    if (rpcError) throwDbError(rpcError, 'create invoice from job')
+
+    return (await this.getById(invoiceId as string)) as Invoice
   }
 
   static async getById(id: string): Promise<Invoice | null> {
