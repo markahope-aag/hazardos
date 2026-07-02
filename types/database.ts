@@ -9053,6 +9053,18 @@ export type Database = {
         Args: { est_id: string }
         Returns: undefined
       }
+      record_invoice_payment: {
+        Args: {
+          p_amount: number
+          p_created_by: string
+          p_invoice_id: string
+          p_notes: string
+          p_payment_date: string
+          p_payment_method: string
+          p_reference_number: string
+        }
+        Returns: Json
+      }
       refresh_report_views: { Args: never; Returns: undefined }
       reset_monthly_job_counts: { Args: never; Returns: undefined }
       reset_rate_limit: { Args: { p_key_id: string }; Returns: boolean }

@@ -3,7 +3,6 @@ import { getCurrentUser } from '@/lib/auth/server-auth'
 import { Activity } from '@/lib/services/activity-service'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { InvoicesService } from '@/lib/services/invoices-service'
-import { InvoiceDeliveryService } from '@/lib/services/invoice-delivery-service'
 import type { Payment, RecordPaymentInput } from '@/types/invoices'
 
 /**
@@ -20,48 +19,30 @@ export class InvoicePaymentsService {
     const user = await getCurrentUser()
     if (!user) throw new SecureError('UNAUTHORIZED')
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
+    // Atomic write: insert the payment (whose trigger recomputes the invoice
+    // balance/status) and, if the invoice is now fully paid, cancel pending
+    // reminders and mark the job 'paid' — all in one transaction. Previously
+    // these were separate round-trips, so a failure after the payment insert
+    // could leave a paid invoice with a still-'invoiced' job or a reminder SMS
+    // that keeps chasing a customer who already paid.
+    const { data, error } = await supabase.rpc('record_invoice_payment', {
+      p_invoice_id: invoiceId,
+      p_amount: payment.amount,
+      p_payment_date: payment.payment_date || null,
+      p_payment_method: payment.payment_method || null,
+      p_reference_number: payment.reference_number || null,
+      p_notes: payment.notes || null,
+      p_created_by: user.id,
+    })
 
-    if (!profile) throw new SecureError('UNAUTHORIZED')
+    if (error) throwDbError(error, 'record payment')
 
-    const { data, error } = await supabase
-      .from('payments')
-      .insert({
-        organization_id: profile.organization_id,
-        invoice_id: invoiceId,
-        amount: payment.amount,
-        payment_date: payment.payment_date || new Date().toISOString().split('T')[0],
-        payment_method: payment.payment_method || null,
-        reference_number: payment.reference_number || null,
-        notes: payment.notes || null,
-        created_by: user.id,
-      })
-      .select()
-      .single()
-
-    if (error) throwDbError(error, 'create payment')
-
-    // Update job status to paid if invoice is now paid, and cancel any
-    // pending SMS payment reminders so the customer isn't chased for an
-    // invoice they've already cleared.
+    // Activity logging stays outside the transaction — a logging failure must
+    // not roll back a recorded payment. Read the invoice number for the entry.
     const invoice = await InvoicesService.getById(invoiceId)
-    if (invoice?.status === 'paid') {
-      await InvoiceDeliveryService.cancelPaymentReminders(invoiceId)
-      if (invoice.job_id) {
-        await supabase
-          .from('jobs')
-          .update({ status: 'paid', updated_at: new Date().toISOString() })
-          .eq('id', invoice.job_id)
-      }
-    }
-
     await Activity.paid('invoice', invoiceId, invoice?.invoice_number, payment.amount)
 
-    return data
+    return data as unknown as Payment
   }
 
   static async deletePayment(id: string): Promise<void> {
