@@ -47,3 +47,7 @@ public/workbox-*.js.map
 public/swe-worker-*.js
 public/swe-worker-*.js.map
 .claude/scheduled_tasks.lock
+
+# Local CLI binaries (never commit — the supabase CLI is ~90MB)
+*.exe
+supabase.exe
