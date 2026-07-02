@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { timingSafeEqual } from 'crypto'
-import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
+import { authorizeCronRequest } from '@/lib/utils/cron-auth'
 import { withCronLogging } from '@/lib/services/cron-runner'
 import { expirePhotos } from '@/lib/services/photo-lifecycle'
 
@@ -22,21 +21,8 @@ import { expirePhotos } from '@/lib/services/photo-lifecycle'
  * call originates from its scheduler.
  */
 export async function GET(request: NextRequest) {
-  const rateLimitResponse = await applyUnifiedRateLimit(request, 'auth')
-  if (rateLimitResponse) return rateLimitResponse
-
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-  if (!cronSecret) {
-    return NextResponse.json({ error: 'Cron not configured' }, { status: 500 })
-  }
-  const expected = Buffer.from(`Bearer ${cronSecret}`)
-  const provided = Buffer.from(authHeader || '')
-  const isAuthorized =
-    expected.length === provided.length && timingSafeEqual(expected, provided)
-  if (!isAuthorized) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const unauthorized = await authorizeCronRequest(request)
+  if (unauthorized) return unauthorized
 
   const result = await withCronLogging('photo-lifecycle', async () => {
     const r = await expirePhotos()

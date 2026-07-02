@@ -1,40 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { timingSafeEqual } from 'crypto'
-import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
+import { authorizeCronRequest } from '@/lib/utils/cron-auth'
 import { processDueReminders } from '@/lib/services/reminder-sender'
 import { withCronLogging } from '@/lib/services/cron-runner'
 
 // Vercel cron — hits this hourly. Authorization is a timing-safe compare
 // on CRON_SECRET or the Vercel-signed `x-vercel-cron` header.
 export async function GET(request: NextRequest) {
-  const rateLimitResponse = await applyUnifiedRateLimit(request, 'auth')
-  if (rateLimitResponse) return rateLimitResponse
-
-  // Check for Vercel cron header OR Bearer token
-  const vercelCronHeader = request.headers.get('x-vercel-cron')
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-
-  if (!cronSecret) {
-    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 })
-  }
-
-  let isAuthorized = false
-
-  // Accept Vercel's cron header
-  if (vercelCronHeader === '1') {
-    isAuthorized = true
-  } 
-  // Or accept Bearer token with timing-safe comparison
-  else if (authHeader) {
-    const expected = Buffer.from(`Bearer ${cronSecret}`)
-    const provided = Buffer.from(authHeader)
-    isAuthorized = expected.length === provided.length && timingSafeEqual(expected, provided)
-  }
-
-  if (!isAuthorized) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const unauthorized = await authorizeCronRequest(request)
+  if (unauthorized) return unauthorized
 
   const result = await withCronLogging('appointment-reminders', async () => {
     const r = await processDueReminders()
