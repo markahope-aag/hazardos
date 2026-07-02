@@ -244,6 +244,79 @@ describe('JobsService', () => {
     })
   })
 
+  describe('createFromProposal', () => {
+    const proposalInput: _CreateJobFromProposalInput = {
+      proposal_id: 'prop-1',
+      assigned_to: 'tech-1',
+      scheduled_start_date: '2026-03-01',
+      scheduled_start_time: '09:00',
+      estimated_duration_hours: 8,
+    }
+
+    // A proposal whose estimate number does NOT start with EST-, so the job
+    // number falls through to the street/date generator (no collision query).
+    const mockProposal = {
+      id: 'prop-1',
+      organization_id: 'org-1',
+      customer_id: 'customer-1',
+      estimate_id: 'est-1',
+      total: 5000,
+      status: 'signed',
+      customer: { address_line1: '123 Main St', city: 'LA', state: 'CA', zip: '90001' },
+      estimate: { estimate_number: null, site_survey: null },
+    }
+
+    beforeEach(() => {
+      mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+      mockSupabase.maybeSingle.mockResolvedValue({ data: null, error: null })
+    })
+
+    it('creates the job and converts the proposal through the transactional RPC', async () => {
+      // First single() is the proposal read; the rest (side-effect getById /
+      // profile lookups + the final getById) resolve to the job.
+      mockSupabase.single
+        .mockResolvedValueOnce({ data: mockProposal, error: null })
+        .mockResolvedValue({ data: { id: 'job-1', status: 'scheduled' }, error: null })
+      mockSupabase.rpc.mockResolvedValue({ data: 'job-1', error: null })
+
+      const job = await JobsService.createFromProposal(proposalInput)
+
+      expect(mockSupabase.rpc).toHaveBeenCalledWith(
+        'create_job_from_proposal',
+        expect.objectContaining({
+          p_proposal_id: 'prop-1',
+          p_created_by: 'user-1',
+          p_job: expect.objectContaining({
+            customer_id: 'customer-1',
+            estimate_id: 'est-1',
+            contract_amount: 5000,
+            final_amount: 5000,
+            job_address: '123 Main St',
+            job_number: expect.stringMatching(/^JOB-/),
+          }),
+        }),
+      )
+      expect(job?.id).toBe('job-1')
+    })
+
+    it('throws when the proposal does not exist', async () => {
+      mockSupabase.single.mockResolvedValueOnce({ data: null, error: { message: 'Not found' } })
+
+      await expect(JobsService.createFromProposal(proposalInput)).rejects.toThrow('Proposal not found')
+      expect(mockSupabase.rpc).not.toHaveBeenCalled()
+    })
+
+    it('surfaces the RPC error (e.g. proposal already converted)', async () => {
+      mockSupabase.single.mockResolvedValueOnce({ data: mockProposal, error: null })
+      mockSupabase.rpc.mockResolvedValue({
+        data: null,
+        error: { message: 'Proposal is already converted', code: '23505' },
+      })
+
+      await expect(JobsService.createFromProposal(proposalInput)).rejects.toThrow()
+    })
+  })
+
   describe('getById', () => {
     it('should fetch job with all relations', async () => {
       const mockJob = {

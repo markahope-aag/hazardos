@@ -163,46 +163,86 @@ export class JobsService {
       : null
     const customer = Array.isArray(proposal.customer) ? proposal.customer[0] : proposal.customer
 
-    // Create job with data from proposal
-    const job = await JobsService.create({
-      proposal_id: input.proposal_id,
-      customer_id: proposal.customer_id,
-      assigned_to: input.assigned_to,
-      scheduled_start_date: input.scheduled_start_date,
-      scheduled_start_time: input.scheduled_start_time,
-      estimated_duration_hours: input.estimated_duration_hours,
-      job_address: survey?.site_address || customer?.address_line1 || '',
-      job_city: survey?.site_city || customer?.city,
-      job_state: survey?.site_state || customer?.state,
-      job_zip: survey?.site_zip || customer?.zip,
-      access_notes: survey?.access_info?.notes,
-      hazard_types: survey?.hazard_type ? [survey.hazard_type] : [],
+    const user = await getCurrentUser()
+    if (!user) throw new SecureError('UNAUTHORIZED')
+
+    const organizationId = proposal.organization_id
+    const jobAddress = survey?.site_address || customer?.address_line1 || ''
+
+    // Resolve the job number here (mirrors the estimate number with a JOB-
+    // prefix, falling back to the street/date generator on collision) — the
+    // same strategy JobsService.create uses, kept in the service because it
+    // needs the collision fallback.
+    let jobNumber: string | null = null
+    const estNumber: string | undefined = estimate?.estimate_number
+    if (estNumber?.startsWith('EST-')) {
+      const candidate = `JOB-${estNumber.slice(4)}`
+      const { data: collision } = await supabase
+        .from('jobs')
+        .select('id')
+        .eq('organization_id', organizationId)
+        .eq('job_number', candidate)
+        .maybeSingle()
+      if (!collision) jobNumber = candidate
+    }
+    if (!jobNumber) {
+      jobNumber = await generateJobNumber(
+        supabase,
+        organizationId,
+        jobAddress,
+        input.scheduled_start_date,
+      )
+    }
+
+    // Atomic write: lock + guard the proposal, insert the fully-populated job
+    // (contract amount + access details in one row), and flip the proposal to
+    // 'converted' — all in one transaction. Previously these were three
+    // separate writes, so a mid-sequence failure could leave a convertible
+    // proposal alongside a half-built job and let it be converted again into a
+    // duplicate. The proposal lock also serializes concurrent conversions.
+    const { data: jobId, error: rpcError } = await supabase.rpc('create_job_from_proposal', {
+      p_proposal_id: input.proposal_id,
+      p_created_by: user.id,
+      p_job: {
+        job_number: jobNumber,
+        customer_id: proposal.customer_id,
+        estimate_id: proposal.estimate_id ?? null,
+        site_survey_id: survey?.id ?? null,
+        assigned_to: input.assigned_to ?? null,
+        scheduled_start_date: input.scheduled_start_date ?? null,
+        scheduled_start_time: input.scheduled_start_time ?? null,
+        estimated_duration_hours: input.estimated_duration_hours ?? null,
+        job_address: jobAddress,
+        job_city: survey?.site_city ?? customer?.city ?? null,
+        job_state: survey?.site_state ?? customer?.state ?? null,
+        job_zip: survey?.site_zip ?? customer?.zip ?? null,
+        access_notes: survey?.access_info?.notes ?? null,
+        hazard_types: survey?.hazard_type ? [survey.hazard_type] : [],
+        contract_amount: proposal.total ?? null,
+        final_amount: proposal.total ?? null,
+        gate_code: survey?.access_info?.gateCode ?? null,
+        lockbox_code: survey?.access_info?.lockboxCode ?? null,
+        contact_onsite_name: survey?.access_info?.contactName ?? null,
+        contact_onsite_phone: survey?.access_info?.contactPhone ?? null,
+      },
     })
 
-    // Update job with contract amount and additional details
-    const { error: updateError } = await supabase
-      .from('jobs')
-      .update({
-        estimate_id: proposal.estimate_id,
-        site_survey_id: survey?.id,
-        contract_amount: proposal.total,
-        final_amount: proposal.total,
-        gate_code: survey?.access_info?.gateCode,
-        lockbox_code: survey?.access_info?.lockboxCode,
-        contact_onsite_name: survey?.access_info?.contactName,
-        contact_onsite_phone: survey?.access_info?.contactPhone,
-      })
-      .eq('id', job.id)
+    if (rpcError) throwDbError(rpcError, 'create job from proposal')
 
-    if (updateError) throwDbError(updateError, 'update job')
+    // Best-effort follow-ups, after the job + conversion are durably committed.
+    // These mirror JobsService.create's side effects; a failure here must not
+    // undo a completed conversion, so they only log.
+    try {
+      await JobsService.scheduleReminders(jobId as string)
+      await syncJobToExternalCalendars(jobId as string, organizationId)
+    } catch (err) {
+      log.warn(
+        { err: formatError(err), jobId, proposalId: input.proposal_id },
+        'Job created from proposal, but a post-conversion side effect failed',
+      )
+    }
 
-    // Update proposal status to converted
-    await supabase
-      .from('proposals')
-      .update({ status: 'converted' })
-      .eq('id', input.proposal_id)
-
-    return job
+    return (await JobsService.getById(jobId as string)) as Job
   }
 
   static async getById(id: string): Promise<Job | null> {
