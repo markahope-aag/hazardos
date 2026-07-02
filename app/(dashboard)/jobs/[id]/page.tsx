@@ -38,7 +38,7 @@ export default async function JobDetailPage({
   const [
     customerRes, proposalRes, estimateRes, surveyRes,
     crewRes, equipmentRes, materialsRes, disposalRes,
-    changeOrdersRes, notesRes, workOrderRes,
+    changeOrdersRes, notesRes, workOrderRes, availableCrewRes,
   ] = await Promise.all([
     job.customer_id
       ? supabase.from('customers').select('*').eq('id', job.customer_id).maybeSingle()
@@ -74,6 +74,14 @@ export default async function JobDetailPage({
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
+    // Available crew for the assignment picker — independent of the job row,
+    // so fetch it in the same batch instead of a serial follow-up round-trip.
+    supabase
+      .from('profiles')
+      .select('id, full_name, email, role')
+      .eq('organization_id', job.organization_id)
+      .eq('is_active', true)
+      .in('role', ['technician', 'estimator', 'admin', 'tenant_owner']),
   ])
 
   for (const [label, res] of Object.entries({
@@ -109,13 +117,7 @@ export default async function JobDetailPage({
     })),
   }
 
-  // Get available crew members for assignment
-  const { data: availableCrew } = await supabase
-    .from('profiles')
-    .select('id, full_name, email, role')
-    .eq('organization_id', job.organization_id)
-    .eq('is_active', true)
-    .in('role', ['technician', 'estimator', 'admin', 'tenant_owner'])
+  const availableCrew = availableCrewRes.data
 
   return (
     <div className="container py-6">

@@ -127,23 +127,37 @@ export async function processCredentialExpiry(now: Date = new Date()): Promise<E
   const digests = new Map<string, { orgId: string; email: string; items: DigestItem[] }>()
   let alerted = 0
 
+  // Pre-load already-sent (credential, bucket) keys so we can dedup in memory
+  // and bulk-insert the new alert rows once after the loop, instead of issuing
+  // one insert per credential.
+  const sentKeys = new Set<string>()
+  const credIds = rows.map((c) => c.id as string)
+  if (credIds.length) {
+    const { data: existingAlerts } = await supabase
+      .from('credential_alerts')
+      .select('credential_id, threshold_days')
+      .in('credential_id', credIds)
+    for (const a of existingAlerts ?? []) {
+      sentKeys.add(`${a.credential_id}:${a.threshold_days}`)
+    }
+  }
+  const newAlertRows: Array<Record<string, unknown>> = []
+
   for (const cred of rows) {
     const days = daysUntil(today, cred.expiry_date as string)
     const bucket = thresholdBucket(days)
     if (bucket === null) continue
 
-    // Dedup: one alert per (credential, bucket). Unique constraint is the guard.
-    const { error: insErr } = await supabase.from('credential_alerts').insert({
+    // Dedup: one alert per (credential, bucket). Skip if already sent (prior run
+    // or earlier in this loop); the row is bulk-inserted after the loop.
+    const dedupKey = `${cred.id}:${bucket}`
+    if (sentKeys.has(dedupKey)) continue
+    sentKeys.add(dedupKey)
+    newAlertRows.push({
       organization_id: cred.organization_id,
       credential_id: cred.id,
       threshold_days: bucket,
     })
-    if (insErr) {
-      if (insErr.code === '23505') continue // already alerted at this bucket
-      failed++
-      log.error({ err: formatError(insErr), credentialId: cred.id }, 'alert dedup insert failed')
-      continue
-    }
 
     alerted++
     const tName = typeName(cred.credential_type_id as string)
@@ -184,6 +198,19 @@ export async function processCredentialExpiry(now: Date = new Date()): Promise<E
     }
   }
 
+  // Bulk-insert the new alert rows once. upsert + ignoreDuplicates makes this
+  // race-safe against a concurrent run (the UNIQUE(credential_id, threshold_days)
+  // constraint still guards it).
+  if (newAlertRows.length) {
+    const { error: alertErr } = await supabase
+      .from('credential_alerts')
+      .upsert(newAlertRows, { onConflict: 'credential_id,threshold_days', ignoreDuplicates: true })
+    if (alertErr) {
+      failed++
+      log.error({ err: formatError(alertErr) }, 'failed to bulk-insert credential alerts')
+    }
+  }
+
   // Bulk in-app notifications.
   if (notifRows.length) {
     const { error: notifErr } = await supabase.from('notifications').insert(notifRows)
@@ -193,8 +220,9 @@ export async function processCredentialExpiry(now: Date = new Date()): Promise<E
     }
   }
 
-  // One digest email per admin.
-  for (const { orgId, email, items } of digests.values()) {
+  // One digest email per admin — sent concurrently rather than one-at-a-time.
+  await Promise.allSettled(
+    [...digests.values()].map(async ({ orgId, email, items }) => {
     try {
       const lines = items
         .map((i) =>
@@ -221,7 +249,8 @@ export async function processCredentialExpiry(now: Date = new Date()): Promise<E
       failed++
       log.error({ err: formatError(e), email }, 'failed to send credential digest email')
     }
-  }
+    }),
+  )
 
   return { scanned: rows.length, alerted, failed, orgs: orgIds.length }
 }
