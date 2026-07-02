@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import twilio from 'twilio'
 import { SmsService } from '@/lib/services/sms-service'
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createRequestLogger, formatError } from '@/lib/utils/logger'
 
 // Twilio inbound SMS webhook. Responsibilities:
@@ -47,7 +47,12 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Bad Request', { status: 400 })
     }
 
-    const supabase = await createClient()
+    // Service-role client: Twilio sends no Supabase session, so the cookie
+    // client would run as anon and RLS would silently drop every read/write
+    // (org lookup, message persistence, notification). All queries below are
+    // explicitly scoped to the organization resolved from the destination
+    // number, and all writes happen only after signature verification.
+    const supabase = createAdminClient()
     let authToken: string | null = null
     let organizationId: string | null = null
     let resolution: 'dedicated' | 'platform-by-prior-contact' | 'platform-fallback' | 'none' = 'none'

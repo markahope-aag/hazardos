@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { InvoicePaymentsService } from '@/lib/services/invoice-payments-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { addPaymentSchema } from '@/lib/validations/invoices'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { z } from 'zod'
@@ -16,6 +17,7 @@ const deleteQuerySchema = z.object({
 export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_ADMIN,
     bodySchema: addPaymentSchema,
   },
   async (_request, _context, params, body) => {
@@ -31,6 +33,7 @@ export const POST = createApiHandlerWithParams(
 export const DELETE = createApiHandlerWithParams(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_ADMIN,
     querySchema: deleteQuerySchema,
   },
   async (_request, _context, _params, _body, query) => {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { InvoiceDeliveryService } from '@/lib/services/invoice-delivery-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { sendInvoiceSchema } from '@/lib/validations/invoices'
 
 /**
@@ -10,6 +11,7 @@ import { sendInvoiceSchema } from '@/lib/validations/invoices'
 export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_ADMIN,
     bodySchema: sendInvoiceSchema,
   },
   async (_request, _context, params, body) => {
