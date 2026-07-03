@@ -150,8 +150,15 @@ export default function MobileSurveyWizard({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
-  const [touchStartX, setTouchStartX] = useState<number | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
+
+  // Swipe start point. Held in a ref, not state: touchstart and touchend
+  // are separate events that can fire within the same frame on a quick
+  // flick, before React re-renders. Reading state in touchend would then
+  // see the stale (null) value and the swipe would silently do nothing —
+  // a ref is written and read synchronously, so it always reflects the
+  // current gesture regardless of swipe speed.
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
   // Refs for auto-save timer
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -366,27 +373,33 @@ export default function MobileSurveyWizard({
 
   // Swipe gesture handlers
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    setTouchStartX(e.touches[0].clientX)
+    const touch = e.touches[0]
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
   }, [])
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (touchStartX === null) return
+    const start = touchStartRef.current
+    touchStartRef.current = null
+    if (!start) return
 
-    const touchEndX = e.changedTouches[0].clientX
-    const deltaX = touchEndX - touchStartX
+    const touch = e.changedTouches[0]
+    const deltaX = touch.clientX - start.x
+    const deltaY = touch.clientY - start.y
 
-    if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
-      if (deltaX > 0 && !isFirstSection) {
-        // Swipe right - go back
-        handleBack()
-      } else if (deltaX < 0 && !isLastSection) {
-        // Swipe left - go forward
-        handleNext()
-      }
+    // Ignore mostly-vertical gestures — those are the user scrolling the
+    // form, not swiping between steps. Only a predominantly horizontal
+    // move past the threshold counts as a swipe.
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD) return
+    if (Math.abs(deltaX) <= Math.abs(deltaY)) return
+
+    if (deltaX > 0 && !isFirstSection) {
+      // Swipe right - go back
+      handleBack()
+    } else if (deltaX < 0 && !isLastSection) {
+      // Swipe left - go forward
+      handleNext()
     }
-
-    setTouchStartX(null)
-  }, [touchStartX, isFirstSection, isLastSection, handleBack, handleNext])
+  }, [isFirstSection, isLastSection, handleBack, handleNext])
 
   // Save and exit
   const handleSaveAndExit = useCallback(async () => {

@@ -1,9 +1,18 @@
 import type { Metadata } from 'next'
 import { Inter, Geist_Mono } from 'next/font/google'
 import './globals.css'
+import { SerwistProvider } from '@serwist/next/react'
 import { Toaster } from '@/components/ui/toaster'
 import QueryProvider from '@/components/providers/query-provider'
 import AnalyticsProvider from '@/components/providers/analytics-provider'
+
+// The service worker is built to /sw.js by withSerwist (next.config.mjs) but
+// v9 no longer auto-registers it — the app must mount SerwistProvider to call
+// register() client-side. Without this, no SW installs, so runtime caching and
+// offline navigation (resume a survey after a hard refresh with no network)
+// never work. `disable` mirrors the build's dev disable: no sw.js is emitted in
+// development, so attempting to register would just 404.
+const isSwDisabled = process.env.NODE_ENV === 'development'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -57,12 +66,14 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="512x512" href="/logos/icon-512-color.png" />
       </head>
       <body className={`${inter.variable} ${geistMono.variable} font-sans`}>
-        <QueryProvider>
-          <AnalyticsProvider>
-            {children}
-            <Toaster />
-          </AnalyticsProvider>
-        </QueryProvider>
+        <SerwistProvider swUrl="/sw.js" disable={isSwDisabled}>
+          <QueryProvider>
+            <AnalyticsProvider>
+              {children}
+              <Toaster />
+            </AnalyticsProvider>
+          </QueryProvider>
+        </SerwistProvider>
       </body>
     </html>
   )
