@@ -53,7 +53,6 @@ export function JobHeader({ job }: JobHeaderProps) {
   // workflows kick off) so a quick "are you sure" is cheaper than the
   // ad-hoc rollback work users did when they mis-clicked.
   const [showStartDialog, setShowStartDialog] = useState(false)
-  const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [generatingWorkOrder, setGeneratingWorkOrder] = useState(false)
 
   const generateWorkOrder = async () => {
@@ -207,9 +206,11 @@ export function JobHeader({ job }: JobHeaderProps) {
             </Button>
           )}
           {job.status === 'in_progress' && (
-            <Button onClick={() => setShowCompleteDialog(true)} disabled={loading}>
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Complete Job
+            <Button asChild disabled={loading}>
+              <Link href={`/jobs/${job.id}/complete`}>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Complete Job
+              </Link>
             </Button>
           )}
           {job.status === 'completed' && (
@@ -308,30 +309,6 @@ export function JobHeader({ job }: JobHeaderProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Mark this job complete?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This closes out the job and unlocks invoice creation. If the crew
-              is still on site, hold off until they&apos;re done — reopening a
-              completed job is possible but kicks off a few downstream
-              resets (reminders, calendar, workflow triggers).
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Not yet</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setShowCompleteDialog(false)
-                updateStatus('completed')
-              }}
-            >
-              Complete Job
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   )
 }
