@@ -97,9 +97,15 @@ export const POST = createApiHandler(
     const { data: proposalNumber } = await context.supabase
       .rpc('generate_proposal_number', { org_id: context.profile.organization_id })
 
-    // Generate access token
-    const { data: accessToken } = await context.supabase
+    // Generate access token — the customer portal URL is useless without
+    // one, so a failure here must not be swallowed (unlike the proposal
+    // number above, this has no safe fallback).
+    const { data: accessToken, error: tokenError } = await context.supabase
       .rpc('generate_access_token')
+
+    if (tokenError || !accessToken) {
+      throwDbError(tokenError || new Error('No access token generated'), 'generate proposal access token')
+    }
 
     // Set expiration (30 days from now)
     const expiresAt = new Date()
