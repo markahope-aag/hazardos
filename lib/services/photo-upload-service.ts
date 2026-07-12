@@ -519,15 +519,21 @@ export async function processPhotoQueue(): Promise<void> {
         store.incrementRetryCount(photo.id)
         store.updatePhotoStatus(photo.id, 'failed', null, errorMessage)
 
-        const retryCount =
-          store.queue.find((p) => p.id === photo.id)?.retryCount ?? 0
+        // `photo` was fetched live via getNextPendingPhoto() this iteration,
+        // so photo.retryCount is the count BEFORE this failure — +1 gives the
+        // count after. (Previously this re-read `store.queue`, a snapshot
+        // frozen at the top of this function call, which never reflected the
+        // incrementRetryCount() above — every attempt saw the same stale
+        // count, so the backoff never escalated past its first delay and
+        // this max-retries log never fired.)
+        const retryCount = photo.retryCount + 1
         if (retryCount >= RETRY_DELAYS_MS.length) {
           log.error(
             { photoId: photo.id, errorMessage, retryCount },
             'Photo failed after max retries',
           )
         } else {
-          const delay = RETRY_DELAYS_MS[Math.min(retryCount, RETRY_DELAYS_MS.length - 1)]
+          const delay = RETRY_DELAYS_MS[retryCount - 1]
           await new Promise((resolve) => setTimeout(resolve, delay))
         }
       }
