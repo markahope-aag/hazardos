@@ -6,6 +6,13 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(),
 }))
 
+const notificationHelpersMock = vi.hoisted(() => ({
+  jobAssigned: vi.fn().mockResolvedValue(undefined),
+}))
+vi.mock('@/lib/services/notification-service', () => ({
+  NotificationHelpers: notificationHelpersMock,
+}))
+
 import { createClient } from '@/lib/supabase/server'
 
 describe('JobCrewService', () => {
@@ -51,6 +58,53 @@ describe('JobCrewService', () => {
 
       expect(result.job_id).toBe('job-1')
       expect(result.role).toBe('crew')
+    })
+
+    it('should notify the assigned crew member', async () => {
+      mockSupabase.from = vi.fn((table: string) => {
+        if (table === 'job_crew') {
+          return {
+            insert: vi.fn(() => ({
+              select: vi.fn(() => ({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: 'crew-1',
+                    job_id: 'job-1',
+                    profile_id: 'user-1',
+                    role: 'crew',
+                    is_lead: false,
+                  },
+                  error: null,
+                }),
+              })),
+            })),
+          }
+        }
+        if (table === 'jobs') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn().mockResolvedValue({
+                  data: { job_number: 'JOB-100-1012026' },
+                  error: null,
+                }),
+              })),
+            })),
+          }
+        }
+        return {}
+      })
+
+      await JobCrewService.assign({
+        job_id: 'job-1',
+        profile_id: 'user-1',
+      })
+
+      expect(notificationHelpersMock.jobAssigned).toHaveBeenCalledWith(
+        'job-1',
+        'JOB-100-1012026',
+        'user-1'
+      )
     })
 
     it('should default role to crew', async () => {

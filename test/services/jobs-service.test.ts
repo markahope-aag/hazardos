@@ -84,6 +84,13 @@ vi.mock('@/lib/services/outlook-calendar-service', () => ({
   },
 }))
 
+const notificationHelpersMock = vi.hoisted(() => ({
+  jobAssigned: vi.fn().mockResolvedValue(undefined),
+}))
+vi.mock('@/lib/services/notification-service', () => ({
+  NotificationHelpers: notificationHelpersMock,
+}))
+
 import { JobsService } from '@/lib/services/jobs-service'
 
 describe('JobsService', () => {
@@ -178,6 +185,44 @@ describe('JobsService', () => {
       mockSupabase.single.mockResolvedValueOnce({ data: null, error: null })
 
       await expect(JobsService.create(mockInput)).rejects.toThrow('Authentication is required')
+    })
+
+    it('should notify the assigned technician when assigned_to is provided', async () => {
+      const inputWithAssignee = { ...mockInput, assigned_to: 'tech-1' }
+      const mockJob = {
+        id: 'job-1',
+        job_number: mockJobNumber,
+        assigned_to: 'tech-1',
+        customer: { id: 'customer-1', name: 'Test Customer', email: 'test@example.com' },
+      }
+
+      mockSupabase.single
+        .mockResolvedValueOnce({ data: mockProfile, error: null })
+        .mockResolvedValueOnce({ data: mockJob, error: null })
+        .mockResolvedValueOnce({ data: mockJob, error: null })
+        .mockResolvedValueOnce({ data: mockProfile, error: null })
+
+      await JobsService.create(inputWithAssignee)
+
+      expect(notificationHelpersMock.jobAssigned).toHaveBeenCalledWith('job-1', mockJobNumber, 'tech-1')
+    })
+
+    it('should not notify when no technician is assigned', async () => {
+      const mockJob = {
+        id: 'job-1',
+        job_number: mockJobNumber,
+        customer: { id: 'customer-1', name: 'Test Customer', email: 'test@example.com' },
+      }
+
+      mockSupabase.single
+        .mockResolvedValueOnce({ data: mockProfile, error: null })
+        .mockResolvedValueOnce({ data: mockJob, error: null })
+        .mockResolvedValueOnce({ data: mockJob, error: null })
+        .mockResolvedValueOnce({ data: mockProfile, error: null })
+
+      await JobsService.create(mockInput)
+
+      expect(notificationHelpersMock.jobAssigned).not.toHaveBeenCalled()
     })
 
     it('should include proposal_id when provided', async () => {
@@ -579,6 +624,42 @@ describe('JobsService', () => {
       })
 
       await expect(JobsService.update('job-1', {})).rejects.toThrow('Failed to update job')
+    })
+
+    it('should notify the new technician on reassignment', async () => {
+      const mockUpdatedJob = { id: 'job-1', job_number: 'JOB-001', assigned_to: 'tech-2' }
+
+      mockSupabase.single
+        // Fetch of the prior assigned_to
+        .mockResolvedValueOnce({ data: { assigned_to: 'tech-1' }, error: null })
+        // The update itself
+        .mockResolvedValueOnce({ data: mockUpdatedJob, error: null })
+
+      await JobsService.update('job-1', { assigned_to: 'tech-2' })
+
+      expect(notificationHelpersMock.jobAssigned).toHaveBeenCalledWith('job-1', 'JOB-001', 'tech-2')
+    })
+
+    it('should not notify when assigned_to is unchanged', async () => {
+      const mockUpdatedJob = { id: 'job-1', job_number: 'JOB-001', assigned_to: 'tech-1' }
+
+      mockSupabase.single
+        .mockResolvedValueOnce({ data: { assigned_to: 'tech-1' }, error: null })
+        .mockResolvedValueOnce({ data: mockUpdatedJob, error: null })
+
+      await JobsService.update('job-1', { assigned_to: 'tech-1' })
+
+      expect(notificationHelpersMock.jobAssigned).not.toHaveBeenCalled()
+    })
+
+    it('should not notify when the update does not touch assigned_to', async () => {
+      const mockUpdatedJob = { id: 'job-1', job_number: 'JOB-001', status: 'in_progress' }
+
+      mockSupabase.single.mockResolvedValueOnce({ data: mockUpdatedJob, error: null })
+
+      await JobsService.update('job-1', { status: 'in_progress' })
+
+      expect(notificationHelpersMock.jobAssigned).not.toHaveBeenCalled()
     })
   })
 

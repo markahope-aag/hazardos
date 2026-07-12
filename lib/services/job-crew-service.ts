@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { throwDbError } from '@/lib/utils/secure-error-handler'
+import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type { JobCrew, AssignCrewInput, ClockInOutInput } from '@/types/jobs'
+
+const log = createServiceLogger('JobCrewService')
 
 export class JobCrewService {
   static async assign(input: AssignCrewInput): Promise<JobCrew> {
@@ -23,6 +26,22 @@ export class JobCrewService {
       .single()
 
     if (error) throwDbError(error, 'create crew assignment')
+
+    try {
+      const { data: job } = await supabase
+        .from('jobs')
+        .select('job_number')
+        .eq('id', input.job_id)
+        .single()
+
+      if (job?.job_number) {
+        const { NotificationHelpers } = await import('@/lib/services/notification-service')
+        await NotificationHelpers.jobAssigned(input.job_id, job.job_number, input.profile_id)
+      }
+    } catch (err) {
+      log.error({ err: formatError(err), jobId: input.job_id }, 'Failed to send job-assigned notification')
+    }
+
     return data
   }
 

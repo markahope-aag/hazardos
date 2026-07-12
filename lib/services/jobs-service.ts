@@ -132,6 +132,15 @@ export class JobsService {
     // are logged but don't block job creation.
     await syncJobToExternalCalendars(data.id, organizationId)
 
+    if (input.assigned_to) {
+      try {
+        const { NotificationHelpers } = await import('@/lib/services/notification-service')
+        await NotificationHelpers.jobAssigned(data.id, data.job_number, input.assigned_to)
+      } catch (err) {
+        log.error({ err: formatError(err), jobId: data.id }, 'Failed to send job-assigned notification')
+      }
+    }
+
     return data
   }
 
@@ -392,6 +401,18 @@ export class JobsService {
   static async update(id: string, updates: UpdateJobInput): Promise<Job> {
     const supabase = await createClient()
 
+    // Fetch the prior assignee (if the update touches assigned_to at all)
+    // so we only notify on an actual reassignment, not every unrelated edit.
+    let previousAssignedTo: string | null = null
+    if (updates.assigned_to !== undefined) {
+      const { data: current } = await supabase
+        .from('jobs')
+        .select('assigned_to')
+        .eq('id', id)
+        .single()
+      previousAssignedTo = current?.assigned_to ?? null
+    }
+
     const { data, error } = await supabase
       .from('jobs')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -400,6 +421,15 @@ export class JobsService {
       .single()
 
     if (error) throwDbError(error, 'update job')
+
+    if (updates.assigned_to && updates.assigned_to !== previousAssignedTo) {
+      try {
+        const { NotificationHelpers } = await import('@/lib/services/notification-service')
+        await NotificationHelpers.jobAssigned(data.id, data.job_number, updates.assigned_to)
+      } catch (err) {
+        log.error({ err: formatError(err), jobId: data.id }, 'Failed to send job-assigned notification')
+      }
+    }
 
     // Cancelled jobs shouldn't occupy anyone's calendar and shouldn't keep
     // pending reminders queued up. For any other status change (or non-status
