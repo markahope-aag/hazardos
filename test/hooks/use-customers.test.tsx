@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useCustomers, useCustomer, useCreateCustomer, useUpdateCustomer, useDeleteCustomer } from '@/lib/hooks/use-customers'
+import {
+  useCustomers, useCustomer, useCreateCustomer, useUpdateCustomer, useDeleteCustomer,
+  useBulkDeleteCustomers, useBulkUpdateCustomerStatus, useBulkAssignCustomerOwner,
+} from '@/lib/hooks/use-customers'
 import { createMockCustomer, createMockCustomerArray } from '@/test/helpers/mock-data'
 
 // Mock the customers service
@@ -13,7 +16,10 @@ vi.mock('@/lib/supabase/customers', () => ({
     updateCustomer: vi.fn(),
     deleteCustomer: vi.fn(),
     getCustomerStats: vi.fn(),
-    updateCustomerStatus: vi.fn()
+    updateCustomerStatus: vi.fn(),
+    bulkDeleteCustomers: vi.fn(),
+    bulkUpdateStatus: vi.fn(),
+    bulkAssignOwner: vi.fn(),
   }
 }))
 
@@ -243,6 +249,58 @@ describe('Customer Hooks', () => {
       const { result } = renderHook(() => useDeleteCustomer(), { wrapper })
 
       await expect(result.current.mutateAsync('customer-1')).rejects.toThrow('Cannot delete customer with linked surveys')
+    })
+  })
+
+  describe('useBulkDeleteCustomers', () => {
+    it('should delete the given ids', async () => {
+      const { CustomersService } = await import('@/lib/supabase/customers')
+      vi.mocked(CustomersService.bulkDeleteCustomers).mockResolvedValue(undefined)
+
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useBulkDeleteCustomers(), { wrapper })
+
+      await result.current.mutateAsync(['customer-1', 'customer-2'])
+
+      expect(CustomersService.bulkDeleteCustomers).toHaveBeenCalledWith(['customer-1', 'customer-2'])
+    })
+
+    it('should handle bulk delete errors', async () => {
+      const { CustomersService } = await import('@/lib/supabase/customers')
+      vi.mocked(CustomersService.bulkDeleteCustomers).mockRejectedValue(new Error('Bulk delete failed'))
+
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useBulkDeleteCustomers(), { wrapper })
+
+      await expect(result.current.mutateAsync(['customer-1'])).rejects.toThrow('Bulk delete failed')
+    })
+  })
+
+  describe('useBulkUpdateCustomerStatus', () => {
+    it('should update status for the given ids', async () => {
+      const { CustomersService } = await import('@/lib/supabase/customers')
+      vi.mocked(CustomersService.bulkUpdateStatus).mockResolvedValue(undefined)
+
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useBulkUpdateCustomerStatus(), { wrapper })
+
+      await result.current.mutateAsync({ ids: ['customer-1', 'customer-2'], status: 'customer' })
+
+      expect(CustomersService.bulkUpdateStatus).toHaveBeenCalledWith(['customer-1', 'customer-2'], 'customer')
+    })
+  })
+
+  describe('useBulkAssignCustomerOwner', () => {
+    it('should assign the given owner to the given ids', async () => {
+      const { CustomersService } = await import('@/lib/supabase/customers')
+      vi.mocked(CustomersService.bulkAssignOwner).mockResolvedValue(undefined)
+
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useBulkAssignCustomerOwner(), { wrapper })
+
+      await result.current.mutateAsync({ ids: ['customer-1'], accountOwnerId: 'user-1' })
+
+      expect(CustomersService.bulkAssignOwner).toHaveBeenCalledWith(['customer-1'], 'user-1')
     })
   })
 

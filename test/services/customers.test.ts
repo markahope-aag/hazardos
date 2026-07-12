@@ -293,6 +293,68 @@ describe('CustomersService', () => {
     })
   })
 
+  describe('bulkDeleteCustomers', () => {
+    it('should delete customers by ids', async () => {
+      mockSupabase.in.mockResolvedValue({ data: null, error: null })
+
+      await CustomersService.bulkDeleteCustomers(['customer-1', 'customer-2'])
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('customers')
+      expect(mockSupabase.delete).toHaveBeenCalled()
+      expect(mockSupabase.in).toHaveBeenCalledWith('id', ['customer-1', 'customer-2'])
+    })
+
+    it('should handle delete errors', async () => {
+      mockSupabase.in.mockResolvedValue({ data: null, error: { message: 'Cannot delete customers with linked surveys' } })
+
+      await expect(CustomersService.bulkDeleteCustomers(['customer-1'])).rejects.toThrow('Cannot delete customers with linked surveys')
+    })
+  })
+
+  describe('bulkUpdateStatus', () => {
+    it('should update status for all given ids', async () => {
+      mockSupabase.in.mockResolvedValue({ data: null, error: null })
+
+      await CustomersService.bulkUpdateStatus(['customer-1', 'customer-2'], 'customer')
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('customers')
+      expect(mockSupabase.update).toHaveBeenCalledWith({ status: 'customer' })
+      expect(mockSupabase.in).toHaveBeenCalledWith('id', ['customer-1', 'customer-2'])
+    })
+
+    it('should handle update errors', async () => {
+      mockSupabase.in.mockResolvedValue({ data: null, error: { message: 'Update failed' } })
+
+      await expect(CustomersService.bulkUpdateStatus(['customer-1'], 'inactive')).rejects.toThrow('Update failed')
+    })
+  })
+
+  describe('bulkAssignOwner', () => {
+    it('should assign the given owner to all ids', async () => {
+      mockSupabase.in.mockResolvedValue({ data: null, error: null })
+
+      await CustomersService.bulkAssignOwner(['customer-1', 'customer-2'], 'user-1')
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('customers')
+      expect(mockSupabase.update).toHaveBeenCalledWith({ account_owner_id: 'user-1' })
+      expect(mockSupabase.in).toHaveBeenCalledWith('id', ['customer-1', 'customer-2'])
+    })
+
+    it('should support clearing the owner', async () => {
+      mockSupabase.in.mockResolvedValue({ data: null, error: null })
+
+      await CustomersService.bulkAssignOwner(['customer-1'], null)
+
+      expect(mockSupabase.update).toHaveBeenCalledWith({ account_owner_id: null })
+    })
+
+    it('should handle assignment errors', async () => {
+      mockSupabase.in.mockResolvedValue({ data: null, error: { message: 'Assignment failed' } })
+
+      await expect(CustomersService.bulkAssignOwner(['customer-1'], 'user-1')).rejects.toThrow('Assignment failed')
+    })
+  })
+
   describe('Error Handling', () => {
     it('should handle network errors', async () => {
       // The service calls .order() at the end which returns the final promise

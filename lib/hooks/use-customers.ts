@@ -213,6 +213,88 @@ export function useDeleteCustomer() {
   })
 }
 
+// Mutation hook to delete multiple customers at once
+export function useBulkDeleteCustomers() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { organization } = useMultiTenantAuth()
+
+  return useMutation({
+    mutationFn: (ids: string[]) => CustomersService.bulkDeleteCustomers(ids),
+    onSuccess: (_data, ids) => {
+      queryClient.invalidateQueries({ queryKey: ['customers', organization?.id] })
+      queryClient.invalidateQueries({ queryKey: ['customer-stats', organization?.id] })
+
+      toast({
+        title: 'Contacts deleted',
+        description: `${ids.length} contact${ids.length !== 1 ? 's' : ''} deleted successfully.`,
+      })
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error deleting contacts',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
+// Mutation hook to change status for multiple customers at once
+export function useBulkUpdateCustomerStatus() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { organization } = useMultiTenantAuth()
+
+  return useMutation({
+    mutationFn: ({ ids, status }: { ids: string[]; status: CustomerStatus }) =>
+      CustomersService.bulkUpdateStatus(ids, status),
+    onSuccess: (_data, { ids }) => {
+      queryClient.invalidateQueries({ queryKey: ['customers', organization?.id] })
+      queryClient.invalidateQueries({ queryKey: ['customer-stats', organization?.id] })
+
+      toast({
+        title: 'Status updated',
+        description: `${ids.length} contact${ids.length !== 1 ? 's' : ''} updated successfully.`,
+      })
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error updating status',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
+// Mutation hook to assign an account owner to multiple customers at once
+export function useBulkAssignCustomerOwner() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { organization } = useMultiTenantAuth()
+
+  return useMutation({
+    mutationFn: ({ ids, accountOwnerId }: { ids: string[]; accountOwnerId: string | null }) =>
+      CustomersService.bulkAssignOwner(ids, accountOwnerId),
+    onSuccess: (_data, { ids }) => {
+      queryClient.invalidateQueries({ queryKey: ['customers', organization?.id] })
+
+      toast({
+        title: 'Owner assigned',
+        description: `${ids.length} contact${ids.length !== 1 ? 's' : ''} updated successfully.`,
+      })
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error assigning owner',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
 // Hook to update customer status quickly
 export function useUpdateCustomerStatus() {
   const queryClient = useQueryClient()

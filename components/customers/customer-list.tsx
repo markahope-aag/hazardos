@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { MobileListCard } from '@/components/ui/mobile-list-card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -16,6 +17,7 @@ import { Users, ChevronLeft, ChevronRight, Search, Phone, Mail, ArrowUpDown, Arr
 import { useCustomers, useCustomerStats } from '@/lib/hooks/use-customers'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import { LocationFilter, type LocationFilterValue } from '@/components/locations/location-filter'
+import BulkActionsToolbar from './bulk-actions-toolbar'
 import type { Customer, CustomerStatus, ContactType } from '@/types/database'
 
 interface CustomerListProps {
@@ -67,6 +69,41 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
 
   const { data: customers = [], isLoading, error } = useCustomers(queryOptions)
   const { data: stats } = useCustomerStats()
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  // Selection is scoped to the currently visible page — reset it whenever
+  // the underlying query changes so stale ids from a previous page/filter
+  // can't linger in a bulk action.
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [queryOptions])
+
+  const toggleRowSelected = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const isAllSelected = customers.length > 0 && customers.every((c) => selectedIds.has(c.id))
+  const isSomeSelected = selectedIds.size > 0 && !isAllSelected
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      if (customers.length > 0 && customers.every((c) => prev.has(c.id))) {
+        return new Set()
+      }
+      return new Set(customers.map((c) => c.id))
+    })
+  }, [customers])
+
+  const selectedCustomers = useMemo(
+    () => customers.filter((c) => selectedIds.has(c.id)),
+    [customers, selectedIds]
+  )
 
   const handleClearFilters = useCallback(() => {
     setStatus('all')
@@ -187,6 +224,14 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
         </div>
       )}
 
+      {/* Bulk actions toolbar */}
+      {selectedCustomers.length > 0 && (
+        <BulkActionsToolbar
+          selectedCustomers={selectedCustomers}
+          onClearSelection={() => setSelectedIds(new Set())}
+        />
+      )}
+
       {/* Table */}
       <Card className="border-0 shadow-none md:border md:shadow-sm">
         <CardContent className="p-0">
@@ -279,6 +324,13 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
               <Table className="hidden md:table">
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Select all contacts"
+                      />
+                    </TableHead>
                     <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('first_name')}>
                       <span className="flex items-center">Name<SortIcon column="first_name" /></span>
                     </TableHead>
@@ -312,7 +364,14 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
                     const openJobCount = (customer as Record<string, unknown>).open_jobs_count as number || 0
 
                     return (
-                      <TableRow key={customer.id} className="group">
+                      <TableRow key={customer.id} className="group" data-state={selectedIds.has(customer.id) ? 'selected' : undefined}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIds.has(customer.id)}
+                            onCheckedChange={() => toggleRowSelected(customer.id)}
+                            aria-label={`Select ${displayName}`}
+                          />
+                        </TableCell>
                         <TableCell>
                           <div>
                             <div className="flex items-center gap-1.5">

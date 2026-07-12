@@ -19,6 +19,13 @@ vi.mock('@/lib/hooks/use-customers', () => ({
   useCustomerStats: () => ({
     data: null,
   }),
+  useBulkDeleteCustomers: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useBulkUpdateCustomerStatus: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useBulkAssignCustomerOwner: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}))
+
+vi.mock('@/lib/hooks/use-org-members', () => ({
+  useOrgMembers: () => ({ data: [], isLoading: false }),
 }))
 
 vi.mock('@/lib/hooks/use-debounced-value', () => ({
@@ -173,5 +180,58 @@ describe('CustomerList', () => {
     )
 
     expect(screen.getByRole('button', { name: /previous/i })).toBeDisabled()
+  })
+
+  describe('bulk selection', () => {
+    it('shows the bulk actions toolbar after selecting a row', async () => {
+      const user = userEvent.setup()
+      renderWithClient(
+        <CustomerList
+          onEditCustomer={mockOnEditCustomer}
+          onDeleteCustomer={mockOnDeleteCustomer}
+        />
+      )
+
+      expect(screen.queryByText(/selected/i)).not.toBeInTheDocument()
+
+      const rowCheckbox = screen.getByRole('checkbox', { name: `Select ${mockCustomer.name}` })
+      await user.click(rowCheckbox)
+
+      expect(screen.getByText('1 selected')).toBeInTheDocument()
+    })
+
+    it('selects all rows via the header checkbox', async () => {
+      mockCustomers = [mockCustomer, { ...mockCustomer, id: 'cust-2', name: 'Jane Roe' }]
+      const user = userEvent.setup()
+      renderWithClient(
+        <CustomerList
+          onEditCustomer={mockOnEditCustomer}
+          onDeleteCustomer={mockOnDeleteCustomer}
+        />
+      )
+
+      const selectAllCheckbox = screen.getByRole('checkbox', { name: /select all contacts/i })
+      await user.click(selectAllCheckbox)
+
+      expect(screen.getByText('2 selected')).toBeInTheDocument()
+    })
+
+    it('clears the selection when Clear is clicked', async () => {
+      const user = userEvent.setup()
+      renderWithClient(
+        <CustomerList
+          onEditCustomer={mockOnEditCustomer}
+          onDeleteCustomer={mockOnDeleteCustomer}
+        />
+      )
+
+      const rowCheckbox = screen.getByRole('checkbox', { name: `Select ${mockCustomer.name}` })
+      await user.click(rowCheckbox)
+      expect(screen.getByText('1 selected')).toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: /clear/i }))
+
+      expect(screen.queryByText(/selected/i)).not.toBeInTheDocument()
+    })
   })
 })

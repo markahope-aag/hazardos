@@ -266,4 +266,41 @@ export class CustomersService {
   static async searchCustomers(organizationId: string, searchTerm: string): Promise<Customer[]> {
     return this.getCustomers(organizationId, { search: searchTerm })
   }
+
+  // Bulk operations. RLS still scopes every row to the caller's organization
+  // (and delete to admins/owners), so an id from another org is silently
+  // excluded rather than causing an error.
+
+  static async bulkDeleteCustomers(ids: string[]): Promise<void> {
+    const { error } = await this.supabase
+      .from('customers')
+      .delete()
+      .in('id', ids)
+
+    if (error) {
+      throw new Error(`Failed to delete customers: ${error.message}`)
+    }
+  }
+
+  static async bulkUpdateStatus(ids: string[], status: CustomerStatus): Promise<void> {
+    const { error } = await this.supabase
+      .from('customers')
+      .update({ status })
+      .in('id', ids)
+
+    if (error) {
+      throw new Error(`Failed to update customers: ${error.message}`)
+    }
+  }
+
+  static async bulkAssignOwner(ids: string[], accountOwnerId: string | null): Promise<void> {
+    const { error } = await this.supabase
+      .from('customers')
+      .update({ account_owner_id: accountOwnerId })
+      .in('id', ids)
+
+    if (error) {
+      throw new Error(`Failed to assign owner: ${error.message}`)
+    }
+  }
 }
