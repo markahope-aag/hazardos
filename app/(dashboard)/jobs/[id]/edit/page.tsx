@@ -78,7 +78,10 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
       assigned_to: job.assigned_to || '',
       site_survey_id: job.site_survey_id || '',
       scheduled_start_date: job.scheduled_start_date ? new Date(job.scheduled_start_date) : new Date(),
-      scheduled_start_time: job.scheduled_start_time || '',
+      // Postgres TIME columns round-trip as "HH:MM:SS" — slice to "HH:MM"
+      // so an unedited time field still matches updateJobSchema's regex
+      // when the form is submitted without touching the time picker.
+      scheduled_start_time: job.scheduled_start_time ? job.scheduled_start_time.slice(0, 5) : '',
       scheduled_end_date: job.scheduled_end_date ? new Date(job.scheduled_end_date) : undefined,
       estimated_duration_hours:
         job.estimated_duration_hours != null ? String(job.estimated_duration_hours) : '',
