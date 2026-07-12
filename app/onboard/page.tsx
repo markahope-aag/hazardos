@@ -65,36 +65,24 @@ export default function OnboardPage() {
         throw new Error('You must be logged in to create an organization')
       }
 
-      // Create the organization
-      const { data: org, error: orgError } = await supabase
-        .from('organizations')
-        .insert({
-          name: formData.organizationName,
-          email: formData.email || user.email,
-          phone: formData.phone,
-          address: formData.address,
-          city: formData.city,
-          state: formData.state,
-          zip: formData.zip,
-          license_number: formData.licenseNumber,
-          status: 'active',
-          subscription_tier: 'trial',
-        })
-        .select()
-        .single()
+      // Create the organization and assign the caller as owner atomically
+      const { error: onboardError } = await supabase.rpc(
+        'create_organization_for_onboarding',
+        {
+          p_org: {
+            name: formData.organizationName,
+            email: formData.email || user.email,
+            phone: formData.phone,
+            address: formData.address,
+            city: formData.city,
+            state: formData.state,
+            zip: formData.zip,
+            license_number: formData.licenseNumber,
+          },
+        }
+      )
 
-      if (orgError) throw orgError
-
-      // Update the user's profile with the organization
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          organization_id: org.id,
-          role: 'tenant_owner',
-        })
-        .eq('id', user.id)
-
-      if (profileError) throw profileError
+      if (onboardError) throw onboardError
 
       toast({
         title: 'Organization Created!',

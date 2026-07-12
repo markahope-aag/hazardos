@@ -32,16 +32,7 @@ vi.mock('@/lib/supabase/client', () => ({
       }),
       signOut: vi.fn(),
     },
-    from: vi.fn(() => ({
-      insert: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: { id: 'org-1' }, error: null }),
-        }),
-      }),
-      update: vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      }),
-    })),
+    rpc: vi.fn().mockResolvedValue({ data: { id: 'org-1' }, error: null }),
   }),
 }))
 
