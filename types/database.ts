@@ -4206,6 +4206,7 @@ export type Database = {
           actual_start_at: string | null
           actual_start_date: string | null
           air_monitoring_required: boolean | null
+          assigned_to: string | null
           attributed_lead_source: string | null
           attributed_lead_source_detail: string | null
           change_order_amount: number | null
@@ -4298,6 +4299,7 @@ export type Database = {
           actual_start_at?: string | null
           actual_start_date?: string | null
           air_monitoring_required?: boolean | null
+          assigned_to?: string | null
           attributed_lead_source?: string | null
           attributed_lead_source_detail?: string | null
           change_order_amount?: number | null
@@ -4390,6 +4392,7 @@ export type Database = {
           actual_start_at?: string | null
           actual_start_date?: string | null
           air_monitoring_required?: boolean | null
+          assigned_to?: string | null
           attributed_lead_source?: string | null
           attributed_lead_source_detail?: string | null
           change_order_amount?: number | null
@@ -4471,6 +4474,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "jobs_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "jobs_company_id_fkey"
             columns: ["company_id"]
