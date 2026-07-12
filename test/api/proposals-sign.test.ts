@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/proposals/sign/route'
 
+const proposalSignedMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
+vi.mock('@/lib/services/notification-service', () => ({
+  NotificationHelpers: { proposalSigned: proposalSignedMock },
+}))
+
 const mockSupabaseClient = {
   from: vi.fn(() => ({
     select: vi.fn(() => ({
@@ -33,7 +38,9 @@ describe('POST /api/proposals/sign', () => {
       id: 'proposal-1',
       status: 'sent',
       access_token_expires_at: new Date(Date.now() + 86400000).toISOString(),
-      estimate_id: 'estimate-1'
+      estimate_id: 'estimate-1',
+      proposal_number: 'PRO-00001',
+      created_by: 'user-1'
     }
 
     const mockUpdated = {
@@ -80,6 +87,7 @@ describe('POST /api/proposals/sign', () => {
 
     expect(response.status).toBe(200)
     expect(data.success).toBe(true)
+    expect(proposalSignedMock).toHaveBeenCalledWith('proposal-1', 'PRO-00001', 'user-1')
   })
 
   it('should reject invalid access token', async () => {

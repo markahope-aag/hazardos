@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createPublicApiHandler } from '@/lib/utils/api-handler'
 import { signProposalSchema } from '@/lib/validations/proposals'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { NotificationHelpers } from '@/lib/services/notification-service'
+import { logger, formatError } from '@/lib/utils/logger'
 
 /**
  * POST /api/proposals/sign
@@ -19,7 +21,7 @@ export const POST = createPublicApiHandler(
     // Get the proposal by access token
     const { data: proposal, error: proposalError } = await supabase
       .from('proposals')
-      .select('id, status, access_token_expires_at, estimate_id')
+      .select('id, status, access_token_expires_at, estimate_id, proposal_number, created_by')
       .eq('access_token', body.access_token)
       .single()
 
@@ -68,6 +70,22 @@ export const POST = createPublicApiHandler(
       .from('estimates')
       .update({ status: 'accepted' })
       .eq('id', proposal.estimate_id)
+
+    // Best-effort — a failed notification shouldn't fail the signing itself.
+    if (proposal.created_by) {
+      try {
+        await NotificationHelpers.proposalSigned(
+          proposal.id,
+          proposal.proposal_number,
+          proposal.created_by,
+        )
+      } catch (error) {
+        logger.error(
+          { error: formatError(error, 'PROPOSAL_SIGNED_NOTIFICATION_ERROR'), proposalId: proposal.id },
+          'Failed to send proposal-signed notification',
+        )
+      }
+    }
 
     return NextResponse.json({
       success: true,
