@@ -1,13 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
-// Mock Supabase server
+// Mock Supabase server. getCurrentProfile (added for the CO4 admin gate)
+// reads the caller's role from `profiles`, so the mock must answer .from()
+// too, not just auth.getUser.
 vi.mock('@/lib/supabase/server', () => ({
   createClient: () => Promise.resolve({
     auth: {
       getUser: () => Promise.resolve({ data: { user: { id: 'user-123' } } }),
     },
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: () => Promise.resolve({
+            data: { id: 'user-123', organization_id: 'org-123', role: 'admin', is_platform_user: false },
+            error: null,
+          }),
+        }),
+      }),
+    }),
   }),
+}))
+
+// The earnings table is now a client component that calls useToast at render.
+const toastMock = vi.fn()
+vi.mock('@/components/ui/use-toast', () => ({
+  useToast: () => ({ toast: toastMock }),
 }))
 
 // Mock CommissionService - must return arrays not undefined

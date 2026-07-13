@@ -5,12 +5,13 @@ import { ROLES } from '@/lib/auth/roles'
 import { z } from 'zod'
 
 const commissionActionSchema = z.object({
-  action: z.enum(['approve', 'mark_paid']),
+  action: z.enum(['approve', 'reject', 'mark_paid']),
+  reason: z.string().max(500).optional(),
 })
 
 /**
  * PATCH /api/commissions/[id]
- * Approve or mark a commission as paid
+ * Approve, reject, or mark a commission as paid
  */
 export const PATCH = createApiHandlerWithParams(
   {
@@ -23,6 +24,8 @@ export const PATCH = createApiHandlerWithParams(
 
     if (body.action === 'approve') {
       earning = await CommissionService.approveEarning(params.id)
+    } else if (body.action === 'reject') {
+      earning = await CommissionService.rejectEarning(params.id, body.reason)
     } else {
       earning = await CommissionService.markPaid(params.id)
     }

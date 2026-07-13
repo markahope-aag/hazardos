@@ -1,43 +1,25 @@
 import { redirect } from 'next/navigation'
-import { getCurrentUser } from '@/lib/auth/server-auth'
+import { getCurrentUser, getCurrentProfile } from '@/lib/auth/server-auth'
+import { ROLES } from '@/lib/auth/roles'
 import { CommissionService } from '@/lib/services/commission-service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { DollarSign, Clock, CheckCircle, Wallet } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-
-function getStatusBadge(status: string) {
-  switch (status) {
-    case 'pending':
-      return <Badge variant="secondary">Pending</Badge>
-    case 'approved':
-      return <Badge variant="default">Approved</Badge>
-    case 'paid':
-      return <Badge className="bg-green-500 text-white">Paid</Badge>
-    default:
-      return <Badge variant="outline">{status}</Badge>
-  }
-}
+import { CommissionEarningsTable } from '@/components/sales/commission-earnings-table'
 
 export default async function CommissionsPage() {
 
   const user = await getCurrentUser()
   if (!user) redirect('/login')
 
-  const [summary, earningsResult] = await Promise.all([
+  const [profile, summary, earningsResult] = await Promise.all([
+    getCurrentProfile(),
     CommissionService.getSummary(),
     CommissionService.getEarnings(),
   ])
 
   const earnings = earningsResult.earnings
+  const canManage = ROLES.TENANT_ADMIN.includes(profile?.role ?? '')
 
   return (
     <div className="space-y-6">
@@ -101,46 +83,7 @@ export default async function CommissionsPage() {
           <CardTitle>Commission Earnings</CardTitle>
         </CardHeader>
         <CardContent>
-          {earnings.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No commission earnings yet
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Sales Rep</TableHead>
-                  <TableHead>Plan</TableHead>
-                  <TableHead className="text-right">Base Amount</TableHead>
-                  <TableHead className="text-right">Rate</TableHead>
-                  <TableHead className="text-right">Commission</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {earnings.map(earning => (
-                  <TableRow key={earning.id}>
-                    <TableCell>
-                      {new Date(earning.earning_date).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>{earning.user?.full_name || 'Unknown'}</TableCell>
-                    <TableCell>{earning.plan?.name || '-'}</TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(earning.base_amount, false)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {earning.commission_rate}%
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(earning.commission_amount, false)}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(earning.status)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <CommissionEarningsTable earnings={earnings} canManage={canManage} />
         </CardContent>
       </Card>
     </div>

@@ -2,7 +2,7 @@ export type StageType = 'lead' | 'qualified' | 'proposal' | 'negotiation' | 'won
 export type OpportunityOutcome = 'won' | 'lost' | 'abandoned'
 export type CommissionType = 'percentage' | 'flat' | 'tiered'
 export type CommissionAppliesTo = 'won' | 'invoiced' | 'paid'
-export type CommissionStatus = 'pending' | 'approved' | 'paid'
+export type CommissionStatus = 'pending' | 'approved' | 'rejected' | 'paid'
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
 export type ApprovalEntityType = 'estimate' | 'discount' | 'proposal' | 'change_order' | 'expense'
 
@@ -144,6 +144,9 @@ export interface CommissionEarning {
   status: CommissionStatus
   approved_by: string | null
   approved_at: string | null
+  rejected_by: string | null
+  rejected_at: string | null
+  rejection_reason: string | null
   paid_at: string | null
   earning_date: string
   pay_period: string | null

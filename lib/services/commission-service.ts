@@ -246,6 +246,28 @@ export class CommissionService {
     return data as CommissionEarning
   }
 
+  static async rejectEarning(id: string, reason?: string): Promise<CommissionEarning> {
+    const supabase = await createClient()
+
+    const user = await getCurrentUser()
+    if (!user) throw new SecureError('UNAUTHORIZED')
+
+    const { data, error } = await supabase
+      .from('commission_earnings')
+      .update({
+        status: 'rejected',
+        rejected_by: user.id,
+        rejected_at: new Date().toISOString(),
+        rejection_reason: reason || null,
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throwDbError(error, 'reject commission earning')
+    return data as CommissionEarning
+  }
+
   static async markPaid(id: string): Promise<CommissionEarning> {
     const supabase = await createClient()
 

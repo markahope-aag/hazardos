@@ -7,6 +7,7 @@ import { CommissionService } from '@/lib/services/commission-service'
 vi.mock('@/lib/services/commission-service', () => ({
   CommissionService: {
     approveEarning: vi.fn(),
+    rejectEarning: vi.fn(),
     markPaid: vi.fn()
   }
 }))
@@ -90,6 +91,36 @@ describe('Commission ID API', () => {
       expect(data.status).toBe('approved')
       expect(data.amount).toBe(500.00)
       expect(CommissionService.approveEarning).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440001')
+    })
+
+    it('should reject a commission earning with a reason', async () => {
+      const mockEarning = {
+        id: '550e8400-e29b-41d4-a716-446655440003',
+        user_id: 'user-456',
+        status: 'rejected',
+        rejected_by: 'user-123',
+        rejection_reason: 'Deal fell through',
+      }
+
+      vi.mocked(CommissionService.rejectEarning).mockResolvedValue(mockEarning as never)
+
+      const request = new NextRequest('http://localhost:3000/api/commissions/550e8400-e29b-41d4-a716-446655440003', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reject', reason: 'Deal fell through' }),
+      })
+
+      const response = await PATCH(request, {
+        params: Promise.resolve({ id: '550e8400-e29b-41d4-a716-446655440003' }),
+      })
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.status).toBe('rejected')
+      expect(CommissionService.rejectEarning).toHaveBeenCalledWith(
+        '550e8400-e29b-41d4-a716-446655440003',
+        'Deal fell through',
+      )
     })
 
     it('should mark a commission as paid', async () => {
