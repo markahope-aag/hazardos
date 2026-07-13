@@ -174,8 +174,12 @@ export async function sendReminderRow(rowId: string): Promise<ReminderSendResult
     return { sent: false, skipped: 'unknown_template' }
   }
 
-  // Resolve the customer attached to the underlying job so we can check
-  // their explicit opt-in for this channel.
+  // Resolve the customer attached to the underlying entity so we can check
+  // their explicit opt-in for this channel. Invoice-related rows (payment
+  // reminders) were previously skipped here entirely — customerId stayed
+  // null, which meant SmsService.send()'s sms_opt_in check (gated on
+  // customer_id being present) never ran, so a payment reminder could go
+  // out over SMS to a customer who had explicitly NOT opted in.
   let customerId: string | null = null
   if (reminderRow.related_type === 'job') {
     const { data: job } = await supabase
@@ -184,6 +188,13 @@ export async function sendReminderRow(rowId: string): Promise<ReminderSendResult
       .eq('id', reminderRow.related_id)
       .single()
     customerId = job?.customer_id ?? null
+  } else if (reminderRow.related_type === 'invoice') {
+    const { data: invoice } = await supabase
+      .from('invoices')
+      .select('customer_id')
+      .eq('id', reminderRow.related_id)
+      .single()
+    customerId = invoice?.customer_id ?? null
   }
 
   interface CustomerSubset {
@@ -256,9 +267,9 @@ export async function sendReminderRow(rowId: string): Promise<ReminderSendResult
         await SmsService.send(reminderRow.organization_id, {
           to,
           body: content.sms,
-          message_type: 'appointment_reminder',
+          message_type: reminderRow.related_type === 'invoice' ? 'payment_reminder' : 'appointment_reminder',
           customer_id: customerId || undefined,
-          related_entity_type: 'job',
+          related_entity_type: reminderRow.related_type || 'job',
           related_entity_id: reminderRow.related_id,
         })
       } catch (e) {

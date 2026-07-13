@@ -121,7 +121,12 @@ export class InvoiceDeliveryService {
   ): Promise<void> {
     if (!invoice.due_date) return
     const customer = invoice.customer
-    if (!customer?.phone) return
+    // sms_opt_in gate belongs here too, not just at send time — otherwise a
+    // customer who never opted in still gets scheduled_reminders rows
+    // created for them, relying entirely on the send-time check (which
+    // itself was broken until this fix — see reminder-sender.ts) to stop
+    // the text from actually going out.
+    if (!customer?.phone || !customer?.sms_opt_in) return
 
     const supabase = await createClient()
 

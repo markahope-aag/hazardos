@@ -36,6 +36,7 @@ type TableName =
   | 'organizations'
   | 'jobs'
   | 'customers'
+  | 'invoices'
 
 // Builder for the Supabase fluent API. Each test seeds the tables it cares
 // about; everything else returns null.
@@ -281,5 +282,95 @@ describe('sendReminderRow', () => {
     expect(result.sent).toBe(false)
     expect(result.skipped).toBe('unknown_template')
     expect(emailSendMock).not.toHaveBeenCalled()
+  })
+
+  it('resolves customer_id from invoices for payment reminders so SmsService can enforce opt-in (I10)', async () => {
+    // Previously customerId stayed null for related_type === 'invoice', so
+    // SmsService.send()'s sms_opt_in check — gated on customer_id being
+    // present — silently never ran for payment reminders.
+    const supabase = makeSupabase({
+      scheduled_reminders: {
+        id: 'r6',
+        organization_id: 'org1',
+        related_type: 'invoice',
+        related_id: 'inv1',
+        channel: 'sms',
+        template_slug: 'payment_reminder_due',
+        recipient_email: null,
+        recipient_phone: '+15555559999',
+        status: 'pending',
+        template_variables: {
+          invoice_number: 'INV-1001',
+          amount: '$500.00',
+          due_date: '2026-07-15',
+          pay_url: 'https://app.test/pay/inv1',
+        },
+      },
+      organizations: { name: 'Acme', email: 'h@h.test' },
+      invoices: { customer_id: 'c9' },
+      customers: {
+        email: null,
+        phone: '+15555559999',
+        opted_into_email: true,
+        sms_opt_in: true,
+      },
+    })
+    vi.mocked(createClient).mockResolvedValue(supabase as unknown as never)
+    smsSendMock.mockResolvedValue({ id: 'sms2' })
+
+    const result = await sendReminderRow('r6')
+    expect(result).toEqual({ sent: true })
+
+    expect(smsSendMock).toHaveBeenCalledTimes(1)
+    const input = smsSendMock.mock.calls[0][1]
+    expect(input.customer_id).toBe('c9')
+    expect(input.message_type).toBe('payment_reminder')
+    expect(input.related_entity_type).toBe('invoice')
+    expect(input.body).toContain('INV-1001')
+  })
+
+  it('cancels a payment reminder when the resolved customer has not opted into SMS (I10)', async () => {
+    const supabase = makeSupabase({
+      scheduled_reminders: {
+        id: 'r7',
+        organization_id: 'org1',
+        related_type: 'invoice',
+        related_id: 'inv2',
+        channel: 'sms',
+        template_slug: 'payment_reminder_overdue',
+        recipient_email: null,
+        recipient_phone: '+15555550000',
+        status: 'pending',
+        template_variables: {
+          invoice_number: 'INV-2002',
+          amount: '$250.00',
+          due_date: '2026-07-01',
+          pay_url: 'https://app.test/pay/inv2',
+        },
+      },
+      organizations: { name: 'Acme', email: 'h@h.test' },
+      invoices: { customer_id: 'c10' },
+      customers: {
+        email: null,
+        phone: '+15555550000',
+        opted_into_email: true,
+        sms_opt_in: false,
+      },
+    })
+    vi.mocked(createClient).mockResolvedValue(supabase as unknown as never)
+    smsSendMock.mockRejectedValue(new Error('Customer has not opted in to SMS'))
+
+    const result = await sendReminderRow('r7')
+
+    expect(result.sent).toBe(false)
+    expect(result.skipped).toBe('opted_out')
+    // Proves customer_id was actually passed through — SmsService only
+    // enforces opt-in when it receives one.
+    const input = smsSendMock.mock.calls[0][1]
+    expect(input.customer_id).toBe('c10')
+    const cancelUpdate = (supabase.__updates as Record<string, unknown>[]).find(
+      (u) => u.table === 'scheduled_reminders' && u.status === 'cancelled',
+    )
+    expect(cancelUpdate).toBeTruthy()
   })
 })
