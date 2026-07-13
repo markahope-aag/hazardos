@@ -39,6 +39,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid US phone number' }, { status: 400 });
     }
 
+    // Capture the originating IP for the TCPA consent audit trail (SMS3).
+    // x-forwarded-for is a comma-separated list on proxied requests; the
+    // client is the first entry.
+    const forwarded = request.headers.get('x-forwarded-for');
+    const consentIp = forwarded
+      ? forwarded.split(',')[0].trim()
+      : request.headers.get('x-real-ip') || null;
+
     const supabase = await createClient();
 
     // Find customers matching this phone number (across all orgs)
@@ -60,6 +68,7 @@ export async function POST(request: NextRequest) {
           .update({
             sms_opt_in: true,
             sms_opt_in_at: new Date().toISOString(),
+            sms_opt_in_ip: consentIp,
             sms_opt_out_at: null,
           })
           .eq('id', customer.id);

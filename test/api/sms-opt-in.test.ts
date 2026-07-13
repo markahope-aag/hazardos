@@ -157,14 +157,47 @@ describe('SMS Opt-in API', () => {
     expect(json.success).toBe(true)
     expect(json.message).toBe('SMS consent recorded. You will receive text messages at the number provided.')
     
-    // Verify both customers were updated
+    // Verify both customers were updated. No proxy header on this request,
+    // so the consent IP is null.
     expect(mockUpdate).toHaveBeenCalledWith({
       sms_opt_in: true,
       sms_opt_in_at: expect.any(String),
+      sms_opt_in_ip: null,
       sms_opt_out_at: null,
     })
     expect(mockEq).toHaveBeenCalledWith('id', 'customer-1')
     expect(mockEq).toHaveBeenCalledWith('id', 'customer-2')
+  })
+
+  it('records the consent IP from x-forwarded-for for compliance (SMS3)', async () => {
+    const mockUpdate = vi.fn().mockReturnThis()
+    const mockEq = vi.fn().mockResolvedValue({ data: null, error: null })
+
+    mockSupabaseClient.from.mockImplementation((table) => {
+      if (table === 'customers') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          or: vi.fn().mockResolvedValue({ data: [{ id: 'customer-1', phone: '+15551234567' }], error: null }),
+          update: mockUpdate,
+          eq: mockEq,
+        }
+      }
+      return mockSupabaseClient.from(table)
+    })
+
+    const request = new NextRequest('http://localhost/api/sms/opt-in', {
+      method: 'POST',
+      headers: { 'x-forwarded-for': '203.0.113.7, 10.0.0.1' },
+      body: JSON.stringify({ phone: '555-123-4567' }),
+    })
+
+    const response = await POST(request)
+    expect(response.status).toBe(200)
+
+    // The client IP is the first entry in the x-forwarded-for chain.
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ sms_opt_in: true, sms_opt_in_ip: '203.0.113.7' }),
+    )
   })
 
   it('should handle no matching customers gracefully', async () => {
