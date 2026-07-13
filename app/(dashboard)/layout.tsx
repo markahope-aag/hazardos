@@ -38,6 +38,11 @@ const MAIN_NAV_ITEMS: MainNavItem[] = [
   // PA8-10) — this surfaces them.
   { href: '/sales', label: 'Sales', icon: TrendingUp, match: (p) => p.startsWith('/sales') },
   { href: '/calendar', label: 'Calendar', icon: Calendar, match: (p) => p.startsWith('/calendar') },
+  // Feedback hub: survey responses, NPS/satisfaction scores, and the
+  // testimonial approval queue. The public survey + all the backing APIs
+  // existed, but there was no office-facing page to read results or manage
+  // testimonials (FB7, FB9) — this surfaces them.
+  { href: '/feedback', label: 'Feedback', icon: MessageCircle, match: (p) => p.startsWith('/feedback') },
 ]
 
 function InlineLogin() {
