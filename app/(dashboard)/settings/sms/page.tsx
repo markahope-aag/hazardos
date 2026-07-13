@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, MessageSquare, Clock, Bell, Shield, Phone, Save, AlertTriangle } from 'lucide-react';
+import { Loader2, MessageSquare, Clock, Bell, Shield, Phone, Save, AlertTriangle, Send, CheckCircle2 } from 'lucide-react';
 import { TimeSelect } from '@/components/ui/time-select';
 import { logger, formatError } from '@/lib/utils/logger';
 import type { OrganizationSmsSettings } from '@/types/sms';
@@ -51,6 +51,13 @@ export default function SmsSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // "Send test SMS" (SMS10) — verify Twilio wiring to the admin's own phone
+  const [testPhone, setTestPhone] = useState('');
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<
+    { type: 'success' | 'error'; message: string } | null
+  >(null);
 
   useEffect(() => {
     fetchSettings();
@@ -106,6 +113,36 @@ export default function SmsSettingsPage() {
     value: OrganizationSmsSettings[K]
   ) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSendTest = async () => {
+    setTesting(true);
+    setTestResult(null);
+
+    try {
+      const response = await fetch('/api/sms/test-send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: testPhone }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send test message');
+      }
+
+      setTestResult({
+        type: 'success',
+        message: `Test message sent to ${testPhone}. Check the phone — it should arrive shortly.`,
+      });
+    } catch (err) {
+      setTestResult({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to send test message',
+      });
+    } finally {
+      setTesting(false);
+    }
   };
 
   if (loading) {
@@ -447,6 +484,64 @@ export default function SmsSettingsPage() {
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Send Test SMS */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Send className="h-5 w-5 text-teal-500" />
+            <div>
+              <CardTitle>Send Test Message</CardTitle>
+              <CardDescription>
+                Send a one-off SMS to your own phone to confirm your Twilio setup works.
+                This ignores the enable toggle and quiet hours, and sends a real message.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+            <div className="flex-1">
+              <Label>Your phone number</Label>
+              <Input
+                type="tel"
+                placeholder="+15551234567"
+                value={testPhone}
+                onChange={(e) => setTestPhone(e.target.value)}
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleSendTest}
+              disabled={testing || testPhone.replace(/\D/g, '').length < 10}
+            >
+              {testing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
+              Send Test
+            </Button>
+          </div>
+
+          {testResult && (
+            <div
+              className={
+                testResult.type === 'success'
+                  ? 'bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md flex items-center gap-2 text-sm'
+                  : 'bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-center gap-2 text-sm'
+              }
+            >
+              {testResult.type === 'success' ? (
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+              ) : (
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+              )}
+              {testResult.message}
+            </div>
+          )}
         </CardContent>
       </Card>
 

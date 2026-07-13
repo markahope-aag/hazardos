@@ -268,6 +268,79 @@ describe('SmsService', () => {
     })
   })
 
+  describe('sendTest', () => {
+    // sms_enabled is deliberately false: a test send must work *before* the
+    // org turns SMS on, so it has to bypass the enable gate.
+    const disabledSettings = {
+      organization_id: 'org-123',
+      sms_enabled: false,
+      use_platform_twilio: true,
+      quiet_hours_enabled: true,
+      quiet_hours_start: '00:00',
+      quiet_hours_end: '23:59',
+      timezone: 'America/New_York',
+      twilio_account_sid: null,
+      twilio_auth_token: null,
+      twilio_phone_number: null,
+      sms_brand_prefix: null,
+    }
+
+    const withSettings = (settings: unknown) => {
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'organization_sms_settings') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: settings, error: null }),
+          }
+        }
+        if (table === 'sms_messages') {
+          return {
+            insert: vi.fn().mockReturnThis(),
+            update: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            select: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({
+              data: { id: 'msg-1', organization_id: 'org-123', status: 'queued' },
+              error: null,
+            }),
+          }
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+        }
+      })
+    }
+
+    it('sends even when SMS is disabled and quiet hours are active', async () => {
+      withSettings(disabledSettings)
+      mockTwilioClient.messages.create.mockResolvedValue({ sid: 'tw-test-1', numSegments: '1' })
+
+      const result = await SmsService.sendTest('org-123', '555-123-4567')
+
+      expect(mockTwilioClient.messages.create).toHaveBeenCalledWith(
+        expect.objectContaining({ to: '+15551234567' }),
+      )
+      expect(result).toBeTruthy()
+    })
+
+    it('throws when SMS settings are not configured', async () => {
+      withSettings(null)
+
+      await expect(SmsService.sendTest('org-123', '555-123-4567')).rejects.toThrow(
+        'SMS settings are not configured',
+      )
+    })
+
+    it('throws for an invalid phone number', async () => {
+      withSettings(disabledSettings)
+
+      await expect(SmsService.sendTest('org-123', 'nope')).rejects.toThrow('Invalid phone number')
+    })
+  })
+
   describe('sendTemplated', () => {
     const mockSettings = {
       organization_id: 'org-123',

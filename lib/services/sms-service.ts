@@ -83,6 +83,62 @@ export class SmsService {
       }
     }
 
+    return this.deliver(supabase, organizationId, settings, {
+      to: normalizedPhone,
+      body: input.body,
+      message_type: input.message_type,
+      customer_id: input.customer_id,
+      related_entity_type: input.related_entity_type,
+      related_entity_id: input.related_entity_id,
+    });
+  }
+
+  /**
+   * Send a one-off test message to verify Twilio wiring (SMS10). Unlike
+   * `send`, this deliberately bypasses the sms_enabled toggle and quiet
+   * hours — an admin runs it explicitly, to their own number, to confirm
+   * credentials work *before* turning SMS on for real. It still requires
+   * configured Twilio credentials (that's the thing under test) and still
+   * applies the brand prefix so the admin sees exactly what customers will.
+   */
+  static async sendTest(organizationId: string, toPhone: string): Promise<SmsMessage> {
+    const supabase = await createClient();
+    const settings = await this.getSettings(organizationId);
+
+    if (!settings) {
+      throw new SecureError('BAD_REQUEST', 'SMS settings are not configured for this organization.');
+    }
+
+    const normalizedPhone = this.normalizePhone(toPhone);
+    if (!normalizedPhone) {
+      throw new SecureError('VALIDATION_ERROR', 'Invalid phone number', 'to');
+    }
+
+    return this.deliver(supabase, organizationId, settings, {
+      to: normalizedPhone,
+      body: 'This is a test message confirming your SMS setup is working. Reply STOP to opt out.',
+      message_type: 'general',
+    });
+  }
+
+  /**
+   * Core dispatch: record the message, hand it to Twilio, and reconcile the
+   * record with the result. Callers own the policy gates (opt-in, quiet
+   * hours, enabled) before reaching here.
+   */
+  private static async deliver(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    organizationId: string,
+    settings: OrganizationSmsSettings,
+    params: {
+      to: string;
+      body: string;
+      message_type: SmsMessageType;
+      customer_id?: string;
+      related_entity_type?: string;
+      related_entity_id?: string;
+    }
+  ): Promise<SmsMessage> {
     // Get Twilio client and phone number
     const { client, fromNumber } = this.getTwilioClient(settings);
 
@@ -90,7 +146,7 @@ export class SmsService {
       throw new SecureError('BAD_REQUEST', 'Twilio credentials not configured. Please add your Twilio Account SID, Auth Token, and Phone Number in Settings → SMS.');
     }
 
-    const finalBody = this.applyBrandPrefix(input.body, settings.sms_brand_prefix);
+    const finalBody = this.applyBrandPrefix(params.body, settings.sms_brand_prefix);
 
     // Create message record. Persist the final (prefixed) body so the
     // in-app conversation thread shows exactly what the customer saw.
@@ -98,12 +154,12 @@ export class SmsService {
       .from('sms_messages')
       .insert({
         organization_id: organizationId,
-        customer_id: input.customer_id,
-        to_phone: normalizedPhone,
-        message_type: input.message_type,
+        customer_id: params.customer_id,
+        to_phone: params.to,
+        message_type: params.message_type,
         body: finalBody,
-        related_entity_type: input.related_entity_type,
-        related_entity_id: input.related_entity_id,
+        related_entity_type: params.related_entity_type,
+        related_entity_id: params.related_entity_id,
         status: 'queued',
       })
       .select()
@@ -116,7 +172,7 @@ export class SmsService {
       const twilioMessage = await client.messages.create({
         body: finalBody,
         from: fromNumber,
-        to: normalizedPhone,
+        to: params.to,
         statusCallback: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/twilio/status`,
       });
 

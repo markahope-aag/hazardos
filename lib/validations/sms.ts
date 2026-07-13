@@ -54,6 +54,11 @@ export const sendSmsSchema = z.object({
   related_entity_id: z.string().uuid().optional(),
 })
 
+// Send a test SMS (SMS10) — admin verifies Twilio wiring to their own phone
+export const sendTestSmsSchema = z.object({
+  to: z.string().min(10, 'Valid phone number required').max(20),
+})
+
 // SMS settings
 export const updateSmsSettingsSchema = z.object({
   sms_enabled: z.boolean().optional(),
@@ -77,4 +82,5 @@ export const updateSmsSettingsSchema = z.object({
 export type CreateSmsTemplateInput = z.infer<typeof createSmsTemplateSchema>
 export type UpdateSmsTemplateInput = z.infer<typeof updateSmsTemplateSchema>
 export type SendSmsInput = z.infer<typeof sendSmsSchema>
+export type SendTestSmsInput = z.infer<typeof sendTestSmsSchema>
 export type UpdateSmsSettingsInput = z.infer<typeof updateSmsSettingsSchema>
