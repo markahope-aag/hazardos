@@ -121,7 +121,7 @@ export class CommissionService {
       .from('commission_earnings')
       .select(`
         *,
-        user:profiles(id, full_name),
+        user:profiles!commission_earnings_user_id_fkey(id, full_name),
         plan:commission_plans(*)
       `, { count: 'exact' })
       .order('earning_date', { ascending: false })

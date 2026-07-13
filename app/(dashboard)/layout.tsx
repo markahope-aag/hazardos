@@ -8,7 +8,7 @@ import { AuthProvider, useMultiTenantAuth } from '@/components/providers/auth-pr
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Home, FileText, Calculator, Calendar, DollarSign, LayoutGrid, Briefcase, MessageCircle, ClipboardList, FlaskConical, ShieldCheck, Settings, Menu, type LucideIcon } from 'lucide-react'
+import { Home, FileText, Calculator, Calendar, DollarSign, LayoutGrid, Briefcase, MessageCircle, ClipboardList, FlaskConical, ShieldCheck, Settings, Menu, TrendingUp, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import LoginForm from '@/components/auth/login-form'
@@ -32,6 +32,11 @@ const MAIN_NAV_ITEMS: MainNavItem[] = [
   { href: '/work-orders', label: 'Work Orders', icon: ClipboardList, match: (p) => p.startsWith('/work-orders') },
   { href: '/compliance', label: 'Compliance', icon: ShieldCheck, match: (p) => p.startsWith('/compliance') },
   { href: '/invoices', label: 'Invoices', icon: DollarSign, match: (p) => p.startsWith('/invoices') },
+  // Sales hub: pipeline, commissions, win/loss analytics, and the approval
+  // queue. The pages already existed but had no nav entry, so commissions
+  // and the sales analytics read as "unavailable / 404" in QA (CO1-6,
+  // PA8-10) — this surfaces them.
+  { href: '/sales', label: 'Sales', icon: TrendingUp, match: (p) => p.startsWith('/sales') },
   { href: '/calendar', label: 'Calendar', icon: Calendar, match: (p) => p.startsWith('/calendar') },
 ]
 
