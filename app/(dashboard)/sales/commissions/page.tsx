@@ -3,7 +3,8 @@ import { getCurrentUser, getCurrentProfile } from '@/lib/auth/server-auth'
 import { ROLES } from '@/lib/auth/roles'
 import { CommissionService } from '@/lib/services/commission-service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { DollarSign, Clock, CheckCircle, Wallet } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { DollarSign, Clock, CheckCircle, Wallet, Download } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { CommissionEarningsTable } from '@/components/sales/commission-earnings-table'
 
@@ -23,11 +24,24 @@ export default async function CommissionsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Commission Tracking</h1>
-        <p className="text-muted-foreground">
-          Track and manage sales commissions
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Commission Tracking</h1>
+          <p className="text-muted-foreground">
+            Track and manage sales commissions
+          </p>
+        </div>
+        {canManage && (
+          <Button asChild variant="outline">
+            {/* Plain download link — this targets an API route that streams a
+                CSV attachment, not a page, so next/link doesn't apply. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a href="/api/commissions/export?status=approved">
+              <Download className="h-4 w-4 mr-2" />
+              Export Approved
+            </a>
+          </Button>
+        )}
       </div>
 
       {/* Summary Cards */}
