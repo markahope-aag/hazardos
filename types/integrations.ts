@@ -279,6 +279,8 @@ export interface LeadWebhookLog {
 export type ApiKeyScope =
   | 'customers:read'
   | 'customers:write'
+  | 'companies:read'
+  | 'companies:write'
   | 'jobs:read'
   | 'jobs:write'
   | 'invoices:read'

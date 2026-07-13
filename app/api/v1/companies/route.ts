@@ -1,78 +1,125 @@
-import { NextResponse } from 'next/server'
-import { z } from 'zod'
-import { createApiHandler } from '@/lib/utils/api-handler'
-import { throwDbError } from '@/lib/utils/secure-error-handler'
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { withApiKeyAuth, ApiKeyAuthContext } from '@/lib/middleware/api-key-auth'
 import { sanitizeSearchQuery } from '@/lib/utils/sanitize'
+import { ApiKeyService } from '@/lib/services/api-key-service'
+import { handlePreflight } from '@/lib/middleware/cors'
+import { v1CompanyListQuerySchema, v1CreateCompanySchema, formatZodError } from '@/lib/validations/v1-api'
+import { createRequestLogger, formatError } from '@/lib/utils/logger'
 
-const companyQuerySchema = z.object({
-  limit: z.coerce.number().min(1).max(100).optional().default(50),
-  offset: z.coerce.number().min(0).optional().default(0),
-  status: z.enum(['active', 'inactive']).optional(),
-  search: z.string().optional(),
-})
+async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
+  if (!ApiKeyService.hasScope(context.apiKey, 'companies:read')) {
+    return NextResponse.json(
+      { error: 'Missing required scope: companies:read' },
+      { status: 403 }
+    )
+  }
 
-const createCompanySchema = z.object({
-  name: z.string().min(1, 'Company name is required'),
-  website: z.string().url().optional().nullable(),
-  industry: z.string().optional().nullable(),
-  phone: z.string().optional().nullable(),
-  email: z.string().email().optional().nullable(),
-  address_line1: z.string().optional().nullable(),
-  address_line2: z.string().optional().nullable(),
-  city: z.string().optional().nullable(),
-  state: z.string().optional().nullable(),
-  zip: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  status: z.enum(['active', 'inactive']).optional().default('active'),
-})
+  const supabase = await createClient()
+  const searchParams = request.nextUrl.searchParams
 
-export const GET = createApiHandler(
-  { querySchema: companyQuerySchema },
-  async (request, context, _body, query) => {
-    let dbQuery = context.supabase
-      .from('companies')
-      .select('*', { count: 'exact' })
-      .eq('organization_id', context.profile.organization_id)
-      .order('name', { ascending: true })
-      .range(query.offset, query.offset + query.limit - 1)
+  const queryResult = v1CompanyListQuerySchema.safeParse({
+    limit: searchParams.get('limit') || undefined,
+    offset: searchParams.get('offset') || undefined,
+    status: searchParams.get('status') || undefined,
+    search: searchParams.get('search') || undefined,
+  })
 
-    if (query.status) {
-      dbQuery = dbQuery.eq('status', query.status)
-    }
+  if (!queryResult.success) {
+    return NextResponse.json(
+      { error: 'Invalid query parameters', details: formatZodError(queryResult.error) },
+      { status: 400 }
+    )
+  }
 
-    if (query.search) {
-      const safe = sanitizeSearchQuery(query.search)
-      dbQuery = dbQuery.or(`name.ilike.%${safe}%,email.ilike.%${safe}%,industry.ilike.%${safe}%`)
-    }
+  const { limit = 50, offset = 0, status, search } = queryResult.data
 
-    const { data, error, count } = await dbQuery
+  let query = supabase
+    .from('companies')
+    .select('*', { count: 'exact' })
+    .eq('organization_id', context.organizationId)
+    .order('name', { ascending: true })
+    .range(offset, offset + limit - 1)
 
-    if (error) throwDbError(error, 'fetch companies')
+  if (status) {
+    query = query.eq('status', status)
+  }
 
-    return NextResponse.json({
-      companies: data,
+  if (search) {
+    const safe = sanitizeSearchQuery(search)
+    query = query.or(`name.ilike.%${safe}%,email.ilike.%${safe}%,industry.ilike.%${safe}%`)
+  }
+
+  const { data, count, error } = await query
+
+  if (error) {
+    return NextResponse.json({ error: 'Failed to fetch companies' }, { status: 500 })
+  }
+
+  return NextResponse.json({
+    data,
+    pagination: {
       total: count,
-      limit: query.limit,
-      offset: query.offset,
+      limit,
+      offset,
+      has_more: (count || 0) > offset + limit,
+    },
+  })
+}
+
+async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
+  if (!ApiKeyService.hasScope(context.apiKey, 'companies:write')) {
+    return NextResponse.json(
+      { error: 'Missing required scope: companies:write' },
+      { status: 403 }
+    )
+  }
+
+  const supabase = await createClient()
+
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const validationResult = v1CreateCompanySchema.safeParse(body)
+
+  if (!validationResult.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: formatZodError(validationResult.error) },
+      { status: 400 }
+    )
+  }
+
+  const { data, error } = await supabase
+    .from('companies')
+    .insert({
+      organization_id: context.organizationId,
+      status: 'active',
+      ...validationResult.data,
     })
+    .select()
+    .single()
+
+  if (error) {
+    const log = createRequestLogger({
+      requestId: crypto.randomUUID(),
+      method: 'POST',
+      path: '/api/v1/companies',
+      organizationId: context.apiKey.organization_id,
+    })
+    log.error(
+      { error: formatError(error, 'COMPANY_CREATE_ERROR') },
+      'Failed to create company'
+    )
+    return NextResponse.json({ error: 'Failed to create company' }, { status: 500 })
   }
-)
 
-export const POST = createApiHandler(
-  { bodySchema: createCompanySchema },
-  async (_request, context, body) => {
-    const { data, error } = await context.supabase
-      .from('companies')
-      .insert({
-        ...body,
-        organization_id: context.profile.organization_id,
-        created_by: context.user.id,
-      })
-      .select()
-      .single()
+  return NextResponse.json({ data }, { status: 201 })
+}
 
-    if (error) throwDbError(error, 'create company')
-
-    return NextResponse.json(data, { status: 201 })
-  }
-)
+export const GET = withApiKeyAuth(handleGet)
+export const POST = withApiKeyAuth(handlePost)
+export const OPTIONS = (request: NextRequest) => handlePreflight(request, 'public-api')

@@ -301,6 +301,8 @@ export class ApiKeyService {
     return [
       { value: 'customers:read', label: 'Read Customers', description: 'View customer data' },
       { value: 'customers:write', label: 'Write Customers', description: 'Create and update customers' },
+      { value: 'companies:read', label: 'Read Companies', description: 'View company data' },
+      { value: 'companies:write', label: 'Write Companies', description: 'Create and update companies' },
       { value: 'jobs:read', label: 'Read Jobs', description: 'View job data' },
       { value: 'jobs:write', label: 'Write Jobs', description: 'Create and update jobs' },
       { value: 'invoices:read', label: 'Read Invoices', description: 'View invoice data' },

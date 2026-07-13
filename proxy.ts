@@ -46,6 +46,13 @@ const AUTH_ROUTES = ['/login', '/signup', '/forgot-password']
 //                              of /api/feedback, which is admin-only)
 //   /api/proposals/sign      — customer signs a proposal by token
 //   /api/billing/plans       — public pricing, no auth needed
+//   /api/v1/*                — the public REST API. Authenticated by a Bearer
+//                              API key (withApiKeyAuth), NOT a session cookie,
+//                              so external clients carry no sb- auth cookie.
+//                              Without this the proxy 307-redirects every API
+//                              call to /login and the whole public API is
+//                              unreachable — each v1 route does its own key
+//                              auth (401 on missing/invalid/revoked key).
 const PUBLIC_ROUTES = [
   ...AUTH_ROUTES,
   '/reset-password',
@@ -62,6 +69,7 @@ const PUBLIC_ROUTES = [
   '/api/feedback/submit',
   '/api/proposals/sign',
   '/api/billing/plans',
+  '/api/v1',
 ]
 
 export async function proxy(request: NextRequest) {

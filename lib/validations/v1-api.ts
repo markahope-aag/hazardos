@@ -72,6 +72,46 @@ export const v1UpdateCustomerSchema = z.object({
   customer_type: v1CustomerTypeSchema.optional(),
 })
 
+// ========== Company Schemas ==========
+
+export const v1CompanyStatusSchema = z.enum(['active', 'inactive'])
+
+export const v1CompanyListQuerySchema = paginationSchema.extend({
+  status: v1CompanyStatusSchema.optional(),
+  search: z.string().max(100).optional(),
+})
+
+// Field set mirrors the real `companies` columns (billing_/service_ address
+// blocks — NOT the flat address_line1/city the old handler assumed, which
+// don't exist on the table).
+const v1CompanyFields = {
+  name: z.string().min(1).max(255),
+  website: z.string().url('Invalid URL').max(255).optional().nullable(),
+  industry: z.string().max(100).optional().nullable(),
+  company_type: z.string().max(50).optional().nullable(),
+  phone: z.string().max(20).optional().nullable(),
+  email: z.string().email('Invalid email format').max(255).optional().nullable(),
+  billing_address_line1: z.string().max(255).optional().nullable(),
+  billing_address_line2: z.string().max(255).optional().nullable(),
+  billing_city: z.string().max(100).optional().nullable(),
+  billing_state: z.string().max(50).optional().nullable(),
+  billing_zip: z.string().max(20).optional().nullable(),
+  service_address_line1: z.string().max(255).optional().nullable(),
+  service_address_line2: z.string().max(255).optional().nullable(),
+  service_city: z.string().max(100).optional().nullable(),
+  service_state: z.string().max(50).optional().nullable(),
+  service_zip: z.string().max(20).optional().nullable(),
+  notes: z.string().max(5000).optional().nullable(),
+  status: v1CompanyStatusSchema.optional(),
+}
+
+export const v1CreateCompanySchema = z.object(v1CompanyFields)
+
+export const v1UpdateCompanySchema = z.object({
+  ...v1CompanyFields,
+  name: z.string().min(1).max(255).optional(),
+})
+
 // ========== Job Schemas ==========
 
 export const v1JobStatusSchema = z.enum([
