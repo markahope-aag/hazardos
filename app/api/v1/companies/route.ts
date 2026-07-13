@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { withApiKeyAuth, ApiKeyAuthContext } from '@/lib/middleware/api-key-auth'
 import { sanitizeSearchQuery } from '@/lib/utils/sanitize'
 import { ApiKeyService } from '@/lib/services/api-key-service'
@@ -15,7 +15,7 @@ async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Prom
     )
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const searchParams = request.nextUrl.searchParams
 
   const queryResult = v1CompanyListQuerySchema.safeParse({
@@ -75,7 +75,7 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     )
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   let body: unknown
   try {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { withApiKeyAuth, ApiKeyAuthContext } from '@/lib/middleware/api-key-auth';
 import { ApiKeyService } from '@/lib/services/api-key-service';
 import { handlePreflight } from '@/lib/middleware/cors';
@@ -15,7 +15,7 @@ async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Prom
     );
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const searchParams = request.nextUrl.searchParams;
 
   // Validate query parameters
@@ -79,7 +79,7 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     );
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // Parse and validate request body
   let body: unknown;

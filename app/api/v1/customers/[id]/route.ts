@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { withApiKeyAuth, ApiKeyAuthContext } from '@/lib/middleware/api-key-auth';
 import { ApiKeyService } from '@/lib/services/api-key-service';
 import { handlePreflight } from '@/lib/middleware/cors';
@@ -28,7 +28,7 @@ async function handleGet(
     );
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from('customers')
@@ -66,7 +66,7 @@ async function handlePatch(
     );
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // Parse and validate request body
   let body: unknown;
@@ -128,7 +128,7 @@ async function handleDelete(
     );
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase
     .from('customers')

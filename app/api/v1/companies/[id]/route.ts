@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { withApiKeyAuth, ApiKeyAuthContext } from '@/lib/middleware/api-key-auth'
 import { ApiKeyService } from '@/lib/services/api-key-service'
 import { handlePreflight } from '@/lib/middleware/cors'
@@ -23,7 +23,7 @@ async function handleGet(
     return NextResponse.json({ error: 'Invalid company ID format' }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data, error } = await supabase
     .from('companies')
@@ -56,7 +56,7 @@ async function handlePatch(
     return NextResponse.json({ error: 'Invalid company ID format' }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   let body: unknown
   try {
@@ -112,7 +112,7 @@ async function handleDelete(
     return NextResponse.json({ error: 'Invalid company ID format' }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { error } = await supabase
     .from('companies')
