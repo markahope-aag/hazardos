@@ -8,6 +8,7 @@ import { JobCompletionPhotosService } from '@/lib/services/job-completion-photos
 import { JobChecklistService } from '@/lib/services/job-checklist-service'
 import { JobVarianceService } from '@/lib/services/job-variance-service'
 import { JobResourcesService } from '@/lib/services/job-resources-service'
+import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import type { JobEquipment } from '@/types/jobs'
 import type {
   JobTimeEntry,
@@ -43,6 +44,9 @@ import type {
  *  - JobChecklistService        (job-checklist-service.ts)
  *  - JobVarianceService         (job-variance-service.ts)
  */
+
+const log = createServiceLogger('JobCompletionService')
+
 export class JobCompletionService {
   // ========== TIME ENTRIES (delegates to JobTimeEntriesService) ==========
 
@@ -322,6 +326,28 @@ export class JobCompletionService {
         actual_end_date: new Date().toISOString().split('T')[0],
       })
       .eq('id', jobId)
+
+    // Auto-generate the draft invoice from the job's actuals (time,
+    // materials, change orders) now that it's approved — this is the I3
+    // automation; office staff still review/send it, but no longer have to
+    // remember to click "Create Invoice" manually. Best-effort: a failure
+    // here shouldn't block the approval, and a guard against an existing
+    // invoice keeps a second approve() call (or a rejected-then-resubmitted-
+    // then-reapproved job) from creating a duplicate.
+    try {
+      const { data: existingInvoice } = await supabase
+        .from('invoices')
+        .select('id')
+        .eq('job_id', jobId)
+        .maybeSingle()
+
+      if (!existingInvoice) {
+        const { InvoicesService } = await import('@/lib/services/invoices-service')
+        await InvoicesService.createFromJob({ job_id: jobId })
+      }
+    } catch (err) {
+      log.error({ err: formatError(err), jobId }, 'Failed to auto-create invoice on completion approval')
+    }
 
     await Activity.statusChanged('job_completion', data.id, undefined, 'submitted', 'approved')
 

@@ -16,6 +16,11 @@ vi.mock('@/lib/services/activity-service', () => ({
   },
 }))
 
+const createFromJobMock = vi.hoisted(() => vi.fn().mockResolvedValue({ id: 'inv-1' }))
+vi.mock('@/lib/services/invoices-service', () => ({
+  InvoicesService: { createFromJob: createFromJobMock },
+}))
+
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from '@/lib/services/activity-service'
 
@@ -763,6 +768,97 @@ describe('JobCompletionService', () => {
 
         expect(completion.status).toBe('approved')
         expect(Activity.statusChanged).toHaveBeenCalled()
+      })
+
+      it('auto-creates a draft invoice from the job when none exists yet', async () => {
+        mockSupabase.from = vi.fn((table: string) => {
+          if (table === 'job_completions') {
+            return {
+              update: () => ({
+                eq: () => ({
+                  select: () => ({
+                    single: () => Promise.resolve({
+                      data: { id: 'comp-1', job_id: 'job-1', status: 'approved' },
+                      error: null,
+                    }),
+                  }),
+                }),
+              }),
+            }
+          }
+          if (table === 'jobs') {
+            return { update: () => ({ eq: () => Promise.resolve({ error: null }) }) }
+          }
+          if (table === 'invoices') {
+            return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) }
+          }
+          return {}
+        })
+
+        await JobCompletionService.approveCompletion('job-1')
+
+        expect(createFromJobMock).toHaveBeenCalledWith({ job_id: 'job-1' })
+      })
+
+      it('does not create a second invoice if one already exists for the job', async () => {
+        mockSupabase.from = vi.fn((table: string) => {
+          if (table === 'job_completions') {
+            return {
+              update: () => ({
+                eq: () => ({
+                  select: () => ({
+                    single: () => Promise.resolve({
+                      data: { id: 'comp-1', job_id: 'job-1', status: 'approved' },
+                      error: null,
+                    }),
+                  }),
+                }),
+              }),
+            }
+          }
+          if (table === 'jobs') {
+            return { update: () => ({ eq: () => Promise.resolve({ error: null }) }) }
+          }
+          if (table === 'invoices') {
+            return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { id: 'inv-existing' }, error: null }) }) }) }
+          }
+          return {}
+        })
+
+        await JobCompletionService.approveCompletion('job-1')
+
+        expect(createFromJobMock).not.toHaveBeenCalled()
+      })
+
+      it('still approves the completion if auto-invoice creation fails', async () => {
+        createFromJobMock.mockRejectedValueOnce(new Error('boom'))
+        mockSupabase.from = vi.fn((table: string) => {
+          if (table === 'job_completions') {
+            return {
+              update: () => ({
+                eq: () => ({
+                  select: () => ({
+                    single: () => Promise.resolve({
+                      data: { id: 'comp-1', job_id: 'job-1', status: 'approved' },
+                      error: null,
+                    }),
+                  }),
+                }),
+              }),
+            }
+          }
+          if (table === 'jobs') {
+            return { update: () => ({ eq: () => Promise.resolve({ error: null }) }) }
+          }
+          if (table === 'invoices') {
+            return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) }
+          }
+          return {}
+        })
+
+        const completion = await JobCompletionService.approveCompletion('job-1')
+
+        expect(completion.status).toBe('approved')
       })
     })
 
