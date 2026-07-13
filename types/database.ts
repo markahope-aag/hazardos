@@ -3063,6 +3063,8 @@ export type Database = {
       }
       invoices: {
         Row: {
+          access_token: string | null
+          access_token_expires_at: string | null
           amount_paid: number | null
           balance_due: number
           created_at: string | null
@@ -3091,6 +3093,8 @@ export type Database = {
           viewed_at: string | null
         }
         Insert: {
+          access_token?: string | null
+          access_token_expires_at?: string | null
           amount_paid?: number | null
           balance_due?: number
           created_at?: string | null
@@ -3119,6 +3123,8 @@ export type Database = {
           viewed_at?: string | null
         }
         Update: {
+          access_token?: string | null
+          access_token_expires_at?: string | null
           amount_paid?: number | null
           balance_due?: number
           created_at?: string | null

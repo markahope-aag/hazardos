@@ -30,12 +30,14 @@ import {
   Loader2,
   Download,
   MessageSquare,
+  Link2,
 } from 'lucide-react'
 import { cn, formatCurrency } from '@/lib/utils'
 import type { Invoice } from '@/types/invoices'
 import { invoiceStatusConfig } from '@/types/invoices'
 import Link from 'next/link'
 import { useToast } from '@/components/ui/use-toast'
+import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 
 interface InvoiceHeaderProps {
   invoice: Invoice
@@ -44,7 +46,12 @@ interface InvoiceHeaderProps {
 export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
   const router = useRouter()
   const { toast } = useToast()
+  // POST /api/invoices/[id]/portal-link is admin-only server-side, same as
+  // Send/Record Payment — hide the option rather than surface a permission
+  // error after the fact.
+  const { canAccessTenantAdmin } = useMultiTenantAuth()
   const [loading, setLoading] = useState(false)
+  const [copyingLink, setCopyingLink] = useState(false)
   const [showVoidDialog, setShowVoidDialog] = useState(false)
 
   const isOverdue =
@@ -95,6 +102,38 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
   // (customer.sms_opt_in + a phone on file) — checked here too so the
   // option isn't offered only to fail server-side with a generic error.
   const canSendSms = Boolean(invoice.customer?.phone && invoice.customer?.sms_opt_in)
+
+  const copyCustomerLink = async () => {
+    setCopyingLink(true)
+    try {
+      const response = await fetch(`/api/invoices/${invoice.id}/portal-link`, {
+        method: 'POST',
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        const reason =
+          typeof data?.error === 'string'
+            ? data.error
+            : typeof data?.error?.message === 'string'
+              ? data.error.message
+              : null
+        throw new Error(reason || `Failed to create customer link (${response.status})`)
+      }
+
+      const { url } = await response.json()
+      await navigator.clipboard.writeText(url)
+      toast({ title: 'Link copied', description: "The customer's invoice link is on your clipboard" })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to create customer link',
+        variant: 'destructive',
+      })
+    } finally {
+      setCopyingLink(false)
+    }
+  }
 
   const voidInvoice = async () => {
     setLoading(true)
@@ -197,6 +236,12 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
                   >
                     <MessageSquare className="h-4 w-4 mr-2" />
                     Send via SMS
+                  </DropdownMenuItem>
+                )}
+                {canAccessTenantAdmin && (
+                  <DropdownMenuItem disabled={copyingLink} onClick={copyCustomerLink}>
+                    <Link2 className="h-4 w-4 mr-2" />
+                    Copy Customer Link
                   </DropdownMenuItem>
                 )}
                 {invoice.job && (

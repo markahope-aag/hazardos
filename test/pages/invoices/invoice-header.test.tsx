@@ -21,8 +21,15 @@ vi.mock('@/components/ui/use-toast', () => ({
   useToast: () => ({ toast: toastMock }),
 }))
 
+let mockAuthState = { canAccessTenantAdmin: true }
+vi.mock('@/lib/hooks/use-multi-tenant-auth', () => ({
+  useMultiTenantAuth: () => mockAuthState,
+}))
+
 const mockFetch = vi.fn()
 global.fetch = mockFetch
+
+const clipboardWriteMock = vi.fn().mockResolvedValue(undefined)
 
 const baseInvoice: Invoice = {
   id: 'inv-1',
@@ -57,6 +64,8 @@ const baseInvoice: Invoice = {
 describe('InvoiceHeader send action (I6)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockAuthState = { canAccessTenantAdmin: true }
+    clipboardWriteMock.mockResolvedValue(undefined)
   })
 
   it('surfaces the real server error instead of a generic message', async () => {
@@ -159,5 +168,76 @@ describe('InvoiceHeader Send via SMS (I7)', () => {
         expect.objectContaining({ body: JSON.stringify({ method: 'sms' }) })
       )
     })
+  })
+})
+
+describe('InvoiceHeader Copy Customer Link (I13)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockAuthState = { canAccessTenantAdmin: true }
+    clipboardWriteMock.mockResolvedValue(undefined)
+  })
+
+  // userEvent.setup() re-syncs the global `navigator` binding to jsdom's
+  // window (and attaches its own harmless clipboard stub in the process),
+  // which clobbers vi.stubGlobal('navigator', ...) if it runs first. Stub
+  // AFTER setup() in every test here, not in beforeEach.
+  it('hides Copy Customer Link for a non-admin viewer', async () => {
+    mockAuthState = { canAccessTenantAdmin: false }
+    const user = userEvent.setup()
+    vi.stubGlobal('navigator', { clipboard: { writeText: clipboardWriteMock } })
+    render(<InvoiceHeader invoice={baseInvoice} />)
+
+    await user.click(screen.getByRole('button', { name: /more invoice actions/i }))
+
+    expect(screen.queryByRole('menuitem', { name: /copy customer link/i })).not.toBeInTheDocument()
+  })
+
+  it('generates the link, copies it, and confirms via toast', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ url: 'https://app.test/portal/invoice/abc123' }),
+    })
+
+    const user = userEvent.setup()
+    vi.stubGlobal('navigator', { clipboard: { writeText: clipboardWriteMock } })
+    render(<InvoiceHeader invoice={baseInvoice} />)
+
+    await user.click(screen.getByRole('button', { name: /more invoice actions/i }))
+    await user.click(screen.getByRole('menuitem', { name: /copy customer link/i }))
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith('/api/invoices/inv-1/portal-link', { method: 'POST' })
+      expect(clipboardWriteMock).toHaveBeenCalledWith('https://app.test/portal/invoice/abc123')
+      expect(toastMock).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Link copied' })
+      )
+    })
+  })
+
+  it('surfaces the real server error instead of a generic message', async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: () => Promise.resolve({ error: 'You do not have permission to access this resource' }),
+    })
+
+    const user = userEvent.setup()
+    vi.stubGlobal('navigator', { clipboard: { writeText: clipboardWriteMock } })
+    render(<InvoiceHeader invoice={baseInvoice} />)
+
+    await user.click(screen.getByRole('button', { name: /more invoice actions/i }))
+    await user.click(screen.getByRole('menuitem', { name: /copy customer link/i }))
+
+    await waitFor(() => {
+      expect(toastMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Error',
+          description: 'You do not have permission to access this resource',
+          variant: 'destructive',
+        })
+      )
+    })
+    expect(clipboardWriteMock).not.toHaveBeenCalled()
   })
 })

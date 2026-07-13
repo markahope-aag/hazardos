@@ -38,6 +38,8 @@ export interface Invoice {
   sent_at: string | null
   sent_via: string | null
   viewed_at: string | null
+  access_token: string | null
+  access_token_expires_at: string | null
   qb_invoice_id: string | null
   qb_synced_at: string | null
   created_by: string | null
