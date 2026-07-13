@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createHash, randomBytes } from 'crypto';
 import { throwDbError } from '@/lib/utils/secure-error-handler';
 import { createServiceLogger, formatError } from '@/lib/utils/logger';
@@ -134,7 +135,11 @@ export class ApiKeyService {
   // ========== VALIDATION ==========
 
   static async validate(apiKey: string): Promise<ValidationResult> {
-    const supabase = await createClient();
+    // Runs in the unauthenticated public-API context (Bearer key, no session
+    // cookie), so it must use the service-role client — the api_keys RLS
+    // policy is scoped to authenticated org users and would hide the row,
+    // making every key read as "invalid".
+    const supabase = createAdminClient();
 
     // Check format
     if (!apiKey.startsWith('hzd_live_')) {
@@ -188,7 +193,9 @@ export class ApiKeyService {
   // ========== RATE LIMITING ==========
 
   static async checkRateLimit(keyId: string): Promise<{ allowed: boolean; remaining: number; resetAt: Date }> {
-    const client = await createClient();
+    // Service-role: same keyless context as validate() — RLS would otherwise
+    // hide the row and fail the rate-limit check closed on every request.
+    const client = createAdminClient();
     
     const { data: apiKey } = await client
       .from('api_keys')
@@ -258,7 +265,9 @@ export class ApiKeyService {
     ipAddress?: string,
     userAgent?: string
   ): Promise<void> {
-    const supabase = await createClient();
+    // Service-role: request logging also happens in the keyless public-API
+    // context, after the key has already been validated.
+    const supabase = createAdminClient();
 
     await supabase.from('api_request_log').insert({
       api_key_id: keyId,
