@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo, useCallback, memo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback, memo } from 'react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
 import {
   Table,
@@ -27,13 +27,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Search, MapPin, Users } from 'lucide-react'
+import { MoreHorizontal, Search, MapPin, Users, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, formatCurrency } from '@/lib/utils'
 import type { Job } from '@/types/jobs'
 import { jobStatusConfig } from '@/types/jobs'
 import Link from 'next/link'
 import { LocationFilter, type LocationFilterValue } from '@/components/locations/location-filter'
 import { MobileListCard } from '@/components/ui/mobile-list-card'
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 
 // Memoized table row component
 interface JobRowProps {
@@ -130,36 +131,75 @@ const JobRow = memo(function JobRow({ job, onRowClick }: JobRowProps) {
 
 interface JobsDataTableProps {
   data: Job[]
+  total: number
+  page: number
+  pageSize: number
+  filters: {
+    q: string
+    status: string
+    location: string
+  }
 }
 
-export function JobsDataTable({ data }: JobsDataTableProps) {
+// X22: the list is paginated and filtered on the server. This component is now
+// presentational — it renders the current page and drives filters/pagination
+// through the URL (searchParams), so the server re-fetches the right slice
+// instead of the client filtering the whole dataset in memory.
+export function JobsDataTable({ data, total, page, pageSize, filters }: JobsDataTableProps) {
   const router = useRouter()
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [locationFilter, setLocationFilter] = useState<LocationFilterValue>('all')
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
 
-  // Memoize filtered data
-  const filteredData = useMemo(() => {
-    return data.filter(job => {
-      const matchesSearch = search === '' ||
-        job.job_number.toLowerCase().includes(search.toLowerCase()) ||
-        job.customer?.company_name?.toLowerCase().includes(search.toLowerCase()) ||
-        job.customer?.name?.toLowerCase().includes(search.toLowerCase()) ||
-        job.job_address.toLowerCase().includes(search.toLowerCase())
+  const [search, setSearch] = useState(filters.q)
+  const debouncedSearch = useDebouncedValue(search, 300)
 
-      const matchesStatus = statusFilter === 'all' || job.status === statusFilter
+  // Build a URL with the given param changes applied on top of the current
+  // query string. Empty / "all" values are removed. Any change other than
+  // paging resets to page 1 so the user isn't stranded on a now-empty page.
+  const buildUrl = useCallback(
+    (updates: Record<string, string | null>) => {
+      const sp = new URLSearchParams(searchParams?.toString() || '')
+      for (const [key, value] of Object.entries(updates)) {
+        if (value === null || value === '' || value === 'all') {
+          sp.delete(key)
+        } else {
+          sp.set(key, value)
+        }
+      }
+      const qs = sp.toString()
+      return qs ? `${pathname}?${qs}` : pathname
+    },
+    [searchParams, pathname]
+  )
 
-      const matchesLocation =
-        locationFilter === 'all' ||
-        (locationFilter === 'unassigned' ? !job.location_id : job.location_id === locationFilter)
+  const setParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      router.push(buildUrl(updates))
+    },
+    [router, buildUrl]
+  )
 
-      return matchesSearch && matchesStatus && matchesLocation
-    })
-  }, [data, search, statusFilter, locationFilter])
+  // Push the debounced search term into the URL only when it diverges from the
+  // server-provided value. After navigation filters.q catches up, so this
+  // doesn't loop.
+  useEffect(() => {
+    if (debouncedSearch !== filters.q) {
+      setParams({ q: debouncedSearch || null, page: null })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch])
 
-  const handleRowClick = useCallback((id: string) => {
-    router.push(`/jobs/${id}`)
-  }, [router])
+  const handleRowClick = useCallback(
+    (id: string) => {
+      router.push(`/jobs/${id}`)
+    },
+    [router]
+  )
+
+  const hasPrev = page > 1
+  const hasNext = page * pageSize < total
+  const firstRow = total === 0 ? 0 : (page - 1) * pageSize + 1
+  const lastRow = Math.min(page * pageSize, total)
 
   return (
     <div className="space-y-4">
@@ -172,10 +212,13 @@ export function JobsDataTable({ data }: JobsDataTableProps) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
-            aria-label="Search jobs by name, customer, or address"
+            aria-label="Search jobs by job number, name, address, or customer"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select
+          value={filters.status}
+          onValueChange={(v) => setParams({ status: v === 'all' ? null : v, page: null })}
+        >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
@@ -190,17 +233,20 @@ export function JobsDataTable({ data }: JobsDataTableProps) {
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
-        <LocationFilter value={locationFilter} onChange={setLocationFilter} />
+        <LocationFilter
+          value={filters.location as LocationFilterValue}
+          onChange={(v) => setParams({ location: v === 'all' ? null : v, page: null })}
+        />
       </div>
 
       {/* Mobile card list (under md) */}
       <div className="md:hidden space-y-2">
-        {filteredData.length === 0 ? (
+        {data.length === 0 ? (
           <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
             No jobs found
           </div>
         ) : (
-          filteredData.map((job) => {
+          data.map((job) => {
             const cityState = [job.job_city, job.job_state].filter(Boolean).join(', ')
             const cfg = jobStatusConfig[job.status]
             return (
@@ -263,14 +309,14 @@ export function JobsDataTable({ data }: JobsDataTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredData.length === 0 ? (
+            {data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   No jobs found
                 </TableCell>
               </TableRow>
             ) : (
-              filteredData.map((job) => (
+              data.map((job) => (
                 <JobRow
                   key={job.id}
                   job={job}
@@ -282,9 +328,32 @@ export function JobsDataTable({ data }: JobsDataTableProps) {
         </Table>
       </div>
 
-      {/* Results count */}
-      <div className="text-sm text-muted-foreground">
-        Showing {filteredData.length} of {data.length} jobs
+      {/* Results count + pagination */}
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          {total === 0 ? 'No jobs' : `Showing ${firstRow}–${lastRow} of ${total} jobs`}
+        </div>
+        {(hasPrev || hasNext) && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Page {page}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setParams({ page: String(page - 1) })}
+              disabled={!hasPrev}
+            >
+              <ChevronLeft className="h-4 w-4" /> Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setParams({ page: String(page + 1) })}
+              disabled={!hasNext}
+            >
+              Next <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )
