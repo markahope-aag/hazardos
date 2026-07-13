@@ -577,7 +577,11 @@ export const NotificationHelpers = {
         message: `Customer feedback for job ${jobNumber} - ${rating}/5 stars`,
         entityType: 'feedback_survey',
         entityId: surveyId,
-        actionUrl: `/feedback/${surveyId}`,
+        // Office dashboard, NOT /feedback/${surveyId}: that path is the
+        // public, token-gated customer survey form (resolved by access_token,
+        // not survey id), so linking an admin there 404s the lookup. The
+        // office-facing responses live at /feedback.
+        actionUrl: `/feedback`,
         actionLabel: 'View Feedback',
       })
     ))
