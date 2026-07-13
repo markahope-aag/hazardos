@@ -30,6 +30,7 @@ import {
   Ban,
   Loader2,
   Download,
+  MessageSquare,
 } from 'lucide-react'
 import { cn, formatCurrency } from '@/lib/utils'
 import type { Invoice } from '@/types/invoices'
@@ -55,13 +56,13 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
 
   const displayStatus = isOverdue ? 'overdue' : invoice.status
 
-  const sendInvoice = async () => {
+  const sendInvoice = async (method: 'email' | 'sms' = 'email') => {
     setLoading(true)
     try {
       const response = await fetch(`/api/invoices/${invoice.id}/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ method: 'email' }),
+        body: JSON.stringify({ method }),
       })
 
       if (!response.ok) {
@@ -75,7 +76,10 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
         throw new Error(reason || `Failed to send invoice (${response.status})`)
       }
 
-      toast({ title: 'Invoice sent', description: 'Invoice has been sent to the customer' })
+      toast({
+        title: 'Invoice sent',
+        description: method === 'sms' ? 'Invoice has been texted to the customer' : 'Invoice has been sent to the customer',
+      })
       router.refresh()
     } catch (error) {
       toast({
@@ -87,6 +91,11 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
       setLoading(false)
     }
   }
+
+  // The SMS gate mirrors what SmsService.send() itself enforces
+  // (customer.sms_opt_in + a phone on file) — checked here too so the
+  // option isn't offered only to fail server-side with a generic error.
+  const canSendSms = Boolean(invoice.customer?.phone && invoice.customer?.sms_opt_in)
 
   const voidInvoice = async () => {
     setLoading(true)
@@ -149,7 +158,7 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
           <div className="flex gap-2">
             {invoice.status !== 'paid' && invoice.status !== 'void' && (
               <Button
-                onClick={sendInvoice}
+                onClick={() => sendInvoice('email')}
                 disabled={loading}
                 variant={invoice.status === 'draft' ? 'default' : 'outline'}
               >
@@ -186,6 +195,20 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
                     Download PDF
                   </a>
                 </DropdownMenuItem>
+                {invoice.status !== 'void' && invoice.status !== 'paid' && (
+                  <DropdownMenuItem
+                    disabled={!canSendSms || loading}
+                    onClick={() => sendInvoice('sms')}
+                    title={
+                      canSendSms
+                        ? undefined
+                        : 'Customer has not opted in to SMS or has no phone on file'
+                    }
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Send via SMS
+                  </DropdownMenuItem>
+                )}
                 {invoice.job && (
                   <DropdownMenuItem asChild>
                     <Link href={`/jobs/${invoice.job.id}`}>View Job</Link>

@@ -97,3 +97,67 @@ describe('InvoiceHeader send action (I6)', () => {
     })
   })
 })
+
+describe('InvoiceHeader Send via SMS (I7)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('disables Send via SMS when the customer has not opted in', async () => {
+    const user = userEvent.setup()
+    render(
+      <InvoiceHeader
+        invoice={{
+          ...baseInvoice,
+          customer: { ...baseInvoice.customer!, phone: '5551234567', sms_opt_in: false },
+        }}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /more invoice actions/i }))
+
+    expect(screen.getByRole('menuitem', { name: /send via sms/i })).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('disables Send via SMS when the customer has no phone on file', async () => {
+    const user = userEvent.setup()
+    render(
+      <InvoiceHeader
+        invoice={{
+          ...baseInvoice,
+          customer: { ...baseInvoice.customer!, phone: null, sms_opt_in: true },
+        }}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /more invoice actions/i }))
+
+    expect(screen.getByRole('menuitem', { name: /send via sms/i })).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('sends via SMS when the customer has opted in and has a phone', async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) })
+    const user = userEvent.setup()
+    render(
+      <InvoiceHeader
+        invoice={{
+          ...baseInvoice,
+          customer: { ...baseInvoice.customer!, phone: '5551234567', sms_opt_in: true },
+        }}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /more invoice actions/i }))
+    const smsItem = screen.getByRole('menuitem', { name: /send via sms/i })
+    expect(smsItem).not.toHaveAttribute('aria-disabled', 'true')
+
+    await user.click(smsItem)
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/invoices/inv-1/send',
+        expect.objectContaining({ body: JSON.stringify({ method: 'sms' }) })
+      )
+    })
+  })
+})

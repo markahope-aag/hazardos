@@ -15,8 +15,7 @@ export const POST = createApiHandlerWithParams(
     bodySchema: sendInvoiceSchema,
   },
   async (_request, _context, params, body) => {
-    const method = body.email ? 'email' : 'email'
-    const invoice = await InvoiceDeliveryService.send(params.id, method)
+    const invoice = await InvoiceDeliveryService.send(params.id, body.method)
     return NextResponse.json(invoice)
   }
 )

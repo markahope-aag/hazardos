@@ -55,6 +55,7 @@ export interface Invoice {
     city: string | null
     state: string | null
     zip: string | null
+    sms_opt_in?: boolean
   }
   job?: {
     id: string

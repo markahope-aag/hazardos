@@ -75,6 +75,7 @@ export const addPaymentSchema = z.object({
 
 // Send invoice
 export const sendInvoiceSchema = z.object({
+  method: z.enum(['email', 'sms']).optional().default('email'),
   email: z.string().email('Invalid email address').optional(),
   message: z.string().max(2000).optional(),
 })

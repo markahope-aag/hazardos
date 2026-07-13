@@ -84,6 +84,45 @@ describe('Invoice Send API', () => {
       expect(InvoiceDeliveryService.send).toHaveBeenCalledWith('invoice-123', 'email')
     })
 
+    it('should send invoice via sms when requested', async () => {
+      setupAuthenticatedUser()
+
+      const sentInvoice = {
+        id: 'invoice-123',
+        status: 'sent',
+        sent_via: 'sms',
+      }
+      vi.mocked(InvoiceDeliveryService.send).mockResolvedValue(sentInvoice)
+
+      const request = new NextRequest('http://localhost:3000/api/invoices/invoice-123/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ method: 'sms' }),
+      })
+
+      const response = await POST(request, { params: { id: 'invoice-123' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data).toEqual(sentInvoice)
+      expect(InvoiceDeliveryService.send).toHaveBeenCalledWith('invoice-123', 'sms')
+    })
+
+    it('should default to email when method is omitted', async () => {
+      setupAuthenticatedUser()
+      vi.mocked(InvoiceDeliveryService.send).mockResolvedValue({ id: 'invoice-123', status: 'sent' })
+
+      const request = new NextRequest('http://localhost:3000/api/invoices/invoice-123/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+
+      await POST(request, { params: { id: 'invoice-123' } })
+
+      expect(InvoiceDeliveryService.send).toHaveBeenCalledWith('invoice-123', 'email')
+    })
+
     it('should send invoice with custom message', async () => {
       setupAuthenticatedUser()
 

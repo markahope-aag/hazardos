@@ -245,7 +245,7 @@ export class InvoicesService {
       .from('invoices')
       .select(`
         *,
-        customer:customers(id, name, company_name, email, phone, address_line1, city, state, zip),
+        customer:customers(id, name, company_name, email, phone, address_line1, city, state, zip, sms_opt_in),
         job:jobs(id, job_number, job_address, job_city, job_state),
         line_items:invoice_line_items(*),
         payments:payments(*)
