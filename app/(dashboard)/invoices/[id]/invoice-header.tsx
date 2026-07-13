@@ -64,12 +64,25 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
         body: JSON.stringify({ method: 'email' }),
       })
 
-      if (!response.ok) throw new Error('Failed to send')
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        const reason =
+          typeof data?.error === 'string'
+            ? data.error
+            : typeof data?.error?.message === 'string'
+              ? data.error.message
+              : null
+        throw new Error(reason || `Failed to send invoice (${response.status})`)
+      }
 
       toast({ title: 'Invoice sent', description: 'Invoice has been sent to the customer' })
       router.refresh()
-    } catch {
-      toast({ title: 'Error', description: 'Failed to send invoice', variant: 'destructive' })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to send invoice',
+        variant: 'destructive',
+      })
     } finally {
       setLoading(false)
     }
