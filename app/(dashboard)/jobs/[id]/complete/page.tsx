@@ -43,7 +43,11 @@ export default function JobCompletionPage() {
 
   async function onSubmit() {
     const success = await handleSubmit()
-    if (success) router.push(`/jobs/${jobId}`)
+    // Land on the review page, not the job page — it already has the
+    // variance analysis (est vs actual hours/cost, overrun/under-budget
+    // flags) built in, so submitting shows that immediately instead of
+    // requiring a click-through from the job header's banner.
+    if (success) router.push(`/jobs/${jobId}/review`)
   }
 
   if (loading) {

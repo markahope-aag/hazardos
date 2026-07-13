@@ -19,6 +19,8 @@ import {
 } from 'lucide-react'
 import { CompletionReviewActions } from './review-actions'
 import { cn } from '@/lib/utils'
+import { getCurrentProfile } from '@/lib/auth/server-auth'
+import { ROLES } from '@/lib/auth/roles'
 import {
   completionStatusConfig,
 } from '@/types/job-completion'
@@ -57,6 +59,14 @@ export default async function JobReviewPage({
   if (!completion) {
     notFound()
   }
+
+  // The technician who submitted lands here too now (right after
+  // submitting, so they see the variance analysis immediately instead of
+  // just a redirect back to the job) — only office-admin roles get the
+  // approve/reject actions; everyone else sees a read-only "awaiting
+  // review" notice instead.
+  const profile = await getCurrentProfile()
+  const canReview = ROLES.TENANT_ADMIN.includes(profile?.role ?? '')
 
   // Fetch related data
   const [timeEntriesRes, materialUsageRes, photosRes, checklistRes] = await Promise.all([
@@ -424,7 +434,18 @@ export default async function JobReviewPage({
 
       {/* Review Actions */}
       {completion.status === 'submitted' && (
-        <CompletionReviewActions jobId={id} />
+        canReview ? (
+          <CompletionReviewActions jobId={id} />
+        ) : (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="py-4 flex items-center gap-3">
+              <User className="w-5 h-5 text-blue-700 flex-shrink-0" />
+              <p className="text-sm text-blue-700">
+                Submitted — awaiting office review. You&apos;ll be notified once it&apos;s approved or sent back.
+              </p>
+            </CardContent>
+          </Card>
+        )
       )}
 
       {/* Previous Review Info */}
