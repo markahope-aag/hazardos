@@ -1,6 +1,7 @@
 import twilio from 'twilio';
 import { createClient } from '@/lib/supabase/server';
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler';
+import { requiresMarketingConsent } from '@/lib/utils/sms-consent';
 import type {
   SmsMessage,
   SmsTemplate,
@@ -70,15 +71,25 @@ export class SmsService {
       throw new SecureError('VALIDATION_ERROR', 'Invalid phone number', 'to');
     }
 
-    // Check opt-in if customer provided
+    // Check consent if a customer is provided. TCPA distinguishes marketing
+    // from transactional messages: a promotional text needs the customer's
+    // express marketing consent, while service messages ride on the implied
+    // transactional consent (sms_opt_in). Check whichever the message needs.
     if (input.customer_id) {
       const { data: customer } = await supabase
         .from('customers')
-        .select('sms_opt_in')
+        .select('sms_opt_in, sms_marketing_consent')
         .eq('id', input.customer_id)
         .single();
 
-      if (!customer?.sms_opt_in) {
+      if (requiresMarketingConsent(input.message_type)) {
+        if (!customer?.sms_marketing_consent) {
+          throw new SecureError(
+            'BAD_REQUEST',
+            'Customer has not consented to marketing SMS'
+          );
+        }
+      } else if (!customer?.sms_opt_in) {
         throw new SecureError('BAD_REQUEST', 'Customer has not opted in to SMS');
       }
     }
@@ -703,10 +714,14 @@ export class SmsService {
   static async optOut(customerId: string): Promise<void> {
     const supabase = await createClient();
 
+    // A STOP/opt-out stops everything — transactional AND marketing. START
+    // later restores transactional consent; marketing requires fresh express
+    // consent, so it stays revoked until the customer explicitly re-opts in.
     await supabase
       .from('customers')
       .update({
         sms_opt_in: false,
+        sms_marketing_consent: false,
         sms_opt_out_at: new Date().toISOString(),
       })
       .eq('id', customerId);

@@ -8,6 +8,7 @@ export const smsMessageTypeSchema = z.enum([
   'payment_reminder',
   'estimate_follow_up',
   'invoice',
+  'marketing',
   'general',
 ])
 

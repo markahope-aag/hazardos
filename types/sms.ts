@@ -9,6 +9,7 @@ export type SmsMessageType =
   | 'payment_reminder'
   | 'estimate_follow_up'
   | 'invoice'
+  | 'marketing'
   | 'general';
 
 export interface OrganizationSmsSettings {

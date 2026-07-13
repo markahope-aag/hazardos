@@ -240,6 +240,42 @@ describe('SmsService', () => {
       ).rejects.toThrow('Customer has not opted in')
     })
 
+    it('should require marketing consent for marketing messages (SMS9)', async () => {
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'organization_sms_settings') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: mockSettings, error: null })
+          }
+        }
+        if (table === 'customers') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({
+              // Transactional opt-in yes, but no express marketing consent.
+              data: { sms_opt_in: true, sms_marketing_consent: false },
+              error: null
+            })
+          }
+        }
+        return {
+          insert: vi.fn().mockReturnThis(),
+          select: vi.fn().mockReturnThis()
+        }
+      })
+
+      await expect(
+        SmsService.send('org-123', {
+          to: '555-123-4567',
+          body: 'Big spring sale!',
+          message_type: 'marketing',
+          customer_id: 'cust-1'
+        })
+      ).rejects.toThrow('has not consented to marketing')
+    })
+
     it('should handle Twilio errors gracefully', async () => {
       mockTwilioClient.messages.create.mockRejectedValue({
         code: '21211',

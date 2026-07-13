@@ -21,11 +21,16 @@ export async function POST(request: NextRequest) {
     if (rateLimitResponse) return rateLimitResponse;
 
     const body = await request.json();
-    const { phone, name } = body;
+    const { phone, name, marketing } = body;
 
     if (!phone || typeof phone !== 'string') {
       return NextResponse.json({ error: 'Phone number is required' }, { status: 400 });
     }
+
+    // Marketing consent is separate, express consent (SMS9). It's only
+    // granted when the form explicitly opts in — the base opt-in covers
+    // transactional messages only.
+    const marketingConsent = marketing === true;
 
     // Normalize phone
     const digits = phone.replace(/\D/g, '');
@@ -62,14 +67,25 @@ export async function POST(request: NextRequest) {
 
     if (customers && customers.length > 0) {
       // Update existing customers with opt-in
+      const consentAt = new Date().toISOString();
       for (const customer of customers) {
         await supabase
           .from('customers')
           .update({
             sms_opt_in: true,
-            sms_opt_in_at: new Date().toISOString(),
+            sms_opt_in_at: consentAt,
             sms_opt_in_ip: consentIp,
             sms_opt_out_at: null,
+            // Only set marketing consent when explicitly granted; never
+            // downgrade an existing marketing opt-in on a transactional-only
+            // form submit.
+            ...(marketingConsent
+              ? {
+                  sms_marketing_consent: true,
+                  sms_marketing_consent_at: consentAt,
+                  sms_marketing_consent_ip: consentIp,
+                }
+              : {}),
           })
           .eq('id', customer.id);
       }

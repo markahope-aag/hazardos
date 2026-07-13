@@ -1729,6 +1729,9 @@ export type Database = {
           sms_opt_in: boolean | null
           sms_opt_in_at: string | null
           sms_opt_in_ip: string | null
+          sms_marketing_consent: boolean | null
+          sms_marketing_consent_at: string | null
+          sms_marketing_consent_ip: string | null
           sms_opt_out_at: string | null
           source: Database["public"]["Enums"]["customer_source"] | null
           state: string | null
@@ -1811,6 +1814,9 @@ export type Database = {
           sms_opt_in?: boolean | null
           sms_opt_in_at?: string | null
           sms_opt_in_ip?: string | null
+          sms_marketing_consent?: boolean | null
+          sms_marketing_consent_at?: string | null
+          sms_marketing_consent_ip?: string | null
           sms_opt_out_at?: string | null
           source?: Database["public"]["Enums"]["customer_source"] | null
           state?: string | null
@@ -1893,6 +1899,9 @@ export type Database = {
           sms_opt_in?: boolean | null
           sms_opt_in_at?: string | null
           sms_opt_in_ip?: string | null
+          sms_marketing_consent?: boolean | null
+          sms_marketing_consent_at?: string | null
+          sms_marketing_consent_ip?: string | null
           sms_opt_out_at?: string | null
           source?: Database["public"]["Enums"]["customer_source"] | null
           state?: string | null
