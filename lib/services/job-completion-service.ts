@@ -349,6 +349,17 @@ export class JobCompletionService {
       log.error({ err: formatError(err), jobId }, 'Failed to auto-create invoice on completion approval')
     }
 
+    // CO2: auto-create the sales rep's commission for this won job. Same
+    // best-effort contract as the invoice above — createEarningForJob is
+    // idempotent and returns null (rather than throwing) when there's no
+    // rep/plan/amount, so it can't block completion approval.
+    try {
+      const { CommissionService } = await import('@/lib/services/commission-service')
+      await CommissionService.createEarningForJob(jobId)
+    } catch (err) {
+      log.error({ err: formatError(err), jobId }, 'Failed to auto-create commission on completion approval')
+    }
+
     await Activity.statusChanged('job_completion', data.id, undefined, 'submitted', 'approved')
 
     return data

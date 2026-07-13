@@ -182,26 +182,7 @@ export class CommissionService {
     const plan = await this.getPlan(input.plan_id)
     if (!plan) throw new SecureError('NOT_FOUND', 'Commission plan not found')
 
-    // Calculate commission based on plan type
-    let commissionRate = 0
-    let commissionAmount = 0
-
-    if (plan.commission_type === 'percentage') {
-      commissionRate = plan.base_rate || 0
-      commissionAmount = input.base_amount * (commissionRate / 100)
-    } else if (plan.commission_type === 'flat') {
-      commissionRate = 100 // Flat rate
-      commissionAmount = plan.base_rate || 0
-    } else if (plan.commission_type === 'tiered' && plan.tiers) {
-      // Find applicable tier
-      const tier = plan.tiers.find(
-        t => input.base_amount >= t.min && (t.max === null || input.base_amount <= t.max)
-      )
-      if (tier) {
-        commissionRate = tier.rate
-        commissionAmount = input.base_amount * (tier.rate / 100)
-      }
-    }
+    const { rate: commissionRate, amount: commissionAmount } = this.calcCommission(plan, input.base_amount)
 
     const { data, error } = await supabase
       .from('commission_earnings')
@@ -222,6 +203,103 @@ export class CommissionService {
       .single()
 
     if (error) throwDbError(error, 'create commission earning')
+    return data as CommissionEarning
+  }
+
+  // Shared commission math for both manual createEarning and the
+  // auto-create-on-won-job hook, so the two never drift.
+  private static calcCommission(
+    plan: CommissionPlan,
+    baseAmount: number,
+  ): { rate: number; amount: number } {
+    if (plan.commission_type === 'percentage') {
+      const rate = plan.base_rate || 0
+      return { rate, amount: baseAmount * (rate / 100) }
+    }
+    if (plan.commission_type === 'flat') {
+      // Flat plans pay a fixed amount regardless of deal size; rate is
+      // stored as 100 only so the earnings table shows something sensible.
+      return { rate: 100, amount: plan.base_rate || 0 }
+    }
+    if (plan.commission_type === 'tiered' && plan.tiers) {
+      const tier = plan.tiers.find(
+        (t) => baseAmount >= t.min && (t.max === null || baseAmount <= t.max),
+      )
+      if (tier) return { rate: tier.rate, amount: baseAmount * (tier.rate / 100) }
+    }
+    return { rate: 0, amount: 0 }
+  }
+
+  // CO2: called when a job is marked completed. Creates a single pending
+  // commission earning for the responsible sales rep. Idempotent (guards on
+  // an existing earning for the job) and best-effort — returns null instead
+  // of throwing whenever a precondition isn't met (no rep, no plan, no
+  // amount) so it can't block job completion.
+  static async createEarningForJob(jobId: string): Promise<CommissionEarning | null> {
+    const supabase = await createClient()
+
+    const { data: existing } = await supabase
+      .from('commission_earnings')
+      .select('id')
+      .eq('job_id', jobId)
+      .maybeSingle()
+    if (existing) return null
+
+    const { data: job } = await supabase
+      .from('jobs')
+      .select('id, organization_id, opportunity_id, assigned_to, created_by, final_amount, actual_revenue, contract_amount, estimated_revenue')
+      .eq('id', jobId)
+      .single()
+    if (!job) return null
+
+    // Resolve the sales rep: prefer the opportunity owner (the person who
+    // actually sold it), then the job's assignee, then its creator.
+    let repId: string | null = job.assigned_to || job.created_by || null
+    if (job.opportunity_id) {
+      const { data: opp } = await supabase
+        .from('opportunities')
+        .select('owner_id')
+        .eq('id', job.opportunity_id)
+        .single()
+      if (opp?.owner_id) repId = opp.owner_id
+    }
+    if (!repId) return null
+
+    const { data: rep } = await supabase
+      .from('profiles')
+      .select('commission_plan_id')
+      .eq('id', repId)
+      .single()
+    if (!rep?.commission_plan_id) return null
+
+    const plan = await this.getPlan(rep.commission_plan_id)
+    if (!plan || !plan.is_active) return null
+
+    const baseAmount =
+      job.final_amount ?? job.actual_revenue ?? job.contract_amount ?? job.estimated_revenue ?? 0
+    if (!baseAmount || baseAmount <= 0) return null
+
+    const { rate, amount } = this.calcCommission(plan, baseAmount)
+    if (amount <= 0) return null
+
+    const { data, error } = await supabase
+      .from('commission_earnings')
+      .insert({
+        organization_id: job.organization_id,
+        user_id: repId,
+        plan_id: plan.id,
+        opportunity_id: job.opportunity_id || null,
+        job_id: job.id,
+        base_amount: baseAmount,
+        commission_rate: rate,
+        commission_amount: amount,
+        status: 'pending',
+        earning_date: new Date().toISOString().split('T')[0],
+      })
+      .select()
+      .single()
+
+    if (error) throwDbError(error, 'create commission earning for job')
     return data as CommissionEarning
   }
 
@@ -456,7 +534,9 @@ export class CommissionService {
 
     if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
 
-    // Check if user_commission_plans table exists, if not use profile update
+    // profiles.commission_plan_id is the rep's active plan, read by the
+    // auto-create-on-won-job hook (CO2). The column was added in
+    // 20260713000004; before that this update silently no-op'd.
     const { error } = await supabase
       .from('profiles')
       .update({ commission_plan_id: planId })

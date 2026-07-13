@@ -497,6 +497,19 @@ export class JobsService {
       }
     }
 
+    // CO2: a job can also reach "completed" through this direct status
+    // path (not just the completion-review approval), so auto-create the
+    // rep's commission here too. createEarningForJob is idempotent, so if
+    // both paths run for the same job only one earning is created.
+    if (oldStatus !== 'completed' && status === 'completed') {
+      try {
+        const { CommissionService } = await import('@/lib/services/commission-service')
+        await CommissionService.createEarningForJob(id)
+      } catch (e) {
+        log.warn({ jobId: id, err: formatError(e) }, 'commission auto-create on completion failed')
+      }
+    }
+
     return updatedJob
   }
 
