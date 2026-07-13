@@ -2,7 +2,11 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth/server-auth'
 import Link from 'next/link'
 import { PipelineService } from '@/lib/services/pipeline-service'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { EstimatorAccuracyService } from '@/lib/services/estimator-accuracy-service'
+import { FeatureFlagsService } from '@/lib/services/feature-flags-service'
+import { FeatureGate } from '@/components/billing/feature-gate'
+import { EstimatorAccuracyTable } from '@/components/sales/estimator-accuracy-table'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -21,11 +25,18 @@ export default async function WinLossPage() {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
 
-  const [wonOpps, lostOpps, lossReasons] = await Promise.all([
+  const [wonOpps, lostOpps, lossReasons, advancedReporting] = await Promise.all([
     PipelineService.getWonOpportunities(),
     PipelineService.getLostOpportunities(),
     PipelineService.getLossReasonStats(),
+    FeatureFlagsService.isFeatureEnabled('advanced_reporting'),
   ])
+
+  // PA9: per-estimator accuracy is gated to Professional+ (advanced_reporting).
+  // Skip the query entirely on lower tiers — the gate shows an upsell instead.
+  const estimatorAccuracy = advancedReporting
+    ? await EstimatorAccuracyService.getEstimatorAccuracy()
+    : []
 
   const totalWon = wonOpps.reduce((sum, o) => sum + (o.estimated_value || 0), 0)
   const totalLost = lostOpps.reduce((sum, o) => sum + (o.estimated_value || 0), 0)
@@ -255,6 +266,22 @@ export default async function WinLossPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* PA9: Estimator accuracy (pattern learning) — Professional+ tier */}
+      <FeatureGate feature="advanced_reporting" enabled={advancedReporting}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Estimator Accuracy</CardTitle>
+            <CardDescription>
+              How close each estimator&apos;s quotes land to actual costs on completed
+              jobs, and the directional pattern in their estimates.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EstimatorAccuracyTable rows={estimatorAccuracy} />
+          </CardContent>
+        </Card>
+      </FeatureGate>
     </div>
   )
 }
