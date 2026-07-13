@@ -38,9 +38,17 @@ vi.mock('date-fns', () => ({
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
+// Mock auth — defaults to a permitted admin so the existing form-rendering
+// tests below don't need to know about the permission gate.
+let mockAuthState = { loading: false, canAccessTenantAdmin: true }
+vi.mock('@/lib/hooks/use-multi-tenant-auth', () => ({
+  useMultiTenantAuth: () => mockAuthState,
+}))
+
 describe('NewInvoicePage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockAuthState = { loading: false, canAccessTenantAdmin: true }
     mockFetch.mockImplementation((url: string) => {
       if (url === '/api/customers') {
         return Promise.resolve({
@@ -115,6 +123,24 @@ describe('NewInvoicePage', () => {
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith('/api/customers')
       expect(mockFetch).toHaveBeenCalledWith('/api/jobs?status=completed')
+    })
+  })
+
+  describe('permission gate (I4)', () => {
+    it('shows an access-denied message instead of the form for a non-admin', () => {
+      mockAuthState = { loading: false, canAccessTenantAdmin: false }
+      render(<NewInvoicePage />)
+
+      expect(screen.getByText(/don't have permission to create invoices/i)).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /create invoice/i })).not.toBeInTheDocument()
+    })
+
+    it('shows the form while auth is still loading, not the denial screen', () => {
+      mockAuthState = { loading: true, canAccessTenantAdmin: false }
+      render(<NewInvoicePage />)
+
+      expect(screen.queryByText(/don't have permission to create invoices/i)).not.toBeInTheDocument()
+      expect(screen.getByText('Create New Invoice')).toBeInTheDocument()
     })
   })
 })

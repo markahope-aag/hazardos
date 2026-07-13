@@ -38,6 +38,7 @@ import type { Job } from '@/types/jobs'
 import { jobStatusConfig } from '@/types/jobs'
 import Link from 'next/link'
 import { useToast } from '@/components/ui/use-toast'
+import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 
 interface JobHeaderProps {
   job: Job
@@ -46,6 +47,10 @@ interface JobHeaderProps {
 export function JobHeader({ job }: JobHeaderProps) {
   const router = useRouter()
   const { toast } = useToast()
+  // Invoice creation is admin-only server-side (POST /api/invoices/from-job
+  // requires ROLES.TENANT_ADMIN) — hide the button for everyone else so they
+  // don't fill out the whole form only to hit a permission error on submit.
+  const { canAccessTenantAdmin } = useMultiTenantAuth()
   const [loading, setLoading] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   // Confirm-before-transition dialogs — these status moves are a pain
@@ -225,7 +230,7 @@ export function JobHeader({ job }: JobHeaderProps) {
               </Link>
             </Button>
           )}
-          {job.status === 'completed' && (
+          {job.status === 'completed' && canAccessTenantAdmin && (
             <Button asChild>
               <Link href={`/invoices/new?job_id=${job.id}`}>
                 <FileText className="h-4 w-4 mr-2" />

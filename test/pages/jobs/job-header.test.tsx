@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import type { Job } from '@/types/jobs'
 import { JobHeader } from '@/app/(dashboard)/jobs/[id]/job-header'
@@ -21,6 +21,11 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/components/ui/use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
+}))
+
+let mockAuthState = { canAccessTenantAdmin: true }
+vi.mock('@/lib/hooks/use-multi-tenant-auth', () => ({
+  useMultiTenantAuth: () => mockAuthState,
 }))
 
 const baseJob: Job = {
@@ -72,6 +77,10 @@ const baseJob: Job = {
 }
 
 describe('JobHeader', () => {
+  beforeEach(() => {
+    mockAuthState = { canAccessTenantAdmin: true }
+  })
+
   it('links Complete Job to the full completion flow for an in-progress job', () => {
     render(<JobHeader job={baseJob} />)
 
@@ -103,5 +112,21 @@ describe('JobHeader', () => {
     render(<JobHeader job={baseJob} />)
 
     expect(screen.queryByText(/completion submitted/i)).not.toBeInTheDocument()
+  })
+
+  describe('Create Invoice permission gate (I4)', () => {
+    it('shows Create Invoice for a completed job when the viewer is an admin', () => {
+      mockAuthState = { canAccessTenantAdmin: true }
+      render(<JobHeader job={{ ...baseJob, status: 'completed' }} />)
+
+      expect(screen.getByRole('link', { name: /create invoice/i })).toBeInTheDocument()
+    })
+
+    it('hides Create Invoice for a completed job when the viewer is not an admin', () => {
+      mockAuthState = { canAccessTenantAdmin: false }
+      render(<JobHeader job={{ ...baseJob, status: 'completed' }} />)
+
+      expect(screen.queryByRole('link', { name: /create invoice/i })).not.toBeInTheDocument()
+    })
   })
 })

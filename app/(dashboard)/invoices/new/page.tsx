@@ -21,10 +21,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { ArrowLeft, CalendarIcon, Loader2 } from 'lucide-react'
+import { ArrowLeft, CalendarIcon, Loader2, ShieldAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 import Link from 'next/link'
+import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 
 interface Customer {
   id: string
@@ -54,6 +55,12 @@ export default function NewInvoicePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
+  // Both invoice-creation endpoints (POST /api/invoices and
+  // POST /api/invoices/from-job) are admin-only server-side — gate the page
+  // itself so a non-admin reaching this URL directly (not just via the
+  // hidden job-header button) sees why instead of a permission error after
+  // filling out the whole form.
+  const { canAccessTenantAdmin, loading: authLoading } = useMultiTenantAuth()
 
   const jobId = searchParams.get('job_id')
 
@@ -189,6 +196,33 @@ export default function NewInvoicePage() {
   }
 
   const completedJobs = jobs.filter(j => j.status === 'completed')
+
+  if (!authLoading && !canAccessTenantAdmin) {
+    return (
+      <div className="container py-6 max-w-2xl">
+        <div className="flex items-center gap-2 mb-6">
+          <Button variant="ghost" size="icon" asChild aria-label="Back to invoices">
+            <Link href="/invoices">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <h1 className="text-2xl font-bold">Create New Invoice</h1>
+        </div>
+        <Card>
+          <CardContent className="py-10 flex flex-col items-center gap-3 text-center">
+            <ShieldAlert className="h-8 w-8 text-muted-foreground" />
+            <p className="font-medium">You don&apos;t have permission to create invoices</p>
+            <p className="text-sm text-muted-foreground">
+              Invoicing is restricted to admins and owners. Ask an admin on your team to create this one.
+            </p>
+            <Button asChild variant="outline" className="mt-2">
+              <Link href="/invoices">Back to Invoices</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="container py-6 max-w-2xl">
