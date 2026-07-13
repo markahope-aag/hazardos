@@ -703,6 +703,49 @@ describe('SmsService', () => {
     })
   })
 
+  describe('getDeliveryLog', () => {
+    it('returns outbound messages enriched with customer names', async () => {
+      const failed = {
+        id: 'msg-1',
+        customer_id: 'cust-1',
+        to_phone: '+15550001111',
+        status: 'failed',
+        error_code: '30006',
+        error_message: 'Landline unreachable',
+        direction: 'outbound',
+      }
+
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'sms_messages') {
+          const builder: Record<string, unknown> = {
+            select: vi.fn(() => builder),
+            eq: vi.fn(() => builder),
+            order: vi.fn(() => builder),
+            in: vi.fn(() => builder),
+            limit: vi.fn(() => Promise.resolve({ data: [failed], error: null })),
+          }
+          return builder
+        }
+        if (table === 'customers') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            in: vi.fn().mockResolvedValue({
+              data: [{ id: 'cust-1', name: 'Jane Doe', company_name: null, first_name: null, last_name: null }],
+              error: null,
+            }),
+          }
+        }
+        return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() }
+      })
+
+      const result = await SmsService.getDeliveryLog('org-123', { status: 'problems' })
+
+      expect(result).toHaveLength(1)
+      expect(result[0].customer_name).toBe('Jane Doe')
+      expect(result[0].error_code).toBe('30006')
+    })
+  })
+
   describe('optIn', () => {
     it('should opt in customer to SMS', async () => {
       const mockUpdate = vi.fn().mockReturnThis()

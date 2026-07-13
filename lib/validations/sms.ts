@@ -55,6 +55,13 @@ export const sendSmsSchema = z.object({
   related_entity_id: z.string().uuid().optional(),
 })
 
+// Delivery log query (SMS11). 'problems' = failed + undelivered bucket.
+export const smsDeliveryLogQuerySchema = z.object({
+  status: z.union([smsStatusSchema, z.literal('problems')]).optional(),
+  message_type: smsMessageTypeSchema.optional(),
+  limit: z.string().transform(Number).optional(),
+}).passthrough()
+
 // Send a test SMS (SMS10) — admin verifies Twilio wiring to their own phone
 export const sendTestSmsSchema = z.object({
   to: z.string().min(10, 'Valid phone number required').max(20),

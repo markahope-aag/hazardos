@@ -4,6 +4,7 @@ import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler';
 import { requiresMarketingConsent } from '@/lib/utils/sms-consent';
 import type {
   SmsMessage,
+  SmsDeliveryLogEntry,
   SmsTemplate,
   SendSmsInput,
   SendTemplatedSmsInput,
@@ -585,6 +586,66 @@ export class SmsService {
     const { data, error } = await query;
     if (error) throwDbError(error, 'fetch SMS messages');
     return data || [];
+  }
+
+  /**
+   * Delivery log (SMS11): outbound message history with delivery status and
+   * carrier error reasons, enriched with customer names. Defaults to failed +
+   * undelivered so "what didn't get through?" is one filter away, but any
+   * status (or all) can be requested.
+   */
+  static async getDeliveryLog(
+    organizationId: string,
+    filters?: { status?: string; message_type?: string; limit?: number }
+  ): Promise<SmsDeliveryLogEntry[]> {
+    const supabase = await createClient();
+
+    let query = supabase
+      .from('sms_messages')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .eq('direction', 'outbound')
+      .order('queued_at', { ascending: false });
+
+    if (filters?.status) {
+      // 'problems' is a convenience bucket for the default failed+undelivered
+      // view; anything else is treated as an exact status match.
+      if (filters.status === 'problems') {
+        query = query.in('status', ['failed', 'undelivered']);
+      } else {
+        query = query.eq('status', filters.status);
+      }
+    }
+    if (filters?.message_type) query = query.eq('message_type', filters.message_type);
+    query = query.limit(filters?.limit ?? 100);
+
+    const { data, error } = await query;
+    if (error) throwDbError(error, 'fetch SMS delivery log');
+
+    const messages = (data || []) as SmsMessage[];
+
+    const customerIds = [...new Set(
+      messages.map((m) => m.customer_id).filter((id): id is string => !!id),
+    )];
+
+    const customerMap = new Map<string, string | null>();
+    if (customerIds.length > 0) {
+      const { data: customers } = await supabase
+        .from('customers')
+        .select('id, name, company_name, first_name, last_name')
+        .in('id', customerIds);
+      for (const c of customers || []) {
+        customerMap.set(
+          c.id,
+          c.name || c.company_name || [c.first_name, c.last_name].filter(Boolean).join(' ') || null,
+        );
+      }
+    }
+
+    return messages.map((m) => ({
+      ...m,
+      customer_name: m.customer_id ? customerMap.get(m.customer_id) ?? null : null,
+    }));
   }
 
   // ========== CONVERSATIONS ==========

@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { MessageCircle, Search, ArrowRight, Plus } from 'lucide-react'
+import { MessageCircle, Search, ArrowRight, Plus, ScrollText } from 'lucide-react'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import { CustomerCombobox } from '@/components/customers/customer-combobox'
 
@@ -71,10 +71,18 @@ export default function MessagesPage() {
             All SMS conversations with your customers. Unread counts reflect inbound messages received since your last reply.
           </p>
         </div>
-        <Button onClick={() => setComposeOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New message
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline">
+            <Link href="/messages/delivery-log">
+              <ScrollText className="h-4 w-4 mr-2" />
+              Delivery log
+            </Link>
+          </Button>
+          <Button onClick={() => setComposeOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New message
+          </Button>
+        </div>
       </div>
 
       <div className="relative max-w-md">

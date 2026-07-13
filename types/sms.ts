@@ -60,6 +60,10 @@ export interface SmsMessage {
   cost: number | null;
 }
 
+export interface SmsDeliveryLogEntry extends SmsMessage {
+  customer_name: string | null;
+}
+
 export interface SmsTemplate {
   id: string;
   organization_id: string | null;

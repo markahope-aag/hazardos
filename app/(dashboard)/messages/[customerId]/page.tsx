@@ -18,7 +18,11 @@ interface SmsMessage {
   queued_at: string
   received_at: string | null
   status: string
+  error_code: string | null
+  error_message: string | null
 }
+
+const FAILURE_STATUSES = new Set(['failed', 'undelivered'])
 
 interface CustomerSummary {
   id: string
@@ -168,6 +172,7 @@ export default function MessageThreadPage({
                 ) : (
                   messages.map((m) => {
                     const isInbound = m.direction === 'inbound'
+                    const isFailure = !isInbound && FAILURE_STATUSES.has(m.status)
                     const ts = m.received_at ?? m.queued_at
                     return (
                       <div
@@ -178,14 +183,30 @@ export default function MessageThreadPage({
                           className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
                             isInbound
                               ? 'bg-gray-100 text-gray-900'
-                              : 'bg-primary text-primary-foreground'
+                              : isFailure
+                                ? 'bg-red-50 text-gray-900 border border-red-300'
+                                : 'bg-primary text-primary-foreground'
                           }`}
                         >
                           <div className="whitespace-pre-wrap break-words">{m.body}</div>
-                          <div className={`text-[10px] mt-1 ${isInbound ? 'text-gray-500' : 'text-primary-foreground/70'}`}>
+                          <div
+                            className={`text-[10px] mt-1 ${
+                              isInbound
+                                ? 'text-gray-500'
+                                : isFailure
+                                  ? 'text-red-700 font-medium'
+                                  : 'text-primary-foreground/70'
+                            }`}
+                          >
                             {new Date(ts).toLocaleString()}
                             {!isInbound && ` • ${m.status}`}
                           </div>
+                          {isFailure && (m.error_code || m.error_message) && (
+                            <div className="text-[10px] mt-0.5 text-red-700">
+                              {m.error_code ? `${m.error_code} ` : ''}
+                              {m.error_message || 'Delivery failed'}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )
