@@ -26,12 +26,15 @@ export const GET = createApiHandlerWithParams(
     if (invErr) throwDbError(invErr, 'load invoice')
     if (!invoice) throw new SecureError('NOT_FOUND', 'Invoice not found')
 
+    // Hint by constraint name: 20260505000090 upgraded job_document_id to a
+    // composite (job_document_id, organization_id) FK, and PostgREST's
+    // `!job_document_id` column-name hint only matches single-column FKs.
     const { data, error } = await context.supabase
       .from('invoice_attached_documents')
       .select(`
         job_document_id,
         attached_at,
-        document:job_documents!job_document_id(
+        document:job_documents!invoice_attached_documents_job_document_id_org_fkey(
           id, file_name, category, mime_type, size_bytes, uploaded_at, notes
         )
       `)

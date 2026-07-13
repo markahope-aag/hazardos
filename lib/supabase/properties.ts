@@ -148,7 +148,10 @@ export class PropertiesService {
       this.supabase
         .from('property_contacts')
         .select(
-          'id, organization_id, property_id, contact_id, role, is_current, moved_in_date, moved_out_date, notes, created_by, created_at, updated_at, contact:customers!contact_id(id, name, first_name, last_name, email, phone, mobile_phone)',
+          // Hint by constraint name: 20260505000090 upgraded contact_id to a
+          // composite (contact_id, organization_id) FK, and PostgREST's
+          // `!contact_id` column-name hint only matches single-column FKs.
+          'id, organization_id, property_id, contact_id, role, is_current, moved_in_date, moved_out_date, notes, created_by, created_at, updated_at, contact:customers!property_contacts_contact_id_org_fkey(id, name, first_name, last_name, email, phone, mobile_phone)',
         )
         .eq('property_id', id)
         .order('is_current', { ascending: false })

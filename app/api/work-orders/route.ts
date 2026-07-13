@@ -12,11 +12,17 @@ import { buildWorkOrderSnapshotFromJob } from '@/lib/services/work-orders-servic
 export const GET = createApiHandler(
   { rateLimit: 'general' },
   async (_request, context) => {
+    // Hint by constraint name, not column name: 20260505000090 upgraded
+    // work_orders.job_id -> jobs.id to a composite (job_id, organization_id)
+    // FK for tenant-isolation integrity, and PostgREST's `!job_id` column-name
+    // hint only resolves against single-column FKs. Without the exact
+    // constraint name this embed 404s with PGRST200 ("could not find a
+    // relationship"), which is what broke this list for every caller.
     const { data, error } = await context.supabase
       .from('work_orders')
       .select(`
         id, work_order_number, status, notes, issued_at, created_at, updated_at,
-        job:jobs!job_id(id, job_number, name, job_address, job_city, job_state, scheduled_start_date, customer:customers!customer_id(id, name, company_name))
+        job:jobs!work_orders_job_id_org_fkey(id, job_number, name, job_address, job_city, job_state, scheduled_start_date, customer:customers!customer_id(id, name, company_name))
       `)
       .eq('organization_id', context.profile.organization_id)
       .order('created_at', { ascending: false })

@@ -16,11 +16,16 @@ import type { SurveyPhotoMetadata } from '@/types/database'
 export const GET = createApiHandlerWithParams(
   { rateLimit: 'general' },
   async (_request, context, params) => {
+    // `!job_id` used to be enough, but 20260505000090 upgraded
+    // work_orders.job_id -> jobs.id to a composite (job_id, organization_id)
+    // FK for tenant-isolation integrity. PostgREST's column-name hint only
+    // matches single-column FKs, so this embed must hint by the actual
+    // constraint name or every request 404s with PGRST200.
     const { data, error } = await context.supabase
       .from('work_orders')
       .select(`
         *,
-        job:jobs!job_id(id, job_number, name),
+        job:jobs!work_orders_job_id_org_fkey(id, job_number, name),
         vehicles:work_order_vehicles(*)
       `)
       .eq('id', params.id)

@@ -25,12 +25,15 @@ export const GET = createApiHandlerWithParams(
     if (estErr) throwDbError(estErr, 'load estimate')
     if (!estimate) throw new SecureError('NOT_FOUND', 'Estimate not found')
 
+    // Hint by constraint name: 20260505000090 upgraded document_id to a
+    // composite (document_id, organization_id) FK, and PostgREST's
+    // `!document_id` column-name hint only matches single-column FKs.
     const { data, error } = await context.supabase
       .from('estimate_attached_documents')
       .select(`
         document_id,
         attached_at,
-        document:organization_documents!document_id(
+        document:organization_documents!estimate_attached_documents_document_id_org_fkey(
           id, display_name, file_name, category, expires_on, document_number
         )
       `)

@@ -203,10 +203,13 @@ export class InvoiceDeliveryService {
   ): Promise<Array<{ filename: string; content: string; contentType: string }>> {
     const supabase = await createClient()
 
+    // Hint by constraint name: 20260505000090 upgraded job_document_id to a
+    // composite (job_document_id, organization_id) FK, and PostgREST's
+    // `!job_document_id` column-name hint only matches single-column FKs.
     const { data: rows, error } = await supabase
       .from('invoice_attached_documents')
       .select(`
-        document:job_documents!job_document_id(
+        document:job_documents!invoice_attached_documents_job_document_id_org_fkey(
           id, file_name, mime_type, storage_path
         )
       `)

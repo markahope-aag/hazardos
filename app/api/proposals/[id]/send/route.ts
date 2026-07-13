@@ -56,10 +56,13 @@ export const POST = createApiHandlerWithParams(
     // the bid is the whole point of the credentials feature.
     const credentialLinks: Array<{ display_name: string; file_name: string; url: string }> = []
     if (proposal.estimate_id) {
+      // Hint by constraint name: 20260505000090 upgraded document_id to a
+      // composite (document_id, organization_id) FK, and PostgREST's
+      // `!document_id` column-name hint only matches single-column FKs.
       const { data: attached, error: attachErr } = await context.supabase
         .from('estimate_attached_documents')
         .select(`
-          document:organization_documents!document_id(
+          document:organization_documents!estimate_attached_documents_document_id_org_fkey(
             id, display_name, file_name, storage_path
           )
         `)
