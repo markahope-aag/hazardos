@@ -4,10 +4,11 @@ import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Clock, Package, Camera, CheckSquare, FileText, X, AlertCircle, Loader2, ChevronLeft, Send } from 'lucide-react'
+import { Clock, Package, Wrench, Camera, CheckSquare, FileText, X, AlertCircle, Loader2, ChevronLeft, Send } from 'lucide-react'
 import { useJobCompletion } from '@/components/jobs/completion/use-job-completion'
 import { TimeEntriesTab } from '@/components/jobs/completion/time-entries-tab'
 import { MaterialsTab } from '@/components/jobs/completion/materials-tab'
+import { EquipmentTab } from '@/components/jobs/completion/equipment-tab'
 import { PhotosTab } from '@/components/jobs/completion/photos-tab'
 import { ChecklistTab } from '@/components/jobs/completion/checklist-tab'
 import { ReviewTab } from '@/components/jobs/completion/review-tab'
@@ -16,6 +17,7 @@ import type { CompletionTab } from '@/components/jobs/completion/types'
 const TABS: { value: CompletionTab; label: string; icon: React.ReactNode }[] = [
   { value: 'time', label: 'Time', icon: <Clock className="w-4 h-4" /> },
   { value: 'materials', label: 'Materials', icon: <Package className="w-4 h-4" /> },
+  { value: 'equipment', label: 'Equipment', icon: <Wrench className="w-4 h-4" /> },
   { value: 'photos', label: 'Photos', icon: <Camera className="w-4 h-4" /> },
   { value: 'checklist', label: 'Checklist', icon: <CheckSquare className="w-4 h-4" /> },
   { value: 'review', label: 'Review', icon: <FileText className="w-4 h-4" /> },
@@ -29,11 +31,12 @@ export default function JobCompletionPage() {
 
   const {
     loading, submitting, error, setError, job, data,
-    newTimeEntry, setNewTimeEntry, newMaterial, setNewMaterial,
+    newTimeEntry, setNewTimeEntry, newMaterial, setNewMaterial, newEquipment, setNewEquipment,
     fieldNotes, setFieldNotes, issuesEncountered, setIssuesEncountered, recommendations, setRecommendations,
     totalHours, totalMaterialCost,
     handleAddTimeEntry, handleDeleteTimeEntry,
     handleAddMaterial, handleDeleteMaterial,
+    handleAddEquipment, handleDeleteEquipment,
     handlePhotoUpload, handleDeletePhoto,
     handleToggleChecklistItem, handleSubmit,
   } = useJobCompletion(jobId)
@@ -94,6 +97,9 @@ export default function JobCompletionPage() {
         </TabsContent>
         <TabsContent value="materials">
           <MaterialsTab data={data} totalMaterialCost={totalMaterialCost} newMaterial={newMaterial} onNewMaterialChange={setNewMaterial} onAddMaterial={handleAddMaterial} onDeleteMaterial={handleDeleteMaterial} />
+        </TabsContent>
+        <TabsContent value="equipment">
+          <EquipmentTab data={data} newEquipment={newEquipment} onNewEquipmentChange={setNewEquipment} onAddEquipment={handleAddEquipment} onDeleteEquipment={handleDeleteEquipment} />
         </TabsContent>
         <TabsContent value="photos">
           <PhotosTab data={data} onPhotoUpload={handlePhotoUpload} onDeletePhoto={handleDeletePhoto} />

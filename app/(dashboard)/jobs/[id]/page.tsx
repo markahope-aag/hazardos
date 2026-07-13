@@ -39,6 +39,7 @@ export default async function JobDetailPage({
     customerRes, proposalRes, estimateRes, surveyRes,
     crewRes, equipmentRes, materialsRes, disposalRes,
     changeOrdersRes, notesRes, workOrderRes, availableCrewRes,
+    completionRes,
   ] = await Promise.all([
     job.customer_id
       ? supabase.from('customers').select('*').eq('id', job.customer_id).maybeSingle()
@@ -82,6 +83,13 @@ export default async function JobDetailPage({
       .eq('organization_id', job.organization_id)
       .eq('is_active', true)
       .in('role', ['technician', 'estimator', 'admin', 'tenant_owner']),
+    // Completion status — nothing else links to /jobs/[id]/review, so the
+    // header needs this to point admins there once a technician submits.
+    supabase
+      .from('job_completions')
+      .select('status')
+      .eq('job_id', id)
+      .maybeSingle(),
   ])
 
   for (const [label, res] of Object.entries({
@@ -89,7 +97,7 @@ export default async function JobDetailPage({
     survey: surveyRes, crew: crewRes, equipment: equipmentRes,
     materials: materialsRes, disposal: disposalRes,
     change_orders: changeOrdersRes, notes: notesRes,
-    work_order: workOrderRes,
+    work_order: workOrderRes, completion: completionRes,
   })) {
     if (res.error) {
       console.error(`[jobs/[id]] embed '${label}' failed`, { id, error: res.error })
@@ -115,6 +123,7 @@ export default async function JobDetailPage({
       ...c,
       profile: Array.isArray(c.profile) ? c.profile[0] : c.profile,
     })),
+    completion_status: completionRes.data?.status ?? null,
   }
 
   const availableCrew = availableCrewRes.data

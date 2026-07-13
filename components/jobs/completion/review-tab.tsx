@@ -33,6 +33,10 @@ export function ReviewTab({
             <span className="font-medium">${totalMaterialCost.toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
+            <span className="text-muted-foreground">Equipment</span>
+            <span className="font-medium">{data?.equipment.length || 0}</span>
+          </div>
+          <div className="flex justify-between">
             <span className="text-muted-foreground">Photos</span>
             <span className="font-medium">{data?.photos.length || 0}</span>
           </div>

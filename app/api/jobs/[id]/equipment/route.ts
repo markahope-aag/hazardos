@@ -8,6 +8,18 @@ import {
 } from '@/lib/validations/jobs'
 
 /**
+ * GET /api/jobs/[id]/equipment
+ * List equipment logged for a job
+ */
+export const GET = createApiHandlerWithParams(
+  { rateLimit: 'general' },
+  async (_request, _context, params) => {
+    const equipment = await JobsService.getEquipment(params.id)
+    return NextResponse.json(equipment)
+  }
+)
+
+/**
  * POST /api/jobs/[id]/equipment
  * Add equipment to a job
  */

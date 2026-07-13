@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { compressImage } from '@/lib/utils/compress-image'
-import type { CompletionData, TimeEntryFormState, MaterialFormState } from './types'
+import type { CompletionData, TimeEntryFormState, MaterialFormState, EquipmentFormState } from './types'
 import type { PhotoType } from '@/types/job-completion'
 
 interface JobBasicInfo {
@@ -27,6 +27,17 @@ const INITIAL_MATERIAL: MaterialFormState = {
   notes: '',
 }
 
+const INITIAL_EQUIPMENT: EquipmentFormState = {
+  equipment_name: '',
+  equipment_type: '',
+  quantity: '',
+  is_rental: false,
+  rental_rate_daily: '',
+  rental_start_date: '',
+  rental_end_date: '',
+  notes: '',
+}
+
 export function useJobCompletion(jobId: string) {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -36,6 +47,7 @@ export function useJobCompletion(jobId: string) {
 
   const [newTimeEntry, setNewTimeEntry] = useState<TimeEntryFormState>(INITIAL_TIME_ENTRY)
   const [newMaterial, setNewMaterial] = useState<MaterialFormState>(INITIAL_MATERIAL)
+  const [newEquipment, setNewEquipment] = useState<EquipmentFormState>(INITIAL_EQUIPMENT)
   const [fieldNotes, setFieldNotes] = useState('')
   const [issuesEncountered, setIssuesEncountered] = useState('')
   const [recommendations, setRecommendations] = useState('')
@@ -127,6 +139,41 @@ export function useJobCompletion(jobId: string) {
     } catch (err) { handleError(err, 'Failed to delete material') }
   }
 
+  async function handleAddEquipment() {
+    if (!newEquipment.equipment_name) return
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/equipment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          equipment_name: newEquipment.equipment_name,
+          equipment_type: newEquipment.equipment_type || undefined,
+          quantity: newEquipment.quantity ? parseInt(newEquipment.quantity, 10) : undefined,
+          is_rental: newEquipment.is_rental,
+          rental_rate_daily: newEquipment.rental_rate_daily ? parseFloat(newEquipment.rental_rate_daily) : undefined,
+          rental_start_date: newEquipment.rental_start_date || undefined,
+          rental_end_date: newEquipment.rental_end_date || undefined,
+          notes: newEquipment.notes || undefined,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to add equipment')
+      setNewEquipment(INITIAL_EQUIPMENT)
+      await refreshData()
+    } catch (err) { handleError(err, 'Failed to add equipment') }
+  }
+
+  async function handleDeleteEquipment(id: string) {
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/equipment`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ equipment_id: id }),
+      })
+      if (!res.ok) throw new Error('Failed to delete equipment')
+      await refreshData()
+    } catch (err) { handleError(err, 'Failed to delete equipment') }
+  }
+
   async function handlePhotoUpload(event: React.ChangeEvent<HTMLInputElement>, photoType: PhotoType) {
     const file = event.target.files?.[0]
     if (!file || !job) return
@@ -178,11 +225,12 @@ export function useJobCompletion(jobId: string) {
 
   return {
     loading, submitting, error, setError, job, data,
-    newTimeEntry, setNewTimeEntry, newMaterial, setNewMaterial,
+    newTimeEntry, setNewTimeEntry, newMaterial, setNewMaterial, newEquipment, setNewEquipment,
     fieldNotes, setFieldNotes, issuesEncountered, setIssuesEncountered, recommendations, setRecommendations,
     totalHours, totalMaterialCost,
     handleAddTimeEntry, handleDeleteTimeEntry,
     handleAddMaterial, handleDeleteMaterial,
+    handleAddEquipment, handleDeleteEquipment,
     handlePhotoUpload, handleDeletePhoto,
     handleToggleChecklistItem, handleSubmit,
   }

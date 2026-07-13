@@ -82,6 +82,7 @@ export interface Job {
   materials?: JobMaterial[]
   disposal?: JobDisposal[]
   change_orders?: JobChangeOrder[]
+  completion_status?: 'draft' | 'submitted' | 'approved' | 'rejected' | null
   notes?: JobNote[]
 }
 

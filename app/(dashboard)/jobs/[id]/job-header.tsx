@@ -145,6 +145,18 @@ export function JobHeader({ job }: JobHeaderProps) {
             </Badge>
           </div>
           {job.name && <p className="text-muted-foreground ml-10">{job.name}</p>}
+          {job.completion_status === 'submitted' && (
+            <div className="ml-10 pt-1">
+              <Link
+                href={`/jobs/${job.id}/review`}
+                className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                Completion submitted — review it
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+            </div>
+          )}
           <div className="text-sm text-muted-foreground ml-10">
             Scheduled: {format(parseISO(job.scheduled_start_date), 'MMMM d, yyyy')}
             {job.scheduled_start_time && <> at {format(parseISO(`2000-01-01T${job.scheduled_start_time}`), 'h:mm a')}</>}

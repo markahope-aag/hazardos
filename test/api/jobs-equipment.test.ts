@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
-import { POST, PATCH, DELETE } from '@/app/api/jobs/[id]/equipment/route'
+import { GET, POST, PATCH, DELETE } from '@/app/api/jobs/[id]/equipment/route'
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -17,6 +17,7 @@ vi.mock('@/lib/supabase/server', () => ({
 
 vi.mock('@/lib/services/jobs-service', () => ({
   JobsService: {
+    getEquipment: vi.fn(),
     addEquipment: vi.fn(),
     updateEquipmentStatus: vi.fn(),
     deleteEquipment: vi.fn()
@@ -56,6 +57,40 @@ describe('Job Equipment Management', () => {
       })
     } as any)
   }
+
+  describe('GET /api/jobs/[id]/equipment', () => {
+    it('should list equipment for a job', async () => {
+      setupAuthenticatedUser()
+
+      const mockEquipmentList = [
+        { id: '550e8400-e29b-41d4-a716-446655440001', job_id: 'job-123', equipment_name: 'HEPA Vacuum', quantity: 2 },
+      ]
+
+      vi.mocked(JobsService.getEquipment).mockResolvedValue(mockEquipmentList)
+
+      const request = new NextRequest('http://localhost:3000/api/jobs/job-123/equipment')
+
+      const response = await GET(request, { params: Promise.resolve({ id: 'job-123' }) })
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data).toEqual(mockEquipmentList)
+      expect(JobsService.getEquipment).toHaveBeenCalledWith('job-123')
+    })
+
+    it('should reject unauthenticated requests', async () => {
+      vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
+        data: { user: null },
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost:3000/api/jobs/job-123/equipment')
+
+      const response = await GET(request, { params: Promise.resolve({ id: 'job-123' }) })
+
+      expect(response.status).toBe(401)
+    })
+  })
 
   describe('POST /api/jobs/[id]/equipment', () => {
     it('should add equipment to job', async () => {

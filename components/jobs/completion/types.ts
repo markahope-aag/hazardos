@@ -7,12 +7,14 @@ import type {
   TimeEntryWorkType,
   GroupedChecklists,
 } from '@/types/job-completion'
+import type { JobEquipment } from '@/types/jobs'
 
-export type CompletionTab = 'time' | 'materials' | 'photos' | 'checklist' | 'review'
+export type CompletionTab = 'time' | 'materials' | 'equipment' | 'photos' | 'checklist' | 'review'
 
 export interface CompletionData {
   timeEntries: JobTimeEntry[]
   materialUsage: JobMaterialUsage[]
+  equipment: JobEquipment[]
   photos: JobCompletionPhoto[]
   checklist: GroupedChecklists
   completion: JobCompletion | null
@@ -50,6 +52,25 @@ export interface MaterialsTabProps {
   onNewMaterialChange: (material: MaterialFormState) => void
   onAddMaterial: () => void
   onDeleteMaterial: (id: string) => void
+}
+
+export interface EquipmentFormState {
+  equipment_name: string
+  equipment_type: string
+  quantity: string
+  is_rental: boolean
+  rental_rate_daily: string
+  rental_start_date: string
+  rental_end_date: string
+  notes: string
+}
+
+export interface EquipmentTabProps {
+  data: CompletionData | null
+  newEquipment: EquipmentFormState
+  onNewEquipmentChange: (equipment: EquipmentFormState) => void
+  onAddEquipment: () => void
+  onDeleteEquipment: (id: string) => void
 }
 
 export interface PhotosTabProps {

@@ -7,6 +7,8 @@ import { JobMaterialsService } from '@/lib/services/job-materials-service'
 import { JobCompletionPhotosService } from '@/lib/services/job-completion-photos-service'
 import { JobChecklistService } from '@/lib/services/job-checklist-service'
 import { JobVarianceService } from '@/lib/services/job-variance-service'
+import { JobResourcesService } from '@/lib/services/job-resources-service'
+import type { JobEquipment } from '@/types/jobs'
 import type {
   JobTimeEntry,
   JobMaterialUsage,
@@ -360,14 +362,16 @@ export class JobCompletionService {
   static async getCompletionSummary(jobId: string): Promise<{
     timeEntries: JobTimeEntry[]
     materialUsage: JobMaterialUsage[]
+    equipment: JobEquipment[]
     photos: JobCompletionPhoto[]
     checklist: GroupedChecklists
     completion: JobCompletion | null
     checklistProgress: { completed: number; required: number; total: number }
   }> {
-    const [timeEntries, materialUsage, photos, checklist, completion] = await Promise.all([
+    const [timeEntries, materialUsage, equipment, photos, checklist, completion] = await Promise.all([
       JobTimeEntriesService.getTimeEntries(jobId),
       JobMaterialsService.getMaterialUsage(jobId),
+      JobResourcesService.getEquipment(jobId),
       JobCompletionPhotosService.getPhotos(jobId),
       JobChecklistService.getChecklistGrouped(jobId),
       JobCompletionService.getCompletion(jobId),
@@ -380,6 +384,7 @@ export class JobCompletionService {
     return {
       timeEntries,
       materialUsage,
+      equipment,
       photos,
       checklist,
       completion,

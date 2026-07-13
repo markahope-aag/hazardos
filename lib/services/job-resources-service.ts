@@ -12,6 +12,19 @@ import type {
 export class JobResourcesService {
   // ========== EQUIPMENT ==========
 
+  static async getEquipment(jobId: string): Promise<JobEquipment[]> {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+      .from('job_equipment')
+      .select('*')
+      .eq('job_id', jobId)
+      .order('created_at', { ascending: false })
+
+    if (error) throwDbError(error, 'fetch job equipment')
+    return data || []
+  }
+
   static async addEquipment(jobId: string, input: AddJobEquipmentInput): Promise<JobEquipment> {
     const supabase = await createClient()
 

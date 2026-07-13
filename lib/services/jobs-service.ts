@@ -600,6 +600,11 @@ export class JobsService {
     return JobNotesService.remove(...args)
   }
 
+  static async getEquipment(...args: Parameters<typeof import('./job-resources-service').JobResourcesService.getEquipment>) {
+    const { JobResourcesService } = await import('./job-resources-service')
+    return JobResourcesService.getEquipment(...args)
+  }
+
   static async addEquipment(...args: Parameters<typeof import('./job-resources-service').JobResourcesService.addEquipment>) {
     const { JobResourcesService } = await import('./job-resources-service')
     return JobResourcesService.addEquipment(...args)

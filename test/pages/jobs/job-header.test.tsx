@@ -91,4 +91,17 @@ describe('JobHeader', () => {
     expect(screen.getByRole('button', { name: /start job/i })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /complete job/i })).not.toBeInTheDocument()
   })
+
+  it('links to the review page when a completion has been submitted', () => {
+    render(<JobHeader job={{ ...baseJob, completion_status: 'submitted' }} />)
+
+    const reviewLink = screen.getByRole('link', { name: /completion submitted.*review it/i })
+    expect(reviewLink).toHaveAttribute('href', '/jobs/job-1/review')
+  })
+
+  it('does not show the review banner when there is no submitted completion', () => {
+    render(<JobHeader job={baseJob} />)
+
+    expect(screen.queryByText(/completion submitted/i)).not.toBeInTheDocument()
+  })
 })
