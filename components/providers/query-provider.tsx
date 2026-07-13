@@ -1,7 +1,8 @@
 'use client'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, QueryCache } from '@tanstack/react-query'
 import { useState } from 'react'
+import { toast } from '@/components/ui/use-toast'
 
 // Check if error is a client error (4xx) that shouldn't be retried
 function isClientError(error: unknown): boolean {
@@ -16,6 +17,31 @@ function isClientError(error: unknown): boolean {
   return false
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message
+  return 'The server ran into a problem. Please try again.'
+}
+
+/**
+ * Global read-query error handler (X27). Bridges a failed GET to the toaster so
+ * a 500 no longer fails silently. Skips 4xx client errors (usually expected —
+ * handled by redirects/empty states) and queries that opt out via
+ * `meta: { suppressGlobalErrorToast: true }` because they render their own error
+ * UI. Exported for unit testing.
+ */
+export function reportQueryError(
+  error: unknown,
+  query: { meta?: Record<string, unknown> }
+): void {
+  if (isClientError(error)) return
+  if (query.meta?.suppressGlobalErrorToast) return
+  toast({
+    variant: 'destructive',
+    title: 'Something went wrong',
+    description: getErrorMessage(error),
+  })
+}
+
 export default function QueryProvider({
   children,
 }: {
@@ -24,6 +50,19 @@ export default function QueryProvider({
   const [queryClient] = useState(
     () =>
       new QueryClient({
+        // Global read-error surfacing (X27). Per-hook mutations already toast
+        // their own specific messages on error; read queries did not, so a
+        // failed GET (e.g. a 500) landed in `isError` silently and the user saw
+        // an empty/zero widget with no signal. This bridges query errors to the
+        // toaster. Client errors (4xx — 401/403/404, usually expected and
+        // handled by redirects or inline empty states) are intentionally NOT
+        // toasted; only server/network failures are. A query can opt out by
+        // setting `meta: { suppressGlobalErrorToast: true }` when it renders its
+        // own error UI. TOAST_LIMIT=1 collapses a burst of simultaneous
+        // failures into a single toast.
+        queryCache: new QueryCache({
+          onError: (error, query) => reportQueryError(error, query),
+        }),
         defaultOptions: {
           queries: {
             staleTime: 60 * 1000, // 1 minute - data considered fresh
