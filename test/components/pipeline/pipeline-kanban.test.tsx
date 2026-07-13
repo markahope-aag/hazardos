@@ -31,6 +31,19 @@ vi.mock('@/components/locations/location-filter', () => ({
   LocationFilter: () => <div data-testid="location-filter" />,
 }))
 
+// PipelineFilters pulls the sales-user list from useOrgMembers (a
+// TanStack Query hook against Supabase). Mock it so the filter renders
+// two selectable users without a live query.
+vi.mock('@/lib/hooks/use-org-members', () => ({
+  useOrgMembers: () => ({
+    data: [
+      { id: 'user_001', first_name: 'Alice', last_name: 'Owner', email: 'alice@example.com' },
+      { id: 'user_002', first_name: 'Bob', last_name: 'Rep', email: 'bob@example.com' },
+    ],
+    isLoading: false,
+  }),
+}))
+
 // Mock @dnd-kit/core
 vi.mock('@dnd-kit/core', () => ({
   DndContext: ({ children, onDragStart, onDragEnd }: {
@@ -533,6 +546,73 @@ describe('PipelineKanban', () => {
       // Check for stage color indicators
       const colorIndicators = container.querySelectorAll('[style*="background-color"]')
       expect(colorIndicators.length).toBeGreaterThan(0)
+    })
+  })
+
+  // PA4: filter the pipeline by sales user, date range, and stage. All
+  // three filter the already-loaded opportunity list client-side; the
+  // stage filter additionally hides the non-selected Kanban columns.
+  describe('filters (PA4)', () => {
+    it('hides opportunities created before the "From" date', () => {
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+
+      // opp_001 created 2024-01-10, opp_002 2024-01-15, opp_003 2024-01-20.
+      expect(screen.getByText('Commercial Building Abatement')).toBeInTheDocument()
+
+      const fromInput = screen.getByLabelText('From') as HTMLInputElement
+      fireEvent.change(fromInput, { target: { value: '2024-01-16' } })
+
+      // Only opp_003 (2024-01-20) survives.
+      expect(screen.queryByText('Commercial Building Abatement')).not.toBeInTheDocument()
+      expect(screen.queryByText('Residential Lead Paint')).not.toBeInTheDocument()
+      expect(screen.getByText('School Renovation')).toBeInTheDocument()
+    })
+
+    it('hides opportunities created after the "To" date', () => {
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+
+      const toInput = screen.getByLabelText('To') as HTMLInputElement
+      fireEvent.change(toInput, { target: { value: '2024-01-12' } })
+
+      // Only opp_001 (2024-01-10) is on or before the 12th.
+      expect(screen.getByText('Commercial Building Abatement')).toBeInTheDocument()
+      expect(screen.queryByText('Residential Lead Paint')).not.toBeInTheDocument()
+      expect(screen.queryByText('School Renovation')).not.toBeInTheDocument()
+    })
+
+    it('hides non-selected stage columns when a stage is picked', () => {
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+
+      // Open the stage popover, select only "Lead", then close the popover
+      // (it's multi-select so it stays open) so stage names only appear as
+      // Kanban columns, not also as popover checkboxes.
+      fireEvent.click(screen.getByRole('button', { name: /all stages/i }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Lead' }))
+      fireEvent.keyDown(document.activeElement || document.body, { key: 'Escape' })
+
+      // Lead column stays; the other columns are removed entirely.
+      expect(screen.getByText('Lead')).toBeInTheDocument()
+      expect(screen.queryByText('Qualified')).not.toBeInTheDocument()
+      expect(screen.queryByText('Proposal')).not.toBeInTheDocument()
+      expect(screen.queryByText('Won')).not.toBeInTheDocument()
+
+      // opp_001 (in Lead) is visible; opp_002 (Qualified) is gone with its column.
+      expect(screen.getByText('Commercial Building Abatement')).toBeInTheDocument()
+      expect(screen.queryByText('Residential Lead Paint')).not.toBeInTheDocument()
+    })
+
+    it('resets all filters via the Reset button', () => {
+      renderWithClient(<PipelineKanban stages={mockStages} opportunities={mockOpportunities} />)
+
+      const fromInput = screen.getByLabelText('From') as HTMLInputElement
+      fireEvent.change(fromInput, { target: { value: '2024-01-16' } })
+      expect(screen.queryByText('Commercial Building Abatement')).not.toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: /reset filters/i }))
+
+      expect(screen.getByText('Commercial Building Abatement')).toBeInTheDocument()
+      expect(screen.getByText('Residential Lead Paint')).toBeInTheDocument()
+      expect(screen.getByText('School Renovation')).toBeInTheDocument()
     })
   })
 

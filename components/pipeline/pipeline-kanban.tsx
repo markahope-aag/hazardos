@@ -30,6 +30,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { cn, formatCurrency } from '@/lib/utils'
 import { DataErrorBoundary } from '@/components/error-boundaries'
 import { LocationFilter, type LocationFilterValue } from '@/components/locations/location-filter'
+import { PipelineFilters, EMPTY_PIPELINE_FILTERS, type PipelineFilterState } from '@/components/pipeline/pipeline-filters'
 import type { PipelineStage, Opportunity } from '@/types/sales'
 
 /**
@@ -58,14 +59,36 @@ export function PipelineKanban({ stages, opportunities: initial }: PipelineKanba
   const [opportunities, setOpportunities] = useState(initial)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [locationFilter, setLocationFilter] = useState<LocationFilterValue>('all')
+  const [pipelineFilters, setPipelineFilters] = useState<PipelineFilterState>(EMPTY_PIPELINE_FILTERS)
 
   const visibleOpportunities = useMemo(() => {
-    if (locationFilter === 'all') return opportunities
+    let result = opportunities
+
     if (locationFilter === 'unassigned') {
-      return opportunities.filter((o) => !o.location_id)
+      result = result.filter((o) => !o.location_id)
+    } else if (locationFilter !== 'all') {
+      result = result.filter((o) => o.location_id === locationFilter)
     }
-    return opportunities.filter((o) => o.location_id === locationFilter)
-  }, [opportunities, locationFilter])
+
+    if (pipelineFilters.ownerId !== 'all') {
+      result = result.filter((o) => o.owner_id === pipelineFilters.ownerId)
+    }
+    if (pipelineFilters.dateFrom) {
+      result = result.filter((o) => o.created_at >= pipelineFilters.dateFrom)
+    }
+    if (pipelineFilters.dateTo) {
+      // created_at is a timestamp; include the whole end day by comparing
+      // against the date portion only.
+      result = result.filter((o) => o.created_at.slice(0, 10) <= pipelineFilters.dateTo)
+    }
+
+    return result
+  }, [opportunities, locationFilter, pipelineFilters])
+
+  const visibleStages = useMemo(() => {
+    if (pipelineFilters.stageIds.size === 0) return stages
+    return stages.filter((s) => pipelineFilters.stageIds.has(s.id))
+  }, [stages, pipelineFilters.stageIds])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -138,11 +161,12 @@ export function PipelineKanban({ stages, opportunities: initial }: PipelineKanba
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <PipelineFilters stages={stages} value={pipelineFilters} onChange={setPipelineFilters} />
         <LocationFilter value={locationFilter} onChange={setLocationFilter} />
       </div>
       <div className="flex gap-4 overflow-x-auto pb-4">
-        {stages.map(stage => {
+        {visibleStages.map(stage => {
           const stageOpps = visibleOpportunities.filter(o => o.stage_id === stage.id)
           const totalValue = stageOpps.reduce((sum, o) => sum + (o.estimated_value || 0), 0)
 
