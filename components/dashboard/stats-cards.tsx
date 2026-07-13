@@ -15,8 +15,16 @@ import {
 
 export { StatsCardsErrorBoundary } from './error-wrappers'
 
+// Sentinel used to force an empty result set when a hazard filter matches no
+// surveys — `.in('site_survey_id', [NO_MATCH_UUID])` can never match a real row.
+const NO_MATCH_UUID = '00000000-0000-0000-0000-000000000000'
+
 interface StatsCardsProps {
   filters: DashboardFilters
+  // Passed down from the dashboard page, which has already resolved the
+  // authenticated user's org — so this widget doesn't re-run getUser() + a
+  // profiles lookup on every render (X20).
+  organizationId: string | null
 }
 
 /**
@@ -43,20 +51,9 @@ function toIsoDate(d: Date): string {
   return d.toISOString().split('T')[0]
 }
 
-export async function StatsCards({ filters }: StatsCardsProps) {
+export async function StatsCards({ filters, organizationId }: StatsCardsProps) {
+  if (!organizationId) return null
   const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('organization_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile?.organization_id) return null
-  const organizationId = profile.organization_id
 
   const range = getPeriodRange(filters.period)
   const hazardDb = hazardFilterToDbValue(filters.hazardType)
@@ -64,12 +61,11 @@ export async function StatsCards({ filters }: StatsCardsProps) {
   const hazardActive = hazardSurveyIds !== null
   const hasHazardMatches = !hazardActive || hazardSurveyIds.length > 0
 
-  // ─── Revenue (sum of completed-job revenue) ─────────────────────────
   // Revenue = the earned value of work the crew has finished, not cash
   // received. A job contributes its actual_revenue (falls back to
-  // contract_amount, then final_amount) once it reaches a post-work
-  // status. Period bucketing uses scheduled_start_date to stay
-  // consistent with how the Jobs card and every chart slice jobs.
+  // contract_amount, then final_amount) once it reaches a post-work status.
+  // Period bucketing uses scheduled_start_date to stay consistent with how the
+  // Jobs card and every chart slice jobs.
   const REVENUE_STATUSES = ['completed', 'invoiced', 'paid', 'closed']
   const buildRevenueQuery = (startIso: string, endIso: string) => {
     let q = supabase
@@ -80,11 +76,7 @@ export async function StatsCards({ filters }: StatsCardsProps) {
       .gte('scheduled_start_date', startIso)
       .lte('scheduled_start_date', endIso)
     if (hazardActive) {
-      if (!hasHazardMatches) {
-        q = q.in('site_survey_id', ['00000000-0000-0000-0000-000000000000'])
-      } else {
-        q = q.in('site_survey_id', hazardSurveyIds as string[])
-      }
+      q = q.in('site_survey_id', hasHazardMatches ? (hazardSurveyIds as string[]) : [NO_MATCH_UUID])
     }
     return q
   }
@@ -101,105 +93,25 @@ export async function StatsCards({ filters }: StatsCardsProps) {
       return s + v
     }, 0)
 
-  const [currentRevenueRes, previousRevenueRes] = await Promise.all([
-    buildRevenueQuery(toIsoDate(range.start), toIsoDate(range.end)),
-    buildRevenueQuery(toIsoDate(range.previousStart), toIsoDate(range.previousEnd)),
-  ])
-
-  const currentRevenue = sumRevenue(currentRevenueRes.data)
-  const previousRevenue = sumRevenue(previousRevenueRes.data)
-
-  // ─── Outstanding AR ─────────────────────────────────────────────────
-  // Current AR comes straight from balance_due. For the prior-period
-  // comparison we reconstruct what AR looked like at the end of the
-  // previous period: sum over every non-void invoice created by that
-  // date, subtracting any payments received by that date — then include
-  // anything still > 0. That lets us render an actual up/down trend on
-  // a card the user would otherwise wonder why is static.
-  const [currentArRes, historicInvoicesRes, historicPaymentsRes] = await Promise.all([
-    supabase
-      .from('invoices')
-      .select('balance_due')
-      .eq('organization_id', organizationId)
-      .gt('balance_due', 0)
-      .not('status', 'in', '("void","paid")'),
-    supabase
-      .from('invoices')
-      .select('id, total, status, created_at')
-      .eq('organization_id', organizationId)
-      .lte('created_at', range.previousEnd.toISOString())
-      .neq('status', 'void'),
-    supabase
-      .from('payments')
-      .select('invoice_id, amount, payment_date')
-      .eq('organization_id', organizationId)
-      .lte('payment_date', toIsoDate(range.previousEnd)),
-  ])
-
-  const outstandingAR = (currentArRes.data || []).reduce(
-    (s, i) => s + (i.balance_due || 0),
-    0,
-  )
-
-  const paidByInvoice = new Map<string, number>()
-  for (const p of historicPaymentsRes.data || []) {
-    paidByInvoice.set(p.invoice_id, (paidByInvoice.get(p.invoice_id) || 0) + (p.amount || 0))
-  }
-  const previousOutstandingAR = (historicInvoicesRes.data || []).reduce((sum, inv) => {
-    const paid = paidByInvoice.get(inv.id) || 0
-    const remaining = (inv.total || 0) - paid
-    return remaining > 0 ? sum + remaining : sum
-  }, 0)
-
-  // ─── Open jobs in period ────────────────────────────────────────────
-  // "Open" = work we still have in front of us — scheduled, actively
-  // being worked, or on hold. Completed / invoiced / paid / closed /
-  // cancelled are out. Hazard filter flows through via survey IDs.
+  // "Open" jobs = work still in front of us — scheduled, in progress, or on
+  // hold. Completed / invoiced / paid / closed / cancelled are out.
   const OPEN_JOB_STATUSES = ['scheduled', 'in_progress', 'on_hold']
-
-  let jobsQuery = supabase
-    .from('jobs')
-    .select('*', { count: 'exact', head: true })
-    .eq('organization_id', organizationId)
-    .gte('scheduled_start_date', toIsoDate(range.start))
-    .lte('scheduled_start_date', toIsoDate(range.end))
-    .in('status', OPEN_JOB_STATUSES)
-
-  if (hazardActive) {
-    if (!hasHazardMatches) {
-      jobsQuery = jobsQuery.in('site_survey_id', ['00000000-0000-0000-0000-000000000000'])
-    } else {
-      jobsQuery = jobsQuery.in('site_survey_id', hazardSurveyIds as string[])
+  const buildOpenJobsQuery = (startIso: string, endIso: string) => {
+    let q = supabase
+      .from('jobs')
+      .select('*', { count: 'exact', head: true })
+      .eq('organization_id', organizationId)
+      .gte('scheduled_start_date', startIso)
+      .lte('scheduled_start_date', endIso)
+      .in('status', OPEN_JOB_STATUSES)
+    if (hazardActive) {
+      q = q.in('site_survey_id', hasHazardMatches ? (hazardSurveyIds as string[]) : [NO_MATCH_UUID])
     }
+    return q
   }
 
-  let previousJobsQuery = supabase
-    .from('jobs')
-    .select('*', { count: 'exact', head: true })
-    .eq('organization_id', organizationId)
-    .gte('scheduled_start_date', toIsoDate(range.previousStart))
-    .lte('scheduled_start_date', toIsoDate(range.previousEnd))
-    .in('status', OPEN_JOB_STATUSES)
-
-  if (hazardActive) {
-    if (!hasHazardMatches) {
-      previousJobsQuery = previousJobsQuery.in(
-        'site_survey_id',
-        ['00000000-0000-0000-0000-000000000000']
-      )
-    } else {
-      previousJobsQuery = previousJobsQuery.in('site_survey_id', hazardSurveyIds as string[])
-    }
-  }
-
-  const [{ count: currentJobCount }, { count: previousJobCount }] = await Promise.all([
-    jobsQuery,
-    previousJobsQuery,
-  ])
-
-  // ─── Proposals / Win Rate ───────────────────────────────────────────
-  // Filter by hazard via the joined estimate→site_survey relationship.
-  // We build the estimate ID set first when hazard is active.
+  // Proposals are hazard-scoped via the estimate→site_survey relationship, so
+  // resolve the matching estimate IDs before the fan-out below can use them.
   let hazardScopedEstimateIds: string[] | null = null
   if (hazardActive) {
     if (!hasHazardMatches) {
@@ -222,19 +134,60 @@ export async function StatsCards({ filters }: StatsCardsProps) {
       .gte('created_at', startIso)
       .lte('created_at', endIso)
     if (hazardScopedEstimateIds !== null) {
-      if (hazardScopedEstimateIds.length === 0) {
-        q = q.in('estimate_id', ['00000000-0000-0000-0000-000000000000'])
-      } else {
-        q = q.in('estimate_id', hazardScopedEstimateIds)
-      }
+      q = q.in('estimate_id', hazardScopedEstimateIds.length === 0 ? [NO_MATCH_UUID] : hazardScopedEstimateIds)
     }
     return q
   }
 
-  const [{ data: currentProposals }, { data: previousProposals }] = await Promise.all([
+  // ─── Single parallel fan-out ────────────────────────────────────────
+  // Every card's data is independent once the hazard prefetches above are
+  // done, so fire them all at once instead of awaiting four sequential
+  // Promise.all batches (revenue → AR → jobs → proposals). Prior-period AR is
+  // now a DB-side aggregate (dashboard_previous_outstanding_ar) rather than
+  // fetching every historic invoice + payment and reducing in JS (X20).
+  const [
+    currentRevenueRes,
+    previousRevenueRes,
+    currentArRes,
+    previousArRes,
+    currentJobsRes,
+    previousJobsRes,
+    currentProposalsRes,
+    previousProposalsRes,
+  ] = await Promise.all([
+    buildRevenueQuery(toIsoDate(range.start), toIsoDate(range.end)),
+    buildRevenueQuery(toIsoDate(range.previousStart), toIsoDate(range.previousEnd)),
+    supabase
+      .from('invoices')
+      .select('balance_due')
+      .eq('organization_id', organizationId)
+      .gt('balance_due', 0)
+      .not('status', 'in', '("void","paid")'),
+    supabase.rpc('dashboard_previous_outstanding_ar', {
+      p_org: organizationId,
+      p_invoice_cutoff: range.previousEnd.toISOString(),
+      p_payment_cutoff: toIsoDate(range.previousEnd),
+    }),
+    buildOpenJobsQuery(toIsoDate(range.start), toIsoDate(range.end)),
+    buildOpenJobsQuery(toIsoDate(range.previousStart), toIsoDate(range.previousEnd)),
     buildProposalQuery(range.start.toISOString(), range.end.toISOString()),
     buildProposalQuery(range.previousStart.toISOString(), range.previousEnd.toISOString()),
   ])
+
+  const currentRevenue = sumRevenue(currentRevenueRes.data)
+  const previousRevenue = sumRevenue(previousRevenueRes.data)
+
+  const outstandingAR = (currentArRes.data || []).reduce(
+    (s, i) => s + (i.balance_due || 0),
+    0,
+  )
+  const previousOutstandingAR = Number(previousArRes.data ?? 0) || 0
+
+  const currentJobCount = currentJobsRes.count
+  const previousJobCount = previousJobsRes.count
+
+  const currentProposals = currentProposalsRes.data
+  const previousProposals = previousProposalsRes.data
 
   const currentProposalsSent = currentProposals?.length || 0
   const currentProposalsWon = currentProposals?.filter((p) => p.status === 'signed').length || 0

@@ -114,7 +114,7 @@ export default async function DashboardPage({
       {/* Key Metrics */}
       <StatsCardsErrorBoundary>
         <Suspense fallback={<StatsCardsSkeleton />} key={`${filters.period}-${filters.hazardType}`}>
-          <StatsCards filters={filters} />
+          <StatsCards filters={filters} organizationId={profile?.organization_id ?? null} />
         </Suspense>
       </StatsCardsErrorBoundary>
 
