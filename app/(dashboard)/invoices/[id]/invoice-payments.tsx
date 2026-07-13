@@ -36,6 +36,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { formatCurrency } from '@/lib/utils'
 import type { Invoice, Payment, PaymentMethod } from '@/types/invoices'
 import { paymentMethodConfig } from '@/types/invoices'
+import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 
 interface InvoicePaymentsProps {
   invoice: Invoice
@@ -45,6 +46,10 @@ interface InvoicePaymentsProps {
 export function InvoicePayments({ invoice, payments }: InvoicePaymentsProps) {
   const router = useRouter()
   const { toast } = useToast()
+  // POST /api/invoices/[id]/payments is admin-only server-side
+  // (ROLES.TENANT_ADMIN) — hide the button for everyone else so they don't
+  // fill out the whole dialog only to hit a permission error on submit.
+  const { canAccessTenantAdmin } = useMultiTenantAuth()
   const [loading, setLoading] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
 
@@ -56,7 +61,7 @@ export function InvoicePayments({ invoice, payments }: InvoicePaymentsProps) {
     notes: '',
   })
 
-  const canRecordPayment = invoice.balance_due > 0 && invoice.status !== 'void'
+  const canRecordPayment = invoice.balance_due > 0 && invoice.status !== 'void' && canAccessTenantAdmin
 
   const openDialog = () => {
     setForm({
@@ -99,13 +104,26 @@ export function InvoicePayments({ invoice, payments }: InvoicePaymentsProps) {
         }),
       })
 
-      if (!response.ok) throw new Error('Failed to record payment')
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        const reason =
+          typeof data?.error === 'string'
+            ? data.error
+            : typeof data?.error?.message === 'string'
+              ? data.error.message
+              : null
+        throw new Error(reason || `Failed to record payment (${response.status})`)
+      }
 
       toast({ title: 'Success', description: 'Payment recorded' })
       setShowDialog(false)
       router.refresh()
-    } catch {
-      toast({ title: 'Error', description: 'Failed to record payment', variant: 'destructive' })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to record payment',
+        variant: 'destructive',
+      })
     } finally {
       setLoading(false)
     }

@@ -26,7 +26,6 @@ import {
   ArrowLeft,
   MoreHorizontal,
   Send,
-  DollarSign,
   Ban,
   Loader2,
   Download,
@@ -170,15 +169,6 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
                 {invoice.status === 'draft' ? 'Send Invoice' : 'Resend Invoice'}
               </Button>
             )}
-            {invoice.balance_due > 0 && invoice.status !== 'void' && invoice.status !== 'draft' && (
-              <Button asChild>
-                <Link href={`/invoices/${invoice.id}/record-payment`}>
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Record Payment
-                </Link>
-              </Button>
-            )}
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" aria-label="More invoice actions">
