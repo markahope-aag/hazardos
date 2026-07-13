@@ -43,6 +43,14 @@ interface SurveyState {
   isSyncing: boolean
   syncError: string | null
 
+  // Optimistic-concurrency version guard. Holds the site_surveys.updated_at
+  // value this device last loaded or successfully wrote. Every draft/submit
+  // write is gated on it (WHERE updated_at = baseUpdatedAt); if another device
+  // has since changed the row the write matches zero rows and we surface a
+  // conflict instead of silently clobbering the other device's edits.
+  baseUpdatedAt: string | null
+  hasConflict: boolean
+
   // Validation state per section
   sectionValidation: Record<SurveySection, { isValid: boolean; errors: string[] }>
 
@@ -89,12 +97,52 @@ interface SurveyState {
   saveDraft: () => Promise<boolean>
   submitSurvey: () => Promise<boolean>
 
+  // Conflict resolution (X12): called when a save/submit is rejected because
+  // the server copy changed on another device.
+  resolveConflictUseLatest: () => Promise<boolean>
+  resolveConflictKeepMine: () => Promise<boolean>
+
   // Validation
   validateSection: (section: SurveySection) => { isValid: boolean; errors: string[] }
   validateAll: () => boolean
 }
 
 const generateId = () => `${Date.now()}-${nanoid(9)}`
+
+const CONFLICT_MESSAGE =
+  'This survey was changed on another device. Choose which version to keep.'
+
+type SupabaseLike = ReturnType<typeof createClient>
+
+/**
+ * Optimistic-concurrency write against site_surveys. When `base` is provided,
+ * the UPDATE is gated on `updated_at = base` — if the row has moved on (another
+ * device saved), zero rows match and we report a conflict rather than
+ * overwriting. Passing `base = null` forces the write unconditionally (used by
+ * the "keep mine" resolution and by first-time saves that have no base yet).
+ * Returns the row's new updated_at so the caller can advance its version.
+ */
+async function guardedSurveyUpdate(
+  supabase: SupabaseLike,
+  surveyId: string,
+  dbData: Record<string, unknown>,
+  base: string | null
+): Promise<{ conflict: boolean; newUpdatedAt: string | null }> {
+  let query = supabase.from('site_surveys').update(dbData).eq('id', surveyId)
+  if (base) {
+    query = query.eq('updated_at', base)
+  }
+
+  const { data, error } = await query.select('updated_at')
+
+  if (error) throwDbError(error, 'update survey')
+
+  if (!data || data.length === 0) {
+    return { conflict: true, newUpdatedAt: null }
+  }
+
+  return { conflict: false, newUpdatedAt: (data[0] as { updated_at: string }).updated_at }
+}
 
 // O(1) index helpers — build a map once, mutate by key, convert back to array
 function updateInArray<T extends { id: string }>(items: T[], id: string, updater: (item: T) => T): T[] {
@@ -136,6 +184,8 @@ export const useSurveyStore = create<SurveyState>()(
       startedAt: null,
       isSyncing: false,
       syncError: null,
+      baseUpdatedAt: null,
+      hasConflict: false,
       sectionValidation: initialSectionValidation,
 
       // Basic setters
@@ -373,6 +423,8 @@ export const useSurveyStore = create<SurveyState>()(
           startedAt: null,
           isSyncing: false,
           syncError: null,
+          baseUpdatedAt: null,
+          hasConflict: false,
           sectionValidation: initialSectionValidation,
         }),
 
@@ -413,13 +465,14 @@ export const useSurveyStore = create<SurveyState>()(
           const { data, error } = await supabase
             .from('site_surveys')
             .insert(initialRecord)
-            .select('id')
+            .select('id, updated_at')
             .single()
 
           if (error) throwDbError(error, 'create survey')
 
           set({
             currentSurveyId: data.id,
+            baseUpdatedAt: data.updated_at,
             isSyncing: false,
             startedAt: new Date().toISOString(),
           })
@@ -456,6 +509,8 @@ export const useSurveyStore = create<SurveyState>()(
             isDirty: false,
             isSyncing: false,
             lastSavedAt: data.updated_at,
+            baseUpdatedAt: data.updated_at,
+            hasConflict: false,
           })
 
           return true
@@ -477,7 +532,14 @@ export const useSurveyStore = create<SurveyState>()(
         }
 
         if (typeof navigator !== 'undefined' && !navigator.onLine) {
-          set({ isDirty: false, lastSavedAt: new Date().toISOString() })
+          // The persist middleware has already written the draft to
+          // localStorage, but it is NOT on the server yet. Keep isDirty=true so
+          // the reconnect auto-sync (useOnlineSync, which gates on isDirty)
+          // actually pushes these edits — and so the X12 conflict check runs —
+          // once we're back online. Previously this cleared isDirty, so an
+          // offline auto-save silently suppressed the reconnect sync and the
+          // edits never left the device. lastSavedAt reflects the local save.
+          set({ lastSavedAt: new Date().toISOString() })
           return true
         }
 
@@ -502,14 +564,29 @@ export const useSurveyStore = create<SurveyState>()(
             { status: 'draft' }
           )
 
-          const { error } = await supabase
-            .from('site_surveys')
-            .update(dbData)
-            .eq('id', get().currentSurveyId)
+          const { conflict, newUpdatedAt } = await guardedSurveyUpdate(
+            supabase,
+            get().currentSurveyId!,
+            dbData,
+            get().baseUpdatedAt
+          )
 
-          if (error) throwDbError(error, 'update survey')
+          if (conflict) {
+            set({ isSyncing: false, hasConflict: true, syncError: CONFLICT_MESSAGE })
+            log.warn(
+              { surveyId: get().currentSurveyId },
+              'Draft save conflict — survey changed on another device'
+            )
+            return false
+          }
 
-          set({ isDirty: false, isSyncing: false, lastSavedAt: new Date().toISOString() })
+          set({
+            isDirty: false,
+            isSyncing: false,
+            lastSavedAt: new Date().toISOString(),
+            baseUpdatedAt: newUpdatedAt,
+            hasConflict: false,
+          })
           return true
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to save draft'
@@ -549,12 +626,23 @@ export const useSurveyStore = create<SurveyState>()(
             { status: 'submitted', submittedAt }
           )
 
-          const { error } = await supabase
-            .from('site_surveys')
-            .update(dbData)
-            .eq('id', currentSurveyId)
+          const { conflict, newUpdatedAt } = await guardedSurveyUpdate(
+            supabase,
+            currentSurveyId,
+            dbData,
+            get().baseUpdatedAt
+          )
 
-          if (error) throwDbError(error, 'update survey')
+          if (conflict) {
+            set({ isSyncing: false, hasConflict: true, syncError: CONFLICT_MESSAGE })
+            log.warn(
+              { surveyId: currentSurveyId },
+              'Submit conflict — survey changed on another device'
+            )
+            return false
+          }
+
+          set({ baseUpdatedAt: newUpdatedAt })
 
           // Best-effort auto-create of a draft estimate. If this fails the
           // survey is still submitted — the user can retry via the manual
@@ -585,6 +673,66 @@ export const useSurveyStore = create<SurveyState>()(
           const message = error instanceof Error ? error.message : 'Failed to submit survey'
           set({ isSyncing: false, syncError: message })
           log.error({ error: formatError(error, 'SUBMIT_SURVEY_ERROR') }, 'Submit survey error')
+          return false
+        }
+      },
+
+      // ============================================
+      // Conflict resolution (X12)
+      // ============================================
+      // Discard this device's unsaved edits and reload the server copy. Reuses
+      // loadSurveyFromDb, which resets isDirty, refreshes baseUpdatedAt to the
+      // current server version, and clears the conflict flag.
+      resolveConflictUseLatest: async () => {
+        const surveyId = get().currentSurveyId
+        if (!surveyId) return false
+        return get().loadSurveyFromDb(surveyId)
+      },
+
+      // Keep this device's edits and overwrite the server copy. Forces the
+      // write past the version guard (base = null) so it succeeds regardless of
+      // the intervening change, then adopts the resulting version as the new base.
+      resolveConflictKeepMine: async () => {
+        const { currentSurveyId, organizationId } = get()
+        if (!currentSurveyId || !organizationId) {
+          log.error('Cannot resolve conflict: surveyId and organizationId are required')
+          return false
+        }
+
+        set({ isSyncing: true, syncError: null })
+
+        try {
+          const supabase = createClient()
+          const dbData = mapStoreToDb(
+            {
+              currentSurveyId,
+              customerId: get().customerId,
+              formData: get().formData,
+              startedAt: get().startedAt,
+            },
+            organizationId,
+            { status: 'draft' }
+          )
+
+          const { newUpdatedAt } = await guardedSurveyUpdate(
+            supabase,
+            currentSurveyId,
+            dbData,
+            null
+          )
+
+          set({
+            isDirty: false,
+            isSyncing: false,
+            lastSavedAt: new Date().toISOString(),
+            baseUpdatedAt: newUpdatedAt,
+            hasConflict: false,
+          })
+          return true
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to overwrite survey'
+          set({ isSyncing: false, syncError: message })
+          log.error({ error: formatError(error, 'CONFLICT_KEEP_MINE_ERROR') }, 'Keep-mine resolution error')
           return false
         }
       },
@@ -709,6 +857,7 @@ export const useSurveyStore = create<SurveyState>()(
           currentSection: state.currentSection,
           startedAt: state.startedAt,
           lastSavedAt: state.lastSavedAt,
+          baseUpdatedAt: state.baseUpdatedAt,
         }
       },
     }

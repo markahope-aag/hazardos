@@ -15,6 +15,7 @@ import { Loader2 } from 'lucide-react'
 import { MobileWizardHeader } from './mobile-wizard-header'
 import { MobileWizardNavFooter } from './mobile-wizard-nav-footer'
 import { MobileWizardExitDialog } from './mobile-wizard-exit-dialog'
+import { MobileWizardConflictDialog } from './mobile-wizard-conflict-dialog'
 
 // Section components
 import { PropertySection } from './sections/property-section'
@@ -137,6 +138,9 @@ export default function MobileSurveyWizard({
     syncError,
     resetSurvey,
     formData,
+    hasConflict,
+    resolveConflictUseLatest,
+    resolveConflictKeepMine,
   } = useSurveyStore()
 
   // Photo queue store
@@ -151,6 +155,7 @@ export default function MobileSurveyWizard({
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [isResolvingConflict, setIsResolvingConflict] = useState(false)
 
   // Swipe start point. Held in a ref, not state: touchstart and touchend
   // are separate events that can fire within the same frame on a quick
@@ -318,6 +323,7 @@ export default function MobileSurveyWizard({
               organizationId: persisted.organizationId ?? current.organizationId,
               formData: mergedFormData,
               lastSavedAt: persisted.lastSavedAt ?? current.lastSavedAt,
+              baseUpdatedAt: persisted.baseUpdatedAt ?? current.baseUpdatedAt,
             }
           })
         }
@@ -429,6 +435,26 @@ export default function MobileSurveyWizard({
       await syncNow()
     }
   }, [saveDraft, syncNow, isOnline])
+
+  // Conflict resolution (X12) — both paths clear the conflict and resume normal
+  // sync; "keep mine" re-saves this device's edits over the server copy.
+  const handleUseLatest = useCallback(async () => {
+    setIsResolvingConflict(true)
+    try {
+      await resolveConflictUseLatest()
+    } finally {
+      setIsResolvingConflict(false)
+    }
+  }, [resolveConflictUseLatest])
+
+  const handleKeepMine = useCallback(async () => {
+    setIsResolvingConflict(true)
+    try {
+      await resolveConflictKeepMine()
+    } finally {
+      setIsResolvingConflict(false)
+    }
+  }, [resolveConflictKeepMine])
 
   // Submit survey
   const handleSubmit = useCallback(async () => {
@@ -608,6 +634,13 @@ export default function MobileSurveyWizard({
             }
           }}
           onSaveAndExit={handleSaveAndExit}
+        />
+
+        <MobileWizardConflictDialog
+          open={hasConflict}
+          isResolving={isResolvingConflict}
+          onUseLatest={handleUseLatest}
+          onKeepMine={handleKeepMine}
         />
       </div>
     </MobileSurveyWizardErrorBoundary>
