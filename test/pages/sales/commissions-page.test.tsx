@@ -61,6 +61,9 @@ vi.mock('@/lib/services/commission-service', () => ({
         },
       ],
     }),
+    getPeriods: () => Promise.resolve([
+      { period: '2024-01', status: 'open', earning_count: 2, total_commission: 4000, closed_at: null },
+    ]),
   },
 }))
 

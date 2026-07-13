@@ -7,16 +7,18 @@ import { Button } from '@/components/ui/button'
 import { DollarSign, Clock, CheckCircle, Wallet, Download } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { CommissionEarningsTable } from '@/components/sales/commission-earnings-table'
+import { CommissionPeriods } from '@/components/sales/commission-periods'
 
 export default async function CommissionsPage() {
 
   const user = await getCurrentUser()
   if (!user) redirect('/login')
 
-  const [profile, summary, earningsResult] = await Promise.all([
+  const [profile, summary, earningsResult, periods] = await Promise.all([
     getCurrentProfile(),
     CommissionService.getSummary(),
     CommissionService.getEarnings(),
+    CommissionService.getPeriods(),
   ])
 
   const earnings = earningsResult.earnings
@@ -98,6 +100,16 @@ export default async function CommissionsPage() {
         </CardHeader>
         <CardContent>
           <CommissionEarningsTable earnings={earnings} canManage={canManage} />
+        </CardContent>
+      </Card>
+
+      {/* Pay Periods */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Pay Periods</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CommissionPeriods periods={periods} canManage={canManage} />
         </CardContent>
       </Card>
     </div>

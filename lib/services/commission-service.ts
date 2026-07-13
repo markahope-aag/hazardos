@@ -359,6 +359,87 @@ export class CommissionService {
     }
   }
 
+  // ========== PERIODS (CO6) ==========
+
+  // Lists every month that has commission earnings, annotated with its
+  // open/closed state and roll-up totals. Months are derived from
+  // earning_date so a period shows up as soon as it has any earning, even
+  // before it's ever been closed.
+  static async getPeriods(): Promise<Array<{
+    period: string
+    status: 'open' | 'closed'
+    earning_count: number
+    total_commission: number
+    closed_at: string | null
+  }>> {
+    const supabase = await createClient()
+
+    const [{ data: earnings }, { data: periods }] = await Promise.all([
+      supabase.from('commission_earnings').select('earning_date, commission_amount'),
+      supabase.from('commission_periods').select('period, status, closed_at'),
+    ])
+
+    const closedMap = new Map(
+      (periods || []).map((p) => [p.period, { status: p.status as 'open' | 'closed', closed_at: p.closed_at }]),
+    )
+
+    const byMonth = new Map<string, { count: number; total: number }>()
+    for (const e of earnings || []) {
+      const month = (e.earning_date || '').slice(0, 7)
+      if (!month) continue
+      const agg = byMonth.get(month) || { count: 0, total: 0 }
+      agg.count += 1
+      agg.total += e.commission_amount || 0
+      byMonth.set(month, agg)
+    }
+
+    // Include closed periods even if they have no earnings, so a period
+    // can't silently disappear from the list after being closed.
+    for (const period of closedMap.keys()) {
+      if (!byMonth.has(period)) byMonth.set(period, { count: 0, total: 0 })
+    }
+
+    return Array.from(byMonth.entries())
+      .map(([period, agg]) => ({
+        period,
+        status: closedMap.get(period)?.status ?? 'open',
+        earning_count: agg.count,
+        total_commission: agg.total,
+        closed_at: closedMap.get(period)?.closed_at ?? null,
+      }))
+      .sort((a, b) => b.period.localeCompare(a.period))
+  }
+
+  static async setPeriodStatus(period: string, status: 'open' | 'closed'): Promise<void> {
+    const supabase = await createClient()
+
+    const user = await getCurrentUser()
+    if (!user) throw new SecureError('UNAUTHORIZED')
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')
+
+    const { error } = await supabase
+      .from('commission_periods')
+      .upsert(
+        {
+          organization_id: profile.organization_id,
+          period,
+          status,
+          closed_by: status === 'closed' ? user.id : null,
+          closed_at: status === 'closed' ? new Date().toISOString() : null,
+        },
+        { onConflict: 'organization_id,period' },
+      )
+
+    if (error) throwDbError(error, 'update commission period')
+  }
+
   // ========== USER ASSIGNMENTS ==========
 
   static async assignPlanToUser(userId: string, planId: string): Promise<void> {
