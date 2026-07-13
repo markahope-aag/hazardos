@@ -57,6 +57,41 @@ describe('proxy route gating', () => {
     }
   })
 
+  it('lets unauthenticated customers reach token-gated public routes (FB1)', async () => {
+    // External customers open emailed links with no account and no session
+    // cookie. If the proxy redirects these to /login, the proposal portal,
+    // invoice portal, and feedback survey all fail for their intended
+    // audience. Each authenticates by the access token in the URL/body.
+    for (const path of [
+      '/portal/proposal/abc123',
+      '/portal/invoice/abc123',
+      '/feedback/tok_survey',
+      '/sms-consent',
+      '/offline',
+      '/api/portal/invoice/abc123',
+      '/api/portal/proposal/abc123',
+      '/api/feedback/submit/tok_survey',
+      '/api/proposals/sign',
+      '/api/billing/plans',
+    ]) {
+      const res = await proxy(makeRequest(path))
+      expect(redirectTarget(res), `${path} should not redirect`).toBeNull()
+    }
+  })
+
+  it('still protects the admin feedback endpoints (only /submit is public)', async () => {
+    // /api/feedback/submit is public, but the rest of /api/feedback (list,
+    // stats, testimonials, send) must still require auth.
+    for (const path of [
+      '/api/feedback/stats',
+      '/api/feedback/testimonials',
+      '/api/feedback/some-id/send',
+    ]) {
+      const res = await proxy(makeRequest(path))
+      expect(redirectTarget(res), `${path} should redirect`).toContain('/login')
+    }
+  })
+
   it('redirects unauthenticated dashboard requests to /login', async () => {
     const res = await proxy(makeRequest('/crm/contacts'))
     expect(redirectTarget(res)).toContain('/login')

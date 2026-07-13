@@ -213,7 +213,7 @@ export function JobDetails({ job }: JobDetailsProps) {
           {job.site_survey && (
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Site Survey</span>
-              <Link href={`/surveys/${job.site_survey.id}`} className="text-primary hover:underline">
+              <Link href={`/site-surveys/${job.site_survey.id}`} className="text-primary hover:underline">
                 View Survey
               </Link>
             </div>

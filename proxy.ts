@@ -30,6 +30,22 @@ const AUTH_ROUTES = ['/login', '/signup', '/forgot-password']
 // Supabase session cookie — without this exception the login redirect fires
 // and the job never reaches its handler. Each cron route authenticates the
 // call itself via CRON_SECRET / the Vercel-signed x-vercel-cron header.
+//
+// Customer-facing token routes (portal, feedback, sms-consent, offline) are
+// reached by people who have NO account and NO session cookie — an external
+// customer opening an emailed link. Without these exceptions the proxy
+// redirects them to /login, so the proposal portal, the invoice portal, and
+// the feedback survey all silently fail for the exact audience they're built
+// for. Each page/API authenticates by the unguessable access token in the
+// URL (or request body), not by session:
+//   /portal/*                — proposal + invoice public views
+//   /feedback/*              — customer satisfaction survey page
+//   /sms-consent, /offline   — public consent + PWA offline pages
+//   /api/portal/*            — data for the portal views
+//   /api/feedback/submit/*   — load + submit a survey by token (NOT the rest
+//                              of /api/feedback, which is admin-only)
+//   /api/proposals/sign      — customer signs a proposal by token
+//   /api/billing/plans       — public pricing, no auth needed
 const PUBLIC_ROUTES = [
   ...AUTH_ROUTES,
   '/reset-password',
@@ -38,6 +54,14 @@ const PUBLIC_ROUTES = [
   '/api/webhooks',
   '/api/auth',
   '/api/cron',
+  '/portal',
+  '/feedback',
+  '/sms-consent',
+  '/offline',
+  '/api/portal',
+  '/api/feedback/submit',
+  '/api/proposals/sign',
+  '/api/billing/plans',
 ]
 
 export async function proxy(request: NextRequest) {

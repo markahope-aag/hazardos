@@ -270,7 +270,7 @@ export function JobHeader({ job }: JobHeaderProps) {
               )}
               {job.site_survey && (
                 <DropdownMenuItem asChild>
-                  <Link href={`/surveys/${job.site_survey.id}`}>View Survey</Link>
+                  <Link href={`/site-surveys/${job.site_survey.id}`}>View Survey</Link>
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
