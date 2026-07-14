@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { EmailService } from '@/lib/services/email/email-service'
 import { wrapEmailHtml } from '@/lib/services/email/template-wrapper'
@@ -36,6 +37,11 @@ const shareSchema = z.object({
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
+    // Emailing signed links to org credential/compliance documents to an
+    // arbitrary external address is a write-like action — restrict to
+    // write roles rather than defaulting to any authenticated member
+    // (which included read-only viewers).
+    allowedRoles: ROLES.TENANT_WRITE,
     bodySchema: shareSchema,
   },
   async (_request, context, body) => {
