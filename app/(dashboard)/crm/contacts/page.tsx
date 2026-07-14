@@ -2,15 +2,17 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, Upload } from 'lucide-react'
 import CustomerList from '@/components/customers/customer-list'
 import CreateCustomerModal from '@/components/customers/create-customer-modal'
 import EditCustomerModal from '@/components/customers/edit-customer-modal'
 import DeleteCustomerDialog from '@/components/customers/delete-customer-dialog'
+import ImportContactsDialog from '@/components/customers/import-contacts-dialog'
 import type { Customer } from '@/types/database'
 
 export default function ContactsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null)
 
@@ -23,10 +25,16 @@ export default function ContactsPage() {
             Manage your leads, prospects, and customers
           </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Contact
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowImportModal(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Import CSV
+          </Button>
+          <Button onClick={() => setShowCreateModal(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Contact
+          </Button>
+        </div>
       </div>
 
       <CustomerList
@@ -37,6 +45,11 @@ export default function ContactsPage() {
       <CreateCustomerModal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
+      />
+
+      <ImportContactsDialog
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
       />
 
       {editingCustomer && (
