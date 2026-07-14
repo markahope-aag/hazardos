@@ -121,11 +121,13 @@ export default function CustomerForm({
       {/* Section 1: Contact Type */}
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact Type</h3>
-        <div className="flex gap-3">
+        <div className="flex gap-3" role="radiogroup" aria-label="Contact type">
           {CONTACT_TYPE_OPTIONS.map((option) => (
             <button
               key={option.value}
               type="button"
+              role="radio"
+              aria-checked={watchedContactType === option.value}
               onClick={() => {
                 setValue('contact_type', option.value as ContactType)
                 if (option.value === 'residential') {
@@ -137,7 +139,7 @@ export default function CustomerForm({
               className={`flex-1 p-3 rounded-lg border-2 text-left transition-colors ${
                 watchedContactType === option.value
                   ? 'border-primary bg-primary/5'
-                  : 'border-gray-200 hover:border-gray-300'
+                  : 'border-input hover:border-gray-300'
               }`}
             >
               <div className="font-medium text-sm">{option.label}</div>

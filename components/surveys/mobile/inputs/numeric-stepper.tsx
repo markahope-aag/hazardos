@@ -7,7 +7,7 @@ import { Minus, Plus } from 'lucide-react'
 
 interface NumericStepperProps {
   value: number | null
-  onChange: (value: number) => void
+  onChange: (value: number | null) => void
   min?: number
   max?: number
   step?: number
@@ -43,10 +43,10 @@ export function NumericStepper({
   const commit = (raw: string) => {
     const trimmed = raw.trim()
     if (trimmed === '' || trimmed === '-') {
-      // Treat empty as the min — keeps downstream consumers expecting a
-      // number happy (onChange is typed as (number) => void).
-      onChange(min)
-      setDraft(String(min))
+      // A cleared field means "no reading" — report null rather than
+      // silently coercing to min, which would record min as a real value.
+      onChange(null)
+      setDraft('')
       return
     }
     const parsed = Number(trimmed)

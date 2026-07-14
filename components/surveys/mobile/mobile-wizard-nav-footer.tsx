@@ -67,13 +67,13 @@ export function MobileWizardNavFooter({
             </span>
           )}
           {failedPhotos > 0 && (
-            <span className="text-destructive ml-2">{failedPhotos} failed</span>
+            <span role="alert" className="text-destructive ml-2">{failedPhotos} failed</span>
           )}
         </div>
       )}
 
       {submitError && (
-        <div className="px-4 py-2 bg-destructive/5 text-destructive text-sm text-center border-b border-destructive/10">
+        <div role="alert" className="px-4 py-2 bg-destructive/5 text-destructive text-sm text-center border-b border-destructive/10">
           {submitError}
         </div>
       )}

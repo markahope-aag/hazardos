@@ -51,6 +51,9 @@ export default function PropertiesPage() {
       : <ArrowDown className="h-3 w-3 text-primary" />
   }
 
+  const ariaSort = (key: PropertiesSortKey): 'ascending' | 'descending' | 'none' =>
+    sortBy === key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'
+
   const queryOptions = useMemo(
     () => ({ search: debounced, page, pageSize: PAGE_SIZE, sortBy, sortDir }),
     [debounced, page, sortBy, sortDir],
@@ -117,7 +120,7 @@ export default function PropertiesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>
+                  <TableHead aria-sort={ariaSort('address')}>
                     <button
                       type="button"
                       onClick={() => toggleSort('address')}
@@ -127,7 +130,7 @@ export default function PropertiesPage() {
                       {sortIcon('address')}
                     </button>
                   </TableHead>
-                  <TableHead>
+                  <TableHead aria-sort={ariaSort('city')}>
                     <button
                       type="button"
                       onClick={() => toggleSort('city')}
@@ -139,7 +142,7 @@ export default function PropertiesPage() {
                   </TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead className="text-right">Contacts</TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className="text-right" aria-sort={ariaSort('jobs')}>
                     <button
                       type="button"
                       onClick={() => toggleSort('jobs')}
