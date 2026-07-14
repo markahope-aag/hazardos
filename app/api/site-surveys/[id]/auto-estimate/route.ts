@@ -56,7 +56,10 @@ export const POST = createApiHandlerWithParams(
         { err: error, surveyId },
         'Failed to auto-create estimate from submitted survey',
       )
-      throw error
+      throwDbError(
+        error instanceof Error ? { message: error.message } : (error as { message?: string }),
+        'auto-create estimate from survey',
+      )
     }
   },
 )

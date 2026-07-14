@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import { subMonths, format, startOfMonth, endOfMonth } from 'date-fns'
 
 /**
@@ -29,9 +30,7 @@ export const GET = createApiHandler(
       .gte('scheduled_start_date', format(sixMonthsAgo, 'yyyy-MM-dd'))
       .lte('scheduled_start_date', format(now, 'yyyy-MM-dd'))
 
-    if (error) {
-      throw error
-    }
+    if (error) throwDbError(error, 'fetch revenue by month')
 
     const monthlyRevenue = new Map<string, number>()
     for (let i = 5; i >= 0; i--) {

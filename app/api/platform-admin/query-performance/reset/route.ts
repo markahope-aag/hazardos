@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 /**
@@ -14,7 +15,7 @@ export const POST = createApiHandler(
     void context
     const supabase = createAdminClient()
     const { error } = await supabase.rpc('reset_query_performance_stats')
-    if (error) throw error
+    if (error) throwDbError(error, 'reset query performance stats')
     return NextResponse.json({ ok: true })
   },
 )

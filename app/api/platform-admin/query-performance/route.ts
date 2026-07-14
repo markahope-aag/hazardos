@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 /**
@@ -46,7 +47,7 @@ export const GET = createApiHandler(
       order_by,
       limit_n: limit,
     })
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch slow queries')
 
     const rows = (data || []) as SlowQueryRow[]
     return NextResponse.json({

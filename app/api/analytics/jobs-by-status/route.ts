@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import {
   getPeriodRange,
   hazardFilterToDbValue,
@@ -70,9 +71,7 @@ export const GET = createApiHandler(
 
     const { data: jobs, error } = await jobsQuery
 
-    if (error) {
-      throw error
-    }
+    if (error) throwDbError(error, 'fetch jobs by status')
 
     const statusCounts = new Map<string, number>()
     for (const job of jobs || []) {

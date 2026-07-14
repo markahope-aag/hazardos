@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import { createDisposalFeeSchema, updateDisposalFeeSchema, deleteDisposalFeeQuerySchema } from '@/lib/validations/settings'
 
 const adminRoles = ['platform_owner', 'platform_admin', 'tenant_owner', 'admin']
@@ -19,9 +20,7 @@ export const GET = createApiHandler(
       .select('id, organization_id, hazard_type, cost_per_cubic_yard, description, created_at, updated_at')
       .order('hazard_type')
 
-    if (error) {
-      throw error
-    }
+    if (error) throwDbError(error, 'list disposal fees')
 
     return NextResponse.json({ disposal_fees: data })
   }
@@ -49,9 +48,7 @@ export const POST = createApiHandler(
       .select()
       .single()
 
-    if (error) {
-      throw error
-    }
+    if (error) throwDbError(error, 'create disposal fee')
 
     return NextResponse.json(data, { status: 201 })
   }
@@ -77,9 +74,7 @@ export const PATCH = createApiHandler(
       .select()
       .single()
 
-    if (error) {
-      throw error
-    }
+    if (error) throwDbError(error, 'update disposal fee')
 
     return NextResponse.json(data)
   }
@@ -101,9 +96,7 @@ export const DELETE = createApiHandler(
       .delete()
       .eq('id', query.id)
 
-    if (error) {
-      throw error
-    }
+    if (error) throwDbError(error, 'delete disposal fee')
 
     return NextResponse.json({ success: true })
   }

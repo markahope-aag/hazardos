@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 
 const querySchema = z.object({
   include: z.enum(['latest', 'all']).optional(),
@@ -36,9 +37,7 @@ export const GET = createApiHandlerWithParams(
       .order('estimate_root_id', { ascending: true })
       .order('version', { ascending: true })
 
-    if (error) {
-      throw error
-    }
+    if (error) throwDbError(error, 'list survey estimates')
 
     const all = data || []
 

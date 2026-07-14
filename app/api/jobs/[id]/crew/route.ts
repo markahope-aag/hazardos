@@ -3,7 +3,7 @@ import { JobsService } from '@/lib/services/jobs-service'
 import { CredentialsService } from '@/lib/services/credentials'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { assignCrewSchema, removeCrewSchema } from '@/lib/validations/jobs'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { formatError } from '@/lib/utils/logger'
 
 export const POST = createApiHandlerWithParams(
@@ -46,7 +46,8 @@ export const POST = createApiHandlerWithParams(
       if (error instanceof Error && error.message.includes('duplicate')) {
         throw new SecureError('VALIDATION_ERROR', 'This crew member is already assigned to this job')
       }
-      throw error
+      const msg = error instanceof Error ? error.message : String(error)
+      throwDbError({ message: msg }, 'assign crew member')
     }
   }
 )

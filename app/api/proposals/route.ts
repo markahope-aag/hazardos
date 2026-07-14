@@ -45,9 +45,7 @@ export const GET = createApiHandler(
 
     const { data, error, count } = await dbQuery
 
-    if (error) {
-      throw error
-    }
+    if (error) throwDbError(error, 'list proposals')
 
     // Transform relations
     const proposals = (data || []).map(proposal => ({

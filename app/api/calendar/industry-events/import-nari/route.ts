@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
 
 /**
@@ -21,7 +22,7 @@ export const POST = createApiHandler(
       { p_organization_id: context.profile.organization_id },
     )
 
-    if (error) throw error
+    if (error) throwDbError(error, 'import NARI events')
 
     return NextResponse.json({ inserted: data ?? 0 })
   },

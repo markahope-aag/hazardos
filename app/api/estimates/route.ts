@@ -3,6 +3,7 @@ import { FollowUpsService } from '@/lib/services/follow-ups-service'
 import { createEstimateFromSurvey } from '@/lib/services/estimate-creator'
 import { createStandaloneEstimate } from '@/lib/services/standalone-estimate'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
 import { estimateListQuerySchema, createEstimateBodySchema } from '@/lib/validations/estimates'
 
@@ -64,9 +65,7 @@ export const GET = createApiHandler(
 
     const { data, error, count } = await dbQuery
 
-    if (error) {
-      throw error
-    }
+    if (error) throwDbError(error, 'list estimates')
 
     // Fetch most recent activity per estimate in one round-trip. We grab all
     // activity_log rows for the visible estimates and take the first per id;

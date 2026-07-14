@@ -49,7 +49,7 @@ export const GET = createApiHandlerWithParams(
       if (error.code === 'PGRST116') {
         throw new SecureError('NOT_FOUND', 'Estimate not found')
       }
-      throw error
+      throwDbError(error, 'fetch estimate')
     }
 
     // Transform relations

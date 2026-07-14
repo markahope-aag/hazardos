@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
 import { z } from 'zod'
 
@@ -36,7 +37,7 @@ export const GET = createApiHandler(
     if (query.category) q = q.eq('category', query.category)
 
     const { data, error } = await q
-    if (error) throw error
+    if (error) throwDbError(error, 'fetch industry events')
 
     return NextResponse.json({ events: data ?? [] })
   },

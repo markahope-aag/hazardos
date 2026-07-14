@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import { createLaborRateSchema, updateLaborRateSchema, deleteLaborRateQuerySchema } from '@/lib/validations/settings'
 
 const adminRoles = ['platform_owner', 'platform_admin', 'tenant_owner', 'admin']
@@ -20,9 +21,7 @@ export const GET = createApiHandler(
       .order('is_default', { ascending: false })
       .order('name')
 
-    if (error) {
-      throw error
-    }
+    if (error) throwDbError(error, 'list labor rates')
 
     return NextResponse.json({ labor_rates: laborRates })
   }
@@ -59,9 +58,7 @@ export const POST = createApiHandler(
       .select()
       .single()
 
-    if (error) {
-      throw error
-    }
+    if (error) throwDbError(error, 'create labor rate')
 
     return NextResponse.json(laborRate, { status: 201 })
   }
@@ -96,9 +93,7 @@ export const PATCH = createApiHandler(
       .select()
       .single()
 
-    if (error) {
-      throw error
-    }
+    if (error) throwDbError(error, 'update labor rate')
 
     return NextResponse.json(laborRate)
   }
@@ -120,9 +115,7 @@ export const DELETE = createApiHandler(
       .delete()
       .eq('id', query.id)
 
-    if (error) {
-      throw error
-    }
+    if (error) throwDbError(error, 'delete labor rate')
 
     return NextResponse.json({ success: true })
   }

@@ -53,9 +53,7 @@ export const GET = createApiHandlerWithParams(
       .eq('estimate_id', params.id)
       .order('sort_order', { ascending: true })
 
-    if (error) {
-      throw error
-    }
+    if (error) throwDbError(error, 'list estimate line items')
 
     return NextResponse.json({ line_items: lineItems || [] })
   }
