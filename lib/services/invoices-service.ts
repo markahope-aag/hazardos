@@ -2,6 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/server-auth'
 import { Activity } from '@/lib/services/activity-service'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
+import { createServiceLogger } from '@/lib/utils/logger'
+
+const log = createServiceLogger('InvoicesService')
 import type {
   Invoice,
   InvoiceLineItem,
@@ -422,12 +425,21 @@ export class InvoicesService {
     // InvoiceDeliveryService) to keep this module free of a circular
     // dependency with the delivery service, which depends on this one.
     const supabase = await createClient()
-    await supabase
+    const { error: reminderErr } = await supabase
       .from('scheduled_reminders')
       .update({ status: 'cancelled' })
       .eq('related_type', 'invoice')
       .eq('related_id', id)
       .eq('status', 'pending')
+
+    // Best-effort cleanup, but don't fail silently: a leftover pending
+    // reminder would keep chasing the customer for a voided invoice.
+    if (reminderErr) {
+      log.warn(
+        { invoiceId: id, err: reminderErr.message },
+        'Failed to cancel pending reminders for voided invoice',
+      )
+    }
 
     return invoice
   }

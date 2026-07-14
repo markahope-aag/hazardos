@@ -9,6 +9,25 @@ import {
 } from '@/lib/validations/customer-import'
 
 /**
+ * Map a Postgres/PostgREST insert error to a safe, user-facing reason without
+ * leaking internal schema details (column/constraint names) to the client.
+ */
+function safeImportError(err: { code?: string }): string {
+  switch (err.code) {
+    case '23505':
+      return 'Duplicate contact'
+    case '23514':
+      return 'A value failed a validation rule'
+    case '23502':
+      return 'A required field was missing'
+    case '22001':
+      return 'A value was too long'
+    default:
+      return 'Could not import this row'
+  }
+}
+
+/**
  * POST /api/customers/import
  * Bulk-import a chunk of contacts from a CSV (EX1). The client parses/maps the
  * CSV and posts field-keyed rows in chunks; this endpoint validates each row,
@@ -104,7 +123,7 @@ export const POST = createApiHandler(
             .from('customers')
             .insert(buildRow(c.row))
           results[c.index] = rowErr
-            ? { status: 'error', reason: rowErr.message }
+            ? { status: 'error', reason: safeImportError(rowErr) }
             : { status: 'imported' }
         }
       } else {

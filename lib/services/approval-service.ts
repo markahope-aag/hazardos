@@ -331,7 +331,14 @@ export class ApprovalService {
       .eq('id', user.id)
       .single()
 
-    const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
+    // Mirror reviewEstimate's gate: admins/owners can do level-1 review; only
+    // owners (+ platform roles) give final level-2 approval. (Previously this
+    // used a non-existent 'owner' role and showed level-1 requests to everyone,
+    // so estimators/technicians saw approvals they can't act on.)
+    const role = profile?.role
+    const isOwnerLike =
+      role === 'tenant_owner' || role === 'platform_owner' || role === 'platform_admin'
+    const isAdminLike = isOwnerLike || role === 'admin'
 
     // Get pending requests
     const query = supabase
@@ -347,17 +354,14 @@ export class ApprovalService {
 
     if (error) throwDbError(error, 'fetch approval requests')
 
-    // Filter to requests this user can approve
+    // Filter to requests this user can actually act on.
     const requests = (data || []).filter(r => {
-      // Admin can approve anything
-      if (isAdmin) return true
+      // Level 1 pending → admins/owners can review.
+      if (r.level1_status === 'pending') return isAdminLike
 
-      // Level 1 pending and not yet approved
-      if (r.level1_status === 'pending') return true
-
-      // Level 2 pending and level 1 approved
+      // Level 2 pending (level 1 already approved) → only owners give final say.
       if (r.level1_status === 'approved' && r.requires_level2 && r.level2_status === 'pending') {
-        return isAdmin // Only admin/owner can do level 2
+        return isOwnerLike
       }
 
       return false
@@ -515,19 +519,17 @@ export class ApprovalService {
     // estimate's status together in one transaction. Previously these were
     // separate writes with no error check on the estimate update, so a failure
     // there left the request finalized while the estimate stayed pending.
-    const { data: updated, error } = await supabase
-      .rpc('record_estimate_approval', {
-        p_request_id: request.id,
-        p_estimate_id: estimateId,
-        p_level: level,
-        p_new_level_status: newLevelStatus,
-        p_final_status: finalStatus,
-        p_approver: user.id,
-        p_at: now,
-        p_notes: decision.notes || null,
-        p_approved: decision.approved,
-      })
-      .single()
+    const { data: updated, error } = await supabase.rpc('record_estimate_approval', {
+      p_request_id: request.id,
+      p_estimate_id: estimateId,
+      p_level: level,
+      p_new_level_status: newLevelStatus,
+      p_final_status: finalStatus,
+      p_approver: user.id,
+      p_at: now,
+      p_notes: decision.notes || null,
+      p_approved: decision.approved,
+    })
     if (error) throwDbError(error, 'record approval decision')
 
     const finalized = finalStatus !== 'pending'

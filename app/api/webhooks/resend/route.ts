@@ -65,7 +65,15 @@ export async function POST(request: NextRequest) {
   const rawBody = await request.text()
   const secret = process.env.RESEND_WEBHOOK_SECRET
 
-  if (secret) {
+  if (!secret) {
+    // Fail closed: without the signing secret we cannot verify the payload.
+    // In production, reject rather than silently accept forged bounce/
+    // complaint events (which would corrupt delivery-status data). Dev/test
+    // stays lenient so local webhook testing works without the secret.
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 })
+    }
+  } else {
     const id = request.headers.get('svix-id')
     const ts = request.headers.get('svix-timestamp')
     const sig = request.headers.get('svix-signature')

@@ -308,13 +308,11 @@ export class JobCompletionService {
     // Atomic: approve the completion AND flip the job to completed in one
     // transaction (previously two sequential UPDATEs where a failure on the
     // second silently left the completion approved on a non-completed job).
-    const { data, error } = await supabase
-      .rpc('approve_job_completion', {
-        p_job_id: jobId,
-        p_reviewed_by: user.id,
-        p_review_notes: input?.review_notes ?? null,
-      })
-      .single()
+    const { data, error } = await supabase.rpc('approve_job_completion', {
+      p_job_id: jobId,
+      p_reviewed_by: user.id,
+      p_review_notes: input?.review_notes ?? null,
+    })
 
     if (error) throwDbError(error, 'approve job completion')
 
