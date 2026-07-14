@@ -126,7 +126,7 @@ export function EnvironmentSection() {
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <Fan className="w-5 h-5 text-muted-foreground" />
-          <Label className="text-base">HVAC System Type</Label>
+          <Label htmlFor="hvac-type" className="text-base">HVAC System Type</Label>
         </div>
         <p className="text-sm text-muted-foreground">
           Primary heating/cooling system in the building
@@ -135,7 +135,7 @@ export function EnvironmentSection() {
           value={environment.hvacType || ''}
           onValueChange={(value) => updateEnvironment({ hvacType: value as HvacSystemType })}
         >
-          <SelectTrigger className="min-h-[52px] text-base">
+          <SelectTrigger id="hvac-type" className="min-h-[52px] text-base">
             <SelectValue placeholder="Select HVAC type" />
           </SelectTrigger>
           <SelectContent>

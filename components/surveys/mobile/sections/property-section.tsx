@@ -270,8 +270,9 @@ export function PropertySection() {
 
       {/* Year Built */}
       <section className="space-y-3">
-        <Label>Year Built</Label>
+        <Label htmlFor="year-built">Year Built</Label>
         <Input
+          id="year-built"
           type="number"
           inputMode="numeric"
           min={1800}
@@ -293,8 +294,9 @@ export function PropertySection() {
 
       {/* Square Footage */}
       <section className="space-y-3">
-        <Label>Square Footage</Label>
+        <Label htmlFor="square-footage">Square Footage</Label>
         <Input
+          id="square-footage"
           type="number"
           inputMode="numeric"
           min={0}
@@ -319,12 +321,12 @@ export function PropertySection() {
 
       {/* Construction Type */}
       <section className="space-y-3">
-        <Label>Construction Type</Label>
+        <Label htmlFor="construction-type">Construction Type</Label>
         <Select
           value={property.constructionType || ''}
           onValueChange={(value) => updateProperty({ constructionType: value as ConstructionType })}
         >
-          <SelectTrigger className="min-h-[52px] text-base">
+          <SelectTrigger id="construction-type" className="min-h-[52px] text-base">
             <SelectValue placeholder="Select construction type" />
           </SelectTrigger>
           <SelectContent>

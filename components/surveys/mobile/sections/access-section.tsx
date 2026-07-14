@@ -126,6 +126,7 @@ export function AccessSection() {
               <span className="font-medium">Describe the limitations</span>
             </div>
             <Textarea
+              aria-label="Describe the equipment access limitations"
               value={access.equipmentAccessNotes}
               onChange={(e) => updateAccess({ equipmentAccessNotes: e.target.value })}
               placeholder="Narrow hallways, tight corners, weight limits, etc."

@@ -176,7 +176,7 @@ export function HazardsSection() {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={handleBack} className="touch-manipulation min-h-[44px] min-w-[44px]">
+          <Button variant="ghost" size="icon" aria-label="Back to areas" onClick={handleBack} className="touch-manipulation min-h-[44px] min-w-[44px]">
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <h3 className="text-lg font-semibold">Area Details</h3>
@@ -184,8 +184,9 @@ export function HazardsSection() {
 
         <div className="space-y-3">
           <div>
-            <Label>Area Name *</Label>
+            <Label htmlFor="area-name">Area Name *</Label>
             <Input
+              id="area-name"
               value={activeArea.area_name}
               onChange={(e) => updateArea(activeArea.id, { area_name: e.target.value })}
               placeholder="e.g., Basement, Room 101, Exterior North Wall"
@@ -193,8 +194,9 @@ export function HazardsSection() {
             />
           </div>
           <div>
-            <Label>Floor Level</Label>
+            <Label htmlFor="floor-level">Floor Level</Label>
             <Input
+              id="floor-level"
               value={activeArea.floor_level}
               onChange={(e) => updateArea(activeArea.id, { floor_level: e.target.value })}
               placeholder="e.g., Basement, 1st Floor, Attic"
@@ -239,6 +241,7 @@ export function HazardsSection() {
                         variant="ghost"
                         size="icon"
                         onClick={(e) => { e.stopPropagation(); removeHazard(activeArea.id, hazard.id) }}
+                        aria-label="Remove hazard"
                         className="text-destructive hover:text-destructive min-h-[44px] min-w-[44px]"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -314,7 +317,7 @@ export function HazardsSection() {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={handleBack} className="touch-manipulation min-h-[44px] min-w-[44px]">
+          <Button variant="ghost" size="icon" aria-label="Back to area details" onClick={handleBack} className="touch-manipulation min-h-[44px] min-w-[44px]">
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <h3 className="text-lg font-semibold">Capture Hazard</h3>
@@ -344,12 +347,12 @@ export function HazardsSection() {
 
         {/* Material Type */}
         <div>
-          <Label>Material Type</Label>
+          <Label htmlFor="material-type">Material Type</Label>
           <Select
             value={activeHazard.material_type}
             onValueChange={(v) => updateHazard(activeArea.id, activeHazard.id, { material_type: v })}
           >
-            <SelectTrigger className="min-h-[48px]"><SelectValue placeholder="Select material" /></SelectTrigger>
+            <SelectTrigger id="material-type" className="min-h-[48px]"><SelectValue placeholder="Select material" /></SelectTrigger>
             <SelectContent>
               {materialOptions.map((m) => (
                 <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
@@ -382,8 +385,9 @@ export function HazardsSection() {
         {/* Quantity + Unit */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Quantity</Label>
+            <Label htmlFor="hazard-quantity">Quantity</Label>
             <Input
+              id="hazard-quantity"
               type="number"
               min="0"
               value={activeHazard.quantity ?? ''}
@@ -395,12 +399,12 @@ export function HazardsSection() {
             />
           </div>
           <div>
-            <Label>Unit</Label>
+            <Label htmlFor="hazard-unit">Unit</Label>
             <Select
               value={activeHazard.unit}
               onValueChange={(v) => updateHazard(activeArea.id, activeHazard.id, { unit: v as QuantityUnit })}
             >
-              <SelectTrigger className="min-h-[48px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger id="hazard-unit" className="min-h-[48px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {UNIT_OPTIONS.map((u) => (
                   <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
@@ -412,12 +416,12 @@ export function HazardsSection() {
 
         {/* Containment Level */}
         <div>
-          <Label>Containment Level {activeHazard.containment_level && <span className="text-xs text-muted-foreground">(auto-suggested)</span>}</Label>
+          <Label htmlFor="containment-level">Containment Level {activeHazard.containment_level && <span className="text-xs text-muted-foreground">(auto-suggested)</span>}</Label>
           <Select
             value={activeHazard.containment_level || ''}
             onValueChange={(v) => updateHazard(activeArea.id, activeHazard.id, { containment_level: v as ContainmentLevel })}
           >
-            <SelectTrigger className="min-h-[48px]"><SelectValue placeholder="Select containment" /></SelectTrigger>
+            <SelectTrigger id="containment-level" className="min-h-[48px]"><SelectValue placeholder="Select containment" /></SelectTrigger>
             <SelectContent>
               {Object.entries(CONTAINMENT_LABELS).map(([k, v]) => (
                 <SelectItem key={k} value={k}>{v}</SelectItem>
@@ -428,8 +432,9 @@ export function HazardsSection() {
 
         {/* Notes */}
         <div>
-          <Label>Notes</Label>
+          <Label htmlFor="hazard-notes">Notes</Label>
           <Textarea
+            id="hazard-notes"
             value={activeHazard.notes}
             onChange={(e) => updateHazard(activeArea.id, activeHazard.id, { notes: e.target.value })}
             placeholder="Additional details about this hazard..."
