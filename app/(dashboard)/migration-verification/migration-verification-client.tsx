@@ -206,9 +206,15 @@ export default function MigrationVerificationClient() {
 
         for (const table of pricingTables) {
           try {
+            // Diagnostic probe: each pricing table gets a differently-shaped
+            // sample row inserted by dynamic name. The heterogeneous payloads
+            // can't be statically reconciled with each table's Insert type
+            // (supabase-js's RejectExcessProperties rejects the union), so the
+            // payload is widened for these throwaway inserts. The row is
+            // deleted again immediately below.
             const { data: insertedData, error } = await supabase
               .from(table.name)
-              .insert(table.testData)
+              .insert(table.testData as never)
               .select()
               .single()
 
