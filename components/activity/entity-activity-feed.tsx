@@ -269,7 +269,7 @@ function FeedItem({ entry }: { entry: FeedEntry }) {
         {entry.source === 'activity' && <ActivityBody entry={entry} />}
         {entry.source === 'sms' && <SmsBody entry={entry} />}
         {entry.source === 'email' && <EmailBody entry={entry} />}
-        <div className="text-xs text-gray-400 mt-0.5">
+        <div className="text-xs text-gray-600 mt-0.5">
           {formatDistanceToNow(new Date(entry.at), { addSuffix: true })}
         </div>
       </div>

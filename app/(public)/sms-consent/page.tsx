@@ -205,7 +205,7 @@ export default function SmsConsentPage() {
             </Card>
           )}
 
-          <p className="mt-6 text-center text-xs text-gray-400">
+          <p className="mt-6 text-center text-xs text-gray-600">
             Powered by HazardOS &middot; Environmental Remediation Management
           </p>
         </div>

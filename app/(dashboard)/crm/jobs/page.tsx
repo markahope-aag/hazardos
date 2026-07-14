@@ -42,7 +42,7 @@ function getPaymentStatus(job: Record<string, unknown>): { label: string; color:
   if (job.final_invoice_date || job.status === 'invoiced') return { label: 'Invoiced', color: 'bg-purple-100 text-purple-700' }
   if (job.deposit_received_date) return { label: 'Deposit Received', color: 'bg-blue-100 text-blue-700' }
   if (job.status === 'completed') return { label: 'Pending Invoice', color: 'bg-amber-100 text-amber-700' }
-  if (job.status === 'in_progress' || job.status === 'scheduled') return { label: 'Not Yet Billed', color: 'bg-gray-100 text-gray-400' }
+  if (job.status === 'in_progress' || job.status === 'scheduled') return { label: 'Not Yet Billed', color: 'bg-gray-100 text-gray-600' }
   return { label: '—', color: '' }
 }
 

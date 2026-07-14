@@ -169,7 +169,7 @@ export default function MessagesPage() {
                           )}
                         </div>
                         <div className="text-sm text-gray-500 truncate mt-0.5">
-                          <span className={c.last_message_direction === 'inbound' ? 'text-gray-700' : 'text-gray-400'}>
+                          <span className={c.last_message_direction === 'inbound' ? 'text-gray-700' : 'text-gray-600'}>
                             {c.last_message_direction === 'inbound' ? '' : 'You: '}
                           </span>
                           {c.last_message_body}

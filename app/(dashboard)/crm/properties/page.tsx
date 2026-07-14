@@ -188,7 +188,7 @@ export default function PropertiesPage() {
                         <Users className="h-3.5 w-3.5 text-gray-400" />
                         {p.current_contact_count}
                         {p.past_contact_count > 0 && (
-                          <span className="text-gray-400">
+                          <span className="text-gray-600">
                             {' '}/ {p.past_contact_count} past
                           </span>
                         )}
