@@ -69,8 +69,13 @@ export const addPaymentSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   payment_method: paymentMethodSchema,
   payment_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
-  reference_number: z.string().max(100).optional(),
-  notes: z.string().max(500).optional(),
+  // nullish, not optional: the payment form leaves these empty by default and
+  // the client sends `reference_number || null` / `notes || null`. A plain
+  // .optional() accepts undefined but REJECTS null, so every payment recorded
+  // without a reference number or note (the common case) failed validation
+  // with a 400 — surfacing as "Failed to record payment" (I9).
+  reference_number: z.string().max(100).nullish(),
+  notes: z.string().max(500).nullish(),
 })
 
 // Send invoice

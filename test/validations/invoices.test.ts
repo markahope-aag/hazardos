@@ -240,6 +240,19 @@ describe('Invoice Validation Schemas', () => {
       expect(result.success).toBe(true)
     })
 
+    // I9 regression: the payment form defaults reference_number/notes to '' and
+    // the client sends `value || null`, so a payment with no reference or note
+    // arrives with explicit nulls. The schema must accept them, or every such
+    // payment 400s as "Failed to record payment".
+    it('should accept explicit null for optional reference_number and notes', () => {
+      const result = addPaymentSchema.safeParse({
+        ...validPayment,
+        reference_number: null,
+        notes: null,
+      })
+      expect(result.success).toBe(true)
+    })
+
     it('should require positive amount', () => {
       const result = addPaymentSchema.safeParse({
         ...validPayment,

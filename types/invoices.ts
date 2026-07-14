@@ -132,8 +132,8 @@ export interface RecordPaymentInput {
   amount: number
   payment_date?: string
   payment_method?: PaymentMethod
-  reference_number?: string
-  notes?: string
+  reference_number?: string | null
+  notes?: string | null
 }
 
 // Status config for UI
