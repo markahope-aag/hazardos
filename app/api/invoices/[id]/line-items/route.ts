@@ -21,6 +21,7 @@ export const POST = createApiHandlerWithParams(
     bodySchema: addInvoiceLineItemSchema,
   },
   async (_request, _context, params, body) => {
+    await InvoicesService.assertDraftEditable(params.id)
     const lineItem = await InvoicesService.addLineItem(params.id, body)
     return NextResponse.json(lineItem, { status: 201 })
   }
@@ -36,7 +37,8 @@ export const PATCH = createApiHandlerWithParams(
     allowedRoles: ROLES.TENANT_ADMIN,
     bodySchema: updateInvoiceLineItemSchema,
   },
-  async (_request, _context, _params, body) => {
+  async (_request, _context, params, body) => {
+    await InvoicesService.assertDraftEditable(params.id)
     const { line_item_id, ...updates } = body
     const lineItem = await InvoicesService.updateLineItem(line_item_id, updates)
     return NextResponse.json(lineItem)
@@ -53,10 +55,11 @@ export const DELETE = createApiHandlerWithParams(
     allowedRoles: ROLES.TENANT_ADMIN,
     querySchema: deleteQuerySchema,
   },
-  async (_request, _context, _params, _body, query) => {
+  async (_request, _context, params, _body, query) => {
     if (!query.line_item_id) {
       throw new SecureError('VALIDATION_ERROR', 'line_item_id is required')
     }
+    await InvoicesService.assertDraftEditable(params.id)
     await InvoicesService.deleteLineItem(query.line_item_id)
     return NextResponse.json({ success: true })
   }

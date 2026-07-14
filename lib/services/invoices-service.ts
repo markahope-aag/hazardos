@@ -347,6 +347,35 @@ export class InvoicesService {
     })) as unknown as Invoice[]
   }
 
+  /**
+   * Guard for user-facing edits: an invoice can only have its content
+   * (fields, line items, discount) changed while it is a draft. Once it has
+   * been issued to the customer (sent/viewed/partial/paid/overdue) or voided
+   * it is a locked financial record — corrections happen via void + reissue.
+   *
+   * Called at the API boundary so the user gets a clear 409 rather than the
+   * raw DB error from the enforce_invoice_*_locked triggers, which are the
+   * actual backstop. NOT enforced inside update() itself, because void() and
+   * markViewed() legitimately transition status on non-draft invoices.
+   */
+  static async assertDraftEditable(id: string): Promise<void> {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('status')
+      .eq('id', id)
+      .single()
+
+    if (error || !data) throw new SecureError('NOT_FOUND', 'Invoice not found')
+
+    if (data.status !== 'draft') {
+      throw new SecureError(
+        'CONFLICT',
+        `This invoice is ${data.status} and can no longer be edited. Void it and issue a new invoice to make changes.`,
+      )
+    }
+  }
+
   static async update(id: string, updates: Partial<Invoice>): Promise<Invoice> {
     const supabase = await createClient()
 

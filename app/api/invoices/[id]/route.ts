@@ -34,6 +34,8 @@ export const PATCH = createApiHandlerWithParams(
     bodySchema: updateInvoiceSchema,
   },
   async (_request, _context, params, body) => {
+    // A finalized invoice is a locked financial record — edits are draft-only.
+    await InvoicesService.assertDraftEditable(params.id)
     const invoice = await InvoicesService.update(params.id, body)
     return NextResponse.json(invoice)
   }
@@ -49,6 +51,9 @@ export const DELETE = createApiHandlerWithParams(
     allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, _context, params) => {
+    // Only drafts can be hard-deleted; issued invoices must be voided so the
+    // financial record is preserved.
+    await InvoicesService.assertDraftEditable(params.id)
     await InvoicesService.delete(params.id)
     return NextResponse.json({ success: true })
   }

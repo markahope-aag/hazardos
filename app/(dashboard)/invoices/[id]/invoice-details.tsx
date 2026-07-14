@@ -39,7 +39,7 @@ export function InvoiceDetails({ invoice }: InvoiceDetailsProps) {
             subtotal={invoice.subtotal}
             taxAmount={invoice.tax_amount}
             currentDiscount={invoice.discount_amount}
-            locked={invoice.status === 'paid' || invoice.status === 'void'}
+            locked={invoice.status !== 'draft'}
           />
           <Separator />
           <div className="flex justify-between font-medium">
