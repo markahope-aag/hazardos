@@ -8928,6 +8928,10 @@ export type Database = {
         Returns: boolean
       }
       cleanup_expired_notifications: { Args: never; Returns: number }
+      convert_opportunity_to_job: {
+        Args: { p_opportunity_id: string }
+        Returns: string
+      }
       create_invoice_from_job: {
         Args: {
           p_created_by: string

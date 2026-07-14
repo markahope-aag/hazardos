@@ -211,6 +211,39 @@ export default function OpportunityDetailPage({ params }: Props) {
     },
   })
 
+  // One-click convert a won opportunity into a job. Mirrors "Convert to
+  // Survey": a single click creates the linked job (pre-filled from the
+  // opp — customer, site address, name; status 'scheduled', start date =
+  // today as a placeholder, no technician yet) and drops the user on the
+  // new job to finish scheduling and assigning. All of that — job-number
+  // generation, address fallback, idempotency, and linking the opp back
+  // to the job — happens atomically in the convert_opportunity_to_job RPC.
+  const convertToJob = useMutation({
+    mutationFn: async () => {
+      const supabase = createClient()
+      const { data: newJobId, error } = await supabase.rpc('convert_opportunity_to_job', {
+        p_opportunity_id: id,
+      })
+      if (error) throw error
+      return newJobId as string
+    },
+    onSuccess: (newJobId) => {
+      queryClient.invalidateQueries({ queryKey: ['opportunity', id] })
+      toast({
+        title: 'Job created',
+        description: 'Assign a technician and set the start date to finish scheduling.',
+      })
+      router.push(`/jobs/${newJobId}`)
+    },
+    onError: (err: unknown) => {
+      toast({
+        title: 'Could not create job',
+        description: err instanceof Error ? err.message : 'Please try again.',
+        variant: 'destructive',
+      })
+    },
+  })
+
   if (isLoading) {
     return <div className="space-y-6"><Skeleton className="h-8 w-64" /><Skeleton className="h-64 w-full" /></div>
   }
@@ -274,6 +307,19 @@ export default function OpportunityDetailPage({ params }: Props) {
                 <XCircle className="h-4 w-4 mr-2" />Lost
               </Button>
             </>
+          )}
+          {opp.outcome === 'won' && !opp.job_id && (
+            <Button
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              onClick={() => convertToJob.mutate()}
+              disabled={convertToJob.isPending}
+            >
+              {convertToJob.isPending
+                ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                : <Briefcase className="h-4 w-4 mr-2" />}
+              Convert to Job
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
           )}
         </div>
       </div>
@@ -627,28 +673,17 @@ export default function OpportunityDetailPage({ params }: Props) {
                 <div>
                   <Briefcase className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium mb-2">Ready for Job Creation</h3>
-                  <p className="text-muted-foreground mb-4">This opportunity was won — create a job to begin work</p>
-                  {/* Pre-populate customer + service address so the job
-                      form doesn't make the user retype what we already
-                      know. Falls back to the customer's default address
-                      if the opp never got a site-specific one. */}
-                  <Button asChild>
-                    <Link
-                      href={{
-                        pathname: '/jobs/new',
-                        query: {
-                          customer_id: opp.customer_id,
-                          opportunity_id: opp.id,
-                          ...(opp.service_address_line1 && { job_address: opp.service_address_line1 }),
-                          ...(opp.service_city && { job_city: opp.service_city }),
-                          ...(opp.service_state && { job_state: opp.service_state }),
-                          ...(opp.service_zip && { job_zip: opp.service_zip }),
-                          ...(opp.name && { name: opp.name }),
-                        },
-                      }}
-                    >
-                      Create Job
-                    </Link>
+                  <p className="text-muted-foreground mb-4">
+                    This opportunity was won — create the job in one click. It&apos;s
+                    pre-filled from here (customer, site address, name); you&apos;ll finish
+                    by assigning a technician and setting the start date.
+                  </p>
+                  <Button onClick={() => convertToJob.mutate()} disabled={convertToJob.isPending}>
+                    {convertToJob.isPending
+                      ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      : <Briefcase className="h-4 w-4 mr-2" />}
+                    Convert to Job
+                    <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
               ) : (
