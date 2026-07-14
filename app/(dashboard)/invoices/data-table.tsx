@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback, memo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { format, parseISO, differenceInDays } from 'date-fns'
 import {
   Table,
@@ -28,7 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Search, Send, DollarSign, Ban } from 'lucide-react'
+import { MoreHorizontal, Search, Send, DollarSign, Ban, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, formatCurrency } from '@/lib/utils'
 import type { Invoice } from '@/types/invoices'
 import { invoiceStatusConfig } from '@/types/invoices'
@@ -153,10 +153,15 @@ const InvoiceRow = memo(function InvoiceRow({ invoice, onRowClick, onSend, onVoi
 
 interface InvoicesDataTableProps {
   data: Invoice[]
+  total: number
+  page: number
+  pageSize: number
 }
 
-export function InvoicesDataTable({ data }: InvoicesDataTableProps) {
+export function InvoicesDataTable({ data, total, page, pageSize }: InvoicesDataTableProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -221,6 +226,27 @@ export function InvoicesDataTable({ data }: InvoicesDataTableProps) {
       toast({ title: 'Error', description: 'Failed to void invoice', variant: 'destructive' })
     }
   }, [router, toast])
+
+  // Pagination is server-side (the page fetches one .range() slice). The pager
+  // only changes ?page in the URL; all other params are preserved.
+  const setPage = useCallback(
+    (nextPage: number) => {
+      const sp = new URLSearchParams(searchParams?.toString() || '')
+      if (nextPage <= 1) {
+        sp.delete('page')
+      } else {
+        sp.set('page', String(nextPage))
+      }
+      const qs = sp.toString()
+      router.push(qs ? `${pathname}?${qs}` : pathname)
+    },
+    [router, pathname, searchParams]
+  )
+
+  const hasPrev = page > 1
+  const hasNext = page * pageSize < total
+  const firstRow = total === 0 ? 0 : (page - 1) * pageSize + 1
+  const lastRow = Math.min(page * pageSize, total)
 
   return (
     <div className="space-y-4">
@@ -345,9 +371,34 @@ export function InvoicesDataTable({ data }: InvoicesDataTableProps) {
         </Table>
       </div>
 
-      {/* Results count */}
-      <div className="text-sm text-muted-foreground">
-        Showing {filteredData.length} of {data.length} invoices
+      {/* Results count + pagination. Search/status/location filters run on the
+          current page only (page-local), so the count reflects the server's
+          full filtered set while the visible rows may be narrowed further. */}
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          {total === 0 ? 'No invoices' : `Showing ${firstRow}–${lastRow} of ${total} invoices`}
+        </div>
+        {(hasPrev || hasNext) && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Page {page}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(page - 1)}
+              disabled={!hasPrev}
+            >
+              <ChevronLeft className="h-4 w-4" /> Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(page + 1)}
+              disabled={!hasNext}
+            >
+              Next <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )

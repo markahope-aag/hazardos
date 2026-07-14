@@ -204,7 +204,7 @@ describe('activity-service', () => {
     ]
 
     it('should fetch activity for specific entity', async () => {
-      mockSupabase.order.mockResolvedValue({ data: mockActivities, error: null })
+      mockSupabase.limit.mockResolvedValue({ data: mockActivities, error: null })
 
       const result = await getEntityActivity('job', 'job-1')
 
@@ -212,11 +212,20 @@ describe('activity-service', () => {
       expect(mockSupabase.eq).toHaveBeenCalledWith('entity_type', 'job')
       expect(mockSupabase.eq).toHaveBeenCalledWith('entity_id', 'job-1')
       expect(mockSupabase.order).toHaveBeenCalledWith('created_at', { ascending: false })
+      expect(mockSupabase.limit).toHaveBeenCalledWith(100)
       expect(result).toEqual(mockActivities)
     })
 
+    it('should fetch activity with a custom limit', async () => {
+      mockSupabase.limit.mockResolvedValue({ data: mockActivities, error: null })
+
+      await getEntityActivity('job', 'job-1', 25)
+
+      expect(mockSupabase.limit).toHaveBeenCalledWith(25)
+    })
+
     it('should return empty array when no activity found', async () => {
-      mockSupabase.order.mockResolvedValue({ data: null, error: null })
+      mockSupabase.limit.mockResolvedValue({ data: null, error: null })
 
       const result = await getEntityActivity('job', 'non-existent')
 
