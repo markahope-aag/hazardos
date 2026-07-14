@@ -36,7 +36,7 @@ export function MobileWizardProgressDots({
             onClick={() => onSectionClick(section)}
             className={cn(
               'relative flex items-center justify-center touch-manipulation transition-all duration-200',
-              'min-w-[40px] min-h-[40px] rounded-full',
+              'min-w-[44px] min-h-[44px] rounded-full',
               isCurrent && 'ring-2 ring-primary ring-offset-2',
             )}
             aria-label={`Go to ${SECTION_LABELS[section]} section${isCompleted ? ' (completed)' : ''}`}

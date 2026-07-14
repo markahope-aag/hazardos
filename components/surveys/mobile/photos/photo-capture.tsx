@@ -520,7 +520,7 @@ export function PhotoCapture({
             <button
               type="button"
               onClick={handleCameraClick}
-              className="flex items-center gap-1 text-red-600 hover:text-red-700"
+              className="flex items-center gap-1 min-h-[44px] px-3 text-red-600 hover:text-red-700"
             >
               <RotateCcw className="w-4 h-4" />
               Retry
@@ -570,7 +570,7 @@ export function PhotoCapture({
           <button
             type="button"
             onClick={handleCameraClick}
-            className="flex items-center gap-1 px-2 py-1 text-red-600 hover:text-red-700 hover:bg-red-100 rounded"
+            className="flex items-center gap-1 min-h-[44px] px-2 py-1 text-red-600 hover:text-red-700 hover:bg-red-100 rounded"
           >
             <RotateCcw className="w-4 h-4" />
             Retry

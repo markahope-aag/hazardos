@@ -156,7 +156,7 @@ export function UploadStatus({ surveyId, className }: UploadStatusProps) {
             size="sm"
             onClick={handleRetry}
             disabled={isRetrying}
-            className="flex-shrink-0 h-8 px-2 text-red-700 hover:text-red-800 hover:bg-red-100"
+            className="flex-shrink-0 min-h-[44px] h-8 px-2 text-red-700 hover:text-red-800 hover:bg-red-100"
           >
             {isRetrying ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -174,7 +174,7 @@ export function UploadStatus({ surveyId, className }: UploadStatusProps) {
             variant="ghost"
             size="sm"
             onClick={handleUploadNow}
-            className="flex-shrink-0 h-8 px-2 text-blue-700 hover:text-blue-800 hover:bg-blue-100"
+            className="flex-shrink-0 min-h-[44px] h-8 px-2 text-blue-700 hover:text-blue-800 hover:bg-blue-100"
           >
             <Cloud className="h-4 w-4 mr-1" />
             Upload
@@ -194,7 +194,7 @@ export function UploadStatus({ surveyId, className }: UploadStatusProps) {
             variant="outline"
             size="sm"
             onClick={handleRemoveFailed}
-            className="h-7 px-2 text-xs border-red-300 text-red-700 hover:bg-red-100"
+            className="min-h-[44px] h-7 px-2 text-xs border-red-300 text-red-700 hover:bg-red-100"
           >
             Discard failed photos
           </Button>
