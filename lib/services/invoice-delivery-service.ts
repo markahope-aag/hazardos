@@ -43,9 +43,19 @@ export class InvoiceDeliveryService {
     const customer = invoice.customer
     if (!customer) throw new SecureError('BAD_REQUEST', 'Invoice has no customer')
 
+    // Resolve the sender's org from THEIR profile. This must filter by the
+    // authenticated user's id: the profiles RLS policy lets a user see every
+    // profile in their organization, so an unfiltered .single() throws
+    // ("multiple rows") the moment the org has more than one member — which
+    // aborted every invoice send (email and SMS) for any real team before a
+    // delivery was ever attempted.
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new SecureError('UNAUTHORIZED')
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('organization_id')
+      .eq('id', user.id)
       .single()
 
     if (!profile?.organization_id) throw new SecureError('UNAUTHORIZED')

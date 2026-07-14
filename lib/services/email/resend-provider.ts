@@ -11,6 +11,27 @@ import type {
   EmailProvider,
 } from './types'
 
+// Map our string tags onto Resend's {name,value} tags. Resend requires each
+// tag's `name` to be UNIQUE (and both name and value to match /^[A-Za-z0-9_-]+$/,
+// max 256 chars). Mapping every tag to name:'category' meant any email with two
+// or more tags was rejected — "The `category` tag is duplicated." — which was
+// silently failing e.g. job-assignment emails (tags ["notification",
+// "job_assigned"]). Keep the first tag as 'category' so single-tag emails are
+// unchanged, disambiguate the rest, and sanitize values to the allowed charset.
+export function sanitizeTagToken(value: string): string {
+  return value.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 256) || 'tag'
+}
+
+export function buildResendTags(
+  tags?: string[],
+): Array<{ name: string; value: string }> | undefined {
+  if (!tags || tags.length === 0) return undefined
+  return tags.map((t, i) => ({
+    name: i === 0 ? 'category' : `category_${i}`,
+    value: sanitizeTagToken(t),
+  }))
+}
+
 // Resend's domain record response varies slightly between API versions.
 // Keeping this narrow matches what we actually consume, not every field.
 interface ResendDomainRecord {
@@ -102,7 +123,7 @@ export class ResendProvider implements EmailProvider {
         path: a.path,
         contentType: a.contentType,
       })),
-      tags: input.tags?.map((t) => ({ name: 'category', value: t })),
+      tags: buildResendTags(input.tags),
     } as Parameters<typeof client.emails.send>[0]
 
     const result = await client.emails.send(payload)
