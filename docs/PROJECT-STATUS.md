@@ -127,7 +127,7 @@
 | ID | Feature | Priority | Status | Owner |
 |----|---------|----------|--------|-------|
 | 2.14 | Proposal PDF generation | P0 | ✅ Done | Claude Code |
-| 2.15 | Proposal versioning | P0 | Pending | — |
+| 2.15 | Proposal versioning | P0 | ✅ Done | Claude Code |
 | 2.16 | Email delivery (Resend ready) | P0 | ✅ Done | Claude Code |
 | 2.17 | SMS notification | P1 | Pending | — |
 | 2.18 | Mail tracking | P2 | Pending | — |

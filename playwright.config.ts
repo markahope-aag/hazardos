@@ -1,4 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
+import { config } from 'dotenv'
+import path from 'path'
+
+// Load .env.local so E2E_TEST_EMAIL / E2E_TEST_PASSWORD are available
+config({ path: path.resolve(process.cwd(), '.env.local') })
 
 export default defineConfig({
   testDir: './e2e',
