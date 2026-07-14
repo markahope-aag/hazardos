@@ -502,40 +502,39 @@ export class ApprovalService {
     const newLevelStatus: ApprovalStatus = decision.approved ? 'approved' : 'rejected'
     let finalStatus: ApprovalStatus = 'pending'
 
-    const updates: Record<string, unknown> = {}
+    // Compute the final status per the two-level rule before the atomic write.
     if (level === 1) {
-      updates.level1_status = newLevelStatus
-      updates.level1_approver = user.id
-      updates.level1_at = now
-      updates.level1_notes = decision.notes || null
       if (!decision.approved) finalStatus = 'rejected'
       else if (!request.requires_level2) finalStatus = 'approved'
+      // otherwise stays 'pending' — forwarded to level 2
     } else {
-      updates.level2_status = newLevelStatus
-      updates.level2_approver = user.id
-      updates.level2_at = now
-      updates.level2_notes = decision.notes || null
       finalStatus = newLevelStatus
     }
-    updates.final_status = finalStatus
 
+    // Atomic: record the decision on the approval_requests row AND move the
+    // estimate's status together in one transaction. Previously these were
+    // separate writes with no error check on the estimate update, so a failure
+    // there left the request finalized while the estimate stayed pending.
     const { data: updated, error } = await supabase
-      .from('approval_requests')
-      .update(updates)
-      .eq('id', request.id)
-      .select()
+      .rpc('record_estimate_approval', {
+        p_request_id: request.id,
+        p_estimate_id: estimateId,
+        p_level: level,
+        p_new_level_status: newLevelStatus,
+        p_final_status: finalStatus,
+        p_approver: user.id,
+        p_at: now,
+        p_notes: decision.notes || null,
+        p_approved: decision.approved,
+      })
       .single()
     if (error) throwDbError(error, 'record approval decision')
 
     const finalized = finalStatus !== 'pending'
 
+    // Best-effort side effects after the atomic status write.
     if (!decision.approved) {
-      // Send back to draft and notify the originator.
-      await supabase
-        .from('estimates')
-        .update({ status: 'draft', approval_notes: decision.notes || null })
-        .eq('id', estimateId)
-
+      // Estimate already sent back to draft inside the RPC; notify originator.
       try {
         await NotificationService.create({
           user_id: request.requested_by,
@@ -569,17 +568,8 @@ export class ApprovalService {
         log.warn({ estimateId, err: formatError(e) }, 'failed to notify owner of forwarded estimate')
       }
     } else {
-      // Final approval: mark estimate approved and auto-deliver to the customer.
-      await supabase
-        .from('estimates')
-        .update({
-          status: 'approved',
-          approved_by: user.id,
-          approved_at: now,
-          approval_notes: decision.notes || null,
-        })
-        .eq('id', estimateId)
-
+      // Final approval: estimate already marked approved inside the RPC;
+      // auto-deliver the proposal to the customer.
       try {
         await this.createAndSendProposalFromEstimate(estimateId)
       } catch (e) {

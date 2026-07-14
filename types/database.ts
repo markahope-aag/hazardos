@@ -8928,6 +8928,28 @@ export type Database = {
         Returns: boolean
       }
       cleanup_expired_notifications: { Args: never; Returns: number }
+      approve_job_completion: {
+        Args: {
+          p_job_id: string
+          p_reviewed_by: string
+          p_review_notes?: string | null
+        }
+        Returns: Database['public']['Tables']['job_completions']['Row']
+      }
+      record_estimate_approval: {
+        Args: {
+          p_request_id: string
+          p_estimate_id: string
+          p_level: number
+          p_new_level_status: string
+          p_final_status: string
+          p_approver: string
+          p_at: string
+          p_notes: string | null
+          p_approved: boolean
+        }
+        Returns: Database['public']['Tables']['approval_requests']['Row']
+      }
       convert_opportunity_to_job: {
         Args: { p_opportunity_id: string }
         Returns: string

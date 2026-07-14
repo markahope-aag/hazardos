@@ -305,27 +305,18 @@ export class JobCompletionService {
 
     if (!user) throw new SecureError('UNAUTHORIZED')
 
+    // Atomic: approve the completion AND flip the job to completed in one
+    // transaction (previously two sequential UPDATEs where a failure on the
+    // second silently left the completion approved on a non-completed job).
     const { data, error } = await supabase
-      .from('job_completions')
-      .update({
-        status: 'approved',
-        reviewed_at: new Date().toISOString(),
-        reviewed_by: user.id,
-        review_notes: input?.review_notes,
+      .rpc('approve_job_completion', {
+        p_job_id: jobId,
+        p_reviewed_by: user.id,
+        p_review_notes: input?.review_notes ?? null,
       })
-      .eq('job_id', jobId)
-      .select()
       .single()
 
-    if (error) throwDbError(error, 'update job completion')
-
-    await supabase
-      .from('jobs')
-      .update({
-        status: 'completed',
-        actual_end_date: new Date().toISOString().split('T')[0],
-      })
-      .eq('id', jobId)
+    if (error) throwDbError(error, 'approve job completion')
 
     // Auto-generate the draft invoice from the job's actuals (time,
     // materials, change orders) now that it's approved — this is the I3

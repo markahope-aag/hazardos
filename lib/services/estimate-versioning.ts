@@ -95,42 +95,50 @@ export async function createEstimateRevision(
     throw createError || new Error('Failed to create estimate revision')
   }
 
-  // Copy line items.
-  const { data: parentLineItems, error: lineItemsErr } = await supabase
-    .from('estimate_line_items')
-    .select('*')
-    .eq('estimate_id', parent.id)
-    .order('sort_order', { ascending: true })
-
-  if (lineItemsErr) {
-    throw lineItemsErr
-  }
-
-  if (parentLineItems && parentLineItems.length > 0) {
-    const newLineItems = parentLineItems.map((item) => ({
-      estimate_id: created.id,
-      item_type: item.item_type,
-      category: item.category,
-      description: item.description,
-      quantity: item.quantity,
-      unit: item.unit,
-      unit_price: item.unit_price,
-      total_price: item.total_price,
-      source_rate_id: item.source_rate_id,
-      source_table: item.source_table,
-      sort_order: item.sort_order,
-      is_optional: item.is_optional,
-      is_included: item.is_included,
-      notes: item.notes,
-    }))
-
-    const { error: insertItemsErr } = await supabase
+  // Copy line items. The estimate row already exists at this point, so if the
+  // copy fails we must remove it — otherwise a mid-chain failure leaves an
+  // orphan revision with no line items. Compensate by deleting the estimate
+  // (its line items cascade) before rethrowing.
+  try {
+    const { data: parentLineItems, error: lineItemsErr } = await supabase
       .from('estimate_line_items')
-      .insert(newLineItems)
+      .select('*')
+      .eq('estimate_id', parent.id)
+      .order('sort_order', { ascending: true })
 
-    if (insertItemsErr) {
-      throw insertItemsErr
+    if (lineItemsErr) {
+      throw lineItemsErr
     }
+
+    if (parentLineItems && parentLineItems.length > 0) {
+      const newLineItems = parentLineItems.map((item) => ({
+        estimate_id: created.id,
+        item_type: item.item_type,
+        category: item.category,
+        description: item.description,
+        quantity: item.quantity,
+        unit: item.unit,
+        unit_price: item.unit_price,
+        total_price: item.total_price,
+        source_rate_id: item.source_rate_id,
+        source_table: item.source_table,
+        sort_order: item.sort_order,
+        is_optional: item.is_optional,
+        is_included: item.is_included,
+        notes: item.notes,
+      }))
+
+      const { error: insertItemsErr } = await supabase
+        .from('estimate_line_items')
+        .insert(newLineItems)
+
+      if (insertItemsErr) {
+        throw insertItemsErr
+      }
+    }
+  } catch (err) {
+    await supabase.from('estimates').delete().eq('id', created.id)
+    throw err
   }
 
   return { id: created.id }
