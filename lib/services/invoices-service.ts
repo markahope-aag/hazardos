@@ -180,7 +180,15 @@ export class InvoicesService {
     // one transaction (see the RPC call below).
     const lineItems: AddLineItemInput[] = []
 
-    const jobAmount = job.final_amount || job.contract_amount
+    // Base contract as the remediation-services line. Deliberately NOT
+    // job.final_amount: a DB trigger keeps final_amount = contract_amount +
+    // SUM(approved change orders), and we itemize those same change orders as
+    // their own lines below. Billing final_amount here plus the change-order
+    // lines double-counts every change order (the invoice would total
+    // contract + 2×change_orders). contract_amount is the clean base, so
+    // base + itemized change orders == final_amount == the job's real value.
+    // Fall back to final_amount only for legacy jobs with no contract_amount.
+    const jobAmount = job.contract_amount ?? job.final_amount
     if (jobAmount) {
       lineItems.push({
         description: `Remediation services - Job #${job.job_number}`,
