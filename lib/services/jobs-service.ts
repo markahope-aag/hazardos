@@ -457,12 +457,19 @@ export class JobsService {
     return data
   }
 
-  static async updateStatus(id: string, status: JobStatus): Promise<Job> {
+  static async updateStatus(
+    id: string,
+    status: JobStatus,
+    extra?: { internal_notes?: string; actual_labor_hours?: number },
+  ): Promise<Job> {
     // Get current job to know old status
     const currentJob = await JobsService.getById(id)
     const oldStatus = currentJob?.status
 
     const updates: Partial<Job> = { status }
+
+    if (extra?.internal_notes !== undefined) updates.internal_notes = extra.internal_notes
+    if (extra?.actual_labor_hours !== undefined) updates.actual_labor_hours = extra.actual_labor_hours
 
     if (status === 'in_progress') {
       updates.actual_start_at = new Date().toISOString()

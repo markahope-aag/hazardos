@@ -73,6 +73,9 @@ export const createJobFromProposalSchema = z.object({
 // Job status update
 export const updateJobStatusSchema = z.object({
   status: jobStatusSchema,
+  // Optional context captured alongside a status change from the job detail UI.
+  internal_notes: z.string().max(5000).optional(),
+  actual_labor_hours: z.number().min(0).max(100000).optional(),
 })
 
 // Crew role enum

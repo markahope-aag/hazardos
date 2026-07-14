@@ -86,22 +86,36 @@ export default function JobDetailPage({ params }: Props) {
 
   const updateStatus = useMutation({
     mutationFn: async () => {
-      const supabase = createClient()
-      const updates: Record<string, unknown> = { status: statusForm.status, internal_notes: statusForm.notes || undefined }
-      if (statusForm.status === 'completed') {
-        updates.actual_end_at = new Date().toISOString()
-        if (statusForm.actual_hours) updates.actual_labor_hours = parseFloat(statusForm.actual_hours)
+      // Route through the server endpoint (role-gated + fires the shared
+      // status-change side effects: activity log, customer SMS, commission,
+      // completion timestamps) instead of a raw client write that bypassed
+      // authorization and those hooks.
+      const body: Record<string, unknown> = { status: statusForm.status }
+      if (statusForm.notes) body.internal_notes = statusForm.notes
+      if (statusForm.status === 'completed' && statusForm.actual_hours) {
+        body.actual_labor_hours = parseFloat(statusForm.actual_hours)
       }
-      if (statusForm.status === 'in_progress' && !job?.actual_start_at) {
-        updates.actual_start_at = new Date().toISOString()
+      const res = await fetch(`/api/jobs/${id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || 'Failed to update job status')
       }
-      const { error } = await supabase.from('jobs').update(updates).eq('id', id)
-      if (error) throw error
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-job', id] })
       setShowStatusModal(false)
       toast({ title: 'Job status updated' })
+    },
+    onError: (err) => {
+      toast({
+        title: 'Could not update status',
+        description: err instanceof Error ? err.message : 'Please try again.',
+        variant: 'destructive',
+      })
     },
   })
 

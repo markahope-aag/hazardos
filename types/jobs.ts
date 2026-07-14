@@ -39,6 +39,8 @@ export interface Job {
   scheduled_end_date: string | null
   scheduled_end_time: string | null
   estimated_duration_hours: number | null
+  estimated_labor_hours: number | null
+  actual_labor_hours: number | null
   actual_start_at: string | null
   actual_end_at: string | null
   job_address: string
