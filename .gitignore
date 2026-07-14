@@ -51,3 +51,4 @@ public/swe-worker-*.js.map
 # Local CLI binaries (never commit — the supabase CLI is ~90MB)
 *.exe
 supabase.exe
+.claude/worktrees/
