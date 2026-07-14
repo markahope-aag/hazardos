@@ -13,7 +13,7 @@ import {
 // so the browser detects a new SW version and activates it. The activate
 // handler below also wipes named runtime caches so clients re-fetch against
 // the new deployment instead of serving stale JS/CSS/API responses.
-const SW_VERSION = '2026-04-14-force-refresh'
+const SW_VERSION = '2026-07-14-mobile-shell-offline'
 
 // Runtime cache names that the activate handler clears on each version bump.
 // Kept in sync with the runtimeCaching entries below (fonts are intentionally
@@ -23,6 +23,7 @@ const RUNTIME_CACHES_TO_CLEAR = [
   'supabase-storage',
   'images',
   'static-resources',
+  'mobile-survey-shell',
 ]
 
 // This declares the value of `injectionPoint` to TypeScript.
@@ -58,6 +59,38 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: [
+    // Offline resume of a saved draft (SS22). The mobile wizard is a client
+    // component that reads `surveyId` from the URL query, so the *same*
+    // cached HTML shell serves every /site-surveys/mobile?surveyId=... deep
+    // link. The default navigation rules key the cache on the full URL
+    // (including the query), so a draft-resume URL the tester never opened
+    // while online would miss the cache offline and fall through to the
+    // /offline page — "the application could not be opened while offline".
+    //
+    // This rule matches document navigations to the mobile route and reads
+    // from cache with ignoreSearch, so any ?surveyId=... resolves to the
+    // shell cached on the last online visit. NetworkFirst so an online load
+    // still gets the freshest shell; a short timeout so going offline falls
+    // back to cache quickly instead of hanging. Placed before defaultCache
+    // to take precedence over the generic navigation handlers.
+    {
+      matcher: ({ request, url, sameOrigin }) =>
+        sameOrigin &&
+        request.destination === 'document' &&
+        url.pathname.startsWith('/site-surveys/mobile'),
+      handler: new NetworkFirst({
+        cacheName: 'mobile-survey-shell',
+        networkTimeoutSeconds: 3,
+        matchOptions: { ignoreSearch: true },
+        plugins: [
+          new ExpirationPlugin({
+            maxEntries: 8,
+            maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+          }),
+        ],
+      }),
+    },
+
     // Default Next.js caching rules
     ...defaultCache,
 
