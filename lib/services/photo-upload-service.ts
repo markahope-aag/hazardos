@@ -376,6 +376,15 @@ export async function uploadPhotoToStorage(photo: QueuedPhoto): Promise<string> 
   // remains the source of truth for the in-progress survey form;
   // survey_photos is the source of truth for the persisted record.
   useSurveyStore.getState().updatePhoto(photo.id, {
+    // Release the local preview payloads now that the photo is in R2. The
+    // render (photo-thumbnail/detail) prefers a data: URL when present, so
+    // this both reclaims the ~2MB blob + ~2.7MB base64 dataUrl per photo —
+    // the difference between a 100-photo survey staying flat and OOMing a
+    // mobile browser — and flips the preview to the stamped derivative. The
+    // `path`/`stamped_path` set in this same update give the thumbnail an
+    // immediate render source, so there's no blank-frame gap.
+    dataUrl: null,
+    blob: null,
     path: r2PathFromKey(finalized.photo.stamped_r2_key ?? finalized.photo.original_r2_key ?? key),
     original_path: r2PathFromKey(finalized.photo.original_r2_key ?? key),
     stamped_path: finalized.photo.stamped_r2_key

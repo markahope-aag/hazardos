@@ -118,6 +118,13 @@ export const usePhotoQueueStore = create<PhotoQueueState>()(
                   status,
                   remoteUrl: remoteUrl !== undefined ? remoteUrl : p.remoteUrl,
                   error: error !== undefined ? error : p.error,
+                  // Once uploaded, the bytes live in R2 and nothing reads
+                  // localUri again (getNextPendingPhoto only returns
+                  // pending/failed). Drop the ~2–3MB base64 blob from memory
+                  // now instead of at end-of-survey — a 100-photo survey
+                  // otherwise pins hundreds of MB of base64 and OOMs mobile
+                  // Safari. Persistence already strips it; this matches.
+                  localUri: status === 'uploaded' ? '' : p.localUri,
                 }
               : p
           ),
