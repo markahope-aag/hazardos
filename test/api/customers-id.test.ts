@@ -336,11 +336,11 @@ describe('Customer By ID API', () => {
     })
 
     it('should return 404 for non-existent customer', async () => {
-      // A delete against a missing row surfaces a "not found" DB error,
+      // A delete against a missing row surfaces a PGRST116 "not found" DB error,
       // which the secure error handler maps to 404.
       setupAuthenticatedUser(mockAdminProfile, {
         data: null,
-        error: { message: 'Customer not found' },
+        error: { code: 'PGRST116', message: 'Customer not found' },
       })
 
       const request = new NextRequest('http://localhost:3000/api/customers/non-existent', {

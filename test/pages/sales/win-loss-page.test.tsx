@@ -7,6 +7,14 @@ vi.mock('@/lib/supabase/server', () => ({
     auth: {
       getUser: () => Promise.resolve({ data: { user: { id: 'user-123' } } }),
     },
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          single: () => Promise.resolve({ data: { organization_id: 'org-1', role: 'admin' }, error: null }),
+          maybeSingle: () => Promise.resolve({ data: { organization_id: 'org-1' }, error: null }),
+        }),
+      }),
+    }),
   }),
 }))
 

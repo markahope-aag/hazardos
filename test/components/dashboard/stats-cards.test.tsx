@@ -37,6 +37,7 @@ const mockSupabaseClient = {
     getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
   },
   from: vi.fn(),
+  rpc: vi.fn().mockResolvedValue({ data: 0, error: null }),
 }
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -103,12 +104,12 @@ describe('StatsCards', () => {
   })
 
   it('renders all four stat cards with default filters', async () => {
-    render(await StatsCards({ filters: DEFAULT_FILTERS }))
+    render(await StatsCards({ filters: DEFAULT_FILTERS, organizationId: 'org-1' }))
     expect(screen.getAllByTestId('card')).toHaveLength(4)
   })
 
   it('renders expected card titles', async () => {
-    render(await StatsCards({ filters: DEFAULT_FILTERS }))
+    render(await StatsCards({ filters: DEFAULT_FILTERS, organizationId: 'org-1' }))
     expect(screen.getByText('Revenue')).toBeInTheDocument()
     expect(screen.getByText('Outstanding AR')).toBeInTheDocument()
     expect(screen.getByText('Open Jobs')).toBeInTheDocument()
@@ -116,14 +117,13 @@ describe('StatsCards', () => {
   })
 
   it('wraps each card in a drill-down link', async () => {
-    const { container } = render(await StatsCards({ filters: DEFAULT_FILTERS }))
+    const { container } = render(await StatsCards({ filters: DEFAULT_FILTERS, organizationId: 'org-1' }))
     const links = container.querySelectorAll('a[href]')
     expect(links.length).toBe(4)
   })
 
-  it('returns null when the user is not authenticated', async () => {
-    mockSupabaseClient.auth.getUser.mockResolvedValueOnce({ data: { user: null } })
-    const result = await StatsCards({ filters: DEFAULT_FILTERS })
+  it('returns null when organizationId is null', async () => {
+    const result = await StatsCards({ filters: DEFAULT_FILTERS, organizationId: null })
     expect(result).toBeNull()
   })
 })

@@ -113,6 +113,12 @@ describe('InvoiceDeliveryService', () => {
         if (table === 'profiles') {
           return {
             select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn().mockResolvedValue({
+                  data: { organization_id: 'org-1' },
+                  error: null,
+                }),
+              })),
               single: vi.fn().mockResolvedValue({
                 data: { organization_id: 'org-1' },
                 error: null,

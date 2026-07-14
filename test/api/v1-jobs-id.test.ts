@@ -28,6 +28,10 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => Promise.resolve(mockSupabaseClient))
 }))
 
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn(() => mockSupabaseClient)
+}))
+
 vi.mock('@/lib/services/api-key-service', () => ({
   ApiKeyService: {
     hasScope: vi.fn()

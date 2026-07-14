@@ -8,7 +8,7 @@ import JobsPage from '@/app/(dashboard)/jobs/page'
 function jobsListQueryBuilder(data: unknown[]) {
   const b: Record<string, unknown> = {}
   const self = () => b
-  for (const m of ['select', 'eq', 'gte', 'lte', 'order'] as const) {
+  for (const m of ['select', 'eq', 'gte', 'lte', 'order', 'range'] as const) {
     b[m] = self
   }
   ;(b as { then: (onFulfilled: (v: { data: unknown[]; error: null }) => unknown) => unknown }).then = (

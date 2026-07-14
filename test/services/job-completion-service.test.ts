@@ -760,7 +760,17 @@ describe('JobCompletionService', () => {
           })),
         }))
 
-        mockSupabase.rpc = vi.fn().mockResolvedValue({ error: null })
+        mockSupabase.rpc = vi.fn().mockResolvedValue({
+          data: { id: 'comp-1', job_id: 'job-1', status: 'approved' },
+          error: null,
+        })
+        mockSupabase.from = vi.fn(() => ({
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            })),
+          })),
+        }))
 
         const completion = await JobCompletionService.approveCompletion('comp-1', {
           notes: 'Looks good',
@@ -771,29 +781,17 @@ describe('JobCompletionService', () => {
       })
 
       it('auto-creates a draft invoice from the job when none exists yet', async () => {
-        mockSupabase.from = vi.fn((table: string) => {
-          if (table === 'job_completions') {
-            return {
-              update: () => ({
-                eq: () => ({
-                  select: () => ({
-                    single: () => Promise.resolve({
-                      data: { id: 'comp-1', job_id: 'job-1', status: 'approved' },
-                      error: null,
-                    }),
-                  }),
-                }),
-              }),
-            }
-          }
-          if (table === 'jobs') {
-            return { update: () => ({ eq: () => Promise.resolve({ error: null }) }) }
-          }
-          if (table === 'invoices') {
-            return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) }
-          }
-          return {}
+        mockSupabase.rpc = vi.fn().mockResolvedValue({
+          data: { id: 'comp-1', job_id: 'job-1', status: 'approved' },
+          error: null,
         })
+        mockSupabase.from = vi.fn(() => ({
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            })),
+          })),
+        }))
 
         await JobCompletionService.approveCompletion('job-1')
 
@@ -801,29 +799,17 @@ describe('JobCompletionService', () => {
       })
 
       it('does not create a second invoice if one already exists for the job', async () => {
-        mockSupabase.from = vi.fn((table: string) => {
-          if (table === 'job_completions') {
-            return {
-              update: () => ({
-                eq: () => ({
-                  select: () => ({
-                    single: () => Promise.resolve({
-                      data: { id: 'comp-1', job_id: 'job-1', status: 'approved' },
-                      error: null,
-                    }),
-                  }),
-                }),
-              }),
-            }
-          }
-          if (table === 'jobs') {
-            return { update: () => ({ eq: () => Promise.resolve({ error: null }) }) }
-          }
-          if (table === 'invoices') {
-            return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { id: 'inv-existing' }, error: null }) }) }) }
-          }
-          return {}
+        mockSupabase.rpc = vi.fn().mockResolvedValue({
+          data: { id: 'comp-1', job_id: 'job-1', status: 'approved' },
+          error: null,
         })
+        mockSupabase.from = vi.fn(() => ({
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'inv-existing' }, error: null }),
+            })),
+          })),
+        }))
 
         await JobCompletionService.approveCompletion('job-1')
 
@@ -832,29 +818,17 @@ describe('JobCompletionService', () => {
 
       it('still approves the completion if auto-invoice creation fails', async () => {
         createFromJobMock.mockRejectedValueOnce(new Error('boom'))
-        mockSupabase.from = vi.fn((table: string) => {
-          if (table === 'job_completions') {
-            return {
-              update: () => ({
-                eq: () => ({
-                  select: () => ({
-                    single: () => Promise.resolve({
-                      data: { id: 'comp-1', job_id: 'job-1', status: 'approved' },
-                      error: null,
-                    }),
-                  }),
-                }),
-              }),
-            }
-          }
-          if (table === 'jobs') {
-            return { update: () => ({ eq: () => Promise.resolve({ error: null }) }) }
-          }
-          if (table === 'invoices') {
-            return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) }
-          }
-          return {}
+        mockSupabase.rpc = vi.fn().mockResolvedValue({
+          data: { id: 'comp-1', job_id: 'job-1', status: 'approved' },
+          error: null,
         })
+        mockSupabase.from = vi.fn(() => ({
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            })),
+          })),
+        }))
 
         const completion = await JobCompletionService.approveCompletion('job-1')
 
