@@ -10,6 +10,7 @@ import { SurveySection, SURVEY_SECTIONS } from '@/lib/stores/survey-types'
 import { processPhotoQueue, waitForUploads } from '@/lib/services/photo-upload-service'
 import { FormErrorBoundary, ErrorBoundary } from '@/components/error-boundaries'
 import { logger, formatError } from '@/lib/utils/logger'
+import { resolveSwipeAction } from '@/lib/utils/swipe'
 import { Loader2 } from 'lucide-react'
 
 import { MobileWizardHeader } from './mobile-wizard-header'
@@ -27,7 +28,6 @@ import { ReviewSection } from './sections/review-section'
 
 // Constants
 const AUTO_SAVE_INTERVAL_MS = 30000 // 30 seconds
-const SWIPE_THRESHOLD = 50 // pixels
 
 interface MobileSurveyWizardProps {
   surveyId?: string
@@ -157,13 +157,13 @@ export default function MobileSurveyWizard({
   const [isInitialized, setIsInitialized] = useState(false)
   const [isResolvingConflict, setIsResolvingConflict] = useState(false)
 
-  // Swipe start point. Held in a ref, not state: touchstart and touchend
+  // Swipe start point. Held in a ref, not state: pointerdown and pointerup
   // are separate events that can fire within the same frame on a quick
-  // flick, before React re-renders. Reading state in touchend would then
+  // flick, before React re-renders. Reading state in pointerup would then
   // see the stale (null) value and the swipe would silently do nothing —
   // a ref is written and read synchronously, so it always reflects the
   // current gesture regardless of swipe speed.
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null)
 
   // Refs for auto-save timer
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -377,35 +377,39 @@ export default function MobileSurveyWizard({
     [setCurrentSection],
   )
 
-  // Swipe gesture handlers
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    const touch = e.touches[0]
-    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+  // Swipe gesture handlers. Pointer events (not touch events) so the swipe
+  // works for finger, stylus, AND mouse-drag — the last matters because the
+  // gesture is routinely exercised via a desktop device emulator, which
+  // dispatches pointer/mouse events, not touchstart/touchend. `touch-pan-y`
+  // on the scroll container (below) tells the browser to keep vertical
+  // scrolling but hand us horizontal gestures, so a real left/right swipe
+  // reaches pointerup instead of being swallowed as a scroll.
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    pointerStartRef.current = { x: e.clientX, y: e.clientY }
   }, [])
 
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    const start = touchStartRef.current
-    touchStartRef.current = null
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    const start = pointerStartRef.current
+    pointerStartRef.current = null
     if (!start) return
 
-    const touch = e.changedTouches[0]
-    const deltaX = touch.clientX - start.x
-    const deltaY = touch.clientY - start.y
-
-    // Ignore mostly-vertical gestures — those are the user scrolling the
-    // form, not swiping between steps. Only a predominantly horizontal
-    // move past the threshold counts as a swipe.
-    if (Math.abs(deltaX) < SWIPE_THRESHOLD) return
-    if (Math.abs(deltaX) <= Math.abs(deltaY)) return
-
-    if (deltaX > 0 && !isFirstSection) {
-      // Swipe right - go back
+    const action = resolveSwipeAction(e.clientX - start.x, e.clientY - start.y, {
+      canGoBack: !isFirstSection,
+      canGoNext: !isLastSection,
+    })
+    if (action === 'back') {
       handleBack()
-    } else if (deltaX < 0 && !isLastSection) {
-      // Swipe left - go forward
+    } else if (action === 'next') {
       handleNext()
     }
   }, [isFirstSection, isLastSection, handleBack, handleNext])
+
+  // If the browser takes over the gesture (e.g. it becomes a vertical
+  // scroll), it fires pointercancel instead of pointerup — drop the start
+  // point so a later unrelated pointerup can't be misread as a swipe.
+  const handlePointerCancel = useCallback(() => {
+    pointerStartRef.current = null
+  }, [])
 
   // Save and exit
   const handleSaveAndExit = useCallback(async () => {
@@ -590,12 +594,15 @@ export default function MobileSurveyWizard({
           onJumpToSection={handleJumpToSection}
         />
 
-        {/* Main content area with swipe support */}
+        {/* Main content area with swipe support. touch-pan-y lets the
+            browser keep vertical scrolling while delivering horizontal
+            swipes to our pointer handlers instead of consuming them. */}
         <main
           ref={mainContentRef}
-          className={cn('flex-1', embedded ? '' : 'overflow-y-auto pb-28')}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
+          className={cn('flex-1 touch-pan-y', embedded ? '' : 'overflow-y-auto pb-28')}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
         >
           <div className="px-4 py-6">
             <SectionErrorBoundary sectionName={currentSection}>
