@@ -6,8 +6,12 @@ import { ApiKeyService } from '@/lib/services/api-key-service'
 import { handlePreflight } from '@/lib/middleware/cors'
 import { v1CompanyListQuerySchema, v1CreateCompanySchema, formatZodError } from '@/lib/validations/v1-api'
 import { createRequestLogger, formatError } from '@/lib/utils/logger'
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
 
 async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
+  const rateLimitResponse = await applyUnifiedRateLimit(request, 'public')
+  if (rateLimitResponse) return rateLimitResponse
+
   if (!ApiKeyService.hasScope(context.apiKey, 'companies:read')) {
     return NextResponse.json(
       { error: 'Missing required scope: companies:read' },
@@ -68,6 +72,9 @@ async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Prom
 }
 
 async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
+  const rateLimitResponse = await applyUnifiedRateLimit(request, 'public')
+  if (rateLimitResponse) return rateLimitResponse
+
   if (!ApiKeyService.hasScope(context.apiKey, 'companies:write')) {
     return NextResponse.json(
       { error: 'Missing required scope: companies:write' },

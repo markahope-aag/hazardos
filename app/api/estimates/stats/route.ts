@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
 import { z } from 'zod'
 
@@ -38,7 +39,7 @@ export const GET = createApiHandler(
       p_location_id: locationParam,
     })
 
-    if (error) throw error
+    if (error) throwDbError(error, 'estimate stats')
 
     return NextResponse.json(data ?? {})
   },

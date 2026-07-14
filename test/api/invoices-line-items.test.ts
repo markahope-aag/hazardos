@@ -17,6 +17,7 @@ vi.mock('@/lib/supabase/server', () => ({
 
 vi.mock('@/lib/services/invoices-service', () => ({
   InvoicesService: {
+    assertDraftEditable: vi.fn(() => Promise.resolve()),
     addLineItem: vi.fn(),
     updateLineItem: vi.fn(),
     deleteLineItem: vi.fn()

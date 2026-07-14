@@ -12,6 +12,7 @@ import { Home, FileText, Calculator, Calendar, DollarSign, LayoutGrid, Briefcase
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import LoginForm from '@/components/auth/login-form'
+import { type UserRole, ROLE } from '@/lib/auth/roles'
 
 // Single source of truth for main-nav order, labels, and active-matching.
 // Order here IS the display order — rearrange this array to reorder nav.
@@ -20,29 +21,30 @@ interface MainNavItem {
   label: string
   icon: LucideIcon
   match: (pathname: string) => boolean
+  /** Roles that can see this item. Omit to show to all roles. */
+  requiredRoles?: UserRole[]
 }
+
+// Roles that can access financial/billing screens
+const INVOICE_ROLES: UserRole[] = [ROLE.PLATFORM_OWNER, ROLE.PLATFORM_ADMIN, ROLE.TENANT_OWNER, ROLE.ADMIN, ROLE.ESTIMATOR]
+// Roles that can access the sales management hub (commissions, approvals, analytics)
+const SALES_ROLES: UserRole[] = [ROLE.PLATFORM_OWNER, ROLE.PLATFORM_ADMIN, ROLE.TENANT_OWNER, ROLE.ADMIN]
 
 const MAIN_NAV_ITEMS: MainNavItem[] = [
   { href: '/', label: 'Dashboard', icon: Home, match: (p) => p === '/' },
   { href: '/crm', label: 'CRM', icon: LayoutGrid, match: (p) => p.startsWith('/crm') },
   { href: '/site-surveys', label: 'Surveys', icon: FileText, match: (p) => p.startsWith('/site-surveys') },
   { href: '/lab-reports', label: 'Lab Reports', icon: FlaskConical, match: (p) => p.startsWith('/lab-reports') },
-  { href: '/estimates', label: 'Estimates', icon: Calculator, match: (p) => p.startsWith('/estimates') },
+  { href: '/estimates', label: 'Estimates', icon: Calculator, match: (p) => p.startsWith('/estimates'), requiredRoles: INVOICE_ROLES },
   { href: '/jobs', label: 'Jobs', icon: Briefcase, match: (p) => p.startsWith('/jobs') },
   { href: '/work-orders', label: 'Work Orders', icon: ClipboardList, match: (p) => p.startsWith('/work-orders') },
   { href: '/compliance', label: 'Compliance', icon: ShieldCheck, match: (p) => p.startsWith('/compliance') },
-  { href: '/invoices', label: 'Invoices', icon: DollarSign, match: (p) => p.startsWith('/invoices') },
-  // Sales hub: pipeline, commissions, win/loss analytics, and the approval
-  // queue. The pages already existed but had no nav entry, so commissions
-  // and the sales analytics read as "unavailable / 404" in QA (CO1-6,
-  // PA8-10) — this surfaces them.
-  { href: '/sales', label: 'Sales', icon: TrendingUp, match: (p) => p.startsWith('/sales') },
+  { href: '/invoices', label: 'Invoices', icon: DollarSign, match: (p) => p.startsWith('/invoices'), requiredRoles: INVOICE_ROLES },
+  // Sales hub: pipeline, commissions, win/loss analytics, and the approval queue.
+  { href: '/sales', label: 'Sales', icon: TrendingUp, match: (p) => p.startsWith('/sales'), requiredRoles: SALES_ROLES },
   { href: '/calendar', label: 'Calendar', icon: Calendar, match: (p) => p.startsWith('/calendar') },
-  // Feedback hub: survey responses, NPS/satisfaction scores, and the
-  // testimonial approval queue. The public survey + all the backing APIs
-  // existed, but there was no office-facing page to read results or manage
-  // testimonials (FB7, FB9) — this surfaces them.
-  { href: '/feedback', label: 'Feedback', icon: MessageCircle, match: (p) => p.startsWith('/feedback') },
+  // Feedback hub: survey responses, NPS/satisfaction scores, testimonial approvals.
+  { href: '/feedback', label: 'Feedback', icon: MessageCircle, match: (p) => p.startsWith('/feedback'), requiredRoles: SALES_ROLES },
 ]
 
 function InlineLogin() {
@@ -96,6 +98,11 @@ function DashboardLayoutInner({
   const router = useRouter()
   const pathname = usePathname()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+
+  const role = profile?.role as UserRole | undefined
+  const visibleNavItems = MAIN_NAV_ITEMS.filter(
+    (item) => !item.requiredRoles || !role || item.requiredRoles.includes(role)
+  )
 
   useEffect(() => {
     if (!loading && user && profile && !profile.organization_id && !profile.is_platform_user) {
@@ -219,7 +226,7 @@ function DashboardLayoutInner({
           <nav className="hidden lg:block border-b bg-white" aria-label="Main navigation">
             <div className="container">
               <div className="flex space-x-8 overflow-x-auto">
-                {MAIN_NAV_ITEMS.map((item) => {
+                {visibleNavItems.map((item) => {
                   const isActive = item.match(pathname)
                   return (
                     <Link
@@ -259,7 +266,7 @@ function DashboardLayoutInner({
             </div>
           )}
           <nav className="px-2 py-2 space-y-1" aria-label="Main navigation">
-            {MAIN_NAV_ITEMS.map((item) => {
+            {visibleNavItems.map((item) => {
               const isActive = item.match(pathname)
               return (
                 <Link

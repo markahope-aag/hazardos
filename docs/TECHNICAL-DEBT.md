@@ -81,21 +81,13 @@ Living list of known issues, deferred work, and future improvements. Update when
 
 Items found by the role-permissions audit that we've intentionally deferred. HIGH and MEDIUM severity items are being fixed in the same pass that closes the technician-leak; the items below are LOW severity / cosmetic.
 
-### Hide nav items for non-admin roles (cosmetic)
+### ~~Hide nav items for non-admin roles (cosmetic)~~ ✅ Done 2026-07-14
 
-**What:** Main nav (`app/(dashboard)/layout.tsx:22-33`) shows every section to every role. Estimators and technicians see "Invoices" even though most of those API mutations are blocked.
+Implemented `requiredRoles` on `MainNavItem` in `app/(dashboard)/layout.tsx`. Invoices and Estimates hidden from technician/viewer; Sales and Feedback hidden from estimator/technician/viewer.
 
-**Why deferred:** API guards prevent actual harm; this is a UX cleanup, not a security fix. Fold into the larger nav-by-role pass once we decide whether technicians get a stripped-down "field mode" layout vs. the same nav.
+### ~~Add `allowedRoles` to consistency-only endpoints~~ ✅ Done
 
-**Proposed approach:** Add `requiredRoles?: UserRole[]` to `MAIN_NAV_ITEMS`, filter at render based on `useMultiTenantAuth().profile?.role`.
-
-### Add `allowedRoles: ROLES.TENANT_READ` to consistency-only endpoints
-
-**What:** A handful of read-only endpoints (e.g. `/api/activity-log`) have no `allowedRoles`. RLS already scopes them to the org. They behave correctly today.
-
-**Why deferred:** Pure consistency improvement. No data leak — RLS catches it. Worth doing eventually so the convention is "every route declares its allowedRoles".
-
-**Proposed approach:** Sweep `app/api/**/route.ts` for missing `allowedRoles`, add `ROLES.TENANT_READ` to GETs that don't already gate.
+`/api/activity-log` already has `allowedRoles: ROLES.TENANT_READ`. Verified by audit.
 
 ---
 

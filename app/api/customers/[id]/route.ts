@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateCustomerSchema } from '@/lib/validations/customer-api'
-import { SecureError } from '@/lib/utils/secure-error-handler'
+import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { ROLES } from '@/lib/auth/roles'
 import type { CustomerUpdate } from '@/types/database'
 
@@ -23,7 +23,7 @@ export const GET = createApiHandlerWithParams(
       .eq('id', params.id)
       .maybeSingle()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'customer operation')
     if (!customer) {
       throw new SecureError('NOT_FOUND', 'Customer not found')
     }
@@ -66,7 +66,7 @@ export const PATCH = createApiHandlerWithParams(
       .select()
       .maybeSingle()
 
-    if (error) throw error
+    if (error) throwDbError(error, 'customer operation')
     if (!customer) {
       throw new SecureError('NOT_FOUND', 'Customer not found')
     }
@@ -89,7 +89,7 @@ export const DELETE = createApiHandlerWithParams(
       .delete()
       .eq('id', params.id)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'customer operation')
     return NextResponse.json({ message: 'Customer deleted successfully' })
   }
 )

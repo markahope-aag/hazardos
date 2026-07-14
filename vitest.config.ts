@@ -31,15 +31,15 @@ export default defineConfig({
         'lib/**/*.{ts,tsx}',
         'types/**/*.{ts,tsx}',
       ],
-      // Ratchet baseline: set just below the repo's current measured coverage
-      // so the gate reflects reality and can be raised as coverage improves.
-      // Previously 40/38/38/31, which sat ABOVE actual coverage (~38% lines) —
-      // that made the gate unpassable on every PR while push builds skipped it.
+      // Thresholds raised from the ratchet baseline (37/35/33/27) back toward
+      // the original audit targets (40/38/38/31). Values verified against
+      // measured coverage after recent test additions; raise incrementally
+      // as coverage improves.
       thresholds: {
-        lines: 37,
-        statements: 35,
-        functions: 33,
-        branches: 27,
+        lines: 39,
+        statements: 37,
+        functions: 35,
+        branches: 29,
       },
     },
   },

@@ -45,6 +45,14 @@ vi.mock('@/lib/middleware/api-key-auth', () => ({
   withApiKeyAuth: (handler: (...args: unknown[]) => unknown) => handler
 }))
 
+vi.mock('@/lib/middleware/unified-rate-limit', () => ({
+  applyUnifiedRateLimit: vi.fn(() => Promise.resolve(null))
+}))
+
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn(() => mockSupabaseClient)
+}))
+
 import { ApiKeyService } from '@/lib/services/api-key-service'
 
 describe('V1 Customers API', () => {

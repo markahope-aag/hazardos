@@ -88,7 +88,7 @@ describe('Job Status API', () => {
       // Assert
       expect(response.status).toBe(200)
       expect(data.status).toBe('scheduled')
-      expect(JobsService.updateStatus).toHaveBeenCalledWith('job-123', 'scheduled')
+      expect(JobsService.updateStatus).toHaveBeenCalledWith('job-123', 'scheduled', expect.any(Object))
     })
 
     it('should update job status to in_progress', async () => {

@@ -22,6 +22,7 @@
  */
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { throwDbError } from '@/lib/utils/secure-error-handler'
 import { ResendProvider } from './resend-provider'
 import type {
   EmailProvider,
@@ -202,7 +203,7 @@ export class EmailService {
       })
       .eq('id', organizationId)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'start domain verification')
 
     return { domain: normalized, providerId, records }
   }
@@ -237,7 +238,7 @@ export class EmailService {
       })
       .eq('id', organizationId)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'refresh domain status')
 
     return { status, records, domain: org.email_domain }
   }
@@ -276,6 +277,6 @@ export class EmailService {
       })
       .eq('id', organizationId)
 
-    if (error) throw error
+    if (error) throwDbError(error, 'remove domain')
   }
 }

@@ -6,8 +6,12 @@ import { ApiKeyService } from '@/lib/services/api-key-service';
 import { handlePreflight } from '@/lib/middleware/cors';
 import { v1CustomerListQuerySchema, v1CreateCustomerSchema, formatZodError } from '@/lib/validations/v1-api';
 import { createRequestLogger, formatError } from '@/lib/utils/logger';
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
 
 async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
+  const rateLimitResponse = await applyUnifiedRateLimit(request, 'public');
+  if (rateLimitResponse) return rateLimitResponse;
+
   // Check scope
   if (!ApiKeyService.hasScope(context.apiKey, 'customers:read')) {
     return NextResponse.json(
@@ -70,6 +74,9 @@ async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Prom
 }
 
 async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
+  const rateLimitResponse = await applyUnifiedRateLimit(request, 'public');
+  if (rateLimitResponse) return rateLimitResponse;
+
   // Check scope
   if (!ApiKeyService.hasScope(context.apiKey, 'customers:write')) {
     return NextResponse.json(
