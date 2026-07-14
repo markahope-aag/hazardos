@@ -20,6 +20,10 @@ export async function updateSession(request: NextRequest) {
     supabaseUrl,
     supabaseAnonKey,
     {
+      // Secure in production so the session cookies the proxy refreshes on
+      // every request are HTTPS-only (SEC9). Gated off for local http dev.
+      // httpOnly stays false — the browser client must read these cookies.
+      cookieOptions: { secure: process.env.NODE_ENV === 'production' },
       cookies: {
         get(name: string) {
           return request.cookies.get(name)?.value

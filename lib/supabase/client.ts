@@ -10,5 +10,14 @@ export function createClient() {
     )
   }
 
-  return createBrowserClient(supabaseUrl, supabaseAnonKey)
+  // Mark the Supabase auth cookies Secure in production (SEC9) so they are
+  // only ever sent over HTTPS. Gated to production because local `next dev`
+  // serves over plain HTTP, where a Secure cookie would never be stored.
+  // httpOnly stays false: @supabase/ssr stores the session in cookies that
+  // this browser client must read via document.cookie, so an httpOnly auth
+  // cookie would break client-side auth — a documented constraint of the SSR
+  // pattern, mitigated by short-lived access tokens + refresh rotation + CSP.
+  return createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    cookieOptions: { secure: process.env.NODE_ENV === 'production' },
+  })
 }

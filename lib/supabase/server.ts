@@ -17,6 +17,11 @@ export async function createClient() {
     supabaseUrl,
     supabaseAnonKey,
     {
+      // Secure in production so refreshed auth cookies are HTTPS-only (SEC9).
+      // Gated off for local http dev. httpOnly is left at the @supabase/ssr
+      // default (false): the browser client reads these same cookies, so they
+      // can't be httpOnly without breaking client-side auth.
+      cookieOptions: { secure: process.env.NODE_ENV === 'production' },
       cookies: {
         get(name: string) {
           return cookieStore.get(name)?.value
