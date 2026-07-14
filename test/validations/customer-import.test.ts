@@ -51,6 +51,43 @@ describe('parseImportRow', () => {
   })
 })
 
+describe('parseImportRow edge inputs (EX11)', () => {
+  it('accepts emoji in names', () => {
+    const r = parseImportRow({ first_name: 'Ada 👷', last_name: '🏗️ Lovelace' })
+    expect(r.success).toBe(true)
+    if (r.success) {
+      expect(r.data.first_name).toBe('Ada 👷')
+      expect(r.data.last_name).toBe('🏗️ Lovelace')
+    }
+  })
+
+  it('accepts non-Latin characters (CJK, Arabic, Cyrillic)', () => {
+    const cases = ['山田太郎', 'محمد', 'Александр', 'Æøå', 'Ñoño']
+    for (const name of cases) {
+      const r = parseImportRow({ first_name: name, company_name: `${name} Inc` })
+      expect(r.success, `${name} should validate`).toBe(true)
+      if (r.success) expect(r.data.first_name).toBe(name)
+    }
+  })
+
+  it('accepts a company name at the 255 limit but rejects one beyond it', () => {
+    expect(parseImportRow({ first_name: 'A', company_name: 'X'.repeat(255) }).success).toBe(true)
+    expect(parseImportRow({ first_name: 'A', company_name: 'X'.repeat(256) }).success).toBe(false)
+  })
+
+  it('rejects an over-long first name rather than silently truncating', () => {
+    const r = parseImportRow({ first_name: 'X'.repeat(101) })
+    expect(r.success).toBe(false)
+  })
+
+  it('strips a UTF-8 BOM so a BOM-prefixed header still auto-maps', () => {
+    // A CSV saved by Excel prefixes the first header with U+FEFF.
+    const m = autoMapHeaders(['﻿First Name', 'Email'])
+    expect(m.first_name).toBe('﻿First Name') // original header preserved for lookup
+    expect(m.email).toBe('Email')
+  })
+})
+
 describe('autoMapHeaders', () => {
   it('maps common header variants to fields', () => {
     const m = autoMapHeaders(['First Name', 'Last Name', 'Email Address', 'Cell Phone', 'Company'])
