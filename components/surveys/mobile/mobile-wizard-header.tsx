@@ -63,25 +63,35 @@ export function MobileWizardHeader({
         </Button>
 
         <div className="flex items-center gap-2">
-          {!isOnline && (
-            <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-md text-xs">
-              <WifiOff className="w-3 h-3" />
-              <span>Offline</span>
-            </div>
-          )}
+          <div role="status" aria-live="polite" className="flex items-center gap-2">
+            {!isOnline && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-md text-xs">
+                <WifiOff className="w-3 h-3" />
+                <span>Offline</span>
+              </div>
+            )}
 
-          {isSyncing && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+            {isSyncing && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
 
-          {isDirty && !isSyncing && <span className="text-xs text-yellow-600">Unsaved</span>}
+            {isDirty && !isSyncing && <span className="text-xs text-yellow-600">Unsaved</span>}
 
-          {!isDirty && lastSavedAt && !isSyncing && (
-            <span className="text-xs text-green-600 flex items-center gap-1">
-              <Cloud className="w-3 h-3" />
-              Saved
-            </span>
-          )}
+            {!isDirty && lastSavedAt && !isSyncing && (
+              <span className="text-xs text-green-600 flex items-center gap-1">
+                <Cloud className="w-3 h-3" />
+                Saved
+              </span>
+            )}
 
-          {syncError && <CloudOff className="w-4 h-4 text-destructive" />}
+            {syncError && (
+              <span
+                className="flex items-center text-destructive"
+                title={syncError}
+                aria-label={`Sync error: ${syncError}`}
+              >
+                <CloudOff className="w-4 h-4" aria-hidden="true" />
+              </span>
+            )}
+          </div>
 
           <Button
             variant="outline"

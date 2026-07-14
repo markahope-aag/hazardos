@@ -102,6 +102,21 @@ export default function CompanyList() {
       : <ArrowDown className="h-3 w-3 ml-1" />
   }
 
+  const ariaSortFor = (column: string): 'ascending' | 'descending' | 'none' =>
+    sortBy === column ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'
+
+  const SortableHead = ({ column, label, align }: { column: string; label: string; align?: 'right' }) => (
+    <TableHead className={align === 'right' ? 'text-right' : undefined} aria-sort={ariaSortFor(column)}>
+      <button
+        type="button"
+        onClick={() => toggleSort(column)}
+        className={`flex items-center select-none hover:text-foreground transition-colors ${align === 'right' ? 'justify-end w-full' : ''}`}
+      >
+        {label}<SortIcon column={column} />
+      </button>
+    </TableHead>
+  )
+
   if (error) {
     return (
       <Card>
@@ -222,26 +237,14 @@ export default function CompanyList() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('name')}>
-                      <span className="flex items-center">Company<SortIcon column="name" /></span>
-                    </TableHead>
+                    <SortableHead column="name" label="Company" />
                     <TableHead>Primary Contact</TableHead>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('industry')}>
-                      <span className="flex items-center">Industry<SortIcon column="industry" /></span>
-                    </TableHead>
+                    <SortableHead column="industry" label="Industry" />
                     <TableHead>Location</TableHead>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('account_status')}>
-                      <span className="flex items-center">Status<SortIcon column="account_status" /></span>
-                    </TableHead>
-                    <TableHead className="cursor-pointer select-none text-right" onClick={() => toggleSort('total_jobs_completed')}>
-                      <span className="flex items-center justify-end">Jobs<SortIcon column="total_jobs_completed" /></span>
-                    </TableHead>
-                    <TableHead className="cursor-pointer select-none text-right" onClick={() => toggleSort('lifetime_value')}>
-                      <span className="flex items-center justify-end">Lifetime Value<SortIcon column="lifetime_value" /></span>
-                    </TableHead>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('updated_at')}>
-                      <span className="flex items-center">Last Activity<SortIcon column="updated_at" /></span>
-                    </TableHead>
+                    <SortableHead column="account_status" label="Status" />
+                    <SortableHead column="total_jobs_completed" label="Jobs" align="right" />
+                    <SortableHead column="lifetime_value" label="Lifetime Value" align="right" />
+                    <SortableHead column="updated_at" label="Last Activity" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>

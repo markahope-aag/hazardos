@@ -156,7 +156,7 @@ export function AccessSection() {
         </p>
         <NumericStepper
           value={access.minDoorwayWidth}
-          onChange={(value) => updateAccess({ minDoorwayWidth: value })}
+          onChange={(value) => { if (value !== null) updateAccess({ minDoorwayWidth: value }) }}
           min={12}
           max={120}
           step={1}

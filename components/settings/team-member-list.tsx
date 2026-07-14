@@ -209,6 +209,28 @@ export function TeamMemberList({
   const sortableHeaderClass =
     'cursor-pointer select-none hover:text-foreground transition-colors'
 
+  const SortableHead = ({ column, label }: { column: SortColumn; label: string }) => (
+    <TableHead
+      className={sortableHeaderClass}
+      aria-sort={
+        sortColumn === column
+          ? sortDirection === 'asc'
+            ? 'ascending'
+            : 'descending'
+          : 'none'
+      }
+    >
+      <button
+        type="button"
+        onClick={() => handleSort(column)}
+        className="flex items-center hover:text-foreground transition-colors"
+      >
+        {label}
+        <SortIcon column={column} />
+      </button>
+    </TableHead>
+  )
+
   const isOwnerLike =
     currentUserRole === 'tenant_owner' ||
     currentUserRole === 'platform_owner' ||
@@ -340,76 +362,11 @@ export function TeamMemberList({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead
-              className={sortableHeaderClass}
-              onClick={() => handleSort('name')}
-              aria-sort={
-                sortColumn === 'name'
-                  ? sortDirection === 'asc'
-                    ? 'ascending'
-                    : 'descending'
-                  : 'none'
-              }
-            >
-              Name
-              <SortIcon column="name" />
-            </TableHead>
-            <TableHead
-              className={sortableHeaderClass}
-              onClick={() => handleSort('email')}
-              aria-sort={
-                sortColumn === 'email'
-                  ? sortDirection === 'asc'
-                    ? 'ascending'
-                    : 'descending'
-                  : 'none'
-              }
-            >
-              Email
-              <SortIcon column="email" />
-            </TableHead>
-            <TableHead
-              className={sortableHeaderClass}
-              onClick={() => handleSort('phone')}
-              aria-sort={
-                sortColumn === 'phone'
-                  ? sortDirection === 'asc'
-                    ? 'ascending'
-                    : 'descending'
-                  : 'none'
-              }
-            >
-              Phone
-              <SortIcon column="phone" />
-            </TableHead>
-            <TableHead
-              className={sortableHeaderClass}
-              onClick={() => handleSort('role')}
-              aria-sort={
-                sortColumn === 'role'
-                  ? sortDirection === 'asc'
-                    ? 'ascending'
-                    : 'descending'
-                  : 'none'
-              }
-            >
-              Role
-              <SortIcon column="role" />
-            </TableHead>
-            <TableHead
-              className={sortableHeaderClass}
-              onClick={() => handleSort('last_login_at')}
-              aria-sort={
-                sortColumn === 'last_login_at'
-                  ? sortDirection === 'asc'
-                    ? 'ascending'
-                    : 'descending'
-                  : 'none'
-              }
-            >
-              Last Login
-              <SortIcon column="last_login_at" />
-            </TableHead>
+            <SortableHead column="name" label="Name" />
+            <SortableHead column="email" label="Email" />
+            <SortableHead column="phone" label="Phone" />
+            <SortableHead column="role" label="Role" />
+            <SortableHead column="last_login_at" label="Last Login" />
             {canManage && <TableHead className="w-10" />}
           </TableRow>
         </TableHeader>

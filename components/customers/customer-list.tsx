@@ -137,6 +137,21 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
       : <ArrowDown className="h-3 w-3 ml-1" />
   }
 
+  const ariaSortFor = (column: string): 'ascending' | 'descending' | 'none' =>
+    sortBy === column ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'
+
+  const SortableHead = ({ column, label, className }: { column: string; label: string; className?: string }) => (
+    <TableHead className={className} aria-sort={ariaSortFor(column)}>
+      <button
+        type="button"
+        onClick={() => toggleSort(column)}
+        className="flex items-center select-none hover:text-foreground transition-colors"
+      >
+        {label}<SortIcon column={column} />
+      </button>
+    </TableHead>
+  )
+
   if (error) {
     return (
       <Card>
@@ -331,28 +346,14 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
                         aria-label="Select all contacts"
                       />
                     </TableHead>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('first_name')}>
-                      <span className="flex items-center">Name<SortIcon column="first_name" /></span>
-                    </TableHead>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('company_name')}>
-                      <span className="flex items-center">Company<SortIcon column="company_name" /></span>
-                    </TableHead>
+                    <SortableHead column="first_name" label="Name" />
+                    <SortableHead column="company_name" label="Company" />
                     <TableHead>Contact</TableHead>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('contact_type')}>
-                      <span className="flex items-center">Type<SortIcon column="contact_type" /></span>
-                    </TableHead>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('status')}>
-                      <span className="flex items-center">Status<SortIcon column="status" /></span>
-                    </TableHead>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('lifetime_value')}>
-                      <span className="flex items-center">Value<SortIcon column="lifetime_value" /></span>
-                    </TableHead>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('total_jobs')}>
-                      <span className="flex items-center">Jobs<SortIcon column="total_jobs" /></span>
-                    </TableHead>
-                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('last_job_date')}>
-                      <span className="flex items-center">Last Job<SortIcon column="last_job_date" /></span>
-                    </TableHead>
+                    <SortableHead column="contact_type" label="Type" />
+                    <SortableHead column="status" label="Status" />
+                    <SortableHead column="lifetime_value" label="Value" />
+                    <SortableHead column="total_jobs" label="Jobs" />
+                    <SortableHead column="last_job_date" label="Last Job" />
                     <TableHead>Source</TableHead>
                   </TableRow>
                 </TableHeader>
