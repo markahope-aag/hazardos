@@ -39,10 +39,7 @@ import type {
   WorkOrderVehicle,
 } from '@/types/work-orders'
 import type { SurveyPhotoMetadata } from '@/types/database'
-import {
-  generateWorkOrderPDF,
-  type WorkOrderMediaItem,
-} from '@/lib/services/work-order-pdf-generator'
+import type { WorkOrderMediaItem } from '@/lib/services/work-order-pdf-generator'
 import { getSignedSurveyMediaUrls } from '@/lib/services/photo-upload-service'
 import { WorkOrderDocuments } from './work-order-documents'
 
@@ -280,6 +277,11 @@ export default function WorkOrderDetailPage({
         equipment,
         extra_items: extraItems,
       }
+      // Lazy-load the PDF generator (and its heavy jsPDF dependency) only
+      // when the user actually downloads, so it stays out of the page bundle.
+      const { generateWorkOrderPDF } = await import(
+        '@/lib/services/work-order-pdf-generator'
+      )
       const doc = generateWorkOrderPDF(
         {
           ...workOrder,

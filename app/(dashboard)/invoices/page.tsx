@@ -14,25 +14,39 @@ import {
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 
+// Paginate server-side. This page previously fetched EVERY matching invoice
+// (no limit) and handed the whole array to the client, which rendered all
+// rows — unresponsive at high volume and silently truncated at PostgREST's
+// ~1000-row cap. Now the list is bounded by .range() while the stats cards
+// keep reading the full filtered set (slim projection) so their money totals
+// stay accurate rather than reflecting only the current page.
+const PAGE_SIZE = 25
+
+interface InvoicesSearchParams {
+  status?: string
+  customer_id?: string
+  date_from?: string
+  date_to?: string
+  page?: string
+}
+
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    status?: string
-    customer_id?: string
-    date_from?: string
-    date_to?: string
-  }>
+  searchParams: Promise<InvoicesSearchParams>
 }) {
   const params = await searchParams
   const supabase = await createClient()
 
-  let query = supabase
+  const page = Math.max(1, Number.parseInt(params.page || '1', 10) || 1)
+
+  // Paginated list query — explicit column list, since the list view touches
+  // ~10 invoice fields. Skipping tax_rate/tax_amount, sent_via, viewed_at,
+  // qb_*, payment_terms, notes, etc.
+  let listQuery = supabase
     .from('invoices')
-    // Explicit column list — the list view + stats cards together
-    // touch ~10 invoice fields. Skipping tax_rate/tax_amount,
-    // sent_via, viewed_at, qb_*, payment_terms, notes, etc.
-    .select(`
+    .select(
+      `
       id,
       invoice_number,
       status,
@@ -46,32 +60,52 @@ export default async function InvoicesPage({
       job_id,
       customer:customers(id, name, company_name, email),
       job:jobs(id, job_number)
-    `)
+    `,
+      { count: 'exact' }
+    )
     .order('invoice_date', { ascending: false })
 
+  // Stats read the full filtered set (slim projection) so the cards reflect
+  // every matching invoice, not just the current page. Pulling only the three
+  // columns the totals need keeps this far cheaper than the old full-row fetch.
+  let statsQuery = supabase
+    .from('invoices')
+    .select('status, balance_due, due_date')
+
+  // Apply the shared status/customer/date filters to both queries so the
+  // paginated list and the stats cards agree on scope.
+  //
   // `status=outstanding` is the virtual filter the dashboard's Outstanding AR
   // card uses. It's not a real column value — it means "an invoice that
   // still owes money": balance_due > 0 AND not void/paid.
   if (params.status === 'outstanding') {
-    query = query.gt('balance_due', 0).not('status', 'in', '("void","paid")')
+    listQuery = listQuery.gt('balance_due', 0).not('status', 'in', '("void","paid")')
+    statsQuery = statsQuery.gt('balance_due', 0).not('status', 'in', '("void","paid")')
   } else if (params.status) {
-    query = query.eq('status', params.status)
+    listQuery = listQuery.eq('status', params.status)
+    statsQuery = statsQuery.eq('status', params.status)
   }
 
   if (params.customer_id) {
-    query = query.eq('customer_id', params.customer_id)
+    listQuery = listQuery.eq('customer_id', params.customer_id)
+    statsQuery = statsQuery.eq('customer_id', params.customer_id)
   }
 
   // date_from/date_to filter by invoice_date so the Revenue card scopes to
   // its reporting period instead of returning every paid invoice ever.
   if (params.date_from) {
-    query = query.gte('invoice_date', params.date_from)
+    listQuery = listQuery.gte('invoice_date', params.date_from)
+    statsQuery = statsQuery.gte('invoice_date', params.date_from)
   }
   if (params.date_to) {
-    query = query.lte('invoice_date', params.date_to)
+    listQuery = listQuery.lte('invoice_date', params.date_to)
+    statsQuery = statsQuery.lte('invoice_date', params.date_to)
   }
 
-  const { data: invoicesData } = await query
+  const { data: invoicesData, count } = await listQuery.range(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE - 1
+  )
 
   // Transform data. Cast through unknown because the SELECT is
   // narrowed — runtime rows lack tax_*, payment_terms, qb_*, notes,
@@ -81,6 +115,15 @@ export default async function InvoicesPage({
     customer: Array.isArray(inv.customer) ? inv.customer[0] : inv.customer,
     job: Array.isArray(inv.job) ? inv.job[0] : inv.job,
   })) as unknown as Invoice[]
+
+  const total = count || 0
+
+  const { data: statsData } = await statsQuery
+  const statsRows = (statsData || []) as {
+    status: string
+    balance_due: number
+    due_date: string
+  }[]
 
   // Calculate stats
   const today = new Date().toISOString().split('T')[0]
@@ -92,7 +135,7 @@ export default async function InvoicesPage({
     overdue_count: 0,
   }
 
-  for (const inv of invoices) {
+  for (const inv of statsRows) {
     if (inv.status === 'void' || inv.status === 'paid') {
       if (inv.status === 'paid') stats.paid_count++
       continue
@@ -174,7 +217,12 @@ export default async function InvoicesPage({
         </Card>
       </div>
 
-      <InvoicesDataTable data={invoices} />
+      <InvoicesDataTable
+        data={invoices}
+        total={total}
+        page={page}
+        pageSize={PAGE_SIZE}
+      />
     </div>
   )
 }

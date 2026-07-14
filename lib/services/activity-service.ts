@@ -66,7 +66,11 @@ export async function getRecentActivity(limit: number = 20): Promise<ActivityLog
   return (data || []) as ActivityLogEntry[];
 }
 
-export async function getEntityActivity(entityType: string, entityId: string): Promise<ActivityLogEntry[]> {
+export async function getEntityActivity(
+  entityType: string,
+  entityId: string,
+  limit: number = 100
+): Promise<ActivityLogEntry[]> {
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -74,7 +78,8 @@ export async function getEntityActivity(entityType: string, entityId: string): P
     .select('id, organization_id, user_id, user_name, action, entity_type, entity_id, entity_name, old_values, new_values, description, created_at')
     .eq('entity_type', entityType)
     .eq('entity_id', entityId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(limit);
 
   return (data || []) as ActivityLogEntry[];
 }
