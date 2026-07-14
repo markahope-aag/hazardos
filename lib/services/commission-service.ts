@@ -299,7 +299,14 @@ export class CommissionService {
       .select()
       .single()
 
-    if (error) throwDbError(error, 'create commission earning for job')
+    // A concurrent caller (double-click approve, retry) may have inserted the
+    // earning between our existence check above and this insert. The partial
+    // unique index on commission_earnings(job_id) turns that race into a
+    // 23505 rather than a duplicate payout — treat it as idempotent success.
+    if (error) {
+      if (error.code === '23505') return null
+      throwDbError(error, 'create commission earning for job')
+    }
     return data as CommissionEarning
   }
 
