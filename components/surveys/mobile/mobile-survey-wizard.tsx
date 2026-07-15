@@ -386,6 +386,21 @@ export default function MobileSurveyWizard({
   // reaches pointerup instead of being swallowed as a scroll.
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     pointerStartRef.current = { x: e.clientX, y: e.clientY }
+    // Capture the pointer so the whole gesture — most importantly the
+    // closing pointerup — is retargeted to this element even if the finger
+    // or mouse ends up over the fixed footer/header or leaves <main>
+    // entirely. Without this, a horizontal swipe often releases outside
+    // <main>, onPointerUp never fires here, and the swipe is silently
+    // dropped (mouse has no implicit capture; a fast touch flick can clear
+    // the overlaid footer). If the browser reclaims the gesture as a
+    // vertical scroll it fires pointercancel and releases the capture, so
+    // scrolling is unaffected. setPointerCapture throws if the pointer is
+    // already gone, hence the guard.
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {
+      // Non-fatal: fall back to un-captured behavior.
+    }
   }, [])
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
