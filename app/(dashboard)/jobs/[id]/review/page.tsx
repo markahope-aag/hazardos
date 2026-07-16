@@ -127,14 +127,18 @@ export default async function JobReviewPage({
     return 'text-gray-600'
   }
 
-  // Like-for-like material comparison (J15): the estimated side must be the
-  // estimated MATERIAL cost, not the whole job estimate total, or the labeled
-  // Est-vs-Actual pairing is misleading. Compute the percent locally from the
-  // two values actually shown so the badge always agrees with the cells.
-  const estMaterialCost =
-    typeof job.estimated_material_cost === 'number' ? job.estimated_material_cost : null
+  // Like-for-like material comparison (J15): the original card paired the whole
+  // job estimate total against material-only actual cost, which is misleading.
+  // Estimated materials = sum of (estimated qty x unit cost) across the logged
+  // material lines; actual = sum of their total_cost (= totalMaterialCost). Both
+  // come from job_material_usage (loaded above), so the pairing is true
+  // like-for-like and the percent below always agrees with the two cells.
+  const estMaterialCost = materialUsage.reduce(
+    (sum, m) => sum + (m.quantity_estimated || 0) * (m.unit_cost || 0),
+    0,
+  )
   const materialVariancePercent =
-    estMaterialCost && estMaterialCost > 0
+    estMaterialCost > 0
       ? ((totalMaterialCost - estMaterialCost) / estMaterialCost) * 100
       : null
 
@@ -227,7 +231,7 @@ export default async function JobReviewPage({
             <div className="text-center p-4 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">Est. Materials</p>
               <p className="text-2xl font-bold">
-                {estMaterialCost !== null ? `$${estMaterialCost.toLocaleString()}` : '—'}
+                {estMaterialCost > 0 ? `$${estMaterialCost.toLocaleString()}` : '—'}
               </p>
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-lg">
