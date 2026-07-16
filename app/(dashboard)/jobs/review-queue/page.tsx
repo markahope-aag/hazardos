@@ -25,7 +25,7 @@ export default async function JobReviewQueuePage() {
     .select(`
       id, job_id, status, submitted_at, hours_variance_percent, cost_variance_percent,
       submitter:profiles!job_completions_submitted_by_fkey(id, full_name),
-      job:jobs(id, job_number, name)
+      job:jobs!job_completions_job_id_fkey(id, job_number, name)
     `)
     .eq('status', 'submitted')
     .order('submitted_at', { ascending: true })

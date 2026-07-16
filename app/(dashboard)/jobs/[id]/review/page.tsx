@@ -39,7 +39,7 @@ export default async function JobReviewPage({
     .select(`
       *,
       customer:customers!customer_id(id, name, company_name, email, phone),
-      completion:job_completions(
+      completion:job_completions!job_completions_job_id_fkey(
         *,
         submitter:profiles!job_completions_submitted_by_fkey(id, full_name),
         reviewer:profiles!job_completions_reviewed_by_fkey(id, full_name)
