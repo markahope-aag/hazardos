@@ -133,10 +133,14 @@ export default async function JobReviewPage({
   // material lines; actual = sum of their total_cost (= totalMaterialCost). Both
   // come from job_material_usage (loaded above), so the pairing is true
   // like-for-like and the percent below always agrees with the two cells.
-  const estMaterialCost = materialUsage.reduce(
+  const estMaterialFromLines = materialUsage.reduce(
     (sum, m) => sum + (m.quantity_estimated || 0) * (m.unit_cost || 0),
     0,
   )
+  const estMaterialCost =
+    typeof completion.estimated_material_cost === 'number' && completion.estimated_material_cost > 0
+      ? completion.estimated_material_cost
+      : estMaterialFromLines
   const materialVariancePercent =
     estMaterialCost > 0
       ? ((totalMaterialCost - estMaterialCost) / estMaterialCost) * 100
