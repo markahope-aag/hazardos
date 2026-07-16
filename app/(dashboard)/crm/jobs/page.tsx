@@ -17,7 +17,7 @@ import {
 import { Briefcase, Plus, DollarSign, Clock, CheckCircle, Search, ChevronLeft, ChevronRight, AlertTriangle, ClipboardCheck } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
+import { useMultiTenantAuth, usePermissions } from '@/lib/hooks/use-multi-tenant-auth'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import { formatCurrency } from '@/lib/utils'
 
@@ -47,7 +47,8 @@ function getPaymentStatus(job: Record<string, unknown>): { label: string; color:
 }
 
 export default function CrmJobsPage() {
-  const { organization, canManageTenant } = useMultiTenantAuth()
+  const { organization } = useMultiTenantAuth()
+  const { canManageTenant } = usePermissions()
   // Seed filters from URL so the dashboard "Jobs this month" card lands
   // on the right slice of data. Users can still override from the UI.
   const searchParamsUrl = useSearchParams()
