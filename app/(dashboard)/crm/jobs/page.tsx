@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { Briefcase, Plus, DollarSign, Clock, CheckCircle, Search, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
+import { Briefcase, Plus, DollarSign, Clock, CheckCircle, Search, ChevronLeft, ChevronRight, AlertTriangle, ClipboardCheck } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
@@ -47,7 +47,7 @@ function getPaymentStatus(job: Record<string, unknown>): { label: string; color:
 }
 
 export default function CrmJobsPage() {
-  const { organization } = useMultiTenantAuth()
+  const { organization, canManageTenant } = useMultiTenantAuth()
   // Seed filters from URL so the dashboard "Jobs this month" card lands
   // on the right slice of data. Users can still override from the UI.
   const searchParamsUrl = useSearchParams()
@@ -161,7 +161,14 @@ export default function CrmJobsPage() {
           <h1 className="text-2xl font-bold">Jobs</h1>
           <p className="text-muted-foreground">Manage scheduled and completed jobs</p>
         </div>
-        <Button asChild><Link href="/jobs/new"><Plus className="h-4 w-4 mr-2" />New Job</Link></Button>
+        <div className="flex gap-2">
+          {canManageTenant() && (
+            <Button variant="outline" asChild>
+              <Link href="/jobs/review-queue"><ClipboardCheck className="h-4 w-4 mr-2" />Review Queue</Link>
+            </Button>
+          )}
+          <Button asChild><Link href="/jobs/new"><Plus className="h-4 w-4 mr-2" />New Job</Link></Button>
+        </div>
       </div>
 
       {/* Stats */}

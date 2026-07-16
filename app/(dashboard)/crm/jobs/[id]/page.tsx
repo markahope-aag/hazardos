@@ -148,9 +148,23 @@ export default function JobDetailPage({ params }: Props) {
             <p className="text-sm text-muted-foreground">{job.name}</p>
           </div>
         </div>
-        <Button onClick={() => { setStatusForm({ status: job.status, notes: '', actual_hours: '' }); setShowStatusModal(true) }}>
-          Update Status
-        </Button>
+        <div className="flex gap-2">
+          {/* Completing a job routes to the full completion flow (Time,
+              Materials, Equipment, Photos, Checklist, Review) so technicians
+              can log materials/quantities — the quick "Update Status" modal
+              only handles non-completion status changes. */}
+          {['scheduled', 'in_progress', 'on_hold'].includes(job.status) && (
+            <Button asChild>
+              <Link href={`/jobs/${job.id}/complete`}>
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Complete Job
+              </Link>
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => { setStatusForm({ status: job.status, notes: '', actual_hours: '' }); setShowStatusModal(true) }}>
+            Update Status
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
@@ -592,7 +606,13 @@ export default function JobDetailPage({ params }: Props) {
               <Select value={statusForm.status} onValueChange={(v) => setStatusForm(f => ({ ...f, status: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(STATUS_CONFIG).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                  {/* 'Completed' is intentionally omitted here so completion
+                      goes through the full flow (which captures materials).
+                      Kept as an option only when the job is already completed
+                      so its status still renders and can move to invoiced/paid. */}
+                  {Object.entries(STATUS_CONFIG)
+                    .filter(([k]) => k !== 'completed' || job.status === 'completed')
+                    .map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

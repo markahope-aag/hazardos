@@ -127,6 +127,33 @@ export default async function JobReviewPage({
     return 'text-gray-600'
   }
 
+  // Like-for-like material comparison (J15): the estimated side must be the
+  // estimated MATERIAL cost, not the whole job estimate total, or the labeled
+  // Est-vs-Actual pairing is misleading. Compute the percent locally from the
+  // two values actually shown so the badge always agrees with the cells.
+  const estMaterialCost =
+    typeof job.estimated_material_cost === 'number' ? job.estimated_material_cost : null
+  const materialVariancePercent =
+    estMaterialCost && estMaterialCost > 0
+      ? ((totalMaterialCost - estMaterialCost) / estMaterialCost) * 100
+      : null
+
+  // Explicit over/under-budget text (J16/J17) — color alone isn't accessible
+  // and QA couldn't tell overrun from under-budget. Threshold matches the
+  // color bands above (±10%).
+  const getVarianceLabel = (
+    percent: number | null | undefined,
+    overText: string,
+    underText: string,
+  ) => {
+    if (percent === null || percent === undefined) return null
+    if (percent > 10) return { text: overText, className: 'text-red-600' }
+    if (percent < -10) return { text: underText, className: 'text-green-600' }
+    return { text: 'On target', className: 'text-gray-500' }
+  }
+  const hoursVarianceLabel = getVarianceLabel(completion.hours_variance_percent, 'Overrun', 'Under est.')
+  const materialVarianceLabel = getVarianceLabel(materialVariancePercent, 'Over budget', 'Under budget')
+
   const statusConfig = completionStatusConfig[completion.status as keyof typeof completionStatusConfig]
 
   return (
@@ -191,20 +218,30 @@ export default async function JobReviewPage({
                   {completion.hours_variance_percent?.toFixed(1)}%
                 </p>
               )}
+              {hoursVarianceLabel && (
+                <p className={cn('text-xs font-medium mt-0.5', hoursVarianceLabel.className)}>
+                  {hoursVarianceLabel.text}
+                </p>
+              )}
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground">Est. Cost</p>
+              <p className="text-sm text-muted-foreground">Est. Materials</p>
               <p className="text-2xl font-bold">
-                ${completion.estimated_total?.toLocaleString() || '—'}
+                {estMaterialCost !== null ? `$${estMaterialCost.toLocaleString()}` : '—'}
               </p>
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground">Material Cost</p>
+              <p className="text-sm text-muted-foreground">Actual Materials</p>
               <p className="text-2xl font-bold">${totalMaterialCost.toLocaleString()}</p>
-              {completion.cost_variance_percent !== null && (
-                <p className={cn('text-sm', getVarianceColor(completion.cost_variance_percent))}>
-                  {completion.cost_variance_percent > 0 ? '+' : ''}
-                  {completion.cost_variance_percent?.toFixed(1)}%
+              {materialVariancePercent !== null && (
+                <p className={cn('text-sm', getVarianceColor(materialVariancePercent))}>
+                  {materialVariancePercent > 0 ? '+' : ''}
+                  {materialVariancePercent.toFixed(1)}%
+                </p>
+              )}
+              {materialVarianceLabel && (
+                <p className={cn('text-xs font-medium mt-0.5', materialVarianceLabel.className)}>
+                  {materialVarianceLabel.text}
                 </p>
               )}
             </div>
