@@ -8,6 +8,11 @@ import { v1CustomerListQuerySchema, v1CreateCustomerSchema, formatZodError } fro
 import { createRequestLogger, formatError } from '@/lib/utils/logger';
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
 
+// Public projection for customers — identical to the single-record [id] route,
+// so the collection endpoint can't expose more than fetching one record does.
+const V1_CUSTOMER_COLUMNS =
+  'id, organization_id, name, first_name, last_name, company_name, email, phone, mobile, website, status, customer_type, lead_source, address_line1, address_line2, city, state, zip, country, notes, tags, billing_email, preferred_contact_method, created_at, updated_at';
+
 async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
   const rateLimitResponse = await applyUnifiedRateLimit(request, 'public');
   if (rateLimitResponse) return rateLimitResponse;
@@ -42,7 +47,11 @@ async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Prom
 
   let query = supabase
     .from('customers')
-    .select('*', { count: 'exact' })
+    // Curated projection — must match the single-record [id] route. `select('*')`
+    // leaked ~64 internal columns here (QuickBooks/HubSpot/Mailchimp IDs,
+    // insurance PII, sms_opt_in_ip, lifetime_value, attribution) that the [id]
+    // route deliberately withholds.
+    .select(V1_CUSTOMER_COLUMNS, { count: 'exact' })
     .eq('organization_id', context.organizationId)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
@@ -121,10 +130,21 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     lead_source,
   } = validationResult.data;
 
+  // `customers.name` is NOT NULL with no default, but the v1 create payload
+  // only carries the structured name parts — derive a display name so the
+  // insert doesn't 23502. Falls back through company then email so a row is
+  // always well-formed.
+  const derivedName =
+    [first_name, last_name].filter(Boolean).join(' ').trim() ||
+    company_name ||
+    email ||
+    'Customer';
+
   const { data, error } = await supabase
     .from('customers')
     .insert({
       organization_id: context.organizationId,
+      name: derivedName,
       first_name,
       last_name,
       email,

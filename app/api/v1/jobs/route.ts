@@ -5,8 +5,13 @@ import { ApiKeyService } from '@/lib/services/api-key-service';
 import { handlePreflight } from '@/lib/middleware/cors';
 import { v1CreateJobSchema, v1JobListQuerySchema, formatZodError } from '@/lib/validations/v1-api';
 import { createRequestLogger, formatError } from '@/lib/utils/logger';
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
+import { insertWithEntityNumber } from '@/lib/utils/entity-number';
 
 async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
+  const rateLimitResponse = await applyUnifiedRateLimit(request, 'public');
+  if (rateLimitResponse) return rateLimitResponse;
+
   // Check scope
   if (!ApiKeyService.hasScope(context.apiKey, 'jobs:read')) {
     return NextResponse.json(
@@ -71,6 +76,9 @@ async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Prom
 }
 
 async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
+  const rateLimitResponse = await applyUnifiedRateLimit(request, 'public');
+  if (rateLimitResponse) return rateLimitResponse;
+
   // Check scope
   if (!ApiKeyService.hasScope(context.apiKey, 'jobs:write')) {
     return NextResponse.json(
@@ -123,35 +131,45 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
   }
 
-  // Generate job number
-  const { count } = await supabase
-    .from('jobs')
-    .select('*', { count: 'exact', head: true })
-    .eq('organization_id', context.organizationId);
+  // Allocate a race-safe, per-org job number and insert.
+  //
+  // Column names track the current `jobs` schema. Renamed since the v1 route
+  // was written: scheduled_date -> scheduled_start_date, notes ->
+  // internal_notes, site_address_line1/city/state/zip -> job_address/job_city/
+  // job_state/job_zip. `hazard_types` and `status` are unchanged.
+  //
+  // DECISION NEEDED — two request fields have no current column and are NOT
+  // persisted yet (so create succeeds instead of 500ing):
+  //   • job_type    — the live schema classifies work via `hazard_types` /
+  //                   `containment_level`, not a single job_type. Decide:
+  //                   drop from the API, map onto hazard_types, or add a column.
+  //   • description — no free-text description column exists; `special_instructions`
+  //                   or `scope_of_work` are the likely targets. Confirm which.
+  // Until that call is made these two are accepted by validation but ignored;
+  // referenced here to keep them in scope and silence unused-var lint.
+  void job_type;
+  void description;
 
-  const jobNumber = `JOB-${String((count || 0) + 1).padStart(5, '0')}`;
-
-  const { data, error } = await supabase
-    .from('jobs')
-    .insert({
+  const { data, error } = await insertWithEntityNumber<{ id: string }>(supabase, {
+    table: 'jobs',
+    organizationId: context.organizationId,
+    prefix: 'JOB',
+    buildRow: (jobNumber) => ({
       organization_id: context.organizationId,
       customer_id,
       job_number: jobNumber,
-      job_type,
       hazard_types: hazard_types || [],
-      scheduled_date,
-      description,
-      notes,
-      site_address_line1,
-      site_city,
-      site_state,
-      site_zip,
+      scheduled_start_date: scheduled_date,
+      internal_notes: notes,
+      job_address: site_address_line1,
+      job_city: site_city,
+      job_state: site_state,
+      job_zip: site_zip,
       status: 'pending',
-    })
-    .select()
-    .single();
+    }),
+  });
 
-  if (error) {
+  if (error || !data) {
     const log = createRequestLogger({
       requestId: crypto.randomUUID(),
       method: 'POST',

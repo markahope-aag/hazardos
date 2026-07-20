@@ -130,11 +130,15 @@ async function handleDelete(
 
   const supabase = createAdminClient();
 
-  const { error } = await supabase
+  // Return the deleted rows so we can distinguish "deleted" from "nothing
+  // matched". The org filter means an unknown or cross-org id deletes zero
+  // rows — that must be a 404, not a misleading { success: true }.
+  const { data: deleted, error } = await supabase
     .from('customers')
     .delete()
     .eq('id', params.id)
-    .eq('organization_id', context.organizationId);
+    .eq('organization_id', context.organizationId)
+    .select('id');
 
   if (error) {
     const log = createRequestLogger({
@@ -148,6 +152,10 @@ async function handleDelete(
       'Failed to delete customer'
     );
     return NextResponse.json({ error: 'Failed to delete customer' }, { status: 500 });
+  }
+
+  if (!deleted || deleted.length === 0) {
+    return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
   }
 
   return NextResponse.json({ success: true });

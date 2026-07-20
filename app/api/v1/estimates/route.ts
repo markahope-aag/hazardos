@@ -5,8 +5,13 @@ import { ApiKeyService } from '@/lib/services/api-key-service';
 import { handlePreflight } from '@/lib/middleware/cors';
 import { v1EstimateListQuerySchema, v1CreateEstimateSchema, formatZodError } from '@/lib/validations/v1-api';
 import { createRequestLogger, formatError } from '@/lib/utils/logger';
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
+import { insertWithEntityNumber } from '@/lib/utils/entity-number';
 
 async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
+  const rateLimitResponse = await applyUnifiedRateLimit(request, 'public');
+  if (rateLimitResponse) return rateLimitResponse;
+
   // Check scope
   if (!ApiKeyService.hasScope(context.apiKey, 'estimates:read')) {
     return NextResponse.json(
@@ -71,6 +76,9 @@ async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Prom
 }
 
 async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
+  const rateLimitResponse = await applyUnifiedRateLimit(request, 'public');
+  if (rateLimitResponse) return rateLimitResponse;
+
   // Check scope
   if (!ApiKeyService.hasScope(context.apiKey, 'estimates:write')) {
     return NextResponse.json(
@@ -132,36 +140,32 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     }
   }
 
-  // Generate estimate number
-  const { count } = await supabase
-    .from('estimates')
-    .select('*', { count: 'exact', head: true })
-    .eq('organization_id', context.organizationId);
-
-  const estimateNumber = `EST-${String((count || 0) + 1).padStart(5, '0')}`;
-
   // Calculate totals
   let totalAmount = 0;
   for (const item of line_items) {
     totalAmount += item.quantity * item.unit_price;
   }
 
-  const { data: estimate, error } = await supabase
-    .from('estimates')
-    .insert({
+  // Allocate a race-safe, per-org estimate number and insert.
+  // Column names track the post-20260401000004 schema: `total` (not
+  // total_amount) and `internal_notes` (not notes).
+  const { data: estimate, error } = await insertWithEntityNumber<{ id: string }>(supabase, {
+    table: 'estimates',
+    organizationId: context.organizationId,
+    prefix: 'EST',
+    buildRow: (estimateNumber) => ({
       organization_id: context.organizationId,
       customer_id,
       site_survey_id,
       estimate_number: estimateNumber,
-      total_amount: totalAmount,
+      total: totalAmount,
       valid_until: valid_until || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      notes,
+      internal_notes: notes,
       status: 'draft',
-    })
-    .select()
-    .single();
+    }),
+  });
 
-  if (error) {
+  if (error || !estimate) {
     const log = createRequestLogger({
       requestId: crypto.randomUUID(),
       method: 'POST',
@@ -175,19 +179,31 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     return NextResponse.json({ error: 'Failed to create estimate' }, { status: 500 });
   }
 
-  // Create line items
+  // Create line items. Column names track the current estimate_line_items
+  // schema: no organization_id column, `total_price` (not line_total), and a
+  // NOT NULL `item_type` the v1 payload doesn't carry — default to 'material'.
   const lineItemsToInsert = line_items.map((item, index) => ({
     estimate_id: estimate.id,
-    organization_id: context.organizationId,
+    item_type: 'material',
     description: item.description,
     quantity: item.quantity,
     unit_price: item.unit_price,
-    line_total: item.quantity * item.unit_price,
+    total_price: item.quantity * item.unit_price,
     category: item.category || 'general',
     sort_order: index,
   }));
 
-  await supabase.from('estimate_line_items').insert(lineItemsToInsert);
+  const { error: lineError } = await supabase.from('estimate_line_items').insert(lineItemsToInsert);
+  if (lineError) {
+    const log = createRequestLogger({
+      requestId: crypto.randomUUID(),
+      method: 'POST',
+      path: '/api/v1/estimates',
+      organizationId: context.apiKey.organization_id,
+    });
+    log.error({ error: formatError(lineError, 'ESTIMATE_LINE_ITEMS_ERROR'), estimateId: estimate.id },
+      'Estimate created but line items failed to insert');
+  }
 
   return NextResponse.json({ data: estimate }, { status: 201 });
 }

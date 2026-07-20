@@ -5,8 +5,13 @@ import { ApiKeyService } from '@/lib/services/api-key-service';
 import { handlePreflight } from '@/lib/middleware/cors';
 import { v1InvoiceListQuerySchema, v1CreateInvoiceSchema, formatZodError } from '@/lib/validations/v1-api';
 import { createRequestLogger, formatError } from '@/lib/utils/logger';
+import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
+import { insertWithEntityNumber } from '@/lib/utils/entity-number';
 
 async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
+  const rateLimitResponse = await applyUnifiedRateLimit(request, 'public');
+  if (rateLimitResponse) return rateLimitResponse;
+
   // Check scope
   if (!ApiKeyService.hasScope(context.apiKey, 'invoices:read')) {
     return NextResponse.json(
@@ -71,6 +76,9 @@ async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Prom
 }
 
 async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
+  const rateLimitResponse = await applyUnifiedRateLimit(request, 'public');
+  if (rateLimitResponse) return rateLimitResponse;
+
   // Check scope
   if (!ApiKeyService.hasScope(context.apiKey, 'invoices:write')) {
     return NextResponse.json(
@@ -132,23 +140,20 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     }
   }
 
-  // Generate invoice number
-  const { count } = await supabase
-    .from('invoices')
-    .select('*', { count: 'exact', head: true })
-    .eq('organization_id', context.organizationId);
-
-  const invoiceNumber = `INV-${String((count || 0) + 1).padStart(5, '0')}`;
-
   // Calculate totals
   let subtotal = 0;
   for (const item of line_items) {
     subtotal += item.quantity * item.unit_price;
   }
 
-  const { data: invoice, error } = await supabase
-    .from('invoices')
-    .insert({
+  // Allocate a race-safe, per-org invoice number and insert.
+  // Column names track the current schema: `tax_amount` (not tax), `total`
+  // (not amount), `balance_due` (not balance).
+  const { data: invoice, error } = await insertWithEntityNumber<{ id: string }>(supabase, {
+    table: 'invoices',
+    organizationId: context.organizationId,
+    prefix: 'INV',
+    buildRow: (invoiceNumber) => ({
       organization_id: context.organizationId,
       customer_id,
       job_id,
@@ -156,17 +161,16 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
       invoice_date: new Date().toISOString().split('T')[0],
       due_date: due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       subtotal,
-      tax: 0,
-      amount: subtotal,
+      tax_amount: 0,
+      total: subtotal,
       amount_paid: 0,
-      balance: subtotal,
+      balance_due: subtotal,
       notes,
       status: 'draft',
-    })
-    .select()
-    .single();
+    }),
+  });
 
-  if (error) {
+  if (error || !invoice) {
     const log = createRequestLogger({
       requestId: crypto.randomUUID(),
       method: 'POST',
@@ -180,10 +184,10 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     return NextResponse.json({ error: 'Failed to create invoice' }, { status: 500 });
   }
 
-  // Create line items
+  // Create line items. invoice_line_items has no organization_id column
+  // (scoped via its parent invoice).
   const lineItemsToInsert = line_items.map((item, index) => ({
     invoice_id: invoice.id,
-    organization_id: context.organizationId,
     description: item.description,
     quantity: item.quantity,
     unit_price: item.unit_price,
@@ -191,7 +195,17 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
     sort_order: index,
   }));
 
-  await supabase.from('invoice_line_items').insert(lineItemsToInsert);
+  const { error: lineError } = await supabase.from('invoice_line_items').insert(lineItemsToInsert);
+  if (lineError) {
+    const log = createRequestLogger({
+      requestId: crypto.randomUUID(),
+      method: 'POST',
+      path: '/api/v1/invoices',
+      organizationId: context.apiKey.organization_id,
+    });
+    log.error({ error: formatError(lineError, 'INVOICE_LINE_ITEMS_ERROR'), invoiceId: invoice.id },
+      'Invoice created but line items failed to insert');
+  }
 
   return NextResponse.json({ data: invoice }, { status: 201 });
 }
