@@ -47,19 +47,6 @@ export function withUniqueSuffix(base: string, taken: Set<string>): string {
   return `${base}-${suffix}`
 }
 
-// Minimal shape of the supabase client methods this helper needs — avoids a
-// hard dependency on the generated Database types at this layer.
-interface CountableInsertable {
-  from(table: string): {
-    select(cols: string, opts: { count: 'exact'; head: true }): {
-      eq(col: string, val: string): Promise<{ count: number | null }>
-    }
-    insert(row: Record<string, unknown>): {
-      select(): { single(): Promise<{ data: unknown; error: { code?: string; message?: string } | null }> }
-    }
-  }
-}
-
 /**
  * Allocate a sequential per-org entity number (EST-/INV-/JOB-#####) and insert
  * the row atomically-enough to survive concurrency.
@@ -72,8 +59,16 @@ interface CountableInsertable {
  * (it simply never sees a conflict), so the migration and this helper ship
  * together but the index can be applied on its own schedule after de-duping.
  */
+// Loosely typed on purpose: passing the fully-typed Supabase admin client (with
+// the enormous generated Database types) into a precise structural interface made
+// tsc report "Type instantiation is excessively deep and possibly infinite" at the
+// call sites. The helper only needs from().select().eq() and
+// from().insert().select().single(), so a shallow client type is enough.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type InsertableClient = { from: (table: string) => any }
+
 export async function insertWithEntityNumber<T = unknown>(
-  supabase: CountableInsertable,
+  supabase: InsertableClient,
   opts: {
     table: string
     organizationId: string
