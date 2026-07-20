@@ -17,11 +17,13 @@ const paginationSchema = z.object({
 
 // ========== Customer Schemas ==========
 
+// Must match the DB customer_status enum exactly, else inserts 500 (22P02).
 export const v1CustomerStatusSchema = z.enum([
   'inquiry',
   'prospect',
-  'active',
+  'customer',
   'inactive',
+  'past_customer',
 ])
 
 export const v1CustomerTypeSchema = z.enum([

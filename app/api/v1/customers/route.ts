@@ -158,7 +158,9 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
       state,
       zip,
       notes,
-      status: status || 'active',
+      // 'inquiry' is the valid default for a new customer ('active' is not a
+      // customer_status enum value and 500s the insert with 22P02).
+      status: status || 'inquiry',
       // The column is `contact_type`, not `customer_type` (which doesn't exist
       // and 500s the insert). Same residential/commercial/... value set.
       contact_type: customer_type,
