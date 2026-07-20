@@ -107,6 +107,13 @@ export function sanitizeSearchQuery(input: string, options: SanitizeSearchOption
   result = result.replace(/%/g, '\\%')
   result = result.replace(/_/g, '\\_')
 
+  // Neutralize PostgREST .or()/.filter() control characters. Every caller
+  // interpolates this value into an `.or('col.ilike.%VALUE%,…')` string, where
+  // an unescaped comma or parenthesis lets the input inject *additional* filter
+  // clauses (e.g. `x,id.not.is.null` widens the result set to every row).
+  // A legitimate name/email/industry search never needs these, so strip them.
+  result = result.replace(/[(),]/g, '')
+
   return result
 }
 
