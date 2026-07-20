@@ -159,7 +159,9 @@ async function handlePost(request: NextRequest, context: ApiKeyAuthContext): Pro
       zip,
       notes,
       status: status || 'active',
-      customer_type,
+      // The column is `contact_type`, not `customer_type` (which doesn't exist
+      // and 500s the insert). Same residential/commercial/... value set.
+      contact_type: customer_type,
       lead_source: lead_source || 'api',
     })
     .select()

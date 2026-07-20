@@ -137,7 +137,9 @@ export const v1CreateJobSchema = z.object({
   scheduled_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)').optional(),
   description: z.string().max(2000).optional(),
   notes: z.string().max(5000).optional(),
-  site_address_line1: z.string().max(255).optional(),
+  // job_address is NOT NULL on the jobs table — require it here so a missing
+  // address is a clean 400 rather than a 500 from the DB constraint.
+  site_address_line1: z.string().min(1, 'Site address is required').max(255),
   site_city: z.string().max(100).optional(),
   site_state: z.string().max(50).optional(),
   site_zip: z.string().max(20).optional(),
