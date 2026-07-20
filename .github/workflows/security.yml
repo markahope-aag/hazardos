@@ -262,7 +262,7 @@ jobs:
 
       - name: Create Pull Request
         if: steps.security-check.outputs.has-vulnerabilities == 'true' && steps.security-check.outputs.can-auto-fix == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore(security): apply automated security updates"
