@@ -194,7 +194,7 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
           </div>
 
           <div className="flex gap-2">
-            {invoice.status !== 'paid' && invoice.status !== 'void' && (
+            {canAccessTenantAdmin && invoice.status !== 'paid' && invoice.status !== 'void' && (
               <Button
                 onClick={() => sendInvoice('email')}
                 disabled={loading}
@@ -224,7 +224,7 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
                     Download PDF
                   </a>
                 </DropdownMenuItem>
-                {invoice.status !== 'void' && invoice.status !== 'paid' && (
+                {canAccessTenantAdmin && invoice.status !== 'void' && invoice.status !== 'paid' && (
                   <DropdownMenuItem
                     disabled={!canSendSms || loading}
                     onClick={() => sendInvoice('sms')}

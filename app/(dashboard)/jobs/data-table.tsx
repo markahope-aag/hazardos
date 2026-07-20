@@ -114,13 +114,23 @@ const JobRow = memo(function JobRow({ job, onRowClick }: JobRowProps) {
               <Link href={`/jobs/${job.id}/edit`}>Edit Job</Link>
             </DropdownMenuItem>
             {job.status === 'scheduled' && (
-              <DropdownMenuItem>Start Job</DropdownMenuItem>
+              // Start is confirm-guarded on the job page (status moves are hard
+              // to undo) — route there instead of starting silently from the list.
+              <DropdownMenuItem asChild>
+                <Link href={`/jobs/${job.id}`}>Start Job</Link>
+              </DropdownMenuItem>
             )}
             {job.status === 'in_progress' && (
-              <DropdownMenuItem>Complete Job</DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/jobs/${job.id}/complete`}>Complete Job</Link>
+              </DropdownMenuItem>
             )}
             {job.status === 'completed' && (
-              <DropdownMenuItem>Create Invoice</DropdownMenuItem>
+              // Create Invoice is admin-gated on the job page — route there so
+              // non-admins don't dead-end on a permission error.
+              <DropdownMenuItem asChild>
+                <Link href={`/jobs/${job.id}`}>Create Invoice</Link>
+              </DropdownMenuItem>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
