@@ -3,7 +3,8 @@
   "appUrl": "https://hazardos.app",
   "authProvider": "supabase",
   "driveFolderId": "0ABMKrQ1OKcv2Uk9PVA",
-  "sheetTitle": "HazardOS — QA Tracker",
+  "sheetTitle": "HazardOS — QA Tracker (2026-07-20) — Comprehensive",
+  "spreadsheetId": "1Dg75s8O31LI3Nfk4B4qe1f9JT-fF1aOJqUGSL1_RY6U",
   "envFile": ".env.local",
 
   "knownBlockers": [

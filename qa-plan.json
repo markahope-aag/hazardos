@@ -1,0 +1,3205 @@
+{
+  "title": "HazardOS — QA Tracker (2026-07-20) — Comprehensive",
+  "tests": [
+    {
+      "pass": 1,
+      "passName": "Smoke",
+      "section": "Core",
+      "testId": "SM1",
+      "priority": "High",
+      "step": "App loads — visit / (signed out); redirects to /login without console errors."
+    },
+    {
+      "pass": 1,
+      "passName": "Smoke",
+      "section": "Core",
+      "testId": "SM2",
+      "priority": "High",
+      "step": "Sign in — a valid lodge/org user signs in and lands on the dashboard."
+    },
+    {
+      "pass": 1,
+      "passName": "Smoke",
+      "section": "Core",
+      "testId": "SM3",
+      "priority": "High",
+      "step": "Dashboard renders — stat cards (Revenue, AR, Open Jobs, Win Rate) load, no error boundary tripped."
+    },
+    {
+      "pass": 1,
+      "passName": "Smoke",
+      "section": "Core",
+      "testId": "SM4",
+      "priority": "High",
+      "step": "CRM sub-tabs render — Properties (first), Contacts, Companies, Opportunities, Pipeline, Jobs; Main Menu returns to standard nav."
+    },
+    {
+      "pass": 1,
+      "passName": "Smoke",
+      "section": "Core",
+      "testId": "SM5",
+      "priority": "High",
+      "step": "Site survey wizard opens — /site-surveys/mobile renders Step 1 of 6 (Property)."
+    },
+    {
+      "pass": 1,
+      "passName": "Smoke",
+      "section": "Core",
+      "testId": "SM6",
+      "priority": "High",
+      "step": "Estimates / Invoices / Jobs lists load without errors."
+    },
+    {
+      "pass": 1,
+      "passName": "Smoke",
+      "section": "Core",
+      "testId": "SM7",
+      "priority": "Medium",
+      "step": "Sign out — user menu lands on /login; no leaked session on back."
+    },
+    {
+      "pass": 1,
+      "passName": "Smoke",
+      "section": "Smoke",
+      "testId": "SM8",
+      "priority": "Medium",
+      "step": "/settings hub loads for admin — sidebar renders, no error boundary."
+    },
+    {
+      "pass": 1,
+      "passName": "Smoke",
+      "section": "Smoke",
+      "testId": "SM9",
+      "priority": "Medium",
+      "step": "No-org user at /onboard sees org-setup form (org name required), can submit."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Auth",
+      "testId": "AU1",
+      "priority": "High",
+      "step": "Signed-out routes redirect — a dashboard URL while signed out redirects to /login (proxy.ts)."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Auth",
+      "testId": "AU2",
+      "priority": "High",
+      "step": "Login valid — correct email+password signs in and redirects to intended page."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Auth",
+      "testId": "AU3",
+      "priority": "High",
+      "step": "Login wrong password — clear error, no session created."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Auth",
+      "testId": "AU4",
+      "priority": "Medium",
+      "step": "Signup creates org+onboarding — new email signs up; onboarding org-create RPC succeeds (SE17)."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Auth",
+      "testId": "AU5",
+      "priority": "High",
+      "step": "Invited user reaches signup via proxy invite-token exception; org association depends on an email-matched pending invite (invite_token metadata is unused server-side)."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Auth",
+      "testId": "AU6",
+      "priority": "Medium",
+      "step": "Forgot / reset password flow completes end to end."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Auth",
+      "testId": "AU7",
+      "priority": "High",
+      "step": "Session refresh survives reload — chunked sb-auth-token cookies keep the session across a hard refresh."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Auth",
+      "testId": "AU8",
+      "priority": "High",
+      "step": "Normal logout calls supabase.auth.signOut(); VERIFY whether any sb-* localStorage keys linger afterward (potential session-leak; only the invite path purges them)."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Auth",
+      "testId": "AU9",
+      "priority": "Medium",
+      "step": "Authenticated user hitting /signup is redirected away (except with invite token)."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU10",
+      "priority": "Medium",
+      "step": "Login blank email/password → inline required errors, NO Supabase call."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU11",
+      "priority": "Low",
+      "step": "Login with Supabase env unset → \"Setup Required\" banner, no inputs."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU12",
+      "priority": "High",
+      "step": "Signup password <8 → inline error, blocks signUp."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU13",
+      "priority": "High",
+      "step": "Signup password≠confirm → \"Passwords do not match\", blocked."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU14",
+      "priority": "Medium",
+      "step": "Signup on confirm-required project → /login?message=Check your email."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU15",
+      "priority": "Medium",
+      "step": "Fresh non-invited signup w/ session → /onboard; invited → /."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU16",
+      "priority": "Medium",
+      "step": "Duplicate-email signup → destructive toast, no new account."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU17",
+      "priority": "High",
+      "step": "Invite link opened with DIFFERENT email → no org, routed /onboard (invite matching email-based; invite_token metadata unused server-side)."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU18",
+      "priority": "High",
+      "step": "Expired invitation at signup → treated as no invite; /onboard, no org."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU19",
+      "priority": "Medium",
+      "step": "Forgot-password anti-enumeration — unknown email = identical \"Check your email\"/200."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU20",
+      "priority": "Medium",
+      "step": "Reset-password with no recovery session → updateUser error toast."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU21",
+      "priority": "Medium",
+      "step": "Successful reset signs out, redirects /login (re-login with new pw)."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU22",
+      "priority": "High",
+      "step": "Expired/reused recovery token at /auth/confirm → /login?error=link_expired."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU23",
+      "priority": "Medium",
+      "step": "/auth/confirm missing token_hash/type → /login?error=invalid_link."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU24",
+      "priority": "Medium",
+      "step": "OAuth callback no/invalid code → /login?error=auth_callback_error; no-org → /onboard; else honors ?next."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU25",
+      "priority": "High",
+      "step": "Second org-creation by user with org → RPC raises \"already belongs to an organization\", no dup."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU26",
+      "priority": "Medium",
+      "step": "No-org non-platform user on dashboard → /onboard; platform user w/o org NOT redirected."
+    },
+    {
+      "pass": 2,
+      "passName": "Authentication & Access",
+      "section": "Authentication & Access",
+      "testId": "AU27",
+      "priority": "Medium",
+      "step": "Authenticated user hitting /login or /forgot-password → proxy redirect / (AU9 only covers /signup)."
+    },
+    {
+      "pass": 3,
+      "passName": "CRM — Properties",
+      "section": "CRM — Properties",
+      "testId": "PR1",
+      "priority": "High",
+      "step": "/crm/properties first CRM sub-tab, lists properties; tab renders + loads."
+    },
+    {
+      "pass": 3,
+      "passName": "CRM — Properties",
+      "section": "CRM — Properties",
+      "testId": "PR2",
+      "priority": "High",
+      "step": "Address/city/state/zip search (debounced 300ms); empty state \"No properties yet…\"."
+    },
+    {
+      "pass": 3,
+      "passName": "CRM — Properties",
+      "section": "CRM — Properties",
+      "testId": "PR3",
+      "priority": "Medium",
+      "step": "Column sort toggles asc/desc; page resets to 1."
+    },
+    {
+      "pass": 3,
+      "passName": "CRM — Properties",
+      "section": "CRM — Properties",
+      "testId": "PR4",
+      "priority": "Medium",
+      "step": "Pagination Next enabled on exactly-full 25-row page (hasNext=length===25) → empty page. BUG."
+    },
+    {
+      "pass": 3,
+      "passName": "CRM — Properties",
+      "section": "CRM — Properties",
+      "testId": "PR5",
+      "priority": "Medium",
+      "step": "Row shows Res/Comm badge from property_type + \"current/N past\" contacts + job_count."
+    },
+    {
+      "pass": 3,
+      "passName": "CRM — Properties",
+      "section": "CRM — Properties",
+      "testId": "PR6",
+      "priority": "High",
+      "step": "Detail splits Current vs \"Previously at this address\" by is_current with role badges."
+    },
+    {
+      "pass": 3,
+      "passName": "CRM — Properties",
+      "section": "CRM — Properties",
+      "testId": "PR7",
+      "priority": "High",
+      "step": "\"Moved away\" sets moved_out_date (+note), moves contact to Previous."
+    },
+    {
+      "pass": 3,
+      "passName": "CRM — Properties",
+      "section": "CRM — Properties",
+      "testId": "PR8",
+      "priority": "Medium",
+      "step": "Work history lists jobs/opps/surveys cross-linked; retained regardless of current owner."
+    },
+    {
+      "pass": 3,
+      "passName": "CRM — Properties",
+      "section": "CRM — Properties",
+      "testId": "PR9",
+      "priority": "Medium",
+      "step": "Notes Save gated by dirty flag; inline property_type Select persists immediately."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "Create",
+      "testId": "CN1",
+      "priority": "High",
+      "step": "Create residential contact — required first name + address; name computed from first+last; no company created."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "Create",
+      "testId": "CN2",
+      "priority": "High",
+      "step": "Commercial contact auto-creates company — new company name creates a company row; companies list invalidated."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "Create",
+      "testId": "CN3",
+      "priority": "High",
+      "step": "Commercial contact links existing company (case-insensitive) — no duplicate company created."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "Validation",
+      "testId": "CN4",
+      "priority": "High",
+      "step": "Required-field validation — blank first name/street/city/state/zip blocks save with inline errors."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "Validation",
+      "testId": "CN5",
+      "priority": "High",
+      "step": "Commercial requires Company; residential does not."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "Validation",
+      "testId": "CN6",
+      "priority": "Medium",
+      "step": "Switching a contact Commercial→Residential clears company_name, company_id, and contact_role (job title is NOT cleared)."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "Validation",
+      "testId": "CN7",
+      "priority": "Medium",
+      "step": "Email format validated; empty allowed."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "Permissions",
+      "testId": "CN8",
+      "priority": "High",
+      "step": "Address read-only on edit for non-admins; admins can edit; new contact always editable."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "Delete",
+      "testId": "CN9",
+      "priority": "High",
+      "step": "Delete contact with linked surveys — dialog warns surveys will be unlinked (not deleted); confirm unlinks + deletes contact."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "List",
+      "testId": "CN10",
+      "priority": "Medium",
+      "step": "Search filters name/company/email/phone (debounced); Type + Status filters; Clear resets."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "List",
+      "testId": "CN11",
+      "priority": "Medium",
+      "step": "Advanced filters (no-contact-90d, has-open-jobs) narrow the list; open-jobs badge shows count."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "List",
+      "testId": "CN12",
+      "priority": "High",
+      "step": "Bulk actions apply only to selected rows; selection clears on filter/page change."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "Import",
+      "testId": "CN13",
+      "priority": "Medium",
+      "step": "CSV import — only First Name required; business/commercial coerced to commercial; rows without first name skipped."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "CRM — Contacts",
+      "testId": "CN14",
+      "priority": "Medium",
+      "step": "Contact detail Opportunities tab is a placeholder — no data even with opps. STUB."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "CRM — Contacts",
+      "testId": "CN15",
+      "priority": "Medium",
+      "step": "Inline status change; current status disabled; no-op when unchanged."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "CRM — Contacts",
+      "testId": "CN16",
+      "priority": "Medium",
+      "step": "Overview notes timestamped [YYYY-MM-DD HH:MM]; legacy note = \"Original Note\"."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "CRM — Contacts",
+      "testId": "CN17",
+      "priority": "Medium",
+      "step": "Log Call POSTs /api/activity/manual (type=call, direction default outbound; duration coerced)."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "CRM — Contacts",
+      "testId": "CN18",
+      "priority": "Medium",
+      "step": "Set Follow-up requires date; past-due next_followup_date renders red."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "CRM — Contacts",
+      "testId": "CN19",
+      "priority": "Medium",
+      "step": "Bulk Change Status defaults 'prospect' (non-neutral)."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "CRM — Contacts",
+      "testId": "CN20",
+      "priority": "Medium",
+      "step": "Bulk Assign Owner __unassigned__→null; owner label falls back to email."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "CRM — Contacts",
+      "testId": "CN21",
+      "priority": "Medium",
+      "step": "Bulk Export CSV immediate client download (10 cols; phone mobile→office→phone; CRLF)."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "CRM — Contacts",
+      "testId": "CN22",
+      "priority": "High",
+      "step": "CSV import dedups by email vs existing org contacts AND within batch; dups skipped w/ reason."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "CRM — Contacts",
+      "testId": "CN23",
+      "priority": "Medium",
+      "step": "CSV import bulk-insert failure retries each row individually."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "CRM — Contacts",
+      "testId": "CN24",
+      "priority": "Low",
+      "step": "CSV import rejects >5000 rows; posts in chunks of 100."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "CRM — Contacts",
+      "testId": "CN25",
+      "priority": "Medium",
+      "step": "Contact list Next enabled on exactly-full 25-row page (length-based). BUG."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "CRM — Contacts",
+      "testId": "CN26",
+      "priority": "Medium",
+      "step": "Segment builder — name required; default status='active'; last rule not removable; ALL/AND; /customers/segments route likely broken vs /crm."
+    },
+    {
+      "pass": 4,
+      "passName": "CRM — Contacts",
+      "section": "CRM — Contacts",
+      "testId": "CN27",
+      "priority": "Medium",
+      "step": "Activity feed spans contact + linked surveys/estimates/proposals/jobs."
+    },
+    {
+      "pass": 5,
+      "passName": "CRM — Companies",
+      "section": "Create",
+      "testId": "CO1",
+      "priority": "High",
+      "step": "No direct create — /crm/companies has no New Company button; companies come from the commercial contact flow."
+    },
+    {
+      "pass": 5,
+      "passName": "CRM — Companies",
+      "section": "Create",
+      "testId": "CO2",
+      "priority": "Medium",
+      "step": "Company appears after a commercial contact is created with a new company name."
+    },
+    {
+      "pass": 5,
+      "passName": "CRM — Companies",
+      "section": "Edit",
+      "testId": "CO3",
+      "priority": "High",
+      "step": "Edit requires name; emptied fields save as null; redirect to detail with toast."
+    },
+    {
+      "pass": 5,
+      "passName": "CRM — Companies",
+      "section": "Edit",
+      "testId": "CO4",
+      "priority": "Medium",
+      "step": "Primary-contact picker only lists contacts linked to that company; can be cleared."
+    },
+    {
+      "pass": 5,
+      "passName": "CRM — Companies",
+      "section": "Edit",
+      "testId": "CO5",
+      "priority": "Medium",
+      "step": "State auto-uppercases (maxLength 2) on billing/service address."
+    },
+    {
+      "pass": 5,
+      "passName": "CRM — Companies",
+      "section": "List",
+      "testId": "CO6",
+      "priority": "Medium",
+      "step": "Search + status/type/industry filters; default sort name asc; Clear resets."
+    },
+    {
+      "pass": 5,
+      "passName": "CRM — Companies",
+      "section": "Delete",
+      "testId": "CO7",
+      "priority": "High",
+      "step": "Delete a company with linked contacts/jobs — deletion succeeds; UI not orphaned; lists/stats invalidate."
+    },
+    {
+      "pass": 5,
+      "passName": "CRM — Companies",
+      "section": "CRM — Companies",
+      "testId": "CO8",
+      "priority": "Medium",
+      "step": "Company detail Contacts tab filters client-side over only first 100 contacts — >100 truncate. BUG."
+    },
+    {
+      "pass": 5,
+      "passName": "CRM — Companies",
+      "section": "CRM — Companies",
+      "testId": "CO9",
+      "priority": "Medium",
+      "step": "Company detail Opportunities tab is a placeholder stub."
+    },
+    {
+      "pass": 5,
+      "passName": "CRM — Companies",
+      "section": "CRM — Companies",
+      "testId": "CO10",
+      "priority": "Medium",
+      "step": "Inline notes edit saves via updateCompany; website normalized to prepend https://."
+    },
+    {
+      "pass": 5,
+      "passName": "CRM — Companies",
+      "section": "CRM — Companies",
+      "testId": "CO11",
+      "priority": "Low",
+      "step": "Company list sortable columns; activity filter uses updated_at proxy."
+    },
+    {
+      "pass": 5,
+      "passName": "CRM — Companies",
+      "section": "CRM — Companies",
+      "testId": "CO12",
+      "priority": "Low",
+      "step": "\"Add Contact\" deep link (?newContact=true&company=) not consumed — dead link."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "Create",
+      "testId": "OP1",
+      "priority": "High",
+      "step": "Required fields — missing contact/name/stage blocks create; server requires customer_id, name, stage_id."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "Create",
+      "testId": "OP2",
+      "priority": "Medium",
+      "step": "Auto name = Who_Hazard_date; custom name disables auto; Reset-to-auto restores."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "Create",
+      "testId": "OP3",
+      "priority": "Medium",
+      "step": "Service address auto-fills from the selected contact when blank."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "Create",
+      "testId": "OP4",
+      "priority": "High",
+      "step": "Hazard types persist (regression) — hazard_types array saved and chips render."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "Create",
+      "testId": "OP5",
+      "priority": "High",
+      "step": "Weighted value = estimated value times stage probability; kept in sync on edit."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "Create",
+      "testId": "OP6",
+      "priority": "Medium",
+      "step": "Default stage excludes won/lost; dropdown shows color + probability."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "Won/Lost",
+      "testId": "OP7",
+      "priority": "High",
+      "step": "Mark Won on opportunity detail sets outcome/status/actual_close_date only; stage badge and weighted_value stay put (no stage move/history on this path)."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "Won/Lost",
+      "testId": "OP8",
+      "priority": "High",
+      "step": "Mark Lost on opportunity detail captures reason/competitor/notes/followup; does NOT move stage or write opportunity_history."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "Stage",
+      "testId": "OP9",
+      "priority": "Medium",
+      "step": "Move Stage records opportunity_history (from/to, changed_by) + activity."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "Delete",
+      "testId": "OP10",
+      "priority": "Medium",
+      "step": "Delete opportunity has NO reachable UI on the detail page (OpportunityActions is unwired) — verify no delete control is exposed."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "List",
+      "testId": "OP11",
+      "priority": "Medium",
+      "step": "List search (name only) + Status/Urgency/Location filters; urgency badge colors."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "CRM — Opportunities",
+      "testId": "OP12",
+      "priority": "High",
+      "step": "Mark Won (detail) sets outcome/status/actual_close_date but NOT stage/weighted/history/activity — badge stays stale. BUG."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "CRM — Opportunities",
+      "testId": "OP13",
+      "priority": "High",
+      "step": "\"Convert to Job\" only when outcome=won && !job_id; RPC convert_opportunity_to_job → /jobs/{id}; winning alone never creates job."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "CRM — Opportunities",
+      "testId": "OP14",
+      "priority": "High",
+      "step": "Convert to Job idempotent — 2nd convert returns existing job, no dup."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "CRM — Opportunities",
+      "testId": "OP15",
+      "priority": "High",
+      "step": "Converted job defaults status=scheduled, start=today, assigned null, address opp→customer→\"Address pending\"."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "CRM — Opportunities",
+      "testId": "OP16",
+      "priority": "High",
+      "step": "\"Convert to Survey\" (open && !created_from_assessment_id) creates draft survey, flips to assessment_scheduled."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "CRM — Opportunities",
+      "testId": "OP17",
+      "priority": "Medium",
+      "step": "Mark Lost captures reason/competitor/notes/followup; detail LOSS_REASONS snake_case differ from Actions set — stored value varies by entry."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "CRM — Opportunities",
+      "testId": "OP18",
+      "priority": "Medium",
+      "step": "Edit two-phase — stage change POSTs /move first then PATCH; PATCH failure no rollback of move. BUG."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "CRM — Opportunities",
+      "testId": "OP19",
+      "priority": "Medium",
+      "step": "Edit drops extra hazards — hazard_type=hazard_types[0]; multi-hazard loses rest. BUG."
+    },
+    {
+      "pass": 6,
+      "passName": "CRM — Opportunities",
+      "section": "CRM — Opportunities",
+      "testId": "OP20",
+      "priority": "Medium",
+      "step": "List stats — count global but Total/Weighted sum current page only."
+    },
+    {
+      "pass": 7,
+      "passName": "CRM — Pipeline",
+      "section": "DnD",
+      "testId": "PL1",
+      "priority": "High",
+      "step": "Drag-and-drop moves a card — optimistic move, POST /api/pipeline/[id]/move, toast, board refresh; same-column drop is a no-op."
+    },
+    {
+      "pass": 7,
+      "passName": "CRM — Pipeline",
+      "section": "DnD",
+      "testId": "PL2",
+      "priority": "High",
+      "step": "Failed move rolls back to original column with destructive toast; prior moves preserved."
+    },
+    {
+      "pass": 7,
+      "passName": "CRM — Pipeline",
+      "section": "DnD",
+      "testId": "PL3",
+      "priority": "Medium",
+      "step": "Move-to menu mirrors drag logic; current stage excluded; click doesn't start a drag."
+    },
+    {
+      "pass": 7,
+      "passName": "CRM — Pipeline",
+      "section": "Data",
+      "testId": "PL4",
+      "priority": "High",
+      "step": "Per-org active stages only, ordered by sort_order; other orgs' stages never appear."
+    },
+    {
+      "pass": 7,
+      "passName": "CRM — Pipeline",
+      "section": "Data",
+      "testId": "PL5",
+      "priority": "High",
+      "step": "Drop into Won/Lost column sets outcome + actual_close_date; card stays visible (includeClosed)."
+    },
+    {
+      "pass": 7,
+      "passName": "CRM — Pipeline",
+      "section": "Metrics",
+      "testId": "PL6",
+      "priority": "High",
+      "step": "Header metric cards are OPEN-pipeline only, so board sums (incl. closed) can legitimately differ."
+    },
+    {
+      "pass": 7,
+      "passName": "CRM — Pipeline",
+      "section": "Filters",
+      "testId": "PL7",
+      "priority": "Medium",
+      "step": "Owner/date/stage/location filters narrow cards; empty stage selection = all."
+    },
+    {
+      "pass": 7,
+      "passName": "CRM — Pipeline",
+      "section": "CRM — Pipeline",
+      "testId": "PL8",
+      "priority": "Medium",
+      "step": "Kanban loads all opps (limit 1000); owner/date/stage filters client-side; empty stage set = all columns."
+    },
+    {
+      "pass": 7,
+      "passName": "CRM — Pipeline",
+      "section": "CRM — Pipeline",
+      "testId": "PL9",
+      "priority": "Medium",
+      "step": "Move writes opportunity_history + status_changed activity + auto DB-trigger activity (double log)."
+    },
+    {
+      "pass": 7,
+      "passName": "CRM — Pipeline",
+      "section": "CRM — Pipeline",
+      "testId": "PL10",
+      "priority": "Low",
+      "step": "Drag/move-menu send no notes; column header total sums visible cards only."
+    },
+    {
+      "pass": 7,
+      "passName": "CRM — Pipeline",
+      "section": "CRM — Pipeline",
+      "testId": "PL11",
+      "priority": "Low",
+      "step": "Kanban lazy-loaded ssr:false, 5-col skeleton, DataErrorBoundary."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "List",
+      "testId": "JB1",
+      "priority": "High",
+      "step": "Jobs list — jobs created via /jobs/new AND via Convert-to-Job from a won opportunity; empty-state copy is aspirational, not literal."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "List",
+      "testId": "JB2",
+      "priority": "High",
+      "step": "Review Queue button only shows for canManageTenant() (admins)."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "List",
+      "testId": "JB3",
+      "priority": "Medium",
+      "step": "Search matches job number/address/tech-on-crew; Status/hazard/date filters; URL-seeded filters from dashboard drill-down."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "List",
+      "testId": "JB4",
+      "priority": "Low",
+      "step": "Jobs LIST payment-status badge derived (Paid/Overdue/Invoiced/Deposit/Pending Invoice/Not Yet Billed); the detail page differs (see I15)."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "Status",
+      "testId": "JB5",
+      "priority": "High",
+      "step": "Update Status modal excludes 'Completed' (routed via Complete Job); disabled when unchanged."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "Status",
+      "testId": "JB6",
+      "priority": "High",
+      "step": "Complete Job button shows only for scheduled/in_progress/on_hold; opens /jobs/[id]/complete (full flow)."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "Status",
+      "testId": "JB7",
+      "priority": "High",
+      "step": "Status change goes through role-gated POST /api/jobs/[id]/status (TENANT_WRITE); read/field roles get 403; fires activity/SMS/commission."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "Detail",
+      "testId": "JB8",
+      "priority": "Medium",
+      "step": "Detail tabs — Financials shows est-vs-actual variance + margin; Documents shows required-doc checklist; cross-links to company/contact/opportunity."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "Attribution",
+      "testId": "JB9",
+      "priority": "High",
+      "step": "Job touch source/medium/campaign set by direct assignment (overwrite) and only when opportunity_id is present; a direct job inherits nothing (see JB19-JB21)."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "CRM — Jobs",
+      "testId": "JB10",
+      "priority": "High",
+      "step": "CRM jobs list Next enabled on exactly-full 25-row page. BUG."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "CRM — Jobs",
+      "testId": "JB11",
+      "priority": "High",
+      "step": "Payment-status badge diverges — list 7 states incl Overdue, detail 4 (no Overdue); same job differs. BUG."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "CRM — Jobs",
+      "testId": "JB12",
+      "priority": "Medium",
+      "step": "CRM detail \"Assign Crew\" permanently disabled — dead control."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "CRM — Jobs",
+      "testId": "JB13",
+      "priority": "Low",
+      "step": "CRM detail Activity tab is a stub."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "CRM — Jobs",
+      "testId": "JB14",
+      "priority": "Medium",
+      "step": "Documents checklist derives 8 items; N/A excluded from \"X of Y required\" denominator."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "CRM — Jobs",
+      "testId": "JB15",
+      "priority": "High",
+      "step": "/jobs/new requires customer+name+address+technician; address auto-fills from customer; survey picker scoped to customer."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "CRM — Jobs",
+      "testId": "JB16",
+      "priority": "High",
+      "step": "Job-from-proposal requires signed/accepted else VALIDATION_ERROR."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "CRM — Jobs",
+      "testId": "JB17",
+      "priority": "Medium",
+      "step": "Status change fires SMS (arrived, completed) + auto-creates commission on completion — idempotent both paths."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "CRM — Jobs",
+      "testId": "JB18",
+      "priority": "High",
+      "step": "Review Queue TENANT_ADMIN-gated (estimator→redirect); lists only status='submitted' oldest-first."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "CRM — Jobs",
+      "testId": "JB19",
+      "priority": "High",
+      "step": "Attribution — job without opportunity_id inherits NO touch attribution (trigger gated on opp_id NOT NULL)."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "CRM — Jobs",
+      "testId": "JB20",
+      "priority": "High",
+      "step": "Attribution — job.company_id backfilled from opp when null, independent of touch inheritance."
+    },
+    {
+      "pass": 8,
+      "passName": "CRM — Jobs",
+      "section": "CRM — Jobs",
+      "testId": "JB21",
+      "priority": "Medium",
+      "step": "Attribution — opp inherits only first_touch from contact/company via COALESCE; last/converting not set at opp level."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Wizard",
+      "testId": "SS1",
+      "priority": "High",
+      "step": "Wizard loads 6 sections (Property, Access, Environment, Hazards, Photos, Review); progress dots + Step X of 6."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Wizard",
+      "testId": "SS2",
+      "priority": "High",
+      "step": "Next/Back buttons navigate between sections; Back hidden on first section."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Wizard",
+      "testId": "SS3",
+      "priority": "Medium",
+      "step": "Section validation is advisory during wizard navigation (Next still advances); enforced only at Submit; Review shows 'N of 5 complete'."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Wizard",
+      "testId": "SS4",
+      "priority": "High",
+      "step": "Photos — capture/library upload queues photos; thumbnails persist when the next photo is taken (no blanking)."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Autosave",
+      "testId": "SS5",
+      "priority": "High",
+      "step": "Auto-save every 30s when dirty; manual Save works; last-saved indicator updates."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Offline",
+      "testId": "SS6",
+      "priority": "High",
+      "step": "Offline draft persists to localStorage and survives tab background/return (rehydrate, photos not blanked)."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Offline",
+      "testId": "SS7",
+      "priority": "High",
+      "step": "Resume a saved draft OFFLINE via /site-surveys/mobile?surveyId={id} — app shell opens (does not show You're Offline)."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Offline",
+      "testId": "SS8",
+      "priority": "Medium",
+      "step": "Offline-sync conflict detection — concurrent edits prompt Use Latest / Keep Mine (X12)."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Submit",
+      "testId": "SS9",
+      "priority": "High",
+      "step": "Submit waits via waitForUploads (120s timeout); remaining failures block submit with 'N photo(s) failed to upload' and offer Discard-failed."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Swipe",
+      "testId": "SS13",
+      "priority": "High",
+      "step": "Swipe forward/back between steps navigates — including a swipe released over the fixed footer."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Site Surveys",
+      "testId": "SS14",
+      "priority": "Medium",
+      "step": "Next advances even when section invalid — handleNext only LOGS validateSection; Next blocked only by in-flight photo uploads."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Site Surveys",
+      "testId": "SS15",
+      "priority": "High",
+      "step": "Photos section needs ≥4 EXTERIOR photos specifically; videos excluded from count; no max."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Site Surveys",
+      "testId": "SS16",
+      "priority": "High",
+      "step": "After R2 upload, survey-store dataUrl+blob AND queue localUri released, path/stamped_path set so thumbnail still renders — memory-dup regression guard."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Site Surveys",
+      "testId": "SS17",
+      "priority": "High",
+      "step": "localStorage partialize strips blob/dataUrl; queue persists only uploaded rows with localUri='' — no QuotaExceeded / blank-white on return."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Site Surveys",
+      "testId": "SS18",
+      "priority": "Medium",
+      "step": "Video capture requires online, rejects >250MB, bypasses offline queue (uploads synchronously)."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Site Surveys",
+      "testId": "SS19",
+      "priority": "Medium",
+      "step": "Photo upload retries 3× with 2/4/8s backoff, max 2 concurrent."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Site Surveys",
+      "testId": "SS20",
+      "priority": "Medium",
+      "step": "Upload-url rejects disallowed MIME + duplicate photoId per survey."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Site Surveys",
+      "testId": "SS21",
+      "priority": "Medium",
+      "step": "Photo capture refused until org + surveyId ready (\"Still loading…\"/\"Survey isn't ready…\")."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Site Surveys",
+      "testId": "SS22",
+      "priority": "High",
+      "step": "Conflict resolution — \"Discard mine\" reloads server; \"Keep my version\" force-overwrites server; dialog has no dismiss."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Site Surveys",
+      "testId": "SS23",
+      "priority": "Medium",
+      "step": "Offline saveDraft keeps isDirty=true so reconnect auto-sync pushes edits + runs conflict check."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Site Surveys",
+      "testId": "SS24",
+      "priority": "Medium",
+      "step": "Exit dialog always appears even when clean (Continue/Discard/Save&Exit)."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Site Surveys",
+      "testId": "SS25",
+      "priority": "High",
+      "step": "Submit waits via waitForUploads (120s timeout); remaining failures block submit \"N photo(s) failed…\", offer Discard failed."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Site Surveys",
+      "testId": "SS26",
+      "priority": "High",
+      "step": "Offline resume of a mobile URL never visited online → /offline \"You're Offline\" (negative branch of SS7/HS2)."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Site Surveys",
+      "testId": "SS27",
+      "priority": "Low",
+      "step": "EXIF extracted before compression, EXIF GPS overrides live geo; images compressed ≤2MB."
+    },
+    {
+      "pass": 9,
+      "passName": "Site Surveys",
+      "section": "Site Surveys",
+      "testId": "SS28",
+      "priority": "High",
+      "step": "Auto-estimate on submit is best-effort + idempotent, does NOT flip survey to 'estimated' (stays 'submitted')."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Create",
+      "testId": "ES1",
+      "priority": "High",
+      "step": "Create-from-survey yields a pending_approval estimate (L2 required), NOT a draft; the manual POST /api/estimates path flips the survey to 'estimated'."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Create",
+      "testId": "ES2",
+      "priority": "High",
+      "step": "New estimate requires project_name only (customer optional); markup defaults to 20."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Line items",
+      "testId": "ES3",
+      "priority": "High",
+      "step": "Add line item — total = qty times unit_price; estimate subtotal/markup/tax/total recompute."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Line items",
+      "testId": "ES4",
+      "priority": "Medium",
+      "step": "Line-item validation — qty>0, unit_price>=0, description required."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Line items",
+      "testId": "ES5",
+      "priority": "High",
+      "step": "Line items locked once estimate is approved/sent/accepted (editable in draft + pending_approval only)."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Math",
+      "testId": "ES6",
+      "priority": "High",
+      "step": "Pricing math — markup on subtotal, then discount, then tax on (subtotal+markup-discount); flat discount overrides percent; excluded items don't count."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Approval",
+      "testId": "ES7",
+      "priority": "High",
+      "step": "Submit draft to pending_approval; two-level approval ALWAYS required for estimates."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Approval",
+      "testId": "ES8",
+      "priority": "High",
+      "step": "L1 approval by admin+; final L2 approval only by tenant_owner/platform; estimator/technician get 403."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Approval",
+      "testId": "ES9",
+      "priority": "High",
+      "step": "L2 final approval flips estimate to approved then auto-creates+sends proposal; estimate becomes 'sent'."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Approval",
+      "testId": "ES10",
+      "priority": "High",
+      "step": "Rejection at L1/L2 sends estimate back to draft with notes; requester notified."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Approval",
+      "testId": "ES11",
+      "priority": "Medium",
+      "step": "Approval queue shows only actionable items per role (L2 only to owners)."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Delete",
+      "testId": "ES12",
+      "priority": "Medium",
+      "step": "Delete estimate is admin-gated (estimator blocked); cascades line items."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Estimates",
+      "testId": "ES13",
+      "priority": "High",
+      "step": "Create-from-survey lands in pending_approval (NOT draft) with L2 required; can't re-submit (draft-only guard)."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Estimates",
+      "testId": "ES14",
+      "priority": "High",
+      "step": "DB trigger applies discount% to (subtotal+markup) and IGNORES flat discount_amount — diverges from TS recompute. Regression guard."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Estimates",
+      "testId": "ES15",
+      "priority": "High",
+      "step": "Line-item add/edit/delete routes have NO allowedRoles gate — viewer/technician can mutate line items."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Estimates",
+      "testId": "ES16",
+      "priority": "Medium",
+      "step": "Line-item status lock is API-only not RLS — raw write can modify line items on approved/sent estimate."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Estimates",
+      "testId": "ES17",
+      "priority": "High",
+      "step": "Create revised version — copies header+items to new draft, version=MAX+1 per root; \"Version X of Y\" badge + superseded banner."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Estimates",
+      "testId": "ES18",
+      "priority": "Medium",
+      "step": "Revision line-item copy failure → compensating delete of orphan revision, then rethrow."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Estimates",
+      "testId": "ES19",
+      "priority": "Medium",
+      "step": "At most one v1 (parent-less) estimate per survey; revisions exempt."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Estimates",
+      "testId": "ES20",
+      "priority": "Medium",
+      "step": "List include=latest (default) = latest per chain; include=all = every version."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Estimates",
+      "testId": "ES21",
+      "priority": "High",
+      "step": "Two-level approval atomic — record_estimate_approval RPC updates request + status in one txn under RLS."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Estimates",
+      "testId": "ES22",
+      "priority": "Medium",
+      "step": "Best-effort recompute swallows failures — mutation succeeds, stored totals can go stale."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Estimates",
+      "testId": "ES23",
+      "priority": "Medium",
+      "step": "Calculator per-category math — labor daysPerWorker=ceil(hrs/8), sup $680/tech $440; travel once; disposal by volume; testing only if clearance; permits only if notification."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Estimates",
+      "testId": "ES24",
+      "priority": "Low",
+      "step": "Area fallback: area_sqft → linear_ft×2 → volume_cuft/8 → default 100."
+    },
+    {
+      "pass": 10,
+      "passName": "Estimates",
+      "section": "Estimates",
+      "testId": "ES25",
+      "priority": "Medium",
+      "step": "Public v1 estimates diverges from internal — total_amount/line_total cols, draft, EST-00001 numbering."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Generate",
+      "testId": "P1",
+      "priority": "High",
+      "step": "Generate proposal from an approved/sent estimate — 201, proposal_number + 32-byte access_token, 30-day expiry; estimate to sent."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Generate",
+      "testId": "P2",
+      "priority": "High",
+      "step": "Cannot CREATE a proposal from an unapproved estimate — POST /api/proposals returns VALIDATION_ERROR unless the estimate is approved/sent."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Generate",
+      "testId": "P3",
+      "priority": "High",
+      "step": "Access-token failure is not swallowed (no NULL token; portal unusable otherwise)."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Generate",
+      "testId": "P4",
+      "priority": "High",
+      "step": "Auto-proposal on final estimate approval emails the customer portal link; if no customer email, stays draft (not sent)."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Send",
+      "testId": "P5",
+      "priority": "Medium",
+      "step": "Send proposal email — draft/sent only; returns portal_url; email only if RESEND_API_KEY set; attaches credential docs."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Portal",
+      "testId": "P6",
+      "priority": "High",
+      "step": "Public portal view is token-gated, no login; unknown token to NOT_FOUND."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Portal",
+      "testId": "P7",
+      "priority": "High",
+      "step": "Viewing a sent proposal marks it viewed (viewed_at, viewed_count increments)."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Portal",
+      "testId": "P8",
+      "priority": "High",
+      "step": "Expired token blocks view + sign with a clear message."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Portal",
+      "testId": "P9",
+      "priority": "Medium",
+      "step": "Portal shows only included line items grouped by type; summary math (service fee/discount/tax/total)."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Sign",
+      "testId": "P10",
+      "priority": "High",
+      "step": "Customer signs (name+email+drawn signature); proposal signed; estimate to accepted."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Sign",
+      "testId": "P11",
+      "priority": "High",
+      "step": "Cannot double-sign / sign wrong status; expired token rejected on sign."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Sign",
+      "testId": "P12",
+      "priority": "High",
+      "step": "Signing auto-creates a placeholder job (scheduled, start=today+3); idempotent; NULL customer skips gracefully."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Sign",
+      "testId": "P13",
+      "priority": "Medium",
+      "step": "Verbal approval (admin only) marks signed with method=verbal + note; estimate to accepted."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Sign",
+      "testId": "P14",
+      "priority": "Medium",
+      "step": "Proposal-signed notification to creator (best-effort; failure doesn't block signing)."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Proposals & Portal",
+      "testId": "P15",
+      "priority": "High",
+      "step": "Proposal content NOT template-rendered — templates are docs only; no {{variable}}/hazard selection."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Proposals & Portal",
+      "testId": "P16",
+      "priority": "Medium",
+      "step": "No decline/reject path — portal has no decline button/endpoint."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Proposals & Portal",
+      "testId": "P17",
+      "priority": "High",
+      "step": "Manual convert-to-job (POST /api/jobs/from-proposal, must be signed|accepted) flips proposal→'converted' via RPC, unique_violation on concurrent — distinct from sign-trigger placeholder job."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Proposals & Portal",
+      "testId": "P18",
+      "priority": "High",
+      "step": "Portal GET returns whitelisted columns only — signer_email/ip/signature_data never exposed to public token endpoint."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Proposals & Portal",
+      "testId": "P19",
+      "priority": "Medium",
+      "step": "Send attaches estimate docs as 14-day signed URLs; email failure swallowed but status flips to 'sent'."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Proposals & Portal",
+      "testId": "P20",
+      "priority": "Medium",
+      "step": "Verbal approval requires note (1-2000 chars), allows backdating approved_at, sets approval_method='verbal'."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Proposals & Portal",
+      "testId": "P21",
+      "priority": "Medium",
+      "step": "PATCH /api/proposals/[id] has no status state-machine guard — can set arbitrary status on any org proposal."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Proposals & Portal",
+      "testId": "P22",
+      "priority": "Medium",
+      "step": "DELETE proposal is TENANT_ADMIN-only, org-scoped; estimator/viewer blocked."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Proposals & Portal",
+      "testId": "P23",
+      "priority": "Low",
+      "step": "No portal PDF download endpoint for proposals (invoices have one; proposals HTML only)."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Proposals & Portal",
+      "testId": "P24",
+      "priority": "Low",
+      "step": "Regulatory fees static prose only — no code computes/enforces 10-day DNR wait."
+    },
+    {
+      "pass": 11,
+      "passName": "Proposals & Portal",
+      "section": "Proposals & Portal",
+      "testId": "P25",
+      "priority": "Low",
+      "step": "proposal_number falls back to PRO-${Date.now()} when RPC null; access_token error NOT swallowed (throws)."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "List",
+      "testId": "I1",
+      "priority": "High",
+      "step": "/invoices lists org invoices with derived stat cards (Outstanding/Overdue/Drafts/Paid); 25/page."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "List",
+      "testId": "I2",
+      "priority": "High",
+      "step": "Overdue badge is derived (due_date past + balance_due>0 + not paid/void), not stored."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Create",
+      "testId": "I3",
+      "priority": "High",
+      "step": "Create invoice from a completed job — line items from job + change orders; job to invoiced."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Create",
+      "testId": "I4",
+      "priority": "High",
+      "step": "Job-completion auto-invoice fires on all completion paths (DB trigger convergence): review-approval, status PATCH, and the v1 API raw write (pair with J22 commission gap)."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Create",
+      "testId": "I5",
+      "priority": "Medium",
+      "step": "Completed job with no billable amount produces no invoice."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Payments",
+      "testId": "I6",
+      "priority": "High",
+      "step": "Record a payment recalculates balance/status; full payment to paid."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Payments",
+      "testId": "I7",
+      "priority": "High",
+      "step": "Overpayment is blocked only client-side (dialog); the server/RPC does NOT compare amount to balance_due (see I14 for the gap)."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Payments",
+      "testId": "I8",
+      "priority": "Medium",
+      "step": "Delete a recorded payment recalculates balance; server DELETE is admin-only."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Permissions",
+      "testId": "I9",
+      "priority": "High",
+      "step": "Non-admin write actions are hidden in the invoice DETAIL HEADER and rejected by API; note list/data-table + delete-payment controls are NOT UI-gated (see I16/I17)."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Portal",
+      "testId": "I10",
+      "priority": "High",
+      "step": "Customer invoice portal link — token valid 90 days, reused while valid, regenerated when expired."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Send",
+      "testId": "I11",
+      "priority": "Medium",
+      "step": "Send invoice by email; SMS only when customer opted-in + phone on file."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Void",
+      "testId": "I12",
+      "priority": "Medium",
+      "step": "Void invoice — confirm dialog; excluded from Outstanding/Overdue math."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "List",
+      "testId": "I13",
+      "priority": "Low",
+      "step": "List search/status filters are page-local — visible rows can be fewer than the header count (gotcha)."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Invoices & Payments",
+      "testId": "I14",
+      "priority": "High",
+      "step": "Server does NOT reject overpayment — POST /payments amount>balance succeeds → negative balance + status='paid' (only browser blocks). BUG."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Invoices & Payments",
+      "testId": "I15",
+      "priority": "Medium",
+      "step": "Job DETAIL payment status differs from list (deposit checked before invoiced, no Overdue); same job shows different label."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Invoices & Payments",
+      "testId": "I16",
+      "priority": "High",
+      "step": "Delete-payment trash button renders for non-admins (not gated); click → generic \"Failed to delete\". UI-gate gap."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Invoices & Payments",
+      "testId": "I17",
+      "priority": "High",
+      "step": "Data-table row Send/Void actions render for non-admins (detail header hides them); API still rejects. UI-gate gap."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Invoices & Payments",
+      "testId": "I18",
+      "priority": "High",
+      "step": "QB invoice sync POST has NO allowedRoles → any tenant user can trigger QB sync. BUG."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Invoices & Payments",
+      "testId": "I19",
+      "priority": "Medium",
+      "step": "Row \"Record Payment\" ?record_payment=true not read by detail — dialog does NOT auto-open."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Invoices & Payments",
+      "testId": "I20",
+      "priority": "Medium",
+      "step": "Invoice edit locked once not draft — assertDraftEditable → 409, backed by DB triggers."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Invoices & Payments",
+      "testId": "I21",
+      "priority": "Medium",
+      "step": "createFromJob rejects non-completed job → VALIDATION_ERROR, re-checked under row lock in RPC."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Invoices & Payments",
+      "testId": "I22",
+      "priority": "Low",
+      "step": "'overdue' selectable in status filter but never stored → filtering Overdue returns zero rows."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Invoices & Payments",
+      "testId": "I23",
+      "priority": "Medium",
+      "step": "Invoice line gen: base = contract_amount ?? final_amount + one line per APPROVED change order (gated include_change_orders)."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Invoices & Payments",
+      "testId": "I24",
+      "priority": "Low",
+      "step": "Due-terms order: due_days > company payment_terms (Net N) > commercial 30d/residential 15d."
+    },
+    {
+      "pass": 12,
+      "passName": "Invoices & Payments",
+      "section": "Invoices & Payments",
+      "testId": "I25",
+      "priority": "Medium",
+      "step": "Public portal GET /api/portal/invoice/[token] unauthenticated, allowlisted fields via SECDEF RPC; unknown/expired handled."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Flow",
+      "testId": "J1",
+      "priority": "High",
+      "step": "Complete Job (from CRM) routes into the full completion flow with Time/Materials/Equipment/Photos/Checklist/Review tabs."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Materials",
+      "testId": "J8",
+      "priority": "High",
+      "step": "Log materials used (name + quantity + unit cost) — saves via material-usage API."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Work orders",
+      "testId": "J9",
+      "priority": "Medium",
+      "step": "Generate + view a work order for a job (Work Order tab); loads without 'Failed to load work order'."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Equipment",
+      "testId": "J10",
+      "priority": "High",
+      "step": "Log equipment used — saves to job_equipment."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Notes",
+      "testId": "J11",
+      "priority": "High",
+      "step": "Completion notes (field notes / issues / recommendations) accept and save text."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Variance",
+      "testId": "J12",
+      "priority": "High",
+      "step": "Submit completion shows the variance analysis review page."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Review",
+      "testId": "J13",
+      "priority": "High",
+      "step": "Office reviewer can approve / request changes — approve/reject on the review page (admin-gated); central Review Queue lists all submitted completions."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Variance",
+      "testId": "J14",
+      "priority": "High",
+      "step": "Actual vs estimated HOURS shown with % + Overrun/Under-est label."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Variance",
+      "testId": "J15",
+      "priority": "High",
+      "step": "Actual vs estimated MATERIALS shown like-for-like (not estimate-total vs material-actual)."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Variance",
+      "testId": "J16",
+      "priority": "High",
+      "step": "Over-budget flagged (red + 'Over budget' text label)."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Variance",
+      "testId": "J17",
+      "priority": "High",
+      "step": "Under-budget noted (green + 'Under budget' text label)."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Job Completion & Variance",
+      "testId": "J18",
+      "priority": "High",
+      "step": "Time tab — log time entry (hours+date) POST /time-entries → job_time_entries; currently untested."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Job Completion & Variance",
+      "testId": "J19",
+      "priority": "High",
+      "step": "Photos tab — capture/upload multipart /photos/upload → job_completion_photos + storage."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Job Completion & Variance",
+      "testId": "J20",
+      "priority": "Medium",
+      "step": "Checklist tab — items force-init on load; toggle PATCHes /checklist/[itemId]."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Job Completion & Variance",
+      "testId": "J21",
+      "priority": "High",
+      "step": "Submit POST /complete has NO allowedRoles — technician/viewer can create+submit; only approve/reject admin-gated. BUG."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Job Completion & Variance",
+      "testId": "J22",
+      "priority": "High",
+      "step": "v1 API PATCH (raw admin write) can set status='completed' — invoice trigger fires but commission NEVER generated (no DB trigger); actual_end_at/SMS/activity skipped. CO2 gap."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Job Completion & Variance",
+      "testId": "J23",
+      "priority": "High",
+      "step": "Reject completion non-atomic, leaves job status UNCHANGED (vs approve atomic RPC); requires non-empty reason."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Job Completion & Variance",
+      "testId": "J24",
+      "priority": "High",
+      "step": "Dual-FK embed regression — job-variance-service.ts:52 + estimator-accuracy-service.ts:29 embed jobs!inner WITHOUT !job_completions_job_id_fkey hint → PGRST201 risk."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Job Completion & Variance",
+      "testId": "J25",
+      "priority": "High",
+      "step": "Review-page material variance (like-for-like) DISAGREES with Review-Queue cost variance (material-only vs full contract_amount, legacy RPC)."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Job Completion & Variance",
+      "testId": "J26",
+      "priority": "Medium",
+      "step": "Primary variance RPC writes nonexistent material_variance cols → 42703; service silently falls back to legacy RPC."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Job Completion & Variance",
+      "testId": "J27",
+      "priority": "Medium",
+      "step": "gross_margin_pct + job_completions.actual_total never populated → actual_cost always null, margin never renders. Dead columns."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Job Completion & Variance",
+      "testId": "J28",
+      "priority": "Low",
+      "step": "getVarianceSummary buckets ±5% vs review UI ±10% — counts disagree with row colors."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Job Completion & Variance",
+      "testId": "J29",
+      "priority": "Medium",
+      "step": "Variance divide-by-zero: est=0 → percent null, UI \"—\"; confirm no NaN/Infinity leaks."
+    },
+    {
+      "pass": 13,
+      "passName": "Job Completion & Variance",
+      "section": "Job Completion & Variance",
+      "testId": "J30",
+      "priority": "Low",
+      "step": "Completion page 6 tabs in grid-cols-5 TabsList → Review trigger overflows row. UI bug."
+    },
+    {
+      "pass": 14,
+      "passName": "Dashboard & Analytics",
+      "section": "Cards",
+      "testId": "DB1",
+      "priority": "High",
+      "step": "Stat cards — Revenue (earned, not cash), Outstanding AR, Open Jobs, Win Rate; skeletons while loading."
+    },
+    {
+      "pass": 14,
+      "passName": "Dashboard & Analytics",
+      "section": "Cards",
+      "testId": "DB2",
+      "priority": "High",
+      "step": "Card drill-through — Revenue to /jobs, AR to /invoices?status=outstanding, Open Jobs to /crm/jobs, Win Rate to /sales/win-loss (filters preserved)."
+    },
+    {
+      "pass": 14,
+      "passName": "Dashboard & Analytics",
+      "section": "Filters",
+      "testId": "DB3",
+      "priority": "Medium",
+      "step": "Period filter (Week/Month/Quarter/YTD, default YTD) re-scopes cards/charts; trends vs prior equal window."
+    },
+    {
+      "pass": 14,
+      "passName": "Dashboard & Analytics",
+      "section": "Filters",
+      "testId": "DB4",
+      "priority": "Medium",
+      "step": "Hazard filter re-scopes via survey hazard_type; zero-match yields empty (sentinel), not unfiltered."
+    },
+    {
+      "pass": 14,
+      "passName": "Dashboard & Analytics",
+      "section": "Widgets",
+      "testId": "DB5",
+      "priority": "Medium",
+      "step": "AR trend uses inverted color polarity (rising AR = red)."
+    },
+    {
+      "pass": 14,
+      "passName": "Dashboard & Analytics",
+      "section": "Widgets",
+      "testId": "DB6",
+      "priority": "Medium",
+      "step": "Overdue Invoices widget uses org-timezone 'today' (no UTC off-by-one)."
+    },
+    {
+      "pass": 14,
+      "passName": "Dashboard & Analytics",
+      "section": "Widgets",
+      "testId": "DB7",
+      "priority": "Low",
+      "step": "Widget error isolation — one failing widget doesn't blank the others."
+    },
+    {
+      "pass": 14,
+      "passName": "Dashboard & Analytics",
+      "section": "Platform",
+      "testId": "DB8",
+      "priority": "Low",
+      "step": "platform_owner sees 'Platform Dashboard' + full-access banner."
+    },
+    {
+      "pass": 14,
+      "passName": "Dashboard & Analytics",
+      "section": "Dashboard & Analytics",
+      "testId": "DB9",
+      "priority": "High",
+      "step": "Win Rate denominator = ALL proposals in window (won=signed), NOT won/(won+lost); draft/sent dilute rate."
+    },
+    {
+      "pass": 14,
+      "passName": "Dashboard & Analytics",
+      "section": "Dashboard & Analytics",
+      "testId": "DB10",
+      "priority": "Medium",
+      "step": "Revenue card per-job = actual_revenue ?? final_amount ?? contract_amount for completed/invoiced/paid/closed, by scheduled_start_date."
+    },
+    {
+      "pass": 14,
+      "passName": "Dashboard & Analytics",
+      "section": "Dashboard & Analytics",
+      "testId": "DB11",
+      "priority": "Medium",
+      "step": "Open Jobs counts scheduled/in_progress/on_hold by scheduled_start_date — won't reconcile with donut total."
+    },
+    {
+      "pass": 14,
+      "passName": "Dashboard & Analytics",
+      "section": "Dashboard & Analytics",
+      "testId": "DB12",
+      "priority": "Medium",
+      "step": "AR trend mixes methods — current = sum(balance_due) vs prior RPC = sum(total−payments); apples-to-oranges."
+    },
+    {
+      "pass": 14,
+      "passName": "Dashboard & Analytics",
+      "section": "Dashboard & Analytics",
+      "testId": "DB13",
+      "priority": "Low",
+      "step": "Revenue trend chart independent of period filter (fixed 6mo); jobs-by-hazard ignores hazard filter — must NOT re-scope."
+    },
+    {
+      "pass": 14,
+      "passName": "Dashboard & Analytics",
+      "section": "Dashboard & Analytics",
+      "testId": "DB14",
+      "priority": "Low",
+      "step": "AR drill /invoices?status=outstanding vs Overdue widget /invoices?status=overdue — divergent params."
+    },
+    {
+      "pass": 15,
+      "passName": "Calendar",
+      "section": "Load",
+      "testId": "CL1",
+      "priority": "High",
+      "step": "Calendar loads 5 event sources (jobs, surveys, deadlines, external Google, industry); one source failing falls back to empty."
+    },
+    {
+      "pass": 15,
+      "passName": "Calendar",
+      "section": "Nav",
+      "testId": "CL2",
+      "priority": "High",
+      "step": "Month/Week/Day + prev/next + Today navigation; title updates; empty day states."
+    },
+    {
+      "pass": 15,
+      "passName": "Calendar",
+      "section": "Filters",
+      "testId": "CL3",
+      "priority": "High",
+      "step": "Finished events (completed/invoiced/paid/cancelled/no_show) hidden until 'Completed' chip toggled."
+    },
+    {
+      "pass": 15,
+      "passName": "Calendar",
+      "section": "Filters",
+      "testId": "CL4",
+      "priority": "Medium",
+      "step": "Event-type chips + team-member filter (member filter hides deadlines/external/industry)."
+    },
+    {
+      "pass": 15,
+      "passName": "Calendar",
+      "section": "Detail",
+      "testId": "CL5",
+      "priority": "Medium",
+      "step": "Event detail sheet with type-specific drill-through (View Job/Survey, Open in Google, registration link)."
+    },
+    {
+      "pass": 15,
+      "passName": "Calendar",
+      "section": "Timezone",
+      "testId": "CL6",
+      "priority": "High",
+      "step": "Local-date parsing — a job scheduled for a date renders on that day, not the day before (no UTC off-by-one)."
+    },
+    {
+      "pass": 15,
+      "passName": "Calendar",
+      "section": "Render",
+      "testId": "CL7",
+      "priority": "Medium",
+      "step": "Multi-day event bands render continuously with +N more overflow."
+    },
+    {
+      "pass": 15,
+      "passName": "Calendar",
+      "section": "Calendar",
+      "testId": "CL8",
+      "priority": "High",
+      "step": "Calendar is READ-ONLY — no create/edit form, NO drag-reschedule; scheduling only in jobs/new, jobs/[id]/edit, survey modal. CRUD/drag tests will fail."
+    },
+    {
+      "pass": 15,
+      "passName": "Calendar",
+      "section": "Calendar",
+      "testId": "CL9",
+      "priority": "High",
+      "step": "15-min granularity via custom TimeSelect dropdown (96 opts), NOT native <input type=time step=900> — ZERO native time inputs in codebase (contradicts project rule). Used job new/edit, survey modal."
+    },
+    {
+      "pass": 15,
+      "passName": "Calendar",
+      "section": "Calendar",
+      "testId": "CL10",
+      "priority": "Medium",
+      "step": "\"Completed\" chip tooltip claims cancelled shown, but cancelled excluded server-side — toggling can't reveal cancelled."
+    },
+    {
+      "pass": 15,
+      "passName": "Calendar",
+      "section": "Calendar",
+      "testId": "CL11",
+      "priority": "Low",
+      "step": "Regulatory-deadline events only from asbestos jobs, 10 working days before start (Sat/Sun skipped); only in-window render."
+    },
+    {
+      "pass": 15,
+      "passName": "Calendar",
+      "section": "Calendar",
+      "testId": "CL12",
+      "priority": "Low",
+      "step": "Google all-day exclusive end corrected (end=addDays(rawEnd,-1)); external timed use parseISO."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Team",
+      "testId": "ST1",
+      "priority": "High",
+      "step": "Team list is org- and active-scoped; sortable columns."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Team",
+      "testId": "ST2",
+      "priority": "High",
+      "step": "Team management gated to admins (Invite/menus hidden for non-admins)."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Team",
+      "testId": "ST3",
+      "priority": "High",
+      "step": "Invite a member — 7-day token invitation; appears under Pending; email only if RESEND_API_KEY set (silent otherwise)."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Team",
+      "testId": "ST4",
+      "priority": "Medium",
+      "step": "Duplicate invite / existing member to 409; no duplicate."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Team",
+      "testId": "ST5",
+      "priority": "Medium",
+      "step": "Revoke a pending invitation (org-scoped)."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Team",
+      "testId": "ST6",
+      "priority": "High",
+      "step": "Role edit — cannot act on own row; only owner-like can assign tenant_owner."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Team",
+      "testId": "ST7",
+      "priority": "Medium",
+      "step": "Deactivate (soft-delete) a member — sign-in revoked, history preserved."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Billing",
+      "testId": "ST8",
+      "priority": "High",
+      "step": "Billing admin-only; billing_managed_externally redirects to /settings; else shows subscription + plan + Stripe invoices."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "API keys",
+      "testId": "ST9",
+      "priority": "High",
+      "step": "BUG — Create API Key navigates to /settings/api/new which does not exist (404). No UI creates a key."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "API keys",
+      "testId": "ST10",
+      "priority": "High",
+      "step": "BUG — Revoke calls DELETE /api/api-keys/[id] which has no route (fails). Key not revoked."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "API keys",
+      "testId": "ST11",
+      "priority": "Medium",
+      "step": "API key list masks the key (prefix only); full key shown once at creation only."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Integrations",
+      "testId": "ST12",
+      "priority": "High",
+      "step": "QuickBooks connect/disconnect OAuth; Company ID + last sync shown; last_error surfaced."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Integrations",
+      "testId": "ST13",
+      "priority": "Low",
+      "step": "BUG — QuickBooks 'Sync All' button has no handler (inert)."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Roles",
+      "testId": "ST14",
+      "priority": "Low",
+      "step": "Roles matrix is read-only + admin-gated; non-admin redirected."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Settings",
+      "testId": "ST15",
+      "priority": "Medium",
+      "step": "Non-admin /settings sidebar shows only Notifications + Security; admin items hidden."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Settings",
+      "testId": "ST16",
+      "priority": "High",
+      "step": "Direct load of admin sub-page (/settings/company) as technician → server redirect /settings."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Settings",
+      "testId": "ST17",
+      "priority": "High",
+      "step": "BUG — /settings/credentials has NO server admin gate (no layout.tsx); technician gets 200 render."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Settings",
+      "testId": "ST18",
+      "priority": "Medium",
+      "step": "Team \"Send password reset\" → POST /api/team/[id]/send-password-reset; email unconfigured → sent:false + toast."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Settings",
+      "testId": "ST19",
+      "priority": "High",
+      "step": "Deactivate member = soft-delete (is_active=false); hidden, jobs preserved, sign-in revoked."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Settings",
+      "testId": "ST20",
+      "priority": "Medium",
+      "step": "Cannot act on own team row — menu disabled, API FORBIDDEN \"use your own profile settings\"."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Settings",
+      "testId": "ST21",
+      "priority": "Medium",
+      "step": "GAP — no self-serve profile page; team redirects self-edits to /settings/profile which doesn't exist; no avatar UI."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Settings",
+      "testId": "ST22",
+      "priority": "Medium",
+      "step": "/settings/company validation — empty name blocked, photo_retention_days 90–3650, state auto-upper 2 chars."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Settings",
+      "testId": "ST23",
+      "priority": "Medium",
+      "step": "/settings/sms — master toggle, quiet-hours, brand prefix ≤24, Twilio E.164; Test SMS ignores toggle/quiet-hours, needs ≥10 digits."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Settings",
+      "testId": "ST24",
+      "priority": "Medium",
+      "step": "/settings/notifications NOT admin-gated; per-user In-App/Email PATCH; Push disabled; admin \"Configure for\" user picker edits another member."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Settings",
+      "testId": "ST25",
+      "priority": "Medium",
+      "step": "/settings/security password change every role (min8+confirm); 2FA/Sessions placeholders."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Settings",
+      "testId": "ST26",
+      "priority": "Medium",
+      "step": "/settings/email custom-domain auto-polls 10s while pending; test send via /api/organizations/me/email-test."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Settings",
+      "testId": "ST27",
+      "priority": "Medium",
+      "step": "Integrations QuickBooks panel shows Company ID + Last Synced; last_error → destructive Alert; ?error → toast + URL clean."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Settings",
+      "testId": "ST28",
+      "priority": "Medium",
+      "step": "Billing — no sub → \"No Active Subscription\"; trialing → Trial Ends; Manage Billing → POST /api/billing/portal → Stripe URL."
+    },
+    {
+      "pass": 16,
+      "passName": "Settings",
+      "section": "Settings",
+      "testId": "ST29",
+      "priority": "Medium",
+      "step": "Revoke pending invitation with spoofed cross-org id → 404 NOT_FOUND."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Auth",
+      "testId": "API1",
+      "priority": "High",
+      "step": "Missing/invalid Authorization header to 401; only 'Bearer ' accepted."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Auth",
+      "testId": "API2",
+      "priority": "High",
+      "step": "Wrong key format (not hzd_live_) to 401 'Invalid key format'; unknown key to 401 'Invalid API key'."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Auth",
+      "testId": "API3",
+      "priority": "High",
+      "step": "Revoked / inactive / expired key each rejected with its specific 401 message."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Scopes",
+      "testId": "API4",
+      "priority": "High",
+      "step": "Scope enforced on read — key without customers:read to 403 'Missing required scope: customers:read'."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Scopes",
+      "testId": "API5",
+      "priority": "High",
+      "step": "Scope enforced on write — read-only key POST to 403 customers:write; cross-resource scope isolation (customers key on /companies to 403)."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Isolation",
+      "testId": "API6",
+      "priority": "High",
+      "step": "Org-scoping of reads — Org A key never returns Org B rows; GET-by-id for another org's id to 404 (every query hard-filters organization_id)."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Isolation",
+      "testId": "API7",
+      "priority": "High",
+      "step": "customers/[id] cross-org/unknown id: GET & PATCH → 404; DELETE → 200 {success:true} but deletes nothing (missing affected-row check — candidate bug)."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Rate limit",
+      "testId": "API8",
+      "priority": "Medium",
+      "step": "Per-key hourly quota to 429 'Rate limit exceeded' with X-RateLimit headers; resets after 1h."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Rate limit",
+      "testId": "API9",
+      "priority": "Medium",
+      "step": "Per-IP public limiter (60/min) applies to customers & companies COLLECTION routes only (estimates/invoices/jobs + [id] routes have only the per-key hourly quota — see API23)."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Validation",
+      "testId": "API10",
+      "priority": "Medium",
+      "step": "Pagination bounds — limit 1..100 (101/0 to 400); has_more flag + total echoed; default limit 50."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Validation",
+      "testId": "API11",
+      "priority": "Medium",
+      "step": "Search sanitized (no injection); invalid JSON to 400; body validation errors return details; invalid UUID path to 400."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "CORS",
+      "testId": "API12",
+      "priority": "Medium",
+      "step": "OPTIONS preflight to 204 with allowed methods + Max-Age; prod restricts origin to app URL (no wildcard, credentials:false)."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Errors",
+      "testId": "API13",
+      "priority": "Low",
+      "step": "Internal errors return generic message (no SQL/stack leaked); last_used_at updated + request logged."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Public API v1",
+      "testId": "API14",
+      "priority": "High",
+      "step": "GET /api/v1/estimates without estimates:read → 403 \"Missing required scope: estimates:read\"; with scope returns org-scoped list + {total,limit,offset,has_more}."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Public API v1",
+      "testId": "API15",
+      "priority": "High",
+      "step": "POST /api/v1/estimates with cross-org customer_id → 404 \"Customer not found\"; valid create → 201, status 'draft', line_items inserted, total_amount = Σ qty×unit_price."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Public API v1",
+      "testId": "API16",
+      "priority": "Medium",
+      "step": "POST /api/v1/estimates with foreign/unknown site_survey_id → 404 \"Site survey not found\"."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Public API v1",
+      "testId": "API17",
+      "priority": "High",
+      "step": "GET/POST /api/v1/invoices enforce invoices:read/write (403 exact msg); POST cross-org customer_id → 404, cross-org job_id → 404; created invoice status 'draft', tax 0, balance=subtotal."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Public API v1",
+      "testId": "API18",
+      "priority": "High",
+      "step": "GET/POST /api/v1/jobs enforce jobs:read/write; POST cross-org customer_id → 404; new job status 'pending', hazard_types defaults [] when omitted."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Public API v1",
+      "testId": "API19",
+      "priority": "High",
+      "step": "jobs/[id] & companies/[id] PATCH/DELETE org-hard-filtered; another org's id → 404 on GET/PATCH."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Public API v1",
+      "testId": "API20",
+      "priority": "High",
+      "step": "Entity-number RACE — EST/INV/JOB-#### are count()+1 with no txn/uniqueness; two concurrent POSTs collide → dup number or insert error."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Public API v1",
+      "testId": "API21",
+      "priority": "High",
+      "step": "PostgREST .or() filter injection — search on /v1/customers & /v1/companies; sanitizeSearchQuery escapes only %,_,\\ not ',' or ')'. search=`a,email.ilike.%25` must NOT widen results."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Public API v1",
+      "testId": "API22",
+      "priority": "Medium",
+      "step": "Collection GET /v1/customers uses select('*') vs curated [id] columns; confirm '*' doesn't leak internal columns."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Public API v1",
+      "testId": "API23",
+      "priority": "Medium",
+      "step": "Per-IP 'public' limiter (60/min) only on customers/companies COLLECTION; estimates/invoices/jobs + all [id] routes have only per-key hourly quota. 61 rapid /v1/estimates NOT IP-throttled."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Public API v1",
+      "testId": "API24",
+      "priority": "Low",
+      "step": "Memory rate-limit fallback is per-instance when Upstash unset → per-lambda not global. Verify Redis configured in prod."
+    },
+    {
+      "pass": 17,
+      "passName": "Public API v1",
+      "section": "Public API v1",
+      "testId": "API25",
+      "priority": "Medium",
+      "step": "Non-numeric limit/offset → 400 \"Invalid query parameters\"; limit=101 or 0 → 400; default 50."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Webhook",
+      "testId": "EM1",
+      "priority": "High",
+      "step": "Resend webhook verifies svix signature (HMAC over id.timestamp.body, timingSafeEqual); wrong/missing signature to 401."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Webhook",
+      "testId": "EM2",
+      "priority": "High",
+      "step": "Webhook fails CLOSED in production without RESEND_WEBHOOK_SECRET (500); lenient (accepts unsigned) only in dev."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Webhook",
+      "testId": "EM3",
+      "priority": "High",
+      "step": "Webhook updates only the email_sends row matching provider_message_id (no cross-tenant write); unknown id to 200 skipped."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Webhook",
+      "testId": "EM4",
+      "priority": "Medium",
+      "step": "Status transitions (delivered/bounced/complained) + open/click counters (first_opened_at only once); unknown types to 200 ack (no retries); webhook rate-limited (200/min)."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Invoice",
+      "testId": "EM5",
+      "priority": "High",
+      "step": "Invoice email sends to customer with invoice PDF + attached docs; marks status='sent'; requires a customer email (else VALIDATION_ERROR)."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Invoice",
+      "testId": "EM6",
+      "priority": "Medium",
+      "step": "SMS path gated by sms_opt_in + org SMS + payment_reminders; schedules reminders (future only); cancelled on pay/void."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Invite",
+      "testId": "EM7",
+      "priority": "High",
+      "step": "Invitation create sends invite email with /signup?invite=token (7-day expiry); email failure does NOT fail the request; duplicates to 409."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Notify",
+      "testId": "EM8",
+      "priority": "High",
+      "step": "Proposal-signed notifies proposal.created_by (best-effort; failure never blocks signing)."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Notify",
+      "testId": "EM9",
+      "priority": "Medium",
+      "step": "Notifications respect per-user in-app + email preferences; no email if user has no email address."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Notify",
+      "testId": "EM10",
+      "priority": "Medium",
+      "step": "email_sends audit row + resolved sender apply to EmailService-routed sends (invoice/proposal/notification); invitations are the exception (raw send, no audit — see EM12)."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Notify",
+      "testId": "EM11",
+      "priority": "Low",
+      "step": "Event to recipient matrix correct (job_assigned to assignee, completion-review to admins, invoice_paid to owner, feedback to admins)."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Emails & Notifications",
+      "testId": "EM12",
+      "priority": "High",
+      "step": "Invitation email BYPASSES EmailService (raw resend.emails.send, from notifications@RESEND_DOMAIN||resend.dev, NO email_sends audit row). Verify no audit row + non-tenant sender."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Emails & Notifications",
+      "testId": "EM13",
+      "priority": "Medium",
+      "step": "Notification email DEFAULT-ON — no pref row → both in-app + email sent. Brand-new user still receives emails."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Emails & Notifications",
+      "testId": "EM14",
+      "priority": "Medium",
+      "step": "Invoice send schedules 3 SMS reminders at due−3/due/due+3 @10:00, skipping past times; requires phone+sms_opt_in+org sms_enabled+payment_reminders_enabled."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Emails & Notifications",
+      "testId": "EM15",
+      "priority": "Medium",
+      "step": "Invoice email attaches rendered PDF + job documents + lab_reports; single attachment fail skips only that file; PDF-gen fail still sends body."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Emails & Notifications",
+      "testId": "EM16",
+      "priority": "Low",
+      "step": "Webhook first_clicked_at set once (click_count===0), increments click_count, no last_clicked_at on click. Verify counter semantics."
+    },
+    {
+      "pass": 18,
+      "passName": "Emails & Notifications",
+      "section": "Emails & Notifications",
+      "testId": "EM17",
+      "priority": "Medium",
+      "step": "Invoice send with no customer → BAD_REQUEST \"Invoice has no customer\"; no email/SMS/status change."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Isolation",
+      "testId": "SEC1",
+      "priority": "High",
+      "step": "Org A cannot read Org B data — org-scoped SELECT returns zero cross-org rows (RLS via get_user_organization_id)."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "RLS writes",
+      "testId": "SEC2",
+      "priority": "High",
+      "step": "Viewer cannot write jobs via a raw browser Supabase client (RLS UPDATE requires a write role). Regression guard: viewer previously could change job status/amount."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "RLS writes",
+      "testId": "SEC3",
+      "priority": "High",
+      "step": "Technician cannot write jobs/invoices/payments at the DB (read-only at RLS); cannot fabricate a payment row (fake 'paid')."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "RLS writes",
+      "testId": "SEC4",
+      "priority": "High",
+      "step": "RLS is role-scoped AND org-scoped — a write-role in Org A cannot write Org B (WITH CHECK enforces both)."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Roles",
+      "testId": "SEC5",
+      "priority": "High",
+      "step": "Role groups correct — TENANT_WRITE excludes technician/viewer; TENANT_FIELD adds technician; TENANT_ADMIN = platform+tenant_owner+admin."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "API gate",
+      "testId": "SEC6",
+      "priority": "High",
+      "step": "Viewer/estimator blocked from TENANT_ADMIN API routes (invitations, settings) to 403."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "API gate",
+      "testId": "SEC7",
+      "priority": "High",
+      "step": "Unauthenticated internal API to UNAUTHORIZED; unauthenticated dashboard route to 307 redirect to /login."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Page gate",
+      "testId": "SEC8",
+      "priority": "High",
+      "step": "Server-side role gate on admin pages — direct URL load by a non-admin redirects (no URL-bypass of UI gating); no org to /onboard."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Cookies",
+      "testId": "SEC9",
+      "priority": "Medium",
+      "step": "Chunked auth cookie (sb-ref-auth-token.0/.1) recognized as authenticated (match includes '-auth-token'); no false /login redirect."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Public routes",
+      "testId": "SEC10",
+      "priority": "Medium",
+      "step": "Public routes (/api/v1, /api/webhooks, /portal, /feedback, /api/proposals/sign, /auth/*) bypass the login redirect and authenticate by key/token/signature."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Public routes",
+      "testId": "SEC11",
+      "priority": "Medium",
+      "step": "/signup?invite=token strips a stale session so the invitee registers clean."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Hardening",
+      "testId": "SEC12",
+      "priority": "Medium",
+      "step": "Input sanitized on internal APIs by default; Zod errors to VALIDATION_ERROR (field named); malformed JSON to BAD_REQUEST."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Hardening",
+      "testId": "SEC13",
+      "priority": "Medium",
+      "step": "Rate limiting — general 100/min, auth 10/min per IP to 429 with headers."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Hardening",
+      "testId": "SEC14",
+      "priority": "Medium",
+      "step": "RLS helper functions are SECURITY DEFINER with search_path=public pinned. Regression guard: empty search_path previously broke all org RLS."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Platform",
+      "testId": "SEC15",
+      "priority": "Medium",
+      "step": "platform_owner retains cross-org access via separate FOR ALL policies; platform_admin is DENIED cross-org on invoices/payments (see SEC22) — not uniform."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Errors",
+      "testId": "SEC16",
+      "priority": "Low",
+      "step": "Secure error handler hides internals (no stack/SQL to client); profile-not-found to NOT_FOUND."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Multi-tenancy & Security",
+      "testId": "SEC17",
+      "priority": "High",
+      "step": "RLS HOLE — opportunities & pipeline_stages org-only, NO role gate; viewer/technician CAN INSERT/UPDATE via raw client, bypassing /api/pipeline RBAC."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Multi-tenancy & Security",
+      "testId": "SEC18",
+      "priority": "High",
+      "step": "WITH CHECK both-sided on jobs/invoices/payments UPDATE — estimator can't org-hop or drop org predicate."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Multi-tenancy & Security",
+      "testId": "SEC19",
+      "priority": "Medium",
+      "step": "estimates/proposals/estimate_line_items INSERT+UPDATE org-only at RLS (RBAC only in API); DELETE admin/owner-gated."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Multi-tenancy & Security",
+      "testId": "SEC20",
+      "priority": "Medium",
+      "step": "api_keys RLS org-only (any member INSERT/DELETE via raw client) while API gates TENANT_ADMIN — mismatch."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Multi-tenancy & Security",
+      "testId": "SEC21",
+      "priority": "Medium",
+      "step": "Pricing tables RLS lets estimator manage but /api/settings/pricing gates TENANT_ADMIN — divergent."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Multi-tenancy & Security",
+      "testId": "SEC22",
+      "priority": "Medium",
+      "step": "platform_admin cross-org invoices/payments DENIED (policy names only platform_owner); inconsistency."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Multi-tenancy & Security",
+      "testId": "SEC23",
+      "priority": "High",
+      "step": "Admin-only address-change trigger — non-admin UPDATE of address cols on customers/companies/jobs/opps/surveys/properties → 42501."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Multi-tenancy & Security",
+      "testId": "SEC24",
+      "priority": "Medium",
+      "step": "Photo storage isolation — survey-photos SELECT foldername[1]=own org; originals/ admin-only read; cross-org denied."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Multi-tenancy & Security",
+      "testId": "SEC25",
+      "priority": "Medium",
+      "step": "anon rpc is_platform_user/get_user_organization_id → permission denied (SECDEF grants revoked from anon)."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Multi-tenancy & Security",
+      "testId": "SEC26",
+      "priority": "Medium",
+      "step": "One org per user — allow_first_org_creation blocks 2nd org INSERT for non-platform."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Multi-tenancy & Security",
+      "testId": "SEC27",
+      "priority": "High",
+      "step": "Finalized-invoice lock — UPDATE of paid/void invoice denied at RLS."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Multi-tenancy & Security",
+      "testId": "SEC28",
+      "priority": "Medium",
+      "step": "Reporting matviews revoked from authenticated — direct SELECT by tenant user denied."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Multi-tenancy & Security",
+      "testId": "SEC29",
+      "priority": "Medium",
+      "step": "/auth/confirm open-redirect guard — next=https://evil.com ignored, falls back /."
+    },
+    {
+      "pass": 19,
+      "passName": "Multi-tenancy & Security",
+      "section": "Multi-tenancy & Security",
+      "testId": "SEC30",
+      "priority": "Medium",
+      "step": "Internal-API CORS — disallowed Origin → 403; same-origin → Allow-Credentials: true."
+    },
+    {
+      "pass": 20,
+      "passName": "QA Hot-spots",
+      "section": "This session",
+      "testId": "HS1",
+      "priority": "High",
+      "step": "Survey swipe over footer navigates (SS13) — re-confirm on a real device after deploy."
+    },
+    {
+      "pass": 20,
+      "passName": "QA Hot-spots",
+      "section": "This session",
+      "testId": "HS2",
+      "priority": "High",
+      "step": "Offline draft resume opens the app (SS22) — re-confirm offline on device."
+    },
+    {
+      "pass": 20,
+      "passName": "QA Hot-spots",
+      "section": "This session",
+      "testId": "HS3",
+      "priority": "High",
+      "step": "Estimate to proposal to token URL end to end (P1) — including onboarding for a fresh org."
+    },
+    {
+      "pass": 20,
+      "passName": "QA Hot-spots",
+      "section": "This session",
+      "testId": "HS4",
+      "priority": "High",
+      "step": "Full job-completion pipeline reachable from CRM incl. materials/variance/review-queue (J8-J17)."
+    },
+    {
+      "pass": 20,
+      "passName": "QA Hot-spots",
+      "section": "Watch",
+      "testId": "HS5",
+      "priority": "High",
+      "step": "Review page loads for a job with a completion (regression guard for the PGRST201 dual-FK embed)."
+    },
+    {
+      "pass": 20,
+      "passName": "QA Hot-spots",
+      "section": "Watch",
+      "testId": "HS6",
+      "priority": "Medium",
+      "step": "Opportunity delete redirect goes to /crm/pipeline not legacy /pipeline (nav inconsistency)."
+    },
+    {
+      "pass": 20,
+      "passName": "QA Hot-spots",
+      "section": "Watch",
+      "testId": "HS7",
+      "priority": "Medium",
+      "step": "Invitation/proposal/invoice emails silently no-op without RESEND_API_KEY — verify env in each environment."
+    },
+    {
+      "pass": 20,
+      "passName": "QA Hot-spots",
+      "section": "Watch",
+      "testId": "HS8",
+      "priority": "High",
+      "step": "API Keys feature end-to-end (create + revoke) once fixed (currently broken — ST9/ST10)."
+    },
+    {
+      "pass": 20,
+      "passName": "QA Hot-spots",
+      "section": "QA Hot-spots",
+      "testId": "HS9",
+      "priority": "High",
+      "step": "profiles .single() RLS trap regression — invoice send from MULTI-MEMBER org must not throw \"multiple rows\". Test as 2nd org member."
+    },
+    {
+      "pass": 20,
+      "passName": "QA Hot-spots",
+      "section": "QA Hot-spots",
+      "testId": "HS10",
+      "priority": "High",
+      "step": "v1 estimate/invoice/job number collision under concurrency (count()+1) — fire two simultaneous creates, no dup number."
+    },
+    {
+      "pass": 20,
+      "passName": "QA Hot-spots",
+      "section": "QA Hot-spots",
+      "testId": "HS11",
+      "priority": "High",
+      "step": "PostgREST .or() search injection on /v1 customers & companies — comma/paren in search can't inject filter clauses."
+    },
+    {
+      "pass": 20,
+      "passName": "QA Hot-spots",
+      "section": "QA Hot-spots",
+      "testId": "HS12",
+      "priority": "Medium",
+      "step": "Uneven per-IP rate limiting across v1 (customers/companies limited, estimates/invoices/jobs not)."
+    },
+    {
+      "pass": 20,
+      "passName": "QA Hot-spots",
+      "section": "QA Hot-spots",
+      "testId": "HS13",
+      "priority": "Medium",
+      "step": "Invitation email deliverability — RESEND_DOMAIN unset → resend.dev sandbox sender. Verify RESEND_DOMAIN set per env."
+    }
+  ]
+}

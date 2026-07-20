@@ -52,3 +52,6 @@ public/swe-worker-*.js.map
 *.exe
 supabase.exe
 .claude/worktrees/
+
+# QA security/integrity harness (disposable, prod-touching — never commit)
+.qa-harness/
