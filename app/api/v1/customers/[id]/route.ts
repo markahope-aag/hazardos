@@ -32,7 +32,9 @@ async function handleGet(
 
   const { data, error } = await supabase
     .from('customers')
-    .select('id, organization_id, name, first_name, last_name, company_name, email, phone, mobile, website, status, customer_type, lead_source, address_line1, address_line2, city, state, zip, country, notes, tags, billing_email, preferred_contact_method, created_at, updated_at')
+    // Real, safe columns only — mobile/website/customer_type/country/tags/
+    // billing_email don't exist on customers and made this select error (→ 404).
+    .select('id, organization_id, name, first_name, last_name, company_name, email, phone, status, lead_source, address_line1, address_line2, city, state, zip, notes, preferred_contact_method, created_at, updated_at')
     .eq('id', params.id)
     .eq('organization_id', context.organizationId)
     .single();

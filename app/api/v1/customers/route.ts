@@ -10,8 +10,10 @@ import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
 
 // Public projection for customers — identical to the single-record [id] route,
 // so the collection endpoint can't expose more than fetching one record does.
+// Real, safe columns only. (mobile/website/customer_type/country/tags/billing_email
+// do NOT exist on the customers table — selecting them 500s the query.)
 const V1_CUSTOMER_COLUMNS =
-  'id, organization_id, name, first_name, last_name, company_name, email, phone, mobile, website, status, customer_type, lead_source, address_line1, address_line2, city, state, zip, country, notes, tags, billing_email, preferred_contact_method, created_at, updated_at';
+  'id, organization_id, name, first_name, last_name, company_name, email, phone, status, lead_source, address_line1, address_line2, city, state, zip, notes, preferred_contact_method, created_at, updated_at';
 
 async function handleGet(request: NextRequest, context: ApiKeyAuthContext): Promise<NextResponse> {
   const rateLimitResponse = await applyUnifiedRateLimit(request, 'public');
