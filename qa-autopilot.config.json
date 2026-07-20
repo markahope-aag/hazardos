@@ -1,0 +1,34 @@
+{
+  "app": "hazardos",
+  "appUrl": "https://hazardos.app",
+  "authProvider": "supabase",
+  "driveFolderId": "0ABMKrQ1OKcv2Uk9PVA",
+  "sheetTitle": "HazardOS — QA Tracker",
+  "envFile": ".env.local",
+
+  "knownBlockers": [
+    "Fresh sign-up may be bot-blocked in headless automation -> mark N/A, note it",
+    "Stripe billing/subscription flows require Stripe test keys in the target env -> Blocked if unconfigured (SE5-SE10, EX8)",
+    "QuickBooks integration requires OAuth config in the target env -> Blocked if unconfigured (I12, SE18-SE20)",
+    "Native mobile / PWA install / physical-device checks -> Blocked, no device (X1-X7, EX4)"
+  ],
+
+  "testAccounts": {
+    "orgId": "8cfe1783-a3f1-444f-b4d7-6f5d6dee0f8f",
+    "password": "HazardOS-QA-2026!",
+    "emailConfirm": true,
+    "profileTable": "profiles",
+    "columns": {
+      "org": "organization_id",
+      "role": "role",
+      "first": "first_name",
+      "last": "last_name",
+      "active": "is_active"
+    },
+    "testers": [
+      { "baseEmail": "roy.tolosa@asymmetric.pro", "first": "Roy", "last": "Tolosa" },
+      { "baseEmail": "sophie.hope@asymmetric.pro", "first": "Sophie", "last": "Hope" }
+    ],
+    "roles": ["tenant_owner", "admin", "estimator", "technician", "viewer"]
+  }
+}
