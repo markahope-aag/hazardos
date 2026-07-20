@@ -243,3 +243,17 @@ RESEND_DOMAIN=hazardos.app
 6. **The `name` field on customers is computed** — Always set it from `first_name + ' ' + last_name` when creating/updating
 7. **Payment status on jobs is derived** — No `payment_status` column; inferred from `status`, `deposit_received_date`, `final_invoice_date`, `final_payment_date`
 8. **Pipeline stages are per-organization** — Default stages auto-created via trigger on org creation
+
+## Agent Working Style
+
+For any task that requires reading across multiple files, delegate to the **Explore** agent (or a `fork` / `general-purpose` sub-agent) and keep only its conclusion — don't read the files into the main context. This keeps sessions cheap. For a single known-file lookup, read it directly.
+
+## Client Deliverables — always PDF
+
+Clients can't use `.md`. Whenever you produce a file meant to be shared with a client (report, audit, strategy, proposal, sequence, any deliverable), after writing the `.md`, generate a PDF and treat the **PDF** as the thing you hand over:
+
+```
+node D:/projects/workspace/scripts/convert-to-pdf/convert-to-pdf.js --src <path/to/file.md>
+```
+
+The styled, print-ready PDF is written next to the `.md`. Never deliver the raw `.md` to a client. Internal notes, docs, and code files don't need conversion.
