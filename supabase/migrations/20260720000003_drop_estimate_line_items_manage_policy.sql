@@ -1,0 +1,12 @@
+-- Follow-up to 20260720000001: the live permissive write policy on
+-- estimate_line_items is "Users can manage line items for their estimates"
+-- (FOR ALL, org-only), created by 20260401000004 — NOT the older per-op names
+-- that 20260720000001 tried to drop. Because RLS policies are permissive (OR'd),
+-- that FOR ALL policy kept granting INSERT/UPDATE/DELETE to every org member,
+-- so the role-scoping added in 20260720000001 had no effect until this policy
+-- is removed.
+--
+-- Drop it. Reads are preserved by "Users can view line items for their estimates"
+-- (SELECT); writes are now governed solely by the role-scoped policies
+-- estimate_line_items_{insert,update,delete}_write_roles.
+DROP POLICY IF EXISTS "Users can manage line items for their estimates" ON estimate_line_items;
