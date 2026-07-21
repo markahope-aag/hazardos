@@ -24,6 +24,8 @@ interface CustomerFormProps {
   onCancel: () => void
   isSubmitting?: boolean
   submitLabel?: string
+  /** Prefill a new contact as commercial for this company (deep link from a company page). */
+  initialCompanyName?: string
 }
 
 export default function CustomerForm({
@@ -31,7 +33,8 @@ export default function CustomerForm({
   onSubmit,
   onCancel,
   isSubmitting = false,
-  submitLabel = 'Save Contact'
+  submitLabel = 'Save Contact',
+  initialCompanyName,
 }: CustomerFormProps) {
   const formAnalytics = useFormAnalytics('customer', customer ? 'edit_customer' : 'create_customer')
   const { profile } = useMultiTenantAuth()
@@ -80,7 +83,10 @@ export default function CustomerForm({
     } : {
       first_name: '',
       last_name: '',
-      contact_type: 'residential' as const,
+      // A deep link from a company page prefills the company and marks the
+      // contact commercial; otherwise default to residential.
+      contact_type: initialCompanyName ? ('commercial' as const) : ('residential' as const),
+      company_name: initialCompanyName || '',
       status: 'inquiry' as const,
       marketing_consent: false,
     }

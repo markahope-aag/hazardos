@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Plus, Upload } from 'lucide-react'
 import CustomerList from '@/components/customers/customer-list'
@@ -11,10 +12,34 @@ import ImportContactsDialog from '@/components/customers/import-contacts-dialog'
 import type { Customer } from '@/types/database'
 
 export default function ContactsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ContactsPageContent />
+    </Suspense>
+  )
+}
+
+function ContactsPageContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null)
+  // Captured into state (not read live) so stripping the URL below doesn't
+  // clear the prefill before the modal's form mounts.
+  const [prefillCompany, setPrefillCompany] = useState<string | undefined>(undefined)
+
+  // Deep link from a company page: ?newContact=true[&company=Name] opens the
+  // create modal, prefilling the company as a commercial contact (CO12).
+  useEffect(() => {
+    if (searchParams.get('newContact') === 'true') {
+      setPrefillCompany(searchParams.get('company') || undefined)
+      setShowCreateModal(true)
+      // Strip the params so a refresh / back doesn't re-open the modal.
+      router.replace('/crm/contacts')
+    }
+  }, [searchParams, router])
 
   return (
     <div className="space-y-6">
@@ -44,7 +69,8 @@ export default function ContactsPage() {
 
       <CreateCustomerModal
         open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => { setShowCreateModal(false); setPrefillCompany(undefined) }}
+        initialCompanyName={prefillCompany}
       />
 
       <ImportContactsDialog

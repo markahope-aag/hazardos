@@ -11,9 +11,11 @@ import type { CustomerFormData } from '@/lib/validations/customer-form'
 interface CreateCustomerModalProps {
   open: boolean
   onClose: () => void
+  /** Prefill a new contact as commercial for this company (deep link from a company page). */
+  initialCompanyName?: string
 }
 
-export default function CreateCustomerModal({ open, onClose }: CreateCustomerModalProps) {
+export default function CreateCustomerModal({ open, onClose, initialCompanyName }: CreateCustomerModalProps) {
   const createCustomerMutation = useCreateCustomer()
 
   const handleSubmit = async (data: CustomerFormData) => {
@@ -34,6 +36,7 @@ export default function CreateCustomerModal({ open, onClose }: CreateCustomerMod
           onCancel={onClose}
           isSubmitting={createCustomerMutation.isPending}
           submitLabel="Create Contact"
+          initialCompanyName={initialCompanyName}
         />
       </DialogContent>
     </Dialog>
