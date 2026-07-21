@@ -307,10 +307,16 @@ describe('Analytics API', () => {
       const response = await getRevenue(request)
       const data = await response.json()
 
-      expect(response.status).toBe(500)
-      expect(data.error).toBe('An internal server error occurred')
-      expect(data.type).toBe('INTERNAL_ERROR')
-      expect(data.error).not.toContain('Permission denied')
+      // 42501 is a permission denial. context.supabase is the user-scoped
+      // cookie client, so this genuinely means *this user* can't read the row —
+      // 403 is more accurate than a blanket 500. What matters either way is
+      // that the raw "Permission denied for relation jobs" never reaches the
+      // client; unmapped DB failures still surface as 500 (see proposals /
+      // analytics-revenue, which cover the connection-failure path).
+      expect(response.status).toBe(403)
+      expect(data.type).toBe('FORBIDDEN')
+      expect(data.error).not.toContain('Permission denied for relation')
+      expect(data.error).not.toContain('jobs')
     })
 
     it('should handle empty payments', async () => {

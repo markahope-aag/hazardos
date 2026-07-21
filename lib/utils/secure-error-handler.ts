@@ -11,6 +11,7 @@ export type SafeErrorType =
   | 'RATE_LIMITED'
   | 'CONFLICT'
   | 'BAD_REQUEST'
+  | 'INTERNAL_ERROR'
 
 // Map of safe error messages that can be shown to users
 const SAFE_ERROR_MESSAGES: Record<SafeErrorType, string> = {
@@ -21,6 +22,7 @@ const SAFE_ERROR_MESSAGES: Record<SafeErrorType, string> = {
   RATE_LIMITED: 'Too many requests. Please try again later',
   CONFLICT: 'The resource already exists or conflicts with existing data',
   BAD_REQUEST: 'The request is invalid',
+  INTERNAL_ERROR: 'An internal server error occurred',
 }
 
 const STATUS_CODES: Record<SafeErrorType, number> = {
@@ -31,6 +33,7 @@ const STATUS_CODES: Record<SafeErrorType, number> = {
   RATE_LIMITED: 429,
   CONFLICT: 409,
   BAD_REQUEST: 400,
+  INTERNAL_ERROR: 500,
 }
 
 export class SecureError extends Error {
@@ -66,8 +69,12 @@ export function createSecureErrorResponse(
       'Request failed'
     )
 
+    // 4xx messages are client-actionable ("Estimate not found") so they're
+    // echoed as-is. 5xx messages describe an internal failure and must not be —
+    // they carry the operation context ("Failed to fetch jobs") which is for
+    // logs and service callers, not for the caller of an HTTP endpoint.
     const response: Record<string, unknown> = {
-      error: error.message,
+      error: error.statusCode >= 500 ? SAFE_ERROR_MESSAGES[error.type] : error.message,
       type: error.type,
     }
 
@@ -208,7 +215,15 @@ export function throwDbError(error: { code?: string; message?: string; details?:
     throw new SecureError('NOT_FOUND', context ? `${context} not found` : 'Resource not found')
   }
 
-  // Log the raw error for debugging, throw a safe generic message
+  // Anything we haven't mapped above is a server-side failure, not a malformed
+  // request — a dropped connection (08001), a bad query, a missing column. It
+  // must surface as 5xx: returning 400 told callers their request was invalid
+  // and, worse, meant a full database outage rendered as a wall of 4xx that
+  // never tripped 5xx alerting.
+  //
+  // The `context` stays on the Error so service-layer callers and logs keep
+  // "Failed to fetch jobs"; handleSecureError is what withholds it from the
+  // HTTP body, since 5xx messages are never echoed to clients.
   logger.error({ dbError: { code, message: error.message, details: error.details, hint: error.hint }, context }, 'Database operation failed')
-  throw new SecureError('BAD_REQUEST', context ? `Failed to ${context}` : 'Operation failed')
+  throw new SecureError('INTERNAL_ERROR', context ? `Failed to ${context}` : 'Operation failed')
 }
