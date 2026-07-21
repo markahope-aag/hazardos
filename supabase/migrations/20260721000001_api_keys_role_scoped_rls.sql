@@ -5,6 +5,11 @@
 -- Key VALIDATION uses the service-role client (bypasses RLS) so it is unaffected.
 DROP POLICY IF EXISTS "Users can manage their org API keys" ON api_keys;
 
+DROP POLICY IF EXISTS "api_keys_select_admin" ON api_keys;
+DROP POLICY IF EXISTS "api_keys_insert_admin" ON api_keys;
+DROP POLICY IF EXISTS "api_keys_update_admin" ON api_keys;
+DROP POLICY IF EXISTS "api_keys_delete_admin" ON api_keys;
+
 CREATE POLICY "api_keys_select_admin" ON api_keys FOR SELECT USING (
   organization_id = get_user_organization_id()
   AND get_user_role() IN ('platform_owner','platform_admin','tenant_owner','admin')
