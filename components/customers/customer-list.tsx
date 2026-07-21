@@ -67,7 +67,9 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
     sortOrder,
   }), [debouncedSearch, status, contactType, activityFilter, hasOpenJobs, locationId, page, pageSize, sortBy, sortOrder])
 
-  const { data: customers = [], isLoading, error } = useCustomers(queryOptions)
+  const { data: rawCustomers = [], isLoading, error } = useCustomers(queryOptions)
+  // The hook over-fetches by one row to detect a next page; display only pageSize.
+  const customers = rawCustomers.slice(0, pageSize)
   const { data: stats } = useCustomerStats()
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -116,7 +118,8 @@ export default function CustomerList({ onEditCustomer: _onEditCustomer, onDelete
     setPage(1)
   }, [])
 
-  const hasNextPage = customers.length === pageSize
+  // A next page exists iff the hook returned the extra (pageSize+1)-th row.
+  const hasNextPage = rawCustomers.length > pageSize
   const hasPrevPage = page > 1
   const hasFilters = status !== 'all' || contactType !== 'all' || search !== '' || activityFilter !== 'all' || hasOpenJobs !== 'all' || locationId !== 'all'
 

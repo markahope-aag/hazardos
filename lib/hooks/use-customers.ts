@@ -59,7 +59,9 @@ export function useCustomers(options: UseCustomersOptions = {}) {
         locationId: locationId === 'all' ? undefined : locationId,
         sortBy,
         sortOrder,
-        limit: pageSize,
+        // Fetch one extra row so the caller can tell whether a next page exists
+        // without a separate count query (offset stays based on pageSize).
+        limit: pageSize + 1,
         offset,
       })
     },
