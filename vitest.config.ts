@@ -9,7 +9,11 @@ export default defineConfig({
     setupFiles: [path.resolve(__dirname, 'test/setup.ts')],
     globals: true,
     css: true,
-    exclude: ['node_modules/**', 'e2e/**'],
+    // `.next/**` matters: the dev build vendors dependencies (pino et al) into
+    // .next/dev/node_modules, and those ship their own *.test.js files. Without
+    // this, vitest collects and runs third-party test suites — 52 phantom file
+    // failures for missing devDeps like `tape` and `flush-write-stream`.
+    exclude: ['node_modules/**', '**/node_modules/**', '.next/**', 'e2e/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
