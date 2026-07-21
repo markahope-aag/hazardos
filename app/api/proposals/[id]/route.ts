@@ -56,6 +56,21 @@ export const GET = createApiHandlerWithParams(
 )
 
 /**
+ * Proposal status state machine. A proposal advances draft → sent → viewed →
+ * signed; each status may only move to itself (idempotent no-op) or a listed
+ * successor. `signed` is terminal. The dedicated /send, portal-view, and /sign
+ * endpoints drive the real transitions — this generic PATCH must not let a
+ * caller jump to or revert to an arbitrary status (P21: it previously wrote
+ * body.status straight through with no guard).
+ */
+const PROPOSAL_STATUS_TRANSITIONS: Record<string, string[]> = {
+  draft: ['draft', 'sent'],
+  sent: ['sent', 'viewed', 'signed'],
+  viewed: ['viewed', 'signed'],
+  signed: ['signed'],
+}
+
+/**
  * PATCH /api/proposals/[id]
  * Update a proposal
  */
@@ -75,6 +90,23 @@ export const PATCH = createApiHandlerWithParams(
 
     if (existingError || !existing) {
       throw new SecureError('NOT_FOUND', 'Proposal not found')
+    }
+
+    // Enforce the status state machine on any requested status change.
+    if (body.status !== undefined && body.status !== existing.status) {
+      const allowed = PROPOSAL_STATUS_TRANSITIONS[existing.status] ?? []
+      if (!allowed.includes(body.status)) {
+        throw new SecureError(
+          'VALIDATION_ERROR',
+          `Cannot change proposal status from "${existing.status}" to "${body.status}"`,
+          'status'
+        )
+      }
+    }
+
+    // A signed proposal is locked — its content and status are final.
+    if (existing.status === 'signed') {
+      throw new SecureError('VALIDATION_ERROR', 'A signed proposal can no longer be edited', 'status')
     }
 
     // Build update object
