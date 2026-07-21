@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { CompletionReviewActions } from './review-actions'
 import { cn } from '@/lib/utils'
+import { VARIANCE_THRESHOLD_PCT } from '@/lib/utils/variance'
 import { getCurrentProfile } from '@/lib/auth/server-auth'
 import { ROLES } from '@/lib/auth/roles'
 import {
@@ -122,8 +123,8 @@ export default async function JobReviewPage({
   // Variance colors
   const getVarianceColor = (percent: number | null) => {
     if (percent === null) return 'text-gray-500'
-    if (percent > 10) return 'text-red-600'
-    if (percent < -10) return 'text-green-600'
+    if (percent > VARIANCE_THRESHOLD_PCT) return 'text-red-600'
+    if (percent < -VARIANCE_THRESHOLD_PCT) return 'text-green-600'
     return 'text-gray-600'
   }
 
@@ -155,8 +156,8 @@ export default async function JobReviewPage({
     underText: string,
   ) => {
     if (percent === null || percent === undefined) return null
-    if (percent > 10) return { text: overText, className: 'text-red-600' }
-    if (percent < -10) return { text: underText, className: 'text-green-600' }
+    if (percent > VARIANCE_THRESHOLD_PCT) return { text: overText, className: 'text-red-600' }
+    if (percent < -VARIANCE_THRESHOLD_PCT) return { text: underText, className: 'text-green-600' }
     return { text: 'On target', className: 'text-gray-500' }
   }
   const hoursVarianceLabel = getVarianceLabel(completion.hours_variance_percent, 'Overrun', 'Under est.')
@@ -331,7 +332,7 @@ export default async function JobReviewPage({
                     )}
                     {material.variance_percent !== null && (
                       <Badge
-                        variant={Math.abs(material.variance_percent) > 10 ? 'destructive' : 'secondary'}
+                        variant={Math.abs(material.variance_percent) > VARIANCE_THRESHOLD_PCT ? 'destructive' : 'secondary'}
                         className="text-xs"
                       >
                         {material.variance_percent > 0 ? '+' : ''}{material.variance_percent.toFixed(1)}%

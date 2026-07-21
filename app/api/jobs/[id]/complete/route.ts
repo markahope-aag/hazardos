@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { JobCompletionService } from '@/lib/services/job-completion-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import {
   completionQuerySchema,
   createCompletionSchema,
@@ -37,6 +38,11 @@ export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: createCompletionSchema,
+    // Field roles (technician and up) create/submit completions; read-only
+    // viewers are excluded (J21: the route had no role gate and the
+    // job_completions RLS is org-only, so a viewer could submit). Approve/reject
+    // stay TENANT_ADMIN-gated elsewhere.
+    allowedRoles: ROLES.TENANT_FIELD,
   },
   async (_request, _context, params, body) => {
     // If submit flag is set, submit the completion

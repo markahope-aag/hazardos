@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/server-auth'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
+import { VARIANCE_THRESHOLD_PCT } from '@/lib/utils/variance'
 import type {
   VarianceAnalysis,
   VarianceFilters,
@@ -165,9 +166,11 @@ export class JobVarianceService {
     analyses.forEach(a => {
       const costVariance = a.cost_variance_percent || 0
 
-      if (costVariance > 5) {
+      // Same ±threshold the review UI colors rows by, so the summary counts
+      // agree with what the user sees (J28).
+      if (costVariance > VARIANCE_THRESHOLD_PCT) {
         summary.over_budget_count++
-      } else if (costVariance < -5) {
+      } else if (costVariance < -VARIANCE_THRESHOLD_PCT) {
         summary.under_budget_count++
       } else {
         summary.on_target_count++
