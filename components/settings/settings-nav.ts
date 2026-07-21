@@ -14,6 +14,7 @@ import {
   Shield,
   Palette,
   FileBadge,
+  UserCircle,
   type LucideIcon,
 } from 'lucide-react'
 import { ROLES } from '@/lib/auth/roles'
@@ -80,6 +81,8 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
   {
     label: 'Account',
     items: [
+      // Personal profile — everyone can edit their own name.
+      { href: '/settings/profile', label: 'Profile', icon: UserCircle },
       // Security covers the user's own password / 2FA — visible to all.
       { href: '/settings/security', label: 'Security', icon: Shield },
       { href: '/settings/branding', label: 'Appearance', icon: Palette, requiredRoles: ADMIN_ONLY },
