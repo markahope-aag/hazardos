@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -45,6 +45,7 @@ interface InvoicePaymentsProps {
 
 export function InvoicePayments({ invoice, payments }: InvoicePaymentsProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   // POST /api/invoices/[id]/payments is admin-only server-side
   // (ROLES.TENANT_ADMIN) — hide the button for everyone else so they don't
@@ -73,6 +74,20 @@ export function InvoicePayments({ invoice, payments }: InvoicePaymentsProps) {
     })
     setShowDialog(true)
   }
+
+  // Deep link from the invoice list row action: /invoices/[id]?record_payment=true
+  // opens the Record Payment dialog on load (I19: the param was previously
+  // ignored, so the row action landed on the detail without opening anything).
+  const autoOpenedRef = useRef(false)
+  useEffect(() => {
+    if (autoOpenedRef.current) return
+    if (searchParams.get('record_payment') === 'true' && canRecordPayment) {
+      autoOpenedRef.current = true
+      openDialog()
+      router.replace(`/invoices/${invoice.id}`)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, canRecordPayment])
 
   const recordPayment = async () => {
     const amount = parseFloat(form.amount)
@@ -190,14 +205,21 @@ export function InvoicePayments({ invoice, payments }: InvoicePaymentsProps) {
                       {formatCurrency(payment.amount)}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deletePayment(payment.id)}
-                        aria-label="Delete payment"
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {/* DELETE /api/invoices/[id]/payments/[paymentId] is
+                          admin-only server-side — hide the trash button for
+                          everyone else so a non-admin isn't shown a control
+                          that only ever returns a generic "Failed to delete"
+                          (I16: previously ungated). */}
+                      {canAccessTenantAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deletePayment(payment.id)}
+                          aria-label="Delete payment"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
