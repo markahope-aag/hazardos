@@ -51,6 +51,19 @@ export const customerSchema = z.object({
   next_followup_date: z.string().optional().or(z.literal('')),
   next_followup_note: z.string().max(500).optional().or(z.literal('')),
 })
+  // A commercial contact must belong to a company. The form marks Company as
+  // required, but nothing enforced it — a commercial contact could be saved
+  // with no company (CN5). Require it when the contact is commercial and no
+  // existing company_id has been picked.
+  .superRefine((data, ctx) => {
+    if (data.contact_type === 'commercial' && !data.company_name?.trim() && !data.company_id?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Company is required for commercial contacts',
+        path: ['company_name'],
+      })
+    }
+  })
 
 export type CustomerFormData = z.infer<typeof customerSchema>
 
