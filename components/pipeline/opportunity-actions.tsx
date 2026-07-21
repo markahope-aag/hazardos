@@ -181,7 +181,9 @@ export function OpportunityActions({ opportunity, stages }: OpportunityActionsPr
         description: 'The opportunity has been removed',
       })
 
-      router.push('/pipeline')
+      // Redirect to the canonical CRM pipeline, not the legacy /pipeline route
+      // (HS6: nav inconsistency — the rest of the CRM links to /crm/pipeline).
+      router.push('/crm/pipeline')
     } catch {
       toast({
         title: 'Error',
