@@ -100,6 +100,31 @@ export default function OpportunityDetailPage({ params }: Props) {
   const markWon = useMutation({
     mutationFn: async () => {
       const supabase = createClient()
+      // Route through the pipeline "won" stage so the move records history,
+      // recomputes weighted value, sets the outcome, logs activity, and updates
+      // the stage badge. Previously markWon did a bare outcome update, leaving
+      // the opportunity in its old stage with a stale badge (OP12).
+      const { data: wonStage } = await supabase
+        .from('pipeline_stages')
+        .select('id')
+        .eq('stage_type', 'won')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      if (wonStage?.id) {
+        const res = await fetch(`/api/pipeline/${id}/move`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stage_id: wonStage.id }),
+        })
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}))
+          throw new Error(e.error || 'Failed to mark opportunity as won')
+        }
+        return
+      }
+      // Fallback: no dedicated "won" stage configured — at least set the outcome.
       const { error } = await supabase.from('opportunities').update({
         outcome: 'won', opportunity_status: 'won', actual_close_date: new Date().toISOString().split('T')[0],
       }).eq('id', id)
