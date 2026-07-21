@@ -38,12 +38,10 @@ vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: any) => <a href={href} {...rest}>{children}</a>,
 }))
 
-// Mock next/navigation
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-  }),
-}))
+// next/navigation is mocked globally in test/setup.ts with the full surface
+// (useRouter/useSearchParams/usePathname/useParams/redirect/notFound). A local
+// vi.mock here would *replace* that module wholesale rather than extend it, so
+// partially redeclaring it broke any component reaching for useSearchParams.
 
 // Mock analytics
 vi.mock('@/lib/hooks/use-analytics', () => ({

@@ -3,25 +3,11 @@ import type React from 'react'
 import { render, screen } from '@testing-library/react'
 import SettingsPage from '@/app/(dashboard)/settings/page'
 
-// The sidebar/landing page pulls a bunch of lucide icons via SETTINGS_NAV.
-// Any icon the array references has to be mocked or the import crashes.
-vi.mock('lucide-react', () => ({
-  Building2: () => <div data-testid="icon-building2" />,
-  Users: () => <div data-testid="icon-users" />,
-  MapPin: () => <div data-testid="icon-mappin" />,
-  DollarSign: () => <div data-testid="icon-dollar" />,
-  CreditCard: () => <div data-testid="icon-credit" />,
-  Link2: () => <div data-testid="icon-link2" />,
-  KeyRound: () => <div data-testid="icon-key" />,
-  Webhook: () => <div data-testid="icon-webhook" />,
-  Bell: () => <div data-testid="icon-bell" />,
-  MessageSquare: () => <div data-testid="icon-msg" />,
-  Mail: () => <div data-testid="icon-mail" />,
-  Shield: () => <div data-testid="icon-shield" />,
-  ShieldCheck: () => <div data-testid="icon-shield-check" />,
-  Palette: () => <div data-testid="icon-palette" />,
-  FileBadge: () => <div data-testid="icon-file-badge" />,
-}))
+// lucide-react is deliberately NOT mocked. It used to be stubbed with a
+// hand-maintained icon whitelist, which meant every new SETTINGS_NAV entry
+// broke this file from a distance — adding /settings/profile pulled in
+// UserCircle and did exactly that. The real package imports fine under jsdom
+// and these tests assert on nav labels and hrefs, never on the icons.
 
 // SettingsPage is a server component that awaits the Supabase profile
 // lookup and filters items by role. The supabase mock from test/setup.ts

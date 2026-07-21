@@ -150,7 +150,10 @@ describe('CustomerList', () => {
   })
 
   it('shows pagination when more items available', () => {
-    mockCustomers = Array(25).fill(null).map((_, i) => ({
+    // 26 = pageSize + 1. The list derives hasNextPage from an over-fetched
+    // extra row (`rawCustomers.length > pageSize`), so exactly pageSize rows
+    // means "last page" and the pagination controls stay hidden.
+    mockCustomers = Array(26).fill(null).map((_, i) => ({
       ...mockCustomer,
       id: `cust-${i}`,
     }))
@@ -167,7 +170,10 @@ describe('CustomerList', () => {
   })
 
   it('disables Previous button on first page', () => {
-    mockCustomers = Array(25).fill(null).map((_, i) => ({
+    // 26 = pageSize + 1. The list derives hasNextPage from an over-fetched
+    // extra row (`rawCustomers.length > pageSize`), so exactly pageSize rows
+    // means "last page" and the pagination controls stay hidden.
+    mockCustomers = Array(26).fill(null).map((_, i) => ({
       ...mockCustomer,
       id: `cust-${i}`,
     }))

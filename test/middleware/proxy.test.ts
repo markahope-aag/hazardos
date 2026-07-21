@@ -81,14 +81,18 @@ describe('proxy route gating', () => {
 
   it('still protects the admin feedback endpoints (only /submit is public)', async () => {
     // /api/feedback/submit is public, but the rest of /api/feedback (list,
-    // stats, testimonials, send) must still require auth.
+    // stats, testimonials, send) must still require auth. Protected *API*
+    // routes answer 401 JSON rather than redirecting — a fetch() can't follow
+    // an HTML login redirect meaningfully, it just parses the login page as
+    // the response body. Page routes still redirect; see the test above.
     for (const path of [
       '/api/feedback/stats',
       '/api/feedback/testimonials',
       '/api/feedback/some-id/send',
     ]) {
       const res = await proxy(makeRequest(path))
-      expect(redirectTarget(res), `${path} should redirect`).toContain('/login')
+      expect(res.status, `${path} should be rejected`).toBe(401)
+      expect(redirectTarget(res), `${path} should not redirect`).toBeNull()
     }
   })
 

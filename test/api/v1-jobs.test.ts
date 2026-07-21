@@ -202,7 +202,10 @@ describe('V1 Jobs API', () => {
         customer_id: '550e8400-e29b-41d4-a716-446655440001',
         estimate_id: '550e8400-e29b-41d4-a716-446655440000',
         start_date: '2024-02-01',
-        notes: 'Test job'
+        notes: 'Test job',
+        // Required: jobs.job_address is NOT NULL, so the schema rejects a
+        // payload without a site address before any lookup happens.
+        site_address_line1: '123 Main St'
       }
 
       const request = new NextRequest('http://localhost/api/v1/jobs', {
@@ -240,7 +243,10 @@ describe('V1 Jobs API', () => {
           job_type: 'residential_survey',
           hazard_types: ['asbestos'],
           scheduled_date: '2024-02-15',
-          description: 'Test job from nonexistent customer'
+          description: 'Test job from nonexistent customer',
+          // Must be present or the schema 400s before the customer lookup,
+          // which is the thing this test is actually asserting on.
+          site_address_line1: '123 Main St'
         })
       })
 

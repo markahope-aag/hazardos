@@ -56,7 +56,9 @@ describe('formatZodError', () => {
 
 describe('v1CustomerStatusSchema', () => {
   it('accepts valid statuses', () => {
-    const statuses = ['inquiry', 'prospect', 'active', 'inactive']
+    // Mirrors the DB customer_status enum exactly. 'active' is NOT a member —
+    // it used to be accepted here and blew up as a 22P02 on insert.
+    const statuses = ['inquiry', 'prospect', 'customer', 'inactive', 'past_customer']
     for (const status of statuses) {
       const result = v1CustomerStatusSchema.safeParse(status)
       expect(result.success).toBe(true)
@@ -87,7 +89,7 @@ describe('v1CustomerTypeSchema', () => {
 describe('v1CustomerListQuerySchema', () => {
   it('accepts valid query', () => {
     const result = v1CustomerListQuerySchema.safeParse({
-      status: 'active',
+      status: 'customer',
       search: 'John',
       limit: '10',
       offset: '0',
@@ -164,7 +166,7 @@ describe('v1CreateCustomerSchema', () => {
       state: 'IL',
       zip: '62701',
       notes: 'VIP customer',
-      status: 'active',
+      status: 'customer',
       customer_type: 'commercial',
       lead_source: 'referral',
     })
@@ -211,6 +213,9 @@ describe('v1JobStatusSchema', () => {
 describe('v1CreateJobSchema', () => {
   const validJob = {
     customer_id: '550e8400-e29b-41d4-a716-446655440000',
+    // jobs.job_address is NOT NULL, so the schema requires a site address —
+    // omitting it is a clean 400 instead of a 500 from the DB constraint.
+    site_address_line1: '123 Main St',
   }
 
   it('accepts valid job', () => {

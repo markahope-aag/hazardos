@@ -73,11 +73,13 @@ describe('Customer Hooks', () => {
       })
 
       expect(result.current.data).toEqual(mockCustomers)
-      // The hook passes default pagination options (page 1, pageSize 25 = offset 0, limit 25)
+      // The hook passes default pagination options (page 1, pageSize 25 = offset 0).
+      // limit is pageSize + 1: it over-fetches by one row so the caller can
+      // detect a next page without a second count query.
       expect(CustomersService.getCustomers).toHaveBeenCalledWith('test-org-id', {
         search: undefined,
         status: undefined,
-        limit: 25,
+        limit: 26,
         offset: 0
       })
     })
@@ -93,7 +95,7 @@ describe('Customer Hooks', () => {
         expect(CustomersService.getCustomers).toHaveBeenCalledWith('test-org-id', {
           search: 'john',
           status: undefined,
-          limit: 25,
+          limit: 26,
           offset: 0
         })
       })
@@ -110,7 +112,7 @@ describe('Customer Hooks', () => {
         expect(CustomersService.getCustomers).toHaveBeenCalledWith('test-org-id', {
           search: undefined,
           status: 'prospect',
-          limit: 25,
+          limit: 26,
           offset: 0
         })
       })

@@ -17,9 +17,8 @@ import { InvoicePayments } from '@/app/(dashboard)/invoices/[id]/invoice-payment
  *      not exist - removed since this component's dialog is the real one.
  */
 
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
-}))
+// next/navigation comes from test/setup.ts — a local vi.mock replaces the
+// module wholesale instead of extending it, which drops useSearchParams.
 
 const toastMock = vi.fn()
 vi.mock('@/components/ui/use-toast', () => ({
