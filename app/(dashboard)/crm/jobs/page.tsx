@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { getJobPaymentStatus } from '@/lib/utils/job-payment-status'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -29,21 +30,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   invoiced: { label: 'Invoiced', color: 'bg-purple-100 text-purple-700' },
   paid: { label: 'Paid', color: 'bg-emerald-100 text-emerald-700' },
   cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-700' },
-}
-
-function getPaymentStatus(job: Record<string, unknown>): { label: string; color: string } {
-  if (job.status === 'paid' || job.final_payment_date) return { label: 'Paid', color: 'bg-emerald-100 text-emerald-700' }
-  if (job.status === 'cancelled') return { label: '—', color: '' }
-  // Check if overdue (invoice sent but not paid, past due date)
-  if ((job.final_invoice_date || job.status === 'invoiced') && job.invoice_due_date) {
-    const dueDate = new Date(job.invoice_due_date as string)
-    if (dueDate < new Date()) return { label: 'Overdue', color: 'bg-red-100 text-red-700' }
-  }
-  if (job.final_invoice_date || job.status === 'invoiced') return { label: 'Invoiced', color: 'bg-purple-100 text-purple-700' }
-  if (job.deposit_received_date) return { label: 'Deposit Received', color: 'bg-blue-100 text-blue-700' }
-  if (job.status === 'completed') return { label: 'Pending Invoice', color: 'bg-amber-100 text-amber-700' }
-  if (job.status === 'in_progress' || job.status === 'scheduled') return { label: 'Not Yet Billed', color: 'bg-gray-100 text-gray-600' }
-  return { label: '—', color: '' }
 }
 
 export default function CrmJobsPage() {
@@ -286,7 +272,7 @@ export default function CrmJobsPage() {
                           {(job.actual_revenue || job.estimated_revenue || job.contract_amount) ? formatCurrency(job.actual_revenue || job.estimated_revenue || job.contract_amount || 0, false) : '—'}
                         </TableCell>
                         <TableCell>
-                          {(() => { const ps = getPaymentStatus(job); return <Badge className={`text-xs border-0 ${ps.color}`}>{ps.label}</Badge> })()}
+                          {(() => { const ps = getJobPaymentStatus(job); return <Badge className={`text-xs border-0 ${ps.color}`}>{ps.label}</Badge> })()}
                         </TableCell>
                       </TableRow>
                     )

@@ -25,6 +25,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import { formatCurrency } from '@/lib/utils'
+import { getJobPaymentStatus } from '@/lib/utils/job-payment-status'
+import EntityActivityFeed from '@/components/activity/entity-activity-feed'
 import { eachDayOfInterval, format } from 'date-fns'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -43,12 +45,8 @@ const CONTAINMENT_LABELS: Record<string, string> = {
   type_iii: 'Type III (Large/Complex)',
 }
 
-function getPaymentStatus(job: Record<string, unknown>): { label: string; color: string } {
-  if (job.status === 'paid' || job.final_payment_date) return { label: 'Paid in Full', color: 'bg-emerald-100 text-emerald-700' }
-  if (job.deposit_received_date) return { label: 'Deposit Received', color: 'bg-blue-100 text-blue-700' }
-  if (job.final_invoice_date || job.status === 'invoiced') return { label: 'Invoiced', color: 'bg-purple-100 text-purple-700' }
-  return { label: 'Unpaid', color: 'bg-gray-100 text-gray-500' }
-}
+// Payment-status badge now comes from the shared util so the detail and the
+// CRM jobs list can never diverge again (JB11).
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -126,7 +124,7 @@ export default function JobDetailPage({ params }: Props) {
   const companyName = job.company?.name || job.customer?.company_name
   const crewLeadName = job.crew_lead_profile ? (job.crew_lead_profile.full_name || [job.crew_lead_profile.first_name, job.crew_lead_profile.last_name].filter(Boolean).join(' ')) : null
   const sc = STATUS_CONFIG[job.status] || { label: job.status, color: '' }
-  const ps = getPaymentStatus(job)
+  const ps = getJobPaymentStatus(job)
   const address = [job.job_address, job.job_city, job.job_state, job.job_zip].filter(Boolean).join(', ')
 
   const tabs = [
@@ -506,9 +504,6 @@ export default function JobDetailPage({ params }: Props) {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base flex items-center gap-2"><Users className="h-5 w-5" />Crew</CardTitle>
-                      <Button size="sm" variant="outline" disabled>
-                        <Users className="h-4 w-4 mr-2" />Assign Crew
-                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -590,7 +585,7 @@ export default function JobDetailPage({ params }: Props) {
           {activeTab === 'activity' && (
             <Card>
               <CardHeader><CardTitle className="text-base flex items-center gap-2"><Clock className="h-5 w-5" />Activity</CardTitle></CardHeader>
-              <CardContent><p className="text-sm text-muted-foreground text-center py-8">Activity feed will appear here</p></CardContent>
+              <CardContent><EntityActivityFeed entityType="job" entityId={job.id} /></CardContent>
             </Card>
           )}
         </div>
