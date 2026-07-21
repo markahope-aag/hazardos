@@ -76,7 +76,9 @@ export default function OpportunitiesPage() {
 
   const opportunities = useMemo(() => data?.opportunities || [], [data?.opportunities])
   const total = data?.total || 0
-  const hasNextPage = opportunities.length === pageSize
+  // Count-based, not length-based: length === pageSize is true on an
+  // exactly-full final page too, which enabled Next into an empty page.
+  const hasNextPage = page * pageSize < total
   const hasPrevPage = page > 1
   const hasFilters = statusFilter !== 'all' || urgencyFilter !== 'all' || search !== '' || locationFilter !== 'all'
 

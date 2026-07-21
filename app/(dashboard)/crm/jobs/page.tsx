@@ -143,7 +143,8 @@ export default function CrmJobsPage() {
   })
 
   const jobs = useMemo(() => data?.jobs || [], [data?.jobs])
-  const hasNextPage = jobs.length === pageSize
+  // Count-based (length === pageSize is also true on an exactly-full last page).
+  const hasNextPage = page * pageSize < (data?.total || 0)
   const hasPrevPage = page > 1
   const hasFilters = statusFilter !== 'all' || hazardFilter !== 'all' || dateFrom !== '' || dateTo !== '' || search !== ''
 
