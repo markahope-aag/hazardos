@@ -115,8 +115,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  // Redirect unauthenticated users away from dashboard routes
+  // Unauthenticated access to a protected route.
   if (!hasAuthCookie && isDashboardRoute) {
+    // Protected API routes must answer with a 401 JSON — a fetch() should never
+    // receive an HTML login redirect (it can't follow it meaningfully and parses
+    // the login page as the response body). Only page routes redirect to /login.
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
+    }
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
