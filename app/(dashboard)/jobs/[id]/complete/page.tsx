@@ -87,7 +87,7 @@ export default function JobCompletionPage() {
       )}
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as CompletionTab)} className="flex-1 flex flex-col">
-        <TabsList className="mx-4 mt-4 grid grid-cols-5 h-auto">
+        <TabsList className="mx-4 mt-4 grid grid-cols-6 h-auto">
           {TABS.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value} className="flex flex-col gap-1 py-2 px-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               {tab.icon}
