@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { DEFAULT_TIMEZONE, todayIso } from '@/lib/timezone'
 import { InvoicesDataTable } from './data-table'
 import type { Invoice } from '@/types/invoices'
 import { Button } from '@/components/ui/button'
@@ -81,6 +82,26 @@ export default async function InvoicesPage({
   if (params.status === 'outstanding') {
     listQuery = listQuery.gt('balance_due', 0).not('status', 'in', '("void","paid")')
     statsQuery = statsQuery.gt('balance_due', 0).not('status', 'in', '("void","paid")')
+  } else if (params.status === 'overdue') {
+    // `status=overdue` is also virtual (not a column value) — it's what the
+    // dashboard's Overdue Invoices widget drills into. Match that widget's
+    // definition exactly (DB14: previously this fell through to
+    // .eq('status','overdue'), which matched nothing since no invoice has that
+    // status): past its org-timezone due date, still owing, not void/paid.
+    let tz = DEFAULT_TIMEZONE
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('organization:organizations!profiles_organization_id_fkey(timezone)')
+        .eq('id', user.id)
+        .single()
+      const org = Array.isArray(prof?.organization) ? prof?.organization[0] : prof?.organization
+      if (org?.timezone) tz = org.timezone
+    }
+    const today = todayIso(tz)
+    listQuery = listQuery.lt('due_date', today).gt('balance_due', 0).not('status', 'in', '("void","paid")')
+    statsQuery = statsQuery.lt('due_date', today).gt('balance_due', 0).not('status', 'in', '("void","paid")')
   } else if (params.status) {
     listQuery = listQuery.eq('status', params.status)
     statsQuery = statsQuery.eq('status', params.status)
