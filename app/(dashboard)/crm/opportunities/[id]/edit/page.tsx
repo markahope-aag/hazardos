@@ -10,6 +10,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+
+// A hazard opportunity can involve multiple hazards; the model stores an array.
+const HAZARD_OPTIONS = [
+  { value: 'asbestos', label: 'Asbestos' },
+  { value: 'mold', label: 'Mold' },
+  { value: 'lead', label: 'Lead' },
+  { value: 'vermiculite', label: 'Vermiculite' },
+  { value: 'other', label: 'Other' },
+]
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -70,7 +80,7 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
     stage_id: '',
     estimated_value: '',
     expected_close_date: undefined as Date | undefined,
-    hazard_type: '' as '' | 'asbestos' | 'mold' | 'lead' | 'vermiculite' | 'other',
+    hazard_types: [] as string[],
     urgency: '' as '' | 'routine' | 'urgent' | 'emergency',
     property_type: '' as '' | 'residential_single_family' | 'residential_multi_family' | 'commercial' | 'industrial' | 'government',
     property_age: '',
@@ -91,7 +101,7 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
       stage_id: opp.stage_id || '',
       estimated_value: opp.estimated_value != null ? String(opp.estimated_value) : '',
       expected_close_date: opp.expected_close_date ? new Date(opp.expected_close_date) : undefined,
-      hazard_type: (Array.isArray(opp.hazard_types) && opp.hazard_types[0]) || '',
+      hazard_types: Array.isArray(opp.hazard_types) ? (opp.hazard_types as string[]) : [],
       urgency: opp.urgency || '',
       property_type: opp.property_type || '',
       property_age: opp.property_age != null ? String(opp.property_age) : '',
@@ -115,7 +125,7 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
         expected_close_date: form.expected_close_date
           ? format(form.expected_close_date, 'yyyy-MM-dd')
           : undefined,
-        hazard_types: form.hazard_type ? [form.hazard_type] : undefined,
+        hazard_types: form.hazard_types.length ? form.hazard_types : undefined,
         urgency: form.urgency || undefined,
         property_type: form.property_type || undefined,
         property_age: form.property_age ? parseInt(form.property_age, 10) : undefined,
@@ -243,22 +253,31 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Hazard</Label>
-                <Select
-                  value={form.hazard_type}
-                  onValueChange={(v) =>
-                    setForm(prev => ({ ...prev, hazard_type: v as typeof prev.hazard_type }))
-                  }
-                >
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="asbestos">Asbestos</SelectItem>
-                    <SelectItem value="mold">Mold</SelectItem>
-                    <SelectItem value="lead">Lead</SelectItem>
-                    <SelectItem value="vermiculite">Vermiculite</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Hazards</Label>
+                {/* Multi-select: an opportunity can carry more than one hazard.
+                    The old single Select collapsed hazard_types to [first] on
+                    save, silently dropping the rest (OP19). */}
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {HAZARD_OPTIONS.map((opt) => {
+                    const checked = form.hazard_types.includes(opt.value)
+                    return (
+                      <label key={opt.value} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(c) =>
+                            setForm(prev => ({
+                              ...prev,
+                              hazard_types: c === true
+                                ? [...prev.hazard_types, opt.value]
+                                : prev.hazard_types.filter(h => h !== opt.value),
+                            }))
+                          }
+                        />
+                        {opt.label}
+                      </label>
+                    )
+                  })}
+                </div>
               </div>
               <div>
                 <Label>Urgency</Label>
