@@ -138,16 +138,14 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
         service_state: form.service_state || undefined,
         service_zip: form.service_zip || undefined,
       }
-      // Stage changes go through the dedicated move endpoint so
-      // outcome / actual_close_date / stage history all stay consistent.
-      if (form.stage_id && form.stage_id !== opp?.stage_id) {
-        const moveRes = await fetch(`/api/pipeline/${id}/move`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ stage_id: form.stage_id }),
-        })
-        if (!moveRes.ok) throw new Error('Failed to move stage')
-      }
+      // Two-phase save ordering matters (OP18): do the plain field PATCH FIRST,
+      // then the stage move LAST. The move endpoint has heavy side effects
+      // (records opportunity_history, sets outcome/actual_close_date, recomputes
+      // weighted value). If we moved first and the PATCH then failed, those
+      // side effects were already committed and left orphaned with no rollback.
+      // Doing the move last means a PATCH failure never triggers the move, and a
+      // move failure leaves the field edits saved (recoverable — the user just
+      // retries the stage change) without a spurious history/outcome change.
       const res = await fetch(`/api/pipeline/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -156,6 +154,14 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err?.error?.message || 'Save failed')
+      }
+      if (form.stage_id && form.stage_id !== opp?.stage_id) {
+        const moveRes = await fetch(`/api/pipeline/${id}/move`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stage_id: form.stage_id }),
+        })
+        if (!moveRes.ok) throw new Error('Details saved, but the stage change failed — please retry moving the stage')
       }
       return res.json()
     },

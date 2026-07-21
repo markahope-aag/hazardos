@@ -41,7 +41,15 @@ export default function OpportunitiesPage() {
     queryKey: ['opportunities', organization?.id, debouncedSearch, statusFilter, urgencyFilter, locationFilter, page],
     queryFn: async () => {
       const supabase = createClient()
-      let query = supabase
+      // Same filters are applied to both the paginated page query and the
+      // global-totals query, so the Total/Weighted stat cards aggregate ALL
+      // matching opportunities — not just the current page (OP20: count was
+      // global but the value totals summed the current page only).
+      // Same filters applied to both the paginated page query and the
+      // global-totals query, so the Total/Weighted stat cards aggregate ALL
+      // matching opportunities — not just the current page (OP20: count was
+      // global but the value totals summed the current page only).
+      let pageQuery = supabase
         .from('opportunities')
         .select(`
           *,
@@ -50,25 +58,39 @@ export default function OpportunitiesPage() {
         `, { count: 'exact' })
         .order('created_at', { ascending: false })
         .range((page - 1) * pageSize, page * pageSize - 1)
+      // Lightweight second pass: only the two numeric columns across ALL
+      // matching rows, summed client-side for the global stat totals.
+      let totalsQuery = supabase.from('opportunities').select('estimated_value, weighted_value')
 
       if (debouncedSearch) {
-        query = query.or(`name.ilike.%${debouncedSearch}%`)
+        pageQuery = pageQuery.or(`name.ilike.%${debouncedSearch}%`)
+        totalsQuery = totalsQuery.or(`name.ilike.%${debouncedSearch}%`)
       }
       if (statusFilter !== 'all') {
-        query = query.eq('opportunity_status', statusFilter)
+        pageQuery = pageQuery.eq('opportunity_status', statusFilter)
+        totalsQuery = totalsQuery.eq('opportunity_status', statusFilter)
       }
       if (urgencyFilter !== 'all') {
-        query = query.eq('urgency', urgencyFilter)
+        pageQuery = pageQuery.eq('urgency', urgencyFilter)
+        totalsQuery = totalsQuery.eq('urgency', urgencyFilter)
       }
       if (locationFilter === 'unassigned') {
-        query = query.is('location_id', null)
+        pageQuery = pageQuery.is('location_id', null)
+        totalsQuery = totalsQuery.is('location_id', null)
       } else if (locationFilter !== 'all') {
-        query = query.eq('location_id', locationFilter)
+        pageQuery = pageQuery.eq('location_id', locationFilter)
+        totalsQuery = totalsQuery.eq('location_id', locationFilter)
       }
 
-      const { data: opps, count, error } = await query
+      const [{ data: opps, count, error }, { data: totalsRows, error: totalsError }] =
+        await Promise.all([pageQuery, totalsQuery])
       if (error) throw error
-      return { opportunities: opps || [], total: count || 0 }
+      if (totalsError) throw totalsError
+      const totalValue = (totalsRows ?? []).reduce(
+        (s: number, o: { estimated_value: number | null }) => s + (o.estimated_value || 0), 0)
+      const weightedValue = (totalsRows ?? []).reduce(
+        (s: number, o: { weighted_value: number | null }) => s + (o.weighted_value || 0), 0)
+      return { opportunities: opps || [], total: count || 0, totalValue, weightedValue }
     },
     enabled: !!organization?.id,
     staleTime: 30000,
@@ -84,9 +106,11 @@ export default function OpportunitiesPage() {
 
   const stats = useMemo(() => ({
     count: total,
-    totalValue: opportunities.reduce((sum, o) => sum + (o.estimated_value || 0), 0),
-    weightedValue: opportunities.reduce((sum, o) => sum + (o.weighted_value || 0), 0),
-  }), [opportunities, total])
+    // Global totals across all matching opportunities (see queryFn), so the
+    // value cards are consistent with the global count.
+    totalValue: data?.totalValue || 0,
+    weightedValue: data?.weightedValue || 0,
+  }), [data?.totalValue, data?.weightedValue, total])
 
   return (
     <div className="space-y-6">
