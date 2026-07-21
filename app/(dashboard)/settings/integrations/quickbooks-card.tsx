@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  RefreshCw,
   Link as LinkIcon,
   Unlink,
   CheckCircle,
@@ -161,12 +160,10 @@ export function QuickBooksCard({ integration }: QuickBooksCardProps) {
               </div>
             </div>
 
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Sync All
-              </Button>
-            </div>
+            {/* The "Sync All" button was inert — no handler and no bulk-sync
+                backend (only per-invoice/-customer sync endpoints exist), so it
+                did nothing when clicked (ST13). Removed until a bulk-sync flow
+                is built; syncing still happens per-record from each entity. */}
           </div>
         </CardContent>
       )}
