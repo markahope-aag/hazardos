@@ -492,23 +492,31 @@ describe.skipIf(!canRunRlsTests)('RLS Policy Tests', () => {
   // ========================================
 
   describe('cross-table org isolation', () => {
-    it('user A list queries only return own org data across all core tables', async () => {
-      const tables = ['customers', 'jobs', 'site_surveys', 'estimates', 'proposals'] as const
+    // A bare `expect(foreignOrgs).toEqual([])` inside a loop reports only
+    // "expected [ Array(1) ] to deeply equal []" — it names neither the table
+    // that leaked nor the org it leaked from, which is most of what you need
+    // to tell a policy bug from stray fixture data. Label the assertion.
+    const CORE_TABLES = ['customers', 'jobs', 'site_surveys', 'estimates', 'proposals'] as const
 
-      for (const table of tables) {
-        const { data } = await clientA.from(table).select('organization_id')
-        const foreignOrgs = (data || []).filter((row: { organization_id: string }) => row.organization_id !== orgA.id)
-        expect(foreignOrgs).toEqual([])
+    async function foreignRowsFor(client: typeof clientA, ownOrgId: string, table: string) {
+      const { data, error } = await client.from(table).select('organization_id')
+      if (error) throw new Error(`${table}: query failed — ${error.message}`)
+      return (data || [])
+        .filter((row: { organization_id: string }) => row.organization_id !== ownOrgId)
+        .map((row: { organization_id: string }) => row.organization_id)
+    }
+
+    it('user A list queries only return own org data across all core tables', async () => {
+      for (const table of CORE_TABLES) {
+        const foreign = await foreignRowsFor(clientA, orgA.id, table)
+        expect(foreign, `${table} leaked rows from org(s): ${[...new Set(foreign)].join(', ')}`).toEqual([])
       }
     })
 
     it('user B list queries only return own org data across all core tables', async () => {
-      const tables = ['customers', 'jobs', 'site_surveys', 'estimates', 'proposals'] as const
-
-      for (const table of tables) {
-        const { data } = await clientB.from(table).select('organization_id')
-        const foreignOrgs = (data || []).filter((row: { organization_id: string }) => row.organization_id !== orgB.id)
-        expect(foreignOrgs).toEqual([])
+      for (const table of CORE_TABLES) {
+        const foreign = await foreignRowsFor(clientB, orgB.id, table)
+        expect(foreign, `${table} leaked rows from org(s): ${[...new Set(foreign)].join(', ')}`).toEqual([])
       }
     })
   })
