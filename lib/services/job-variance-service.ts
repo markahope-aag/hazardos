@@ -54,6 +54,7 @@ export class JobVarianceService {
           id,
           job_number,
           name,
+          customer_id,
           customer:customers!customer_id(name, company_name),
           hazard_types,
           contract_amount,
@@ -101,7 +102,10 @@ export class JobVarianceService {
         ? (Array.isArray(job.customer) ? job.customer[0] : job.customer)
         : null
 
-      if (filters?.customer_id && job?.id !== filters.customer_id) continue
+      // Compared job.id against the customer filter, so any request carrying
+      // ?customer_id=... matched nothing and the endpoint always returned [].
+      // customer_id was not even selected, so the right value wasn't available.
+      if (filters?.customer_id && job?.customer_id !== filters.customer_id) continue
 
       if (filters?.hazard_types?.length) {
         const jobHazards = job?.hazard_types || []
