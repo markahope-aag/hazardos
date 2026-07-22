@@ -563,4 +563,91 @@ describe.skipIf(!canRunRlsTests)('RLS Policy Tests', () => {
       expect(error).toBeNull()
     })
   })
+
+  // ========================================
+  // PROPOSAL PORTAL TOKEN FLOW
+  // Regression guard for SEC22. The portal used to read proposals straight off
+  // the table, permitted by an RLS policy that only asserted "this row has some
+  // unexpired token" — never that the caller held it. Any authenticated user of
+  // any tenant could therefore list every tokened proposal and read its
+  // access_token, which is enough to sign another company's contract.
+  //
+  // The old cross-table isolation test did catch this, but only when a tokened
+  // proposal happened to exist at that moment, so it read as flake. These tests
+  // create the row themselves and fail deterministically.
+  // ========================================
+
+  describe('proposal portal token flow', () => {
+    const anon = createClient(supabaseUrl!, anonKey!, { auth: { persistSession: false } })
+    const token = `rls-test-token-${Date.now()}`
+    let proposalId: string | undefined
+
+    beforeAll(async () => {
+      if (!adminClient) return
+
+      const estimateId = crypto.randomUUID()
+      const { error: estimateError } = await adminClient.from('estimates').insert({
+        id: estimateId,
+        organization_id: orgA.id,
+        estimate_number: `RLS-EST-${Date.now()}`,
+        estimate_root_id: estimateId, // self-referencing FK: the root of its own version chain
+        status: 'sent',
+        total: 4321,
+      })
+      if (estimateError) throw new Error(`Failed to create estimate: ${estimateError.message}`)
+
+      const { data, error } = await adminClient
+        .from('proposals')
+        .insert({
+          organization_id: orgA.id,
+          estimate_id: estimateId,
+          proposal_number: `RLS-PROP-${Date.now()}`,
+          status: 'sent',
+          access_token: token,
+          access_token_expires_at: new Date(Date.now() + 86400000).toISOString(),
+        })
+        .select('id')
+        .single()
+      if (error) throw new Error(`Failed to create proposal: ${error.message}`)
+      proposalId = data!.id
+    }, 30000)
+
+    afterAll(async () => {
+      if (!adminClient || !proposalId) return
+      await adminClient.from('proposals').delete().eq('id', proposalId)
+    })
+
+    it('a user in another org CANNOT see the tokened proposal', async () => {
+      const { data } = await clientB.from('proposals').select('id, organization_id, access_token')
+      const foreign = (data || []).filter(
+        (row: { organization_id: string }) => row.organization_id !== orgB.id
+      )
+      expect(foreign, 'org B read org A proposals — the SEC22 policy is back').toEqual([])
+    })
+
+    it('anon CANNOT read the tokened proposal off the table', async () => {
+      const { data, error } = await anon.from('proposals').select('id').eq('access_token', token)
+      const leaked = !error && (data ?? []).length > 0
+      expect(leaked).toBe(false)
+    })
+
+    it('anon CAN read it through the RPC when holding the token', async () => {
+      const { data, error } = await anon.rpc('get_proposal_by_token', { p_token: token })
+      expect(error).toBeNull()
+      expect(data?.id).toBe(proposalId)
+    })
+
+    it('the RPC never hands back the access token itself', async () => {
+      const { data } = await anon.rpc('get_proposal_by_token', { p_token: token })
+      expect(Object.keys(data ?? {})).not.toContain('access_token')
+    })
+
+    it('a wrong token returns nothing', async () => {
+      const { data, error } = await anon.rpc('get_proposal_by_token', {
+        p_token: 'definitely-not-the-token',
+      })
+      expect(error).toBeNull()
+      expect(data).toBeNull()
+    })
+  })
 })

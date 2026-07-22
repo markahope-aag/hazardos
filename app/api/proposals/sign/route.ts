@@ -8,7 +8,16 @@ import { logger, formatError } from '@/lib/utils/logger'
 
 /**
  * POST /api/proposals/sign
- * Sign a proposal (public endpoint using access token)
+ * Sign a proposal (public endpoint using access token).
+ *
+ * Goes through sign_proposal_by_token(), a SECURITY DEFINER function. The
+ * token-to-proposal lookup used to be a raw-table select permitted by an RLS
+ * policy that never checked which token the caller held, so any authenticated
+ * user could read another tenant's access_token and sign their contract with
+ * it. See migration 20260722000001.
+ *
+ * The expiry and status guards live in the function too, so they hold even if
+ * something calls it directly rather than coming through this route.
  */
 export const POST = createPublicApiHandler(
   {
@@ -18,70 +27,44 @@ export const POST = createPublicApiHandler(
   async (request, body) => {
     const supabase = await createClient()
 
-    // Get the proposal by access token
-    const { data: proposal, error: proposalError } = await supabase
-      .from('proposals')
-      .select('id, status, access_token_expires_at, estimate_id, proposal_number, created_by')
-      .eq('access_token', body.access_token)
-      .single()
-
-    if (proposalError || !proposal) {
-      throw new SecureError('NOT_FOUND', 'Invalid or expired access token')
-    }
-
-    // Check if token is expired
-    if (new Date(proposal.access_token_expires_at) < new Date()) {
-      throw new SecureError('VALIDATION_ERROR', 'Access token has expired')
-    }
-
-    // Check if proposal can be signed
-    if (!['sent', 'viewed'].includes(proposal.status)) {
-      if (proposal.status === 'signed') {
-        throw new SecureError('VALIDATION_ERROR', 'Proposal has already been signed')
-      }
-      throw new SecureError('VALIDATION_ERROR', 'Proposal cannot be signed in its current status')
-    }
-
     // Get client IP
     const forwarded = request.headers.get('x-forwarded-for')
     const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown'
 
-    // Update proposal with signature
-    const { data: updated, error: updateError } = await supabase
-      .from('proposals')
-      .update({
-        status: 'signed',
-        signed_at: new Date().toISOString(),
-        signer_name: body.signer_name,
-        signer_email: body.signer_email,
-        signer_ip: ip,
-        signature_data: body.signature_data,
-      })
-      .eq('id', proposal.id)
-      .select()
-      .single()
+    const { data: result, error } = await supabase.rpc('sign_proposal_by_token', {
+      p_token: body.access_token,
+      p_signer_name: body.signer_name,
+      p_signer_email: body.signer_email,
+      p_signer_ip: ip,
+      p_signature_data: body.signature_data,
+    })
 
-    if (updateError) {
+    if (error || !result) {
       throw new SecureError('BAD_REQUEST', 'Failed to sign proposal')
     }
 
-    // Update estimate status to 'accepted'
-    await supabase
-      .from('estimates')
-      .update({ status: 'accepted' })
-      .eq('id', proposal.estimate_id)
+    switch (result.error) {
+      case 'not_found':
+        throw new SecureError('NOT_FOUND', 'Invalid or expired access token')
+      case 'expired':
+        throw new SecureError('VALIDATION_ERROR', 'Access token has expired')
+      case 'already_signed':
+        throw new SecureError('VALIDATION_ERROR', 'Proposal has already been signed')
+      case 'invalid_status':
+        throw new SecureError('VALIDATION_ERROR', 'Proposal cannot be signed in its current status')
+    }
 
     // Best-effort — a failed notification shouldn't fail the signing itself.
-    if (proposal.created_by) {
+    if (result.created_by) {
       try {
         await NotificationHelpers.proposalSigned(
-          proposal.id,
-          proposal.proposal_number,
-          proposal.created_by,
+          result.id,
+          result.proposal_number,
+          result.created_by,
         )
       } catch (error) {
         logger.error(
-          { error: formatError(error, 'PROPOSAL_SIGNED_NOTIFICATION_ERROR'), proposalId: proposal.id },
+          { error: formatError(error, 'PROPOSAL_SIGNED_NOTIFICATION_ERROR'), proposalId: result.id },
           'Failed to send proposal-signed notification',
         )
       }
@@ -89,7 +72,7 @@ export const POST = createPublicApiHandler(
 
     return NextResponse.json({
       success: true,
-      signed_at: updated.signed_at,
+      signed_at: new Date().toISOString(),
     })
   }
 )

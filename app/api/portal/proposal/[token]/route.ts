@@ -9,7 +9,16 @@ interface RouteParams {
 
 /**
  * GET /api/portal/proposal/[token]
- * Public endpoint to get proposal by access token
+ * Public endpoint to get proposal by access token.
+ *
+ * Reads through get_proposal_by_token(), a SECURITY DEFINER function that takes
+ * the token as an argument. This used to be a raw-table select gated by an RLS
+ * policy that only checked "some unexpired token exists", not that the caller
+ * held *this* one — so any authenticated user of any tenant could read every
+ * tokened proposal, access_token included. See migration 20260722000001.
+ *
+ * The function returns only the row matching the token, so that check is now
+ * enforced by the database rather than by an application-level .eq().
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
@@ -22,131 +31,31 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { token } = await params
     const supabase = await createClient()
 
-    // Get proposal by access token
-    const { data: proposal, error } = await supabase
-      .from('proposals')
-      .select(`
-        id,
-        proposal_number,
-        status,
-        access_token_expires_at,
-        cover_letter,
-        terms_and_conditions,
-        payment_terms,
-        exclusions,
-        inclusions,
-        valid_until,
-        sent_at,
-        signed_at,
-        signer_name,
-        viewed_count,
-        estimate:estimates(
-          id,
-          estimate_number,
-          project_name,
-          scope_of_work,
-          subtotal,
-          markup_percent,
-          markup_amount,
-          discount_percent,
-          discount_amount,
-          tax_percent,
-          tax_amount,
-          total,
-          estimated_duration_days,
-          estimated_start_date,
-          estimated_end_date,
-          site_survey:site_surveys(
-            id,
-            job_name,
-            site_address,
-            site_city,
-            site_state,
-            site_zip,
-            hazard_type
-          ),
-          line_items:estimate_line_items(
-            id,
-            item_type,
-            category,
-            description,
-            quantity,
-            unit,
-            unit_price,
-            total_price,
-            is_optional,
-            is_included,
-            sort_order
-          )
-        ),
-        customer:customers(
-          id,
-          company_name,
-          first_name,
-          last_name,
-          email,
-          phone
-        ),
-        organization:organizations(
-          id,
-          name,
-          address,
-          city,
-          state,
-          zip,
-          phone,
-          email,
-          website
-        )
-      `)
-      .eq('access_token', token)
-      .single()
+    const { data: proposal, error } = await supabase.rpc('get_proposal_by_token', {
+      p_token: token,
+    })
 
-    if (error || !proposal) {
+    if (error) {
       throw new SecureError('NOT_FOUND', 'Proposal not found')
     }
 
-    // Check if token is expired
-    if (new Date(proposal.access_token_expires_at) < new Date()) {
+    // null = no proposal carries this token. { expired: true } = one does, but
+    // the link has lapsed — kept distinct so the portal can say which.
+    if (!proposal) {
+      throw new SecureError('NOT_FOUND', 'Proposal not found')
+    }
+
+    if (proposal.expired) {
       throw new SecureError('VALIDATION_ERROR', 'This proposal link has expired')
     }
 
-    // Transform relations
-    const transformedProposal = {
-      ...proposal,
-      estimate: Array.isArray(proposal.estimate) ? proposal.estimate[0] : proposal.estimate,
-      customer: Array.isArray(proposal.customer) ? proposal.customer[0] : proposal.customer,
-      organization: Array.isArray(proposal.organization) ? proposal.organization[0] : proposal.organization,
-    }
+    // Best-effort view tracking. This was previously an anon UPDATE that RLS
+    // silently refused, so the counter never moved for the visitors it was
+    // meant to measure. The function applies the same status/count transition
+    // and no-ops for anything not currently 'sent' or 'viewed'.
+    await supabase.rpc('record_proposal_view', { p_token: token })
 
-    // Sort line items if present
-    if (transformedProposal.estimate?.line_items) {
-      transformedProposal.estimate.line_items.sort(
-        (a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order
-      )
-    }
-
-    // Update viewed status if not already viewed or signed
-    if (proposal.status === 'sent') {
-      await supabase
-        .from('proposals')
-        .update({
-          status: 'viewed',
-          viewed_at: new Date().toISOString(),
-          viewed_count: (proposal.viewed_count || 0) + 1,
-        })
-        .eq('id', proposal.id)
-    } else if (proposal.status === 'viewed') {
-      // Increment view count
-      await supabase
-        .from('proposals')
-        .update({
-          viewed_count: (proposal.viewed_count || 0) + 1,
-        })
-        .eq('id', proposal.id)
-    }
-
-    return NextResponse.json({ proposal: transformedProposal })
+    return NextResponse.json({ proposal })
   } catch (error) {
     return createSecureErrorResponse(error)
   }
