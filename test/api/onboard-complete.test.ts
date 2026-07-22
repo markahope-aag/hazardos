@@ -11,6 +11,16 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => Promise.resolve(mockSupabaseClient))
 }))
 
+// The profile update that assigns organization_id + role='tenant_owner' goes
+// through the admin client on purpose: those columns are protected by the
+// SEC23 trigger, and onboarding is the one legitimate self-assignment. It is
+// safe here because the route has already established the caller has no
+// organization and is assigning them to the org it just created.
+// Same mock object, so the existing `from` expectations still apply.
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn(() => mockSupabaseClient)
+}))
+
 vi.mock('@/lib/services/stripe-service', () => ({
   StripeService: {
     createCheckoutSession: vi.fn()

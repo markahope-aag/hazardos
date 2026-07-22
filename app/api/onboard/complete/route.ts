@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { StripeService } from '@/lib/services/stripe-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { completeOnboardSchema } from '@/lib/validations/onboard'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 
@@ -60,8 +61,16 @@ export const POST = createApiHandler(
       throw new SecureError('BAD_REQUEST', 'Failed to create organization')
     }
 
-    // Update user's profile with organization
-    const { error: profileError } = await context.supabase
+    // Update user's profile with organization.
+    //
+    // Deliberately the admin client. profiles.role / organization_id /
+    // is_platform_user are protected by a BEFORE UPDATE trigger (SEC23) —
+    // self-service writes to them are how a viewer could promote itself to
+    // platform_owner. Onboarding is the one legitimate case, and it is safe
+    // here specifically because this route has already established that the
+    // caller has no organization (the guard above) and is assigning them to
+    // the organization it just created on their behalf.
+    const { error: profileError } = await createAdminClient()
       .from('profiles')
       .update({
         organization_id: newOrg.id,
