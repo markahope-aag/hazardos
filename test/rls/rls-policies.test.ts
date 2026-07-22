@@ -650,4 +650,89 @@ describe.skipIf(!canRunRlsTests)('RLS Policy Tests', () => {
       expect(data).toBeNull()
     })
   })
+
+  // ========================================
+  // PRIVILEGE ESCALATION GUARDS
+  // Regression cover for SEC23 and SEC26 — two routes to the same end state,
+  // total platform compromise.
+  //
+  // SEC23: profiles UPDATE had USING (id = auth.uid()) with no WITH CHECK, so
+  // only `id` was pinned. A viewer could PATCH its own row to
+  // role='platform_owner' with the anon key that ships in the browser bundle.
+  // SEC26: tenant_invitations.role had no CHECK and handle_new_user() copied it
+  // verbatim, so a tenant admin could invite a burner address as platform_owner.
+  //
+  // Both fixes were initially INERT and applied without error — the first guard
+  // branched on current_user inside a SECURITY DEFINER function (where that is
+  // the owner, not the caller). These tests exist because "the migration
+  // applied" proved nothing.
+  // ========================================
+
+  describe('privilege escalation guards', () => {
+    it('a user CANNOT change their own role', async () => {
+      const { error } = await clientA
+        .from('profiles')
+        .update({ role: 'platform_owner' })
+        .eq('id', userA.id)
+      expect(error, 'a user was able to rewrite their own role — SEC23 is back').not.toBeNull()
+
+      const { data } = await adminClient!.from('profiles').select('role').eq('id', userA.id).single()
+      expect(data!.role).toBe('admin')
+    })
+
+    it('a user CANNOT move themselves into another organization', async () => {
+      const { error } = await clientA
+        .from('profiles')
+        .update({ organization_id: orgB.id })
+        .eq('id', userA.id)
+      expect(error, 'a user hopped tenants by rewriting organization_id — SEC23 is back').not.toBeNull()
+
+      const { data } = await adminClient!
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', userA.id)
+        .single()
+      expect(data!.organization_id).toBe(orgA.id)
+    })
+
+    it('a user CANNOT grant themselves platform access', async () => {
+      const { error } = await clientA
+        .from('profiles')
+        .update({ is_platform_user: true })
+        .eq('id', userA.id)
+      expect(error).not.toBeNull()
+    })
+
+    it('a user CAN still edit their own name', async () => {
+      // The guard must pin the three privileged columns without freezing the
+      // profile — ordinary self-service edits have to keep working.
+      const { error } = await clientA
+        .from('profiles')
+        .update({ first_name: 'Renamed' })
+        .eq('id', userA.id)
+      expect(error, 'the escalation guard broke ordinary profile edits').toBeNull()
+
+      const { data } = await adminClient!
+        .from('profiles')
+        .select('first_name')
+        .eq('id', userA.id)
+        .single()
+      expect(data!.first_name).toBe('Renamed')
+    })
+
+    it('an invitation CANNOT carry a platform role', async () => {
+      const { error } = await adminClient!.from('tenant_invitations').insert({
+        organization_id: orgA.id,
+        email: `rls-esc-${Date.now()}@hazardos-test.local`,
+        role: 'platform_owner',
+        invited_by: userA.id,
+        token: `rls-esc-tok-${Date.now()}`,
+        expires_at: new Date(Date.now() + 86400000).toISOString(),
+      })
+      // Service role bypasses RLS but not CHECK constraints, which is the point:
+      // the restriction has to live in the database, not in the API's zod schema.
+      expect(error, 'a platform-role invitation was accepted — SEC26 is back').not.toBeNull()
+      expect(error!.message).toContain('tenant_invitations_role_not_privileged')
+    })
+  })
 })
