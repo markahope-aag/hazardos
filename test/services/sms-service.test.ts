@@ -24,6 +24,13 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => Promise.resolve(mockSupabaseClient))
 }))
 
+// updateMessageStatus runs from the Twilio status callback (no session), so it
+// uses the admin client. Same mock object, so the from() expectations below
+// still apply.
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn(() => mockSupabaseClient)
+}))
+
 describe('SmsService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -834,14 +841,24 @@ describe('SmsService', () => {
   })
 
   describe('updateMessageStatus', () => {
-    it('should update message status from Twilio webhook', async () => {
+    // The write now chains .update(data).eq(...).select('id') and asserts a row
+    // came back (assertRowsAffected), because the anon client used to drop this
+    // update silently and Twilio was told it succeeded. The terminal must
+    // resolve to a matched row.
+    const mockStatusUpdate = () => {
       const mockUpdate = vi.fn().mockReturnThis()
       const mockEq = vi.fn().mockReturnThis()
-
+      const mockSelect = vi.fn().mockResolvedValue({ data: [{ id: 'msg-1' }], error: null })
       mockSupabaseClient.from.mockReturnValue({
         update: mockUpdate,
-        eq: mockEq
+        eq: mockEq,
+        select: mockSelect,
       })
+      return { mockUpdate, mockEq, mockSelect }
+    }
+
+    it('should update message status from Twilio webhook', async () => {
+      const { mockUpdate, mockEq } = mockStatusUpdate()
 
       await SmsService.updateMessageStatus('tw-msg-123', 'delivered')
 
@@ -854,13 +871,7 @@ describe('SmsService', () => {
     })
 
     it('should set delivered_at when status is delivered', async () => {
-      const mockUpdate = vi.fn().mockReturnThis()
-      const mockEq = vi.fn().mockReturnThis()
-
-      mockSupabaseClient.from.mockReturnValue({
-        update: mockUpdate,
-        eq: mockEq
-      })
+      const { mockUpdate } = mockStatusUpdate()
 
       await SmsService.updateMessageStatus('tw-msg-123', 'delivered')
 
@@ -869,13 +880,7 @@ describe('SmsService', () => {
     })
 
     it('should set failed_at when status is failed', async () => {
-      const mockUpdate = vi.fn().mockReturnThis()
-      const mockEq = vi.fn().mockReturnThis()
-
-      mockSupabaseClient.from.mockReturnValue({
-        update: mockUpdate,
-        eq: mockEq
-      })
+      const { mockUpdate } = mockStatusUpdate()
 
       await SmsService.updateMessageStatus('tw-msg-123', 'failed', '30008', 'Unknown destination')
 
@@ -883,6 +888,15 @@ describe('SmsService', () => {
       expect(updateData).toHaveProperty('failed_at')
       expect(updateData).toHaveProperty('error_code', '30008')
       expect(updateData).toHaveProperty('error_message', 'Unknown destination')
+    })
+
+    it('throws when the message SID matched no rows (no silent success)', async () => {
+      const mockUpdate = vi.fn().mockReturnThis()
+      const mockEq = vi.fn().mockReturnThis()
+      const mockSelect = vi.fn().mockResolvedValue({ data: [], error: null })
+      mockSupabaseClient.from.mockReturnValue({ update: mockUpdate, eq: mockEq, select: mockSelect })
+
+      await expect(SmsService.updateMessageStatus('nope', 'delivered')).rejects.toThrow(/matched no rows/)
     })
   })
 })

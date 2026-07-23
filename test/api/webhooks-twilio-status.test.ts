@@ -38,8 +38,11 @@ const mockSupabaseClient = {
   })),
 }
 
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(() => mockSupabaseClient),
+// The route uses the admin client: a Twilio callback has no session, so the
+// cookie client's lookups returned null under RLS and the whole handler was a
+// no-op. createAdminClient is synchronous, unlike the awaited server client.
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn(() => mockSupabaseClient),
 }))
 
 // Import after mocks

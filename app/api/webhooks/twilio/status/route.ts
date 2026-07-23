@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 import { SmsService } from '@/lib/services/sms-service';
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createRequestLogger, formatError } from '@/lib/utils/logger';
 
 // Twilio status callback webhook
@@ -39,8 +39,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing MessageSid' }, { status: 400 });
     }
 
-    // Look up the message to get the organization
-    const supabase = await createClient();
+    // Admin client, not the cookie client: a Twilio callback carries no
+    // Supabase session, so under RLS the lookup below returned null and the
+    // handler exited at "No message found" — every status callback was a
+    // no-op, including the signature check and the status write. The inbound
+    // Twilio webhook already uses the admin client for the same reason.
+    const supabase = createAdminClient();
     const { data: message, error: msgError } = await supabase
       .from('sms_messages')
       .select('organization_id')

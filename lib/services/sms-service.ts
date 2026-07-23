@@ -1,5 +1,7 @@
 import twilio from 'twilio';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { assertRowsAffected } from '@/lib/utils/db-write';
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler';
 import { requiresMarketingConsent } from '@/lib/utils/sms-consent';
 import type {
@@ -842,7 +844,12 @@ export class SmsService {
     errorCode?: string,
     errorMessage?: string
   ): Promise<void> {
-    const supabase = await createClient();
+    // Called only from the Twilio status callback, which has no session. Under
+    // the cookie client this update matched zero rows and Twilio was told the
+    // callback succeeded, so every message stayed at its send-time status and
+    // failed/undelivered SMS looked delivered. Admin client + assert makes a
+    // failure loud (Twilio retries) instead of silent.
+    const supabase = createAdminClient();
 
     // Map Twilio status to our status
     const statusMap: Record<string, string> = {
@@ -866,9 +873,13 @@ export class SmsService {
       updateData.error_message = errorMessage;
     }
 
-    await supabase
-      .from('sms_messages')
-      .update(updateData)
-      .eq('twilio_message_sid', twilioMessageSid);
+    assertRowsAffected(
+      await supabase
+        .from('sms_messages')
+        .update(updateData)
+        .eq('twilio_message_sid', twilioMessageSid)
+        .select('id'),
+      `updateMessageStatus(${twilioMessageSid})`,
+    );
   }
 }

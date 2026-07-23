@@ -1,9 +1,18 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { SmsService } from '@/lib/services/sms-service'
 import { EmailService } from '@/lib/services/email/email-service'
+import { assertWriteOk } from '@/lib/utils/db-write'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 
 const log = createServiceLogger('reminder-sender')
+
+// Every path here runs from the hourly cron, which carries no Supabase session.
+// Under the cookie client, get_user_organization_id() is NULL, so the
+// scheduled_reminders RLS policy matched zero rows: processDueReminders() read
+// an empty list and reported "sent: 0" with no error, the cron logged status
+// ok, and no reminder ever went out while every monitor stayed green. The admin
+// client is mandatory here; rows are addressed by their own id, so there is no
+// tenant-scoping to reintroduce.
 
 interface ReminderRow {
   id: string
@@ -141,7 +150,7 @@ export interface ReminderSendResult {
 // a row already marked `sent` won't be touched; retries on failed rows are
 // safe. Returns the result so the caller can aggregate for reporting.
 export async function sendReminderRow(rowId: string): Promise<ReminderSendResult> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: row, error } = await supabase
     .from('scheduled_reminders')
@@ -301,26 +310,38 @@ export async function sendReminderRow(rowId: string): Promise<ReminderSendResult
 }
 
 async function markStatus(id: string, status: 'sent' | 'failed' | 'cancelled', errorMessage?: string) {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const updates: Record<string, unknown> = {
     status,
     ...(status === 'sent' ? { sent_at: new Date().toISOString() } : {}),
     ...(errorMessage ? { error_message: errorMessage } : {}),
   }
-  await supabase.from('scheduled_reminders').update(updates).eq('id', id)
+  // Assert: if this update is silently dropped, a reminder that was actually
+  // sent stays `pending` and processDueReminders re-sends it every hour —
+  // duplicate customer messages, which is worse than a loud failure.
+  assertWriteOk(
+    await supabase.from('scheduled_reminders').update(updates).eq('id', id).select('id'),
+    `markStatus(${id} -> ${status})`,
+  )
 }
 
 // Processes every scheduled_reminder row whose time has come. Exposed here
 // (rather than inlined in the cron route) so both the hourly cron and
 // ad-hoc "send the confirmation email right now" paths share the same logic.
 export async function processDueReminders(): Promise<{ sent: number; failed: number; skipped: number }> {
-  const supabase = await createClient()
-  const { data: rows } = await supabase
+  const supabase = createAdminClient()
+  const { data: rows, error } = await supabase
     .from('scheduled_reminders')
     .select('id')
     .eq('status', 'pending')
     .lte('scheduled_for', new Date().toISOString())
     .limit(500)
+
+  // Surface a failed read instead of returning "sent: 0". A swallowed error
+  // here is exactly how a broken reminder pipeline reported healthy.
+  if (error) {
+    throw new Error(`processDueReminders: failed to load due reminders — ${error.message}`)
+  }
 
   let sent = 0
   let failed = 0

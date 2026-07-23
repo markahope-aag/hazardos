@@ -1,6 +1,8 @@
 import Stripe from 'stripe'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { EmailService } from '@/lib/services/email/email-service'
+import { assertWriteOk } from '@/lib/utils/db-write'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import type {
@@ -44,12 +46,14 @@ export class StripeService {
       return org.stripe_customer_id
     }
 
-    // Get org owner email
+    // Get org owner email. Enum value is 'tenant_owner', not 'owner' — the old
+    // filter never matched, so the Stripe customer was created with no email
+    // and Stripe's own dunning mail had nowhere to go.
     const { data: owner } = await supabase
       .from('profiles')
       .select('email')
       .eq('organization_id', organizationId)
-      .eq('role', 'owner')
+      .eq('role', 'tenant_owner')
       .maybeSingle()
 
     // Create Stripe customer
@@ -260,7 +264,14 @@ export class StripeService {
   // ========== WEBHOOK HANDLING ==========
 
   static async handleWebhookEvent(event: Stripe.Event): Promise<void> {
-    const supabase = await createClient()
+    // The whole webhook path runs with no session, so under the cookie client
+    // stripe_webhook_events RLS matched nothing (idempotency was a no-op) and
+    // every downstream write was silently dropped while Stripe got 200 — paid
+    // subscriptions never activated and payment_failed never set past_due. The
+    // route verifies the Stripe signature before calling this, so the caller is
+    // already trusted; the admin client is required here and in the handlers
+    // this dispatches to.
+    const supabase = createAdminClient()
 
     // Check if already processed (idempotency)
     const { data: existing } = await supabase
@@ -272,11 +283,14 @@ export class StripeService {
     if (existing) return // Already processed
 
     // Record event
-    await supabase.from('stripe_webhook_events').insert({
-      stripe_event_id: event.id,
-      event_type: event.type,
-      payload: event.data.object as unknown as Record<string, unknown>,
-    })
+    assertWriteOk(
+      await supabase.from('stripe_webhook_events').insert({
+        stripe_event_id: event.id,
+        event_type: event.type,
+        payload: event.data.object as unknown as Record<string, unknown>,
+      }),
+      `record stripe_webhook_event ${event.id}`,
+    )
 
     // Handle event
     switch (event.type) {
@@ -311,7 +325,7 @@ export class StripeService {
   }
 
   private static async handleSubscriptionUpdate(subscription: Stripe.Subscription): Promise<void> {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     const organizationId = subscription.metadata?.organization_id
     if (!organizationId) return
 
@@ -330,59 +344,71 @@ export class StripeService {
       cancel_at_period_end?: boolean
     }
 
-    await supabase
-      .from('organization_subscriptions')
-      .upsert({
-        organization_id: organizationId,
-        plan_id: planId,
-        stripe_customer_id: sub.customer as string,
-        stripe_subscription_id: sub.id,
-        status: sub.status as string,
-        billing_cycle: sub.items.data[0]?.price?.recurring?.interval === 'year' ? 'yearly' : 'monthly',
-        current_period_start: sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null,
-        current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
-        trial_start: sub.trial_start ? new Date(sub.trial_start * 1000).toISOString() : null,
-        trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
-        cancel_at_period_end: sub.cancel_at_period_end ?? false,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'organization_id',
-      })
+    assertWriteOk(
+      await supabase
+        .from('organization_subscriptions')
+        .upsert({
+          organization_id: organizationId,
+          plan_id: planId,
+          stripe_customer_id: sub.customer as string,
+          stripe_subscription_id: sub.id,
+          status: sub.status as string,
+          billing_cycle: sub.items.data[0]?.price?.recurring?.interval === 'year' ? 'yearly' : 'monthly',
+          current_period_start: sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null,
+          current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+          trial_start: sub.trial_start ? new Date(sub.trial_start * 1000).toISOString() : null,
+          trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
+          cancel_at_period_end: sub.cancel_at_period_end ?? false,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'organization_id',
+        }),
+      `sync subscription ${sub.id} for org ${organizationId}`,
+    )
 
     // Update org status
-    await supabase
-      .from('organizations')
-      .update({
-        subscription_status: sub.status,
-        trial_ends_at: sub.trial_end
-          ? new Date(sub.trial_end * 1000).toISOString()
-          : null,
-      })
-      .eq('id', organizationId)
+    assertWriteOk(
+      await supabase
+        .from('organizations')
+        .update({
+          subscription_status: sub.status,
+          trial_ends_at: sub.trial_end
+            ? new Date(sub.trial_end * 1000).toISOString()
+            : null,
+        })
+        .eq('id', organizationId),
+      `update org ${organizationId} subscription_status`,
+    )
   }
 
   private static async handleSubscriptionDeleted(subscription: Stripe.Subscription): Promise<void> {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     const organizationId = subscription.metadata?.organization_id
     if (!organizationId) return
 
-    await supabase
-      .from('organization_subscriptions')
-      .update({
-        status: 'canceled',
-        canceled_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('stripe_subscription_id', subscription.id)
+    assertWriteOk(
+      await supabase
+        .from('organization_subscriptions')
+        .update({
+          status: 'canceled',
+          canceled_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('stripe_subscription_id', subscription.id),
+      `cancel subscription ${subscription.id}`,
+    )
 
-    await supabase
-      .from('organizations')
-      .update({ subscription_status: 'canceled' })
-      .eq('id', organizationId)
+    assertWriteOk(
+      await supabase
+        .from('organizations')
+        .update({ subscription_status: 'canceled' })
+        .eq('id', organizationId),
+      `mark org ${organizationId} canceled`,
+    )
   }
 
   private static async handleInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     // Cast for compatibility with different Stripe API versions
     const inv = invoice as unknown as {
@@ -408,28 +434,31 @@ export class StripeService {
 
     if (!org) return
 
-    await supabase.from('billing_invoices').upsert({
-      organization_id: org.id,
-      stripe_invoice_id: inv.id,
-      invoice_number: inv.number || null,
-      status: 'paid',
-      subtotal: inv.subtotal || 0,
-      tax: inv.tax || 0,
-      total: inv.total || 0,
-      amount_paid: inv.amount_paid || 0,
-      amount_due: inv.amount_due || 0,
-      invoice_date: new Date(inv.created * 1000).toISOString(),
-      due_date: inv.due_date ? new Date(inv.due_date * 1000).toISOString() : null,
-      paid_at: new Date().toISOString(),
-      invoice_pdf_url: inv.invoice_pdf || null,
-      hosted_invoice_url: inv.hosted_invoice_url || null,
-    }, {
-      onConflict: 'stripe_invoice_id',
-    })
+    assertWriteOk(
+      await supabase.from('billing_invoices').upsert({
+        organization_id: org.id,
+        stripe_invoice_id: inv.id,
+        invoice_number: inv.number || null,
+        status: 'paid',
+        subtotal: inv.subtotal || 0,
+        tax: inv.tax || 0,
+        total: inv.total || 0,
+        amount_paid: inv.amount_paid || 0,
+        amount_due: inv.amount_due || 0,
+        invoice_date: new Date(inv.created * 1000).toISOString(),
+        due_date: inv.due_date ? new Date(inv.due_date * 1000).toISOString() : null,
+        paid_at: new Date().toISOString(),
+        invoice_pdf_url: inv.invoice_pdf || null,
+        hosted_invoice_url: inv.hosted_invoice_url || null,
+      }, {
+        onConflict: 'stripe_invoice_id',
+      }),
+      `record billing_invoice ${inv.id}`,
+    )
   }
 
   private static async handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     const customerId = invoice.customer as string
 
     const { data: org } = await supabase
@@ -441,10 +470,13 @@ export class StripeService {
     if (!org) return
 
     // Update org status
-    await supabase
-      .from('organizations')
-      .update({ subscription_status: 'past_due' })
-      .eq('id', org.id)
+    assertWriteOk(
+      await supabase
+        .from('organizations')
+        .update({ subscription_status: 'past_due' })
+        .eq('id', org.id),
+      `mark org ${org.id} past_due`,
+    )
 
     // Send payment failed notification to organization owner(s)
     await this.sendPaymentFailedNotification(org.id, invoice)
@@ -454,14 +486,16 @@ export class StripeService {
     organizationId: string,
     invoice: Stripe.Invoice
   ): Promise<void> {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
-    // Get organization owners/admins
+    // Get organization owners/admins. The role is 'tenant_owner', not 'owner' —
+    // there is no 'owner' in the user_role enum, so this filter previously
+    // matched only admins and, for an owner-only org, "No owners found".
     const { data: owners } = await supabase
       .from('profiles')
       .select('id, email, full_name')
       .eq('organization_id', organizationId)
-      .in('role', ['owner', 'admin'])
+      .in('role', ['tenant_owner', 'admin'])
 
     if (!owners || owners.length === 0) {
       log.warn({ operation: 'sendPaymentFailedNotification', organizationId }, 'No owners found')

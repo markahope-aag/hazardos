@@ -9,8 +9,11 @@ const { smsSendMock, emailSendMock } = vi.hoisted(() => ({
   emailSendMock: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(),
+// reminder-sender runs from the cron (no session), so it uses the admin
+// client. The old cookie client silently dropped every write under RLS — the
+// bug this file guards against ("no silent success").
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn(),
 }))
 
 vi.mock('@/lib/services/sms-service', () => ({
@@ -28,7 +31,7 @@ vi.mock('@/lib/services/email/email-service', () => ({
   },
 }))
 
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { sendReminderRow } from '@/lib/services/reminder-sender'
 
 type TableName =
@@ -54,8 +57,14 @@ function makeSupabase(tables: Partial<Record<TableName, Record<string, unknown> 
       }),
       update: (u: Record<string, unknown>) => {
         updates.push({ table: tableName, ...u })
+        // markStatus now chains .select('id') and asserts a row came back, so
+        // the update terminal must return a matched row, not null.
+        const result = Promise.resolve({ data: [{ id: 'updated' }], error: null })
         return {
-          eq: () => Promise.resolve({ data: null, error: null }),
+          eq: () => ({
+            select: () => result,
+            then: (onF: (v: unknown) => unknown) => result.then(onF),
+          }),
         }
       },
     }
@@ -104,7 +113,7 @@ describe('sendReminderRow', () => {
         sms_opt_in: true,
       },
     })
-    vi.mocked(createClient).mockResolvedValue(supabase as unknown as never)
+    vi.mocked(createAdminClient).mockReturnValue(supabase as unknown as never)
     emailSendMock.mockResolvedValue({ auditId: 'a1', providerMessageId: 'msg1' })
 
     const result = await sendReminderRow('r1')
@@ -154,7 +163,7 @@ describe('sendReminderRow', () => {
         sms_opt_in: true,
       },
     })
-    vi.mocked(createClient).mockResolvedValue(supabase as unknown as never)
+    vi.mocked(createAdminClient).mockReturnValue(supabase as unknown as never)
 
     const result = await sendReminderRow('r2')
 
@@ -198,7 +207,7 @@ describe('sendReminderRow', () => {
         sms_opt_in: true,
       },
     })
-    vi.mocked(createClient).mockResolvedValue(supabase as unknown as never)
+    vi.mocked(createAdminClient).mockReturnValue(supabase as unknown as never)
     smsSendMock.mockResolvedValue({ id: 'sms1' })
 
     const result = await sendReminderRow('r3')
@@ -247,7 +256,7 @@ describe('sendReminderRow', () => {
         sms_opt_in: false,
       },
     })
-    vi.mocked(createClient).mockResolvedValue(supabase as unknown as never)
+    vi.mocked(createAdminClient).mockReturnValue(supabase as unknown as never)
     smsSendMock.mockRejectedValue(new Error('Customer has not opted in to SMS'))
 
     const result = await sendReminderRow('r4')
@@ -275,7 +284,7 @@ describe('sendReminderRow', () => {
       },
       organizations: { name: 'O', email: 'o@o.test' },
     })
-    vi.mocked(createClient).mockResolvedValue(supabase as unknown as never)
+    vi.mocked(createAdminClient).mockReturnValue(supabase as unknown as never)
 
     const result = await sendReminderRow('r5')
 
@@ -315,7 +324,7 @@ describe('sendReminderRow', () => {
         sms_opt_in: true,
       },
     })
-    vi.mocked(createClient).mockResolvedValue(supabase as unknown as never)
+    vi.mocked(createAdminClient).mockReturnValue(supabase as unknown as never)
     smsSendMock.mockResolvedValue({ id: 'sms2' })
 
     const result = await sendReminderRow('r6')
@@ -357,7 +366,7 @@ describe('sendReminderRow', () => {
         sms_opt_in: false,
       },
     })
-    vi.mocked(createClient).mockResolvedValue(supabase as unknown as never)
+    vi.mocked(createAdminClient).mockReturnValue(supabase as unknown as never)
     smsSendMock.mockRejectedValue(new Error('Customer has not opted in to SMS'))
 
     const result = await sendReminderRow('r7')
