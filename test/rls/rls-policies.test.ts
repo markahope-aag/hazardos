@@ -735,4 +735,57 @@ describe.skipIf(!canRunRlsTests)('RLS Policy Tests', () => {
       expect(error!.message).toContain('tenant_invitations_role_not_privileged')
     })
   })
+
+  // ========================================
+  // DESTRUCTIVE CASCADE-DELETE GUARDS
+  // A contact deletes-cascade through invoices, jobs and asbestos disposal
+  // manifests; a survey cascades through estimates to signed proposals. Both
+  // delete paths were unguarded, so one interactive mis-click erased
+  // legally-retained records. BEFORE DELETE triggers block an interactive user
+  // from deleting a row with those dependents, while leaving the service role
+  // (org teardown, admin cleanup) able to force it.
+  // ========================================
+
+  describe('destructive delete guards', () => {
+    it('a user CANNOT delete a contact that has linked jobs', async () => {
+      const { data: cust } = await adminClient!
+        .from('customers')
+        .insert({ organization_id: orgA.id, name: 'Guarded Contact' })
+        .select('id')
+        .single()
+      await adminClient!.from('jobs').insert({
+        organization_id: orgA.id,
+        customer_id: cust!.id,
+        job_number: `GUARD-${Date.now()}`,
+        job_address: '1 Guard St',
+        status: 'scheduled',
+        scheduled_start_date: '2026-07-01',
+      })
+
+      const { error } = await clientA.from('customers').delete().eq('id', cust!.id)
+      expect(error, 'a contact with a job was deleted — the cascade guard is gone').not.toBeNull()
+
+      // The contact must still exist.
+      const { data: still } = await adminClient!.from('customers').select('id').eq('id', cust!.id).maybeSingle()
+      expect(still?.id).toBe(cust!.id)
+
+      // cleanup (service role can force past the guard)
+      await adminClient!.from('jobs').delete().eq('customer_id', cust!.id)
+      await adminClient!.from('customers').delete().eq('id', cust!.id)
+    })
+
+    it('a user CAN delete a contact with no financial dependents', async () => {
+      const { data: cust } = await adminClient!
+        .from('customers')
+        .insert({ organization_id: orgA.id, name: 'Deletable Contact' })
+        .select('id')
+        .single()
+
+      const { error } = await clientA.from('customers').delete().eq('id', cust!.id)
+      expect(error, 'the guard blocked a contact that had no dependents').toBeNull()
+
+      const { data: gone } = await adminClient!.from('customers').select('id').eq('id', cust!.id).maybeSingle()
+      expect(gone).toBeNull()
+    })
+  })
 })

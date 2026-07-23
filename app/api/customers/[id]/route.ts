@@ -89,7 +89,16 @@ export const DELETE = createApiHandlerWithParams(
       .delete()
       .eq('id', params.id)
 
-    if (error) throwDbError(error, 'customer operation')
+    if (error) {
+      // The guard_customer_delete trigger raises a deliberately user-facing
+      // message (P0001) when the contact has linked jobs/invoices that would
+      // cascade-delete. Surface it as a 409 with that text, rather than letting
+      // throwDbError flatten it to a generic 500.
+      if (error.code === 'P0001') {
+        throw new SecureError('CONFLICT', error.message)
+      }
+      throwDbError(error, 'customer operation')
+    }
     return NextResponse.json({ message: 'Customer deleted successfully' })
   }
 )
