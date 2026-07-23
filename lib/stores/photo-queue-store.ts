@@ -3,6 +3,7 @@
 import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import { deletePhotoBlob } from '@/lib/stores/photo-blob-store'
 
 export type PhotoUploadStatus = 'pending' | 'uploading' | 'uploaded' | 'failed'
 
@@ -104,6 +105,7 @@ export const usePhotoQueueStore = create<PhotoQueueState>()(
       },
 
       removePhoto: (id) => {
+        void deletePhotoBlob(id)
         set((state) => ({
           queue: state.queue.filter((p) => p.id !== id),
         }))
@@ -178,6 +180,11 @@ export const usePhotoQueueStore = create<PhotoQueueState>()(
       },
 
       clearSurveyPhotos: (surveyId) => {
+        // Drop the IndexedDB bytes for this survey's photos too, so a
+        // submitted/abandoned survey doesn't leave orphaned blobs behind.
+        for (const p of get().queue) {
+          if (p.surveyId === surveyId) void deletePhotoBlob(p.id)
+        }
         set((state) => ({
           queue: state.queue.filter((p) => p.surveyId !== surveyId),
         }))
@@ -210,21 +217,29 @@ export const usePhotoQueueStore = create<PhotoQueueState>()(
     {
       name: 'hazardos-photo-upload-queue',
       storage: createJSONStorage(() => localStorage),
-      // Persist only metadata for *uploaded* photos — we need their
-      // remote URLs and categorization to finish the survey form, and
-      // their size is already bounded. Pending / uploading / failed
-      // rows carry the full base64 `localUri`, which at 4 photos can
-      // blow past the 5–10 MB localStorage quota, silently truncate
-      // the persisted blob, and leave the upload queue in a state
-      // where every retry fails with "Failed to fetch" (the string
-      // parses as invalid data: URL). Losing a pending photo on
-      // refresh is annoying but recoverable — corrupting the whole
-      // queue is not.
+      // Persist metadata for every not-yet-discarded photo, but ALWAYS with an
+      // empty `localUri`. The heavy base64 bytes used to be the reason pending
+      // rows couldn't be persisted — at a few photos they blow the 5–10 MB
+      // localStorage quota, truncate the blob, and wedge the queue. Now the
+      // bytes live in IndexedDB (photo-blob-store), keyed by photo id, so the
+      // queue only needs the lightweight row here: on reload it knows a photo
+      // is still pending and re-reads its bytes from IndexedDB to finish the
+      // upload. This is what stops an offline-captured photo vanishing on a
+      // reload or tab eviction.
       partialize: (state) => ({
         queue: state.queue
-          .filter((p) => p.status === 'uploaded')
+          .filter((p) => p.status !== 'uploaded' || Boolean(p.remoteUrl))
           .map((p) => ({ ...p, localUri: '' })),
       }),
+      // An upload interrupted by a reload persists as 'uploading' and would
+      // otherwise never be retried (getNextPendingPhoto only picks 'pending').
+      // Reset it so the queue resumes it.
+      onRehydrateStorage: () => (state) => {
+        if (!state) return
+        state.queue = state.queue.map((p) =>
+          p.status === 'uploading' ? { ...p, status: 'pending' } : p
+        )
+      },
     }
   )
 )

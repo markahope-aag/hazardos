@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { usePhotoQueueStore, QueuedPhoto } from '@/lib/stores/photo-queue-store'
+import { getPhotoBlob, deletePhotoBlob } from '@/lib/stores/photo-blob-store'
 import { useSurveyStore } from '@/lib/stores/survey-store'
 import { createServiceLogger } from '@/lib/utils/logger'
 import { SecureError } from '@/lib/utils/secure-error-handler'
@@ -247,18 +248,28 @@ export async function uploadSurveyMediaBlob({
 }
 
 /**
- * Resolve a queued photo's local URI (data: or blob:) into a Blob the
- * R2 PUT can consume.
+ * Resolve a queued photo's bytes into a Blob the R2 PUT can consume.
+ *
+ * IndexedDB is tried first (by photo id): it is the only copy that survives a
+ * reload or tab eviction, so a photo captured offline and uploaded after signal
+ * returns is read from here. The in-memory localUri is the fast path within the
+ * same session and the fallback when IndexedDB has nothing (older entries, a
+ * platform without IndexedDB). A dead blob: URL after reload no longer means
+ * lost bytes.
  */
-async function blobFromLocalUri(localUri: string): Promise<Blob> {
-  if (localUri.startsWith('data:')) {
+async function resolvePhotoBytes(photo: QueuedPhoto): Promise<Blob> {
+  const stored = await getPhotoBlob(photo.id)
+  if (stored) return stored
+
+  const localUri = photo.localUri
+  if (localUri?.startsWith('data:')) {
     return dataUrlToBlob(localUri)
   }
-  const response = await fetch(localUri)
-  if (!response.ok) {
-    throw new Error(`Could not read photo data (${response.status})`)
+  if (localUri) {
+    const response = await fetch(localUri)
+    if (response.ok) return response.blob()
   }
-  return response.blob()
+  throw new Error('Could not read photo data — the image is no longer on this device')
 }
 
 /**
@@ -287,7 +298,7 @@ export async function uploadPhotoToStorage(photo: QueuedPhoto): Promise<string> 
 
   let blob: Blob
   try {
-    blob = await blobFromLocalUri(photo.localUri)
+    blob = await resolvePhotoBytes(photo)
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     throw new SecureError('BAD_REQUEST', `Couldn't read photo from device: ${msg}`)
@@ -522,6 +533,8 @@ export async function processPhotoQueue(): Promise<void> {
       try {
         const remoteUrl = await uploadPhotoToStorage(photo)
         store.updatePhotoStatus(photo.id, 'uploaded', remoteUrl, null)
+        // Bytes are safely in R2 now — reclaim the IndexedDB copy.
+        void deletePhotoBlob(photo.id)
         uploadCount++
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Upload failed'

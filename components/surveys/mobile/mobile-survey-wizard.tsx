@@ -141,6 +141,8 @@ export default function MobileSurveyWizard({
     hasConflict,
     resolveConflictUseLatest,
     resolveConflictKeepMine,
+    pendingSubmit,
+    setPendingSubmit,
   } = useSurveyStore()
 
   // Photo queue store
@@ -476,6 +478,63 @@ export default function MobileSurveyWizard({
   }, [resolveConflictKeepMine])
 
   // Submit survey
+  // The online submission tail: upload any pending photos, submit, and on
+  // success clear + navigate. Shared by the Submit button (when online) and the
+  // reconnect effect (when a deferred offline submit finally goes through), so
+  // the two paths can't drift. Returns true on a completed submission.
+  const finalizeSubmission = useCallback(async (): Promise<boolean> => {
+    // Process pending photo uploads first
+    if (currentSurveyId && getPendingCount(currentSurveyId) + getFailedCount(currentSurveyId) > 0) {
+      processPhotoQueue()
+      const uploadSuccess = await waitForUploads(currentSurveyId, 120000)
+
+      if (!uploadSuccess) {
+        const failed = getFailedCount(currentSurveyId)
+        if (failed > 0) {
+          setSubmitError(
+            `${failed} photo(s) failed to upload. Please retry or remove failed photos before submitting.`
+          )
+          return false
+        }
+      }
+    }
+
+    const success = await submitSurvey()
+    if (!success) {
+      setSubmitError(syncError || 'Failed to submit survey. Please try again.')
+      return false
+    }
+
+    // Submitted: this survey no longer has a deferred submission pending.
+    setPendingSubmit(false)
+    if (currentSurveyId) {
+      clearSurveyPhotos(currentSurveyId)
+    }
+    if (onComplete && currentSurveyId) {
+      onComplete({
+        id: currentSurveyId,
+        customer_id: customerId || '',
+        survey_data: formData as unknown as Record<string, unknown>,
+      })
+    }
+    resetSurvey()
+    router.push('/site-surveys?submitted=true')
+    return true
+  }, [
+    currentSurveyId,
+    getPendingCount,
+    getFailedCount,
+    submitSurvey,
+    syncError,
+    setPendingSubmit,
+    clearSurveyPhotos,
+    onComplete,
+    customerId,
+    formData,
+    resetSurvey,
+    router,
+  ])
+
   const handleSubmit = useCallback(async () => {
     const isComplete = validateAll()
 
@@ -488,60 +547,24 @@ export default function MobileSurveyWizard({
     setSubmitError(null)
 
     try {
-      // If offline, save locally
+      // Offline: save the draft and mark the submission pending. The reconnect
+      // effect below completes it when signal returns; the flag is persisted so
+      // it survives a tab close. This is a status message, not an error — the
+      // footer renders submitError in a red banner, so keep it factual.
       if (!isOnline) {
         await saveDraft()
-        setSubmitError('Survey saved locally. It will be submitted when you are back online.')
+        setPendingSubmit(true)
+        setSubmitError(
+          'Saved on this device. Your photos are safe and the survey will finish submitting automatically when you have signal.'
+        )
         setIsSubmitting(false)
         return
       }
 
-      // Process pending photo uploads first
-      if (currentSurveyId && hasPhotosToUpload) {
-        processPhotoQueue()
-        const uploadSuccess = await waitForUploads(currentSurveyId, 120000)
-
-        if (!uploadSuccess) {
-          const failed = getFailedCount(currentSurveyId)
-          if (failed > 0) {
-            setSubmitError(
-              `${failed} photo(s) failed to upload. Please retry or remove failed photos before submitting.`
-            )
-            setIsSubmitting(false)
-            return
-          }
-        }
-      }
-
-      // Submit survey
-      const success = await submitSurvey()
-
-      if (success) {
-        // Clear local photo queue
-        if (currentSurveyId) {
-          clearSurveyPhotos(currentSurveyId)
-        }
-
-        // Call completion callback if provided
-        if (onComplete && currentSurveyId) {
-          onComplete({
-            id: currentSurveyId,
-            customer_id: customerId || '',
-            survey_data: formData as unknown as Record<string, unknown>,
-          })
-        }
-
-        // Reset survey state
-        resetSurvey()
-
-        // Navigate to success
-        router.push('/site-surveys?submitted=true')
-      } else {
-        setSubmitError(syncError || 'Failed to submit survey. Please try again.')
-      }
+      await finalizeSubmission()
     } catch (error) {
       logger.error(
-        { 
+        {
           error: formatError(error, 'MOBILE_SURVEY_SUBMISSION_ERROR'),
           surveyId: currentSurveyId
         },
@@ -557,18 +580,42 @@ export default function MobileSurveyWizard({
     validateAll,
     isOnline,
     saveDraft,
+    setPendingSubmit,
+    finalizeSubmission,
     currentSurveyId,
-    hasPhotosToUpload,
-    getFailedCount,
-    submitSurvey,
-    clearSurveyPhotos,
-    onComplete,
-    customerId,
-    formData,
-    resetSurvey,
-    router,
-    syncError,
   ])
+
+  // Complete a deferred offline submission once signal returns. Guarded by
+  // isSubmitting so it fires once, and by validateAll so a survey that became
+  // incomplete isn't force-submitted. pendingSubmit is persisted, so this also
+  // covers the tech closing the tab offline and reopening later online.
+  const reconnectSubmitRef = useRef(false)
+  useEffect(() => {
+    if (!isOnline || !pendingSubmit || !currentSurveyId || isSubmitting) return
+    if (reconnectSubmitRef.current) return
+    reconnectSubmitRef.current = true
+
+    ;(async () => {
+      if (!validateAll()) {
+        // Can't auto-finish an incomplete survey; leave the flag so the tech is
+        // returned to it. It stays a saved draft either way.
+        reconnectSubmitRef.current = false
+        return
+      }
+      setIsSubmitting(true)
+      try {
+        await finalizeSubmission()
+      } catch (error) {
+        logger.error(
+          { error: formatError(error, 'MOBILE_SURVEY_RECONNECT_SUBMIT_ERROR'), surveyId: currentSurveyId },
+          'Reconnect submission error'
+        )
+      } finally {
+        setIsSubmitting(false)
+        reconnectSubmitRef.current = false
+      }
+    })()
+  }, [isOnline, pendingSubmit, currentSurveyId, isSubmitting, validateAll, finalizeSubmission])
 
   // Get current section component
   const CurrentSectionComponent = sectionComponents[currentSection]

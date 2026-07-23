@@ -136,6 +136,7 @@
     "eslint-config-next": "^16.2.10",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "fake-indexeddb": "^6.2.5",
     "happy-dom": "^20.4.0",
     "jsdom": "^27.4.0",
     "pg": "^8.18.0",

@@ -42,6 +42,11 @@ interface SurveyState {
   startedAt: string | null
   isSyncing: boolean
   syncError: string | null
+  // Set when the tech hits Submit while offline. Persisted, so the pending
+  // submission survives a tab close and completes when signal returns —
+  // otherwise "it will be submitted when you're back online" was a lie and the
+  // survey stayed a draft forever.
+  pendingSubmit: boolean
 
   // Optimistic-concurrency version guard. Holds the site_surveys.updated_at
   // value this device last loaded or successfully wrote. Every draft/submit
@@ -59,6 +64,7 @@ interface SurveyState {
   setCustomerId: (id: string | null) => void
   setOrganizationId: (id: string | null) => void
   setCurrentSection: (section: SurveySection) => void
+  setPendingSubmit: (pending: boolean) => void
 
   // Form data updates
   updateProperty: (data: Partial<PropertyData>) => void
@@ -184,6 +190,7 @@ export const useSurveyStore = create<SurveyState>()(
       startedAt: null,
       isSyncing: false,
       syncError: null,
+      pendingSubmit: false,
       baseUpdatedAt: null,
       hasConflict: false,
       sectionValidation: initialSectionValidation,
@@ -193,6 +200,7 @@ export const useSurveyStore = create<SurveyState>()(
       setCustomerId: (id) => set({ customerId: id }),
       setOrganizationId: (id) => set({ organizationId: id }),
       setCurrentSection: (section) => set({ currentSection: section }),
+      setPendingSubmit: (pending) => set({ pendingSubmit: pending }),
 
       updateProperty: (data) =>
         set((state) => ({
@@ -423,6 +431,7 @@ export const useSurveyStore = create<SurveyState>()(
           startedAt: null,
           isSyncing: false,
           syncError: null,
+          pendingSubmit: false,
           baseUpdatedAt: null,
           hasConflict: false,
           sectionValidation: initialSectionValidation,
@@ -838,9 +847,9 @@ export const useSurveyStore = create<SurveyState>()(
         // stale, and subsequent re-renders see inconsistent data — one of
         // the root causes of the blank-white-on-return bug.
         //
-        // The photo-queue-store keeps the localUri + upload state it needs
-        // for delivery; survey-store only needs the metadata for validation
-        // and review display.
+        // The photo-queue-store + IndexedDB (photo-blob-store) keep the actual
+        // bytes for delivery; survey-store only needs the metadata for
+        // validation and review display.
         const strippedPhotos = state.formData.photos.photos.map((p) => ({
           ...p,
           blob: null,
@@ -858,6 +867,7 @@ export const useSurveyStore = create<SurveyState>()(
           startedAt: state.startedAt,
           lastSavedAt: state.lastSavedAt,
           baseUpdatedAt: state.baseUpdatedAt,
+          pendingSubmit: state.pendingSubmit,
         }
       },
     }

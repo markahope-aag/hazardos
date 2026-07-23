@@ -6,6 +6,7 @@ import exifr from 'exifr'
 import { Button } from '@/components/ui/button'
 import { useSurveyStore } from '@/lib/stores/survey-store'
 import { usePhotoQueueStore } from '@/lib/stores/photo-queue-store'
+import { putPhotoBlob } from '@/lib/stores/photo-blob-store'
 import {
   processPhotoQueue,
   uploadSurveyMediaBlob,
@@ -376,7 +377,7 @@ export function PhotoCapture({
         })
 
         if (currentSurveyId) {
-          addToQueue({
+          const queueId = addToQueue({
             surveyId: currentSurveyId,
             organizationId,
             localUri: dataUrl,
@@ -393,6 +394,11 @@ export function PhotoCapture({
             deviceMake: clientExif.deviceMake,
             deviceModel: clientExif.deviceModel,
           })
+
+          // Persist the bytes to IndexedDB so they survive a reload/tab
+          // eviction — the in-memory localUri does not. Fire-and-forget; the
+          // upload path reads from here first and falls back to localUri.
+          void putPhotoBlob(queueId, blob)
 
           if (navigator.onLine) {
             setTimeout(() => processPhotoQueue(), 100)
