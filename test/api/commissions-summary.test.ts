@@ -26,6 +26,7 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 }))
 
 import { CommissionService } from '@/lib/services/commission-service'
+import type { CommissionSummary } from '@/types/sales'
 
 describe('Commission Summary API', () => {
   beforeEach(() => {
@@ -56,11 +57,12 @@ describe('Commission Summary API', () => {
         })
       } as any)
 
-      const mockSummary = {
-        total_commissions: 15000,
-        paid_commissions: 10000,
-        pending_commissions: 5000,
-        commission_count: 12
+      const mockSummary: CommissionSummary = {
+        total_pending: 5000,
+        total_approved: 0,
+        total_paid: 10000,
+        this_month: 15000,
+        this_quarter: 15000
       }
 
       vi.mocked(CommissionService.getSummary).mockResolvedValue(mockSummary)
@@ -73,8 +75,8 @@ describe('Commission Summary API', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data.total_commissions).toBe(15000)
-      expect(data.paid_commissions).toBe(10000)
+      expect(data.this_month).toBe(15000)
+      expect(data.total_paid).toBe(10000)
       expect(CommissionService.getSummary).toHaveBeenCalledWith(undefined)
     })
 
@@ -96,11 +98,12 @@ describe('Commission Summary API', () => {
         })
       } as any)
 
-      const mockSummary = {
-        total_commissions: 5000,
-        paid_commissions: 3000,
-        pending_commissions: 2000,
-        commission_count: 4
+      const mockSummary: CommissionSummary = {
+        total_pending: 2000,
+        total_approved: 0,
+        total_paid: 3000,
+        this_month: 5000,
+        this_quarter: 5000
       }
 
       vi.mocked(CommissionService.getSummary).mockResolvedValue(mockSummary)
@@ -113,7 +116,7 @@ describe('Commission Summary API', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data.total_commissions).toBe(5000)
+      expect(data.this_month).toBe(5000)
       expect(CommissionService.getSummary).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440012')
     })
 

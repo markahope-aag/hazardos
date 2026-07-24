@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import EditCustomerModal from '@/components/customers/edit-customer-modal'
 import type { Customer } from '@/types/database'
+import { createMockCustomer } from '@/test/helpers/mock-data'
 
 // Mock CustomerForm
 vi.mock('@/components/customers/customer-form', () => ({
@@ -32,7 +33,7 @@ vi.mock('@/lib/hooks/use-customers', () => ({
   }),
 }))
 
-const mockCustomer: Customer = {
+const mockCustomer: Customer = createMockCustomer({
   id: 'cust-1',
   organization_id: 'org-1',
   name: 'John Doe',
@@ -41,11 +42,11 @@ const mockCustomer: Customer = {
   company_name: 'Acme Inc',
   email: 'john@example.com',
   phone: '555-1234',
-  status: 'active',
+  status: 'customer',
   source: 'referral',
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
-}
+})
 
 describe('EditCustomerModal', () => {
   const mockOnClose = vi.fn()

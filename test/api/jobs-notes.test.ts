@@ -33,6 +33,19 @@ vi.mock('@/lib/services/jobs-service', () => ({
 }))
 
 import { JobsService } from '@/lib/services/jobs-service'
+import type { JobNote } from '@/types/jobs'
+
+const createMockNote = (overrides: Partial<JobNote> = {}): JobNote => ({
+  id: '550e8400-e29b-41d4-a716-446655440001',
+  job_id: 'job-123',
+  note_type: 'general',
+  content: 'Important note about safety',
+  attachments: [],
+  is_internal: true,
+  created_by: 'user-1',
+  created_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
 
 const mockProfile = {
   organization_id: 'org-123',
@@ -67,13 +80,7 @@ describe('Job Notes API', () => {
       // Arrange
       setupAuthenticatedUser()
 
-      const newNote = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        job_id: 'job-123',
-        content: 'Important note about safety',
-        created_by: 'user-1',
-        created_at: new Date().toISOString(),
-      }
+      const newNote = createMockNote({ created_at: new Date().toISOString() })
       vi.mocked(JobsService.addNote).mockResolvedValue(newNote)
 
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/notes', {
@@ -102,12 +109,7 @@ describe('Job Notes API', () => {
       // Arrange
       setupAuthenticatedUser()
 
-      const newNote = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        job_id: 'job-123',
-        content: 'Internal note',
-        is_internal: true,
-      }
+      const newNote = createMockNote({ content: 'Internal note', is_internal: true })
       vi.mocked(JobsService.addNote).mockResolvedValue(newNote)
 
       const request = new NextRequest('http://localhost:3000/api/jobs/job-123/notes', {

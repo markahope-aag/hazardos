@@ -21,7 +21,7 @@ function createQueryBuilder() {
 }
 
 const mockSupabaseClient = {
-  from: vi.fn(() => createQueryBuilder())
+  from: vi.fn((_table: string) => createQueryBuilder())
 }
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -83,7 +83,7 @@ describe('V1 Jobs ID API', () => {
         }
       }
 
-      mockSupabaseClient.from.mockImplementation((table) => {
+      mockSupabaseClient.from.mockImplementation((table: string) => {
         const builder = createQueryBuilder()
         if (table === 'jobs') {
           builder.single = vi.fn().mockResolvedValue({
@@ -107,7 +107,7 @@ describe('V1 Jobs ID API', () => {
     it('should return 404 when job not found', async () => {
       vi.mocked(ApiKeyService.hasScope).mockReturnValue(true)
 
-      mockSupabaseClient.from.mockImplementation((table) => {
+      mockSupabaseClient.from.mockImplementation((table: string) => {
         const builder = createQueryBuilder()
         if (table === 'jobs') {
           builder.single = vi.fn().mockResolvedValue({
@@ -165,7 +165,7 @@ describe('V1 Jobs ID API', () => {
         notes: 'Updated notes'
       }
 
-      mockSupabaseClient.from.mockImplementation((table) => {
+      mockSupabaseClient.from.mockImplementation((table: string) => {
         const builder = createQueryBuilder()
         if (table === 'jobs') {
           builder.single = vi.fn().mockResolvedValue({
@@ -197,7 +197,7 @@ describe('V1 Jobs ID API', () => {
     it('should return 404 when job not found for update', async () => {
       vi.mocked(ApiKeyService.hasScope).mockReturnValue(true)
 
-      mockSupabaseClient.from.mockImplementation((table) => {
+      mockSupabaseClient.from.mockImplementation((table: string) => {
         const builder = createQueryBuilder()
         if (table === 'jobs') {
           builder.single = vi.fn().mockResolvedValue({

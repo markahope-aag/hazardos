@@ -28,6 +28,24 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 }))
 
 import { JobsService } from '@/lib/services/jobs-service'
+import type { JobDisposal } from '@/types/jobs'
+
+const createMockDisposal = (overrides: Partial<JobDisposal> = {}): JobDisposal => ({
+  id: '550e8400-e29b-41d4-a716-446655440001',
+  job_id: 'job-123',
+  hazard_type: 'asbestos',
+  disposal_type: 'landfill',
+  quantity: 5.5,
+  unit: 'tons',
+  manifest_number: null,
+  manifest_date: null,
+  disposal_facility_name: 'County Waste Facility',
+  disposal_facility_address: null,
+  disposal_cost: 550.00,
+  manifest_document_url: null,
+  created_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
 
 describe('Job Disposal Management', () => {
   beforeEach(() => {
@@ -62,16 +80,7 @@ describe('Job Disposal Management', () => {
       // Arrange
       setupAuthenticatedUser()
 
-      const mockDisposal = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        job_id: 'job-123',
-        hazard_type: 'asbestos',
-        disposal_type: 'landfill',
-        quantity: 5.5,
-        unit: 'tons',
-        disposal_facility_name: 'County Waste Facility',
-        disposal_cost: 550.00
-      }
+      const mockDisposal = createMockDisposal()
 
       vi.mocked(JobsService.addDisposal).mockResolvedValue(mockDisposal)
 
@@ -104,7 +113,7 @@ describe('Job Disposal Management', () => {
       // Arrange
       setupAuthenticatedUser()
 
-      const mockDisposal = {
+      const mockDisposal = createMockDisposal({
         id: '550e8400-e29b-41d4-a716-446655440002',
         hazard_type: 'lead_paint',
         disposal_type: 'hazardous_waste',
@@ -112,7 +121,7 @@ describe('Job Disposal Management', () => {
         unit: 'tons',
         disposal_facility_name: 'Hazmat Disposal Inc',
         manifest_number: 'MAN-12345'
-      }
+      })
 
       vi.mocked(JobsService.addDisposal).mockResolvedValue(mockDisposal)
 
@@ -165,11 +174,10 @@ describe('Job Disposal Management', () => {
       // Arrange
       setupAuthenticatedUser()
 
-      const updatedDisposal = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
+      const updatedDisposal = createMockDisposal({
         quantity: 6.0,
         disposal_cost: 600.00
-      }
+      })
 
       vi.mocked(JobsService.updateDisposal).mockResolvedValue(updatedDisposal)
 
@@ -201,10 +209,7 @@ describe('Job Disposal Management', () => {
       // Arrange
       setupAuthenticatedUser()
 
-      const updatedDisposal = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        manifest_number: 'MAN-67890'
-      }
+      const updatedDisposal = createMockDisposal({ manifest_number: 'MAN-67890' })
 
       vi.mocked(JobsService.updateDisposal).mockResolvedValue(updatedDisposal)
 

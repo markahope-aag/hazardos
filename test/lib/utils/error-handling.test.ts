@@ -6,6 +6,10 @@ interface ErrorContext {
   requestId?: string
   action?: string
   resource?: string
+  resourceId?: string
+  field?: string
+  retryAfter?: number
+  circular?: unknown
   metadata?: Record<string, any>
 }
 
@@ -154,7 +158,7 @@ class ErrorHandler {
     }
 
     if (filters.code?.length) {
-      reports = reports.filter(r => filters.code!.includes(r.code))
+      reports = reports.filter(r => filters.code!.includes(r.code ?? 'UNKNOWN_ERROR'))
     }
 
     if (filters.userId) {
@@ -206,7 +210,8 @@ class ErrorHandler {
     reports.forEach(report => {
       bySeverity[report.severity]++
       byType[report.type] = (byType[report.type] || 0) + 1
-      byCode[report.code] = (byCode[report.code] || 0) + 1
+      const code = report.code ?? 'UNKNOWN_ERROR'
+      byCode[code] = (byCode[code] || 0) + 1
 
       if (report.timestamp >= oneHourAgo) {
         recentErrors++

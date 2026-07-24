@@ -99,7 +99,8 @@ describe('Database Types', () => {
         site_city: 'Test City',
         site_state: 'CA',
         site_zip: '12345',
-        hazard_type: 'mold'
+        hazard_type: 'mold',
+        survey_root_id: '550e8400-e29b-41d4-a716-446655440004'
       }
 
       expectTypeOf(mockInsert).toEqualTypeOf<SiteSurveyInsert>()

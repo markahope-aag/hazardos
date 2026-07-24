@@ -55,6 +55,8 @@ const baseInvoice: Invoice = {
   viewed_at: null,
   qb_invoice_id: null,
   qb_synced_at: null,
+  access_token: null,
+  access_token_expires_at: null,
   created_by: null,
   created_at: '2026-07-01T00:00:00.000Z',
   updated_at: '2026-07-01T00:00:00.000Z',

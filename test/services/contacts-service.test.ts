@@ -158,7 +158,7 @@ describe('ContactsService', () => {
         name: 'John Doe',
         email: 'john@example.com',
         phone: '555-0100',
-        role: 'decision_maker',
+        role: 'general' as const,
       }
 
       const mockCreatedContact = {
@@ -179,7 +179,7 @@ describe('ContactsService', () => {
 
       // For the count query, the final .eq() returns a promise-like with count
       let eqCallCount = 0
-      mockSupabase.eq.mockImplementation((...args) => {
+      mockSupabase.eq.mockImplementation((...args: unknown[]) => {
         eqCallCount++
         // The second from() call is for counting, return count on its eq() call
         if (eqCallCount === 2) {
@@ -197,7 +197,7 @@ describe('ContactsService', () => {
           customer_id: 'customer-1',
           name: 'John Doe',
           is_primary: true,
-          role: 'decision_maker',
+          role: 'general',
         })
       )
       expect(mockActivity.created).toHaveBeenCalledWith(
@@ -227,7 +227,7 @@ describe('ContactsService', () => {
         .mockResolvedValueOnce({ data: { name: 'Acme Corp' }, error: null })
 
       let eqCallCount = 0
-      mockSupabase.eq.mockImplementation((...args) => {
+      mockSupabase.eq.mockImplementation((...args: unknown[]) => {
         eqCallCount++
         if (eqCallCount === 2) {
           return Promise.resolve({ count: 2, error: null })
@@ -260,7 +260,7 @@ describe('ContactsService', () => {
         .mockResolvedValueOnce({ data: { name: 'Acme Corp' }, error: null })
 
       let eqCallCount = 0
-      mockSupabase.eq.mockImplementation((...args) => {
+      mockSupabase.eq.mockImplementation((...args: unknown[]) => {
         eqCallCount++
         if (eqCallCount === 2) {
           return Promise.resolve({ count: 2, error: null })
@@ -292,7 +292,7 @@ describe('ContactsService', () => {
         .mockResolvedValueOnce({ data: { name: 'Acme Corp' }, error: null })
 
       let eqCallCount = 0
-      mockSupabase.eq.mockImplementation((...args) => {
+      mockSupabase.eq.mockImplementation((...args: unknown[]) => {
         eqCallCount++
         if (eqCallCount === 2) {
           return Promise.resolve({ count: 0, error: null })
@@ -397,7 +397,7 @@ describe('ContactsService', () => {
 
       // Track eq() calls: first is for select chain, second is for delete chain
       let eqCallCount = 0
-      mockSupabase.eq.mockImplementation((field, value) => {
+      mockSupabase.eq.mockImplementation((field: string, value: unknown) => {
         eqCallCount++
         if (eqCallCount === 2) {
           // This is the delete().eq() call, return the final result
@@ -422,7 +422,7 @@ describe('ContactsService', () => {
       mockSupabase.single.mockResolvedValue({ data: null, error: null })
 
       let eqCallCount = 0
-      mockSupabase.eq.mockImplementation((field, value) => {
+      mockSupabase.eq.mockImplementation((field: string, value: unknown) => {
         eqCallCount++
         if (eqCallCount === 2) {
           return Promise.resolve({ error: null })
@@ -440,7 +440,7 @@ describe('ContactsService', () => {
       mockSupabase.single.mockResolvedValue({ data: mockContact, error: null })
 
       let eqCallCount = 0
-      mockSupabase.eq.mockImplementation((field, value) => {
+      mockSupabase.eq.mockImplementation((field: string, value: unknown) => {
         eqCallCount++
         if (eqCallCount === 2) {
           return Promise.resolve({ error: { message: 'Delete failed' } })

@@ -2,6 +2,73 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/pipeline/route'
 import { PipelineService } from '@/lib/services/pipeline-service'
+import type { PipelineStage, Opportunity, PipelineMetrics } from '@/types/sales'
+
+const createMockStage = (overrides: Partial<PipelineStage> = {}): PipelineStage => ({
+  id: 'stage-1',
+  organization_id: '550e8400-e29b-41d4-a716-446655440000',
+  name: 'Lead',
+  color: '#94a3b8',
+  stage_type: 'lead',
+  probability: 10,
+  sort_order: 1,
+  is_active: true,
+  created_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
+
+const createMockOpportunity = (overrides: Partial<Opportunity> = {}): Opportunity => ({
+  id: 'opp-1',
+  organization_id: '550e8400-e29b-41d4-a716-446655440000',
+  customer_id: '550e8400-e29b-41d4-a716-446655440001',
+  company_id: null,
+  name: 'Office Renovation',
+  description: null,
+  stage_id: 'stage-1',
+  opportunity_status: null,
+  estimated_value: 50000,
+  weighted_value: null,
+  probability_pct: 10,
+  expected_close_date: null,
+  actual_close_date: null,
+  primary_contact_id: null,
+  site_contact_id: null,
+  owner_id: null,
+  property_id: null,
+  service_address_line1: null,
+  service_address_line2: null,
+  service_city: null,
+  service_state: null,
+  service_zip: null,
+  property_type: null,
+  property_age: null,
+  location_id: null,
+  hazard_types: null,
+  estimated_affected_area_sqft: null,
+  urgency: null,
+  regulatory_trigger: null,
+  assessment_date: null,
+  estimate_sent_date: null,
+  follow_up_date: null,
+  estimate_id: null,
+  proposal_id: null,
+  job_id: null,
+  created_from_assessment_id: null,
+  outcome: null,
+  loss_reason: null,
+  loss_notes: null,
+  competitor: null,
+  lost_to_competitor: null,
+  lead_source: null,
+  lead_source_detail: null,
+  utm_source: null,
+  utm_medium: null,
+  utm_campaign: null,
+  first_touch_date: null,
+  created_at: '2026-03-01T10:00:00Z',
+  updated_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -62,18 +129,19 @@ describe('Pipeline API', () => {
       setupAuthenticatedUser()
 
       const mockStages = [
-        { id: 'stage-1', name: 'Lead', order: 1 },
-        { id: 'stage-2', name: 'Qualified', order: 2 }
+        createMockStage({ id: 'stage-1', name: 'Lead', sort_order: 1 }),
+        createMockStage({ id: 'stage-2', name: 'Qualified', stage_type: 'qualified', sort_order: 2 })
       ]
 
       const mockOpportunities = [
-        { id: 'opp-1', name: 'Office Renovation', value: 50000, stage_id: 'stage-1' }
+        createMockOpportunity({ id: 'opp-1', name: 'Office Renovation', estimated_value: 50000, stage_id: 'stage-1' })
       ]
 
-      const mockMetrics = {
+      const mockMetrics: PipelineMetrics = {
         total_value: 50000,
+        weighted_value: 12500,
         count: 1,
-        conversion_rate: 0.25
+        by_stage: []
       }
 
       vi.mocked(PipelineService.getStages).mockResolvedValue(mockStages)
@@ -112,12 +180,12 @@ describe('Pipeline API', () => {
     it('should create new opportunity', async () => {
       setupAuthenticatedUser()
 
-      const mockOpportunity = {
+      const mockOpportunity = createMockOpportunity({
         id: 'opp-1',
         name: 'Factory Abatement',
-        value: 100000,
+        estimated_value: 100000,
         stage_id: '550e8400-e29b-41d4-a716-446655440002'
-      }
+      })
 
       vi.mocked(PipelineService.createOpportunity).mockResolvedValue(mockOpportunity)
 

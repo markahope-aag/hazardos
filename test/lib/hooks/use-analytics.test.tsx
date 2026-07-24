@@ -142,10 +142,10 @@ describe('useFeatureUsage', () => {
   it('should track feature view on mount by default', async () => {
     const { trackFeatureUsage } = await import('@/lib/analytics')
     
-    renderHook(() => useFeatureUsage('site_surveys'))
+    renderHook(() => useFeatureUsage('mobile_app'))
     
     expect(trackFeatureUsage).toHaveBeenCalledWith({
-      feature: 'site_surveys',
+      feature: 'mobile_app',
       action: 'view'
     })
   })
@@ -153,7 +153,7 @@ describe('useFeatureUsage', () => {
   it('should not track on mount when trackOnMount is false', async () => {
     const { trackFeatureUsage } = await import('@/lib/analytics')
     
-    renderHook(() => useFeatureUsage('site_surveys', { trackOnMount: false }))
+    renderHook(() => useFeatureUsage('mobile_app', { trackOnMount: false }))
     
     expect(trackFeatureUsage).not.toHaveBeenCalled()
   })
@@ -162,14 +162,14 @@ describe('useFeatureUsage', () => {
     const { trackFeatureUsage } = await import('@/lib/analytics')
     mockPerformanceNow.mockReturnValueOnce(1000).mockReturnValueOnce(2500) // 1500ms duration
     
-    const { result } = renderHook(() => useFeatureUsage('site_surveys'))
+    const { result } = renderHook(() => useFeatureUsage('mobile_app'))
     
     act(() => {
       result.current.trackUse(true, { survey_type: 'asbestos' })
     })
     
     expect(trackFeatureUsage).toHaveBeenCalledWith({
-      feature: 'site_surveys',
+      feature: 'mobile_app',
       action: 'use',
       success: true,
       duration: 1500,
@@ -180,14 +180,14 @@ describe('useFeatureUsage', () => {
   it('should provide trackConfigure function', async () => {
     const { trackFeatureUsage } = await import('@/lib/analytics')
     
-    const { result } = renderHook(() => useFeatureUsage('integrations'))
+    const { result } = renderHook(() => useFeatureUsage('quickbooks_sync'))
     
     act(() => {
       result.current.trackConfigure(true, { integration: 'quickbooks' })
     })
     
     expect(trackFeatureUsage).toHaveBeenCalledWith({
-      feature: 'integrations',
+      feature: 'quickbooks_sync',
       action: 'configure',
       success: true,
       metadata: { integration: 'quickbooks' }
@@ -197,7 +197,7 @@ describe('useFeatureUsage', () => {
   it('should provide trackEnable and trackDisable functions', async () => {
     const { trackFeatureUsage } = await import('@/lib/analytics')
     
-    const { result } = renderHook(() => useFeatureUsage('notifications'))
+    const { result } = renderHook(() => useFeatureUsage('sms_notifications'))
     
     act(() => {
       result.current.trackEnable()
@@ -208,13 +208,13 @@ describe('useFeatureUsage', () => {
     })
     
     expect(trackFeatureUsage).toHaveBeenCalledWith({
-      feature: 'notifications',
+      feature: 'sms_notifications',
       action: 'enable',
       success: true
     })
     
     expect(trackFeatureUsage).toHaveBeenCalledWith({
-      feature: 'notifications',
+      feature: 'sms_notifications',
       action: 'disable',
       success: true
     })

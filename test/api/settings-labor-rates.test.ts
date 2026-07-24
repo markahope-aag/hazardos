@@ -4,7 +4,7 @@ import { GET, POST, PATCH, DELETE } from '@/app/api/settings/pricing/labor-rates
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
-  from: vi.fn(() => ({
+  from: vi.fn((_table: string) => ({
     select: vi.fn(() => ({
       eq: vi.fn(() => ({ single: vi.fn() })),
       order: vi.fn(() => ({ order: vi.fn() }))

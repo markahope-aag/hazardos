@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import DeleteCustomerDialog from '@/components/customers/delete-customer-dialog'
 import type { Customer } from '@/types/database'
+import { createMockCustomer } from '@/test/helpers/mock-data'
 
 // Mock useDeleteCustomer
 const mockMutateAsync = vi.fn()
@@ -24,18 +25,18 @@ vi.mock('@/lib/supabase/client', () => ({
   }),
 }))
 
-const mockCustomer: Customer = {
+const mockCustomer: Customer = createMockCustomer({
   id: 'cust-1',
   organization_id: 'org-1',
   name: 'John Doe',
   company_name: 'Acme Inc',
   email: 'john@example.com',
   phone: '555-1234',
-  status: 'active',
+  status: 'customer',
   source: 'referral',
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
-}
+})
 
 describe('DeleteCustomerDialog', () => {
   const mockOnClose = vi.fn()

@@ -2,6 +2,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/platform/organizations/route'
 import { PlatformAdminService } from '@/lib/services/platform-admin-service'
+import type { PaginatedOrganizations, OrganizationSummary } from '@/types/platform-admin'
+
+const createMockOrgSummary = (overrides: Partial<OrganizationSummary> = {}): OrganizationSummary => ({
+  id: 'org-1',
+  name: 'Company A',
+  createdAt: '2026-01-01T00:00:00Z',
+  subscriptionStatus: 'active',
+  planName: 'Professional',
+  planSlug: 'pro',
+  usersCount: 3,
+  jobsThisMonth: 5,
+  mrr: 29900,
+  trialEndsAt: null,
+  stripeCustomerId: null,
+  ...overrides
+})
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -51,14 +67,15 @@ describe('GET /api/platform/organizations', () => {
 
     vi.mocked(PlatformAdminService.isPlatformAdmin).mockResolvedValue(true)
 
-    const mockOrgs = {
-      organizations: [
-        { id: 'org-1', name: 'Company A', status: 'active' },
-        { id: 'org-2', name: 'Company B', status: 'active' }
+    const mockOrgs: PaginatedOrganizations = {
+      data: [
+        createMockOrgSummary({ id: 'org-1', name: 'Company A' }),
+        createMockOrgSummary({ id: 'org-2', name: 'Company B' })
       ],
       total: 2,
       page: 1,
-      limit: 20
+      limit: 20,
+      totalPages: 1
     }
 
     vi.mocked(PlatformAdminService.getOrganizations).mockResolvedValue(mockOrgs)
@@ -113,10 +130,11 @@ describe('GET /api/platform/organizations', () => {
 
     vi.mocked(PlatformAdminService.isPlatformAdmin).mockResolvedValue(true)
     vi.mocked(PlatformAdminService.getOrganizations).mockResolvedValue({
-      organizations: [],
+      data: [],
       total: 0,
       page: 2,
-      limit: 10
+      limit: 10,
+      totalPages: 0
     })
 
     const request = new NextRequest('http://localhost:3000/api/platform/organizations?page=2&limit=10&status=active')

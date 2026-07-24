@@ -29,6 +29,7 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 }))
 
 import { PlatformAdminService } from '@/lib/services/platform-admin-service'
+import type { PlatformStats, GrowthMetrics, PlanDistribution } from '@/types/platform-admin'
 
 describe('Platform Stats API', () => {
   beforeEach(() => {
@@ -61,24 +62,31 @@ describe('Platform Stats API', () => {
 
       vi.mocked(PlatformAdminService.isPlatformAdmin).mockResolvedValue(true)
 
-      const mockStats = {
-        total_organizations: 142,
-        total_users: 1235,
-        total_jobs: 8964,
-        active_organizations: 128
+      const mockStats: PlatformStats = {
+        totalOrganizations: 142,
+        activeSubscriptions: 128,
+        trialingSubscriptions: 10,
+        canceledSubscriptions: 4,
+        totalUsers: 1235,
+        totalJobs: 8964,
+        monthlyRecurringRevenue: 4500000,
+        annualRecurringRevenue: 54000000
       }
 
-      const mockGrowth = {
-        organizations_growth: 12,
-        users_growth: 156,
-        jobs_growth: 432
+      const mockGrowth: GrowthMetrics = {
+        newOrgsThisMonth: 12,
+        newOrgsLastMonth: 8,
+        newUsersThisMonth: 156,
+        newUsersLastMonth: 120,
+        churnsThisMonth: 2,
+        churnsLastMonth: 3
       }
 
-      const mockPlanDistribution = {
-        basic: 45,
-        pro: 67,
-        enterprise: 30
-      }
+      const mockPlanDistribution: PlanDistribution[] = [
+        { planSlug: 'basic', planName: 'Basic', count: 45, percentage: 32, revenue: 1350000 },
+        { planSlug: 'pro', planName: 'Professional', count: 67, percentage: 47, revenue: 2010000 },
+        { planSlug: 'enterprise', planName: 'Enterprise', count: 30, percentage: 21, revenue: 1500000 }
+      ]
 
       vi.mocked(PlatformAdminService.getPlatformStats).mockResolvedValue(mockStats)
       vi.mocked(PlatformAdminService.getGrowthMetrics).mockResolvedValue(mockGrowth)

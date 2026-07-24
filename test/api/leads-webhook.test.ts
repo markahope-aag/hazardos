@@ -2,6 +2,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST, GET } from '@/app/api/leads/webhook/[slug]/route'
 import { LeadWebhookService } from '@/lib/services/lead-webhook-service'
+import type { LeadWebhookEndpoint } from '@/types/integrations'
+
+const createMockEndpoint = (overrides: Partial<LeadWebhookEndpoint> = {}): LeadWebhookEndpoint => ({
+  id: 'endpoint-1',
+  organization_id: 'org-123',
+  name: 'Test Endpoint',
+  slug: 'test-slug',
+  provider: 'custom',
+  field_mapping: {},
+  is_active: true,
+  leads_received: 0,
+  created_at: '2026-03-01T10:00:00Z',
+  updated_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
 
 vi.mock('@/lib/services/lead-webhook-service', () => ({
   LeadWebhookService: {
@@ -21,12 +36,7 @@ describe('Lead Webhook API', () => {
 
   describe('POST /api/leads/webhook/[slug]', () => {
     it('should process lead webhook', async () => {
-      const mockEndpoint = {
-        id: 'endpoint-1',
-        slug: 'test-slug',
-        is_active: true,
-        provider: 'generic'
-      }
+      const mockEndpoint = createMockEndpoint({ slug: 'test-slug', provider: 'custom' })
 
       vi.mocked(LeadWebhookService.getBySlug).mockResolvedValue(mockEndpoint)
       vi.mocked(LeadWebhookService.processLead).mockResolvedValue({
@@ -67,12 +77,7 @@ describe('Lead Webhook API', () => {
     })
 
     it('should return 403 for disabled endpoint', async () => {
-      const mockEndpoint = {
-        id: 'endpoint-1',
-        slug: 'disabled-slug',
-        is_active: false,
-        provider: 'generic'
-      }
+      const mockEndpoint = createMockEndpoint({ slug: 'disabled-slug', is_active: false, provider: 'custom' })
 
       vi.mocked(LeadWebhookService.getBySlug).mockResolvedValue(mockEndpoint)
 
@@ -89,12 +94,7 @@ describe('Lead Webhook API', () => {
 
   describe('GET /api/leads/webhook/[slug]', () => {
     it('should return endpoint status', async () => {
-      const mockEndpoint = {
-        id: 'endpoint-1',
-        slug: 'test-slug',
-        is_active: true,
-        provider: 'google'
-      }
+      const mockEndpoint = createMockEndpoint({ slug: 'test-slug', provider: 'thumbtack' })
 
       vi.mocked(LeadWebhookService.getBySlug).mockResolvedValue(mockEndpoint)
 
@@ -104,7 +104,7 @@ describe('Lead Webhook API', () => {
 
       expect(response.status).toBe(200)
       expect(data.status).toBe('active')
-      expect(data.provider).toBe('google')
+      expect(data.provider).toBe('thumbtack')
     })
   })
 })

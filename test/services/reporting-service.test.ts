@@ -173,7 +173,7 @@ describe('ReportingService', () => {
                     data: [
                       {
                         month: '2026-01',
-                        total_proposals: 10,
+                        proposals_sent: 10,
                         proposals_won: 5,
                         win_rate: 0.5,
                       },
@@ -190,10 +190,14 @@ describe('ReportingService', () => {
 
       const result = await ReportingService.runSalesReport({
         date_range: { type: 'this_month' },
+        filters: [],
+        metrics: [],
+        columns: [],
+        chart_type: 'none',
       })
 
       expect(result).toHaveLength(1)
-      expect(result[0].total_proposals).toBe(10)
+      expect(result[0].proposals_sent).toBe(10)
       expect(result[0].win_rate).toBe(0.5)
     })
 
@@ -206,6 +210,10 @@ describe('ReportingService', () => {
       await expect(
         ReportingService.runSalesReport({
           date_range: { type: 'this_month' },
+          filters: [],
+          metrics: [],
+          columns: [],
+          chart_type: 'none',
         })
       ).rejects.toThrow('Authentication is required')
     })
@@ -239,6 +247,10 @@ describe('ReportingService', () => {
 
       await ReportingService.runSalesReport({
         date_range: { type: 'this_month' },
+        filters: [],
+        metrics: [],
+        columns: [],
+        chart_type: 'none',
       })
 
       expect(queriedTables).toContain('v_sales_performance')
@@ -269,9 +281,9 @@ describe('ReportingService', () => {
                     data: [
                       {
                         month: '2026-01',
-                        total_costs: 15000,
-                        total_revenue: 20000,
-                        margin: 0.25,
+                        actual_total: 15000,
+                        invoiced: 20000,
+                        variance_pct: 0.25,
                       },
                     ],
                     error: null,
@@ -286,11 +298,15 @@ describe('ReportingService', () => {
 
       const result = await ReportingService.runJobCostReport({
         date_range: { type: 'this_month' },
+        filters: [],
+        metrics: [],
+        columns: [],
+        chart_type: 'none',
       })
 
       expect(result).toHaveLength(1)
-      expect(result[0].total_costs).toBe(15000)
-      expect(result[0].margin).toBe(0.25)
+      expect(result[0].actual_total).toBe(15000)
+      expect(result[0].variance_pct).toBe(0.25)
     })
   })
 
@@ -341,6 +357,10 @@ describe('ReportingService', () => {
 
       const result = await ReportingService.runLeadSourceReport({
         date_range: { type: 'last_30_days' },
+        filters: [],
+        metrics: [],
+        columns: [],
+        chart_type: 'none',
       })
 
       expect(result).toHaveLength(2)
@@ -384,6 +404,10 @@ describe('ReportingService', () => {
 
       await ReportingService.runLeadSourceReport({
         date_range: { type: 'this_month' },
+        filters: [],
+        metrics: [],
+        columns: [],
+        chart_type: 'none',
       })
 
       expect(orderCalled).toBe(true)
@@ -521,7 +545,7 @@ describe('ReportingService', () => {
       const result = await ReportingService.createReport({
         name: 'New Report',
         report_type: 'sales',
-        config: { date_range: { type: 'this_month' } },
+        config: { date_range: { type: 'this_month' }, filters: [], metrics: [], columns: [], chart_type: 'none' },
       })
 
       expect(result.name).toBe('New Report')
@@ -565,7 +589,7 @@ describe('ReportingService', () => {
       await ReportingService.createReport({
         name: 'Test Report',
         report_type: 'sales',
-        config: { date_range: { type: 'today' } },
+        config: { date_range: { type: 'today' }, filters: [], metrics: [], columns: [], chart_type: 'none' },
       })
 
       expect(insertedData.created_by).toBe('user-1')

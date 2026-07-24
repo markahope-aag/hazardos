@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/commissions/plans/route'
 import { CommissionService } from '@/lib/services/commission-service'
+import type { CommissionPlan } from '@/types/sales'
 
 // Mock CommissionService
 vi.mock('@/lib/services/commission-service', () => ({
@@ -48,22 +49,28 @@ describe('Commission Plans API', () => {
   describe('GET /api/commissions/plans', () => {
     it('should list all commission plans', async () => {
       // Arrange
-      const mockPlans = [
+      const mockPlans: CommissionPlan[] = [
         {
           id: '550e8400-e29b-41d4-a716-446655440001',
+          organization_id: 'org-123',
           name: 'Sales Rep Standard',
-          description: 'Standard commission for sales reps',
-          rate: 0.05,
-          structure_type: 'percentage',
-          is_active: true
+          commission_type: 'percentage',
+          base_rate: 0.05,
+          tiers: null,
+          applies_to: 'won',
+          is_active: true,
+          created_at: new Date().toISOString()
         },
         {
           id: '550e8400-e29b-41d4-a716-446655440002',
+          organization_id: 'org-123',
           name: 'Manager Tier',
-          description: 'Manager level commission',
-          rate: 0.08,
-          structure_type: 'percentage',
-          is_active: true
+          commission_type: 'percentage',
+          base_rate: 0.08,
+          tiers: null,
+          applies_to: 'won',
+          is_active: true,
+          created_at: new Date().toISOString()
         }
       ]
 
@@ -101,13 +108,16 @@ describe('Commission Plans API', () => {
   describe('POST /api/commissions/plans', () => {
     it('should create a new commission plan', async () => {
       // Arrange
-      const newPlan = {
+      const newPlan: CommissionPlan = {
         id: '550e8400-e29b-41d4-a716-446655440003',
+        organization_id: 'org-123',
         name: 'New Sales Plan',
-        description: 'Performance-based commission',
-        rate: 0.10,
-        structure_type: 'percentage',
-        is_active: true
+        commission_type: 'percentage',
+        base_rate: 0.10,
+        tiers: null,
+        applies_to: 'won',
+        is_active: true,
+        created_at: new Date().toISOString()
       }
 
       vi.mocked(CommissionService.createPlan).mockResolvedValue(newPlan)
@@ -131,28 +141,30 @@ describe('Commission Plans API', () => {
       expect(response.status).toBe(200)
       expect(data.id).toBe(newPlan.id)
       expect(data.name).toBe('New Sales Plan')
-      expect(data.rate).toBe(0.10)
+      expect(data.base_rate).toBe(0.10)
       expect(CommissionService.createPlan).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: 'New Sales Plan',
-          rate: 0.10
+          name: 'New Sales Plan'
         })
       )
     })
 
     it('should create plan with tiered structure', async () => {
       // Arrange
-      const tieredPlan = {
+      const tieredPlan: CommissionPlan = {
         id: '550e8400-e29b-41d4-a716-446655440004',
+        organization_id: 'org-123',
         name: 'Tiered Sales Plan',
-        description: 'Multi-tier commission structure',
-        structure_type: 'tiered',
+        commission_type: 'tiered',
+        base_rate: null,
         tiers: [
           { min: 0, max: 10000, rate: 0.05 },
           { min: 10000, max: 50000, rate: 0.08 },
           { min: 50000, max: null, rate: 0.10 }
         ],
-        is_active: true
+        applies_to: 'won',
+        is_active: true,
+        created_at: new Date().toISOString()
       }
 
       vi.mocked(CommissionService.createPlan).mockResolvedValue(tieredPlan)
@@ -178,7 +190,7 @@ describe('Commission Plans API', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data.structure_type).toBe('tiered')
+      expect(data.commission_type).toBe('tiered')
       expect(data.tiers).toHaveLength(3)
     })
   })

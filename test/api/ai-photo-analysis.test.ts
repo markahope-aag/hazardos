@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/ai/photo-analysis/route'
 import { PhotoAnalysisService } from '@/lib/services/photo-analysis-service'
+import type { AggregateAnalysisResult } from '@/lib/services/photo-analysis-service'
+import type { PhotoAnalysis } from '@/types/integrations'
 
 // Mock dependencies
 const mockSupabaseClient = {
@@ -60,11 +62,19 @@ describe('POST /api/ai/photo-analysis', () => {
         })
       } as any)
 
-      const mockAnalysis = {
-        hazards_detected: ['asbestos', 'mold'],
-        confidence: 0.85,
-        description: 'Detected asbestos ceiling tiles and mold growth',
-        recommendations: ['Professional asbestos removal required', 'Mold remediation needed']
+      const mockAnalysis: PhotoAnalysis = {
+        id: 'photo-analysis-1',
+        organization_id: 'org-123',
+        known_hazards: ['asbestos'],
+        detected_hazards: [
+          { type: 'asbestos', confidence: 0.85, description: 'Detected asbestos ceiling tiles' },
+          { type: 'mold', confidence: 0.8, description: 'Detected mold growth' }
+        ],
+        recommendations: [
+          { action: 'Professional asbestos removal required', priority: 'high' },
+          { action: 'Mold remediation needed', priority: 'high' }
+        ],
+        created_at: '2024-01-01T00:00:00Z'
       }
 
       vi.mocked(PhotoAnalysisService.analyzePhoto).mockResolvedValue(mockAnalysis)
@@ -120,11 +130,13 @@ describe('POST /api/ai/photo-analysis', () => {
         })
       } as any)
 
-      const mockAnalysis = {
-        hazards_detected: [],
-        confidence: 0.95,
-        description: 'No hazards detected',
-        recommendations: []
+      const mockAnalysis: PhotoAnalysis = {
+        id: 'photo-analysis-2',
+        organization_id: 'org-123',
+        known_hazards: [],
+        detected_hazards: [],
+        recommendations: [],
+        created_at: '2024-01-01T00:00:00Z'
       }
 
       vi.mocked(PhotoAnalysisService.analyzePhoto).mockResolvedValue(mockAnalysis)
@@ -172,15 +184,14 @@ describe('POST /api/ai/photo-analysis', () => {
         })
       } as any)
 
-      const mockResult = {
-        overall_summary: 'Multiple hazards detected across property',
-        hazards_detected: ['asbestos', 'mold', 'lead'],
-        individual_analyses: [
-          { image_index: 0, hazards: ['asbestos'], confidence: 0.9 },
-          { image_index: 1, hazards: ['mold'], confidence: 0.85 },
-          { image_index: 2, hazards: ['lead'], confidence: 0.8 }
+      const mockResult: AggregateAnalysisResult = {
+        total_photos: 3,
+        hazards_by_type: { asbestos: 1, mold: 1, lead: 1 },
+        overall_risk_level: 'high',
+        all_recommendations: [
+          { action: 'Comprehensive hazard assessment required', priority: 'high' }
         ],
-        recommendations: ['Comprehensive hazard assessment required']
+        summary: 'Multiple hazards detected across property'
       }
 
       vi.mocked(PhotoAnalysisService.analyzeMultiplePhotos).mockResolvedValue(mockResult)

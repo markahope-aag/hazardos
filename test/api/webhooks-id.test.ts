@@ -2,6 +2,34 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, PUT, DELETE } from '@/app/api/webhooks/[id]/route'
 import { WebhookService } from '@/lib/services/webhook-service'
+import type { Webhook, WebhookDelivery } from '@/types/integrations'
+
+const createMockWebhook = (overrides: Partial<Webhook> = {}): Webhook => ({
+  id: 'webhook-123',
+  organization_id: 'org-123',
+  name: 'Job Webhook',
+  url: 'https://example.com/webhook',
+  events: ['job.created', 'job.completed'],
+  is_active: true,
+  failure_count: 0,
+  headers: {},
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
+  ...overrides
+})
+
+const createMockDelivery = (overrides: Partial<WebhookDelivery> = {}): WebhookDelivery => ({
+  id: 'delivery-1',
+  webhook_id: 'webhook-123',
+  organization_id: 'org-123',
+  event_type: 'job.created',
+  payload: {},
+  status: 'success',
+  status_code: 200,
+  attempt_count: 1,
+  created_at: '2024-01-01T10:00:00Z',
+  ...overrides
+})
 
 vi.mock('@/lib/services/webhook-service', () => ({
   WebhookService: {
@@ -50,24 +78,9 @@ describe('Webhooks ID API', () => {
 
   describe('GET /api/webhooks/[id]', () => {
     it('should get webhook with deliveries', async () => {
-      const mockWebhook = {
-        id: 'webhook-123',
-        url: 'https://example.com/webhook',
-        events: ['job.created', 'job.completed'],
-        active: true,
-        created_at: '2024-01-01T00:00:00Z'
-      }
+      const mockWebhook = createMockWebhook()
 
-      const mockDeliveries = [
-        {
-          id: 'delivery-1',
-          webhook_id: 'webhook-123',
-          event: 'job.created',
-          status: 'success',
-          response_code: 200,
-          created_at: '2024-01-01T10:00:00Z'
-        }
-      ]
+      const mockDeliveries = [createMockDelivery()]
 
       vi.mocked(WebhookService.get).mockResolvedValue(mockWebhook)
       vi.mocked(WebhookService.getDeliveries).mockResolvedValue(mockDeliveries)
@@ -102,13 +115,12 @@ describe('Webhooks ID API', () => {
         active: false
       }
 
-      const updatedWebhook = {
-        id: 'webhook-123',
+      const updatedWebhook = createMockWebhook({
         url: 'https://example.com/new-webhook',
         events: ['job.created'],
-        active: false,
+        is_active: false,
         updated_at: '2024-01-01T12:00:00Z'
-      }
+      })
 
       vi.mocked(WebhookService.update).mockResolvedValue(updatedWebhook)
 

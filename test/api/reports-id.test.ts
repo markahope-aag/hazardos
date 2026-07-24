@@ -2,6 +2,36 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, PATCH, DELETE } from '@/app/api/reports/[id]/route'
 import { ReportingService } from '@/lib/services/reporting-service'
+import { logger } from '@/lib/utils/logger'
+import type { SavedReport } from '@/types/reporting'
+
+vi.spyOn(logger, 'error').mockImplementation(() => {})
+vi.spyOn(logger, 'warn').mockImplementation(() => {})
+vi.spyOn(logger, 'info').mockImplementation(() => {})
+
+const createMockReport = (overrides: Partial<SavedReport> = {}): SavedReport => ({
+  id: '550e8400-e29b-41d4-a716-446655440001',
+  organization_id: 'org-123',
+  created_by: 'user-123',
+  name: 'Sales Report',
+  description: null,
+  report_type: 'sales',
+  config: {
+    date_range: { type: 'custom', start: '2024-01-01', end: '2024-12-31' },
+    filters: [],
+    metrics: [],
+    columns: [],
+    chart_type: 'none'
+  },
+  is_shared: false,
+  schedule_enabled: false,
+  schedule_frequency: null,
+  schedule_recipients: null,
+  last_sent_at: null,
+  created_at: '2026-03-01T10:00:00Z',
+  updated_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
 
 vi.mock('@/lib/services/reporting-service', () => ({
   ReportingService: {
@@ -32,9 +62,8 @@ vi.mock('@/lib/utils/api-handler', async (importOriginal) => {
           }
           return await handler(request, mockContext, params, body, {})
         } catch (error) {
-          return errorHandler.createSecureErrorResponse(error, {
-            error: vi.fn(), warn: vi.fn(), info: vi.fn()
-          })
+          const { logger } = await import('@/lib/utils/logger')
+          return errorHandler.createSecureErrorResponse(error, logger)
         }
       }
     }
@@ -48,13 +77,7 @@ describe('Reports ID API', () => {
 
   describe('GET /api/reports/[id]', () => {
     it('should get a report by ID', async () => {
-      const mockReport = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        name: 'Sales Report',
-        type: 'sales',
-        config: { date_from: '2024-01-01', date_to: '2024-12-31' },
-        created_at: new Date().toISOString()
-      }
+      const mockReport = createMockReport({ created_at: new Date().toISOString() })
       vi.mocked(ReportingService.getReport).mockResolvedValue(mockReport)
       const request = new NextRequest('http://localhost:3000/api/reports/550e8400-e29b-41d4-a716-446655440001')
       const response = await GET(request, { params: Promise.resolve({ id: '550e8400-e29b-41d4-a716-446655440001' }) })
@@ -76,11 +99,16 @@ describe('Reports ID API', () => {
 
   describe('PATCH /api/reports/[id]', () => {
     it('should update a report', async () => {
-      const mockUpdatedReport = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
+      const mockUpdatedReport = createMockReport({
         name: 'Updated Sales Report',
-        config: { date_from: '2024-06-01' }
-      }
+        config: {
+          date_range: { type: 'custom', start: '2024-06-01' },
+          filters: [],
+          metrics: [],
+          columns: [],
+          chart_type: 'none'
+        }
+      })
       vi.mocked(ReportingService.updateReport).mockResolvedValue(mockUpdatedReport)
       const request = new NextRequest('http://localhost:3000/api/reports/550e8400-e29b-41d4-a716-446655440001', {
         method: 'PATCH',

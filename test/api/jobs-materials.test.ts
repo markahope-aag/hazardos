@@ -28,6 +28,22 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 }))
 
 import { JobsService } from '@/lib/services/jobs-service'
+import type { JobMaterial } from '@/types/jobs'
+
+const createMockMaterial = (overrides: Partial<JobMaterial> = {}): JobMaterial => ({
+  id: '550e8400-e29b-41d4-a716-446655440001',
+  job_id: 'job-123',
+  material_name: 'Asbestos Disposal Bags',
+  material_type: 'asbestos_bag',
+  quantity_estimated: 100,
+  quantity_used: 0,
+  unit: null,
+  unit_cost: null,
+  total_cost: null,
+  notes: null,
+  created_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
 
 describe('Job Materials Management', () => {
   beforeEach(() => {
@@ -61,14 +77,7 @@ describe('Job Materials Management', () => {
     it('should add material to job', async () => {
       setupAuthenticatedUser()
 
-      const mockMaterial = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        job_id: 'job-123',
-        material_name: 'Asbestos Disposal Bags',
-        material_type: 'asbestos_bag',
-        quantity_estimated: 100,
-        quantity_used: 0
-      }
+      const mockMaterial = createMockMaterial()
 
       vi.mocked(JobsService.addMaterial).mockResolvedValue(mockMaterial)
 
@@ -110,10 +119,7 @@ describe('Job Materials Management', () => {
     it('should update material quantity used', async () => {
       setupAuthenticatedUser()
 
-      const updatedMaterial = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        quantity_used: 75
-      }
+      const updatedMaterial = createMockMaterial({ quantity_used: 75 })
 
       vi.mocked(JobsService.updateMaterialUsage).mockResolvedValue(updatedMaterial)
 

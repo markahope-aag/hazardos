@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 // Mock dependencies
 vi.mock('@/lib/middleware/unified-rate-limit', () => ({
@@ -28,7 +28,7 @@ vi.mock('@/lib/utils/logger', () => ({
 
 // Mock Supabase
 const mockSupabaseClient = {
-  from: vi.fn(() => ({
+  from: vi.fn((_table: string) => ({
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
@@ -89,6 +89,9 @@ describe('Twilio Inbound Webhook API', () => {
             error: null 
           }),
           limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+          or: vi.fn().mockReturnThis(),
+          order: vi.fn().mockReturnThis(),
+          insert: vi.fn().mockResolvedValue({ data: null, error: null }),
         }
       }
       return {
@@ -117,7 +120,7 @@ describe('Twilio Inbound Webhook API', () => {
 
   it('should handle rate limiting', async () => {
     vi.mocked(applyUnifiedRateLimit).mockResolvedValue(
-      new Response('Rate Limited', { status: 429 })
+      new NextResponse('Rate Limited', { status: 429 })
     )
     
     const formData = new FormData()

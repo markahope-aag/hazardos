@@ -34,7 +34,10 @@ global.fetch = mockFetch
 const mockIntegration: OrganizationIntegration = {
   id: 'int-1',
   organization_id: 'org-1',
-  provider: 'hubspot',
+  integration_type: 'hubspot',
+  access_token: 'access-token',
+  refresh_token: 'refresh-token',
+  token_expires_at: null,
   external_id: 'portal-123',
   is_active: true,
   settings: {},

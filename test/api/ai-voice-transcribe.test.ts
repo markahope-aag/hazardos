@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST, GET } from '@/app/api/ai/voice/transcribe/route'
 import { VoiceService } from '@/lib/services/voice-service'
+import type { VoiceTranscription } from '@/types/integrations'
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -78,11 +79,13 @@ describe('AI Voice Transcribe API', () => {
         })
       } as any)
 
-      const mockTranscription = {
+      const mockTranscription: VoiceTranscription = {
         id: '550e8400-e29b-41d4-a716-446655440001',
-        text: 'This is a test transcription of the audio file.',
-        confidence: 0.95,
-        duration: 5.2,
+        organization_id: 'org-123',
+        user_id: 'user-123',
+        raw_transcription: 'This is a test transcription of the audio file.',
+        extracted_data: {},
+        status: 'completed',
         created_at: new Date().toISOString()
       }
 
@@ -110,8 +113,7 @@ describe('AI Voice Transcribe API', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data.text).toBe('This is a test transcription of the audio file.')
-      expect(data.confidence).toBe(0.95)
+      expect(data.raw_transcription).toBe('This is a test transcription of the audio file.')
       expect(VoiceService.transcribe).toHaveBeenCalledWith(
         'org-123',
         'user-123',
@@ -141,11 +143,13 @@ describe('AI Voice Transcribe API', () => {
         })
       } as any)
 
-      const mockTranscription = {
+      const mockTranscription: VoiceTranscription = {
         id: '550e8400-e29b-41d4-a716-446655440002',
-        text: 'Customer called about asbestos removal project.',
-        confidence: 0.92,
-        duration: 3.8,
+        organization_id: 'org-123',
+        user_id: 'user-123',
+        raw_transcription: 'Customer called about asbestos removal project.',
+        extracted_data: {},
+        status: 'completed',
         created_at: new Date().toISOString()
       }
 
@@ -173,7 +177,7 @@ describe('AI Voice Transcribe API', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data.text).toBe('Customer called about asbestos removal project.')
+      expect(data.raw_transcription).toBe('Customer called about asbestos removal project.')
       expect(VoiceService.transcribe).toHaveBeenCalledWith(
         'org-123',
         'user-123',
@@ -203,11 +207,13 @@ describe('AI Voice Transcribe API', () => {
         })
       } as any)
 
-      const mockTranscription = {
+      const mockTranscription: VoiceTranscription = {
         id: '550e8400-e29b-41d4-a716-446655440003',
-        text: 'General note transcription.',
-        confidence: 0.88,
-        duration: 2.1,
+        organization_id: 'org-123',
+        user_id: 'user-123',
+        raw_transcription: 'General note transcription.',
+        extracted_data: {},
+        status: 'completed',
         created_at: new Date().toISOString()
       }
 
@@ -230,7 +236,7 @@ describe('AI Voice Transcribe API', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data.text).toBe('General note transcription.')
+      expect(data.raw_transcription).toBe('General note transcription.')
       expect(VoiceService.transcribe).toHaveBeenCalledWith(
         'org-123',
         'user-123',
@@ -344,16 +350,22 @@ describe('AI Voice Transcribe API', () => {
   describe('GET /api/ai/voice/transcribe', () => {
     it('should get recent transcriptions for organization', async () => {
       // Arrange
-      const mockTranscriptions = [
+      const mockTranscriptions: VoiceTranscription[] = [
         {
           id: '550e8400-e29b-41d4-a716-446655440001',
-          text: 'First transcription',
+          organization_id: 'org-123',
+          raw_transcription: 'First transcription',
+          extracted_data: {},
+          status: 'completed',
           created_at: new Date().toISOString(),
           user_id: 'user-123'
         },
         {
           id: '550e8400-e29b-41d4-a716-446655440002',
-          text: 'Second transcription',
+          organization_id: 'org-123',
+          raw_transcription: 'Second transcription',
+          extracted_data: {},
+          status: 'completed',
           created_at: new Date().toISOString(),
           user_id: 'user-456'
         }
@@ -379,10 +391,13 @@ describe('AI Voice Transcribe API', () => {
 
     it('should get recent transcriptions for current user only', async () => {
       // Arrange
-      const mockTranscriptions = [
+      const mockTranscriptions: VoiceTranscription[] = [
         {
           id: '550e8400-e29b-41d4-a716-446655440001',
-          text: 'User transcription',
+          organization_id: 'org-123',
+          raw_transcription: 'User transcription',
+          extracted_data: {},
+          status: 'completed',
           created_at: new Date().toISOString(),
           user_id: 'user-123'
         }

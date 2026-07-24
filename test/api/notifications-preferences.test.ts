@@ -2,6 +2,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, PATCH } from '@/app/api/notifications/preferences/route'
 import { NotificationService } from '@/lib/services/notification-service'
+import type { NotificationPreference } from '@/types/notifications'
+
+const createMockPreference = (overrides: Partial<NotificationPreference> = {}): NotificationPreference => ({
+  id: 'pref-1',
+  user_id: 'user-123',
+  organization_id: 'org-123',
+  notification_type: 'job_assigned',
+  in_app: true,
+  email: true,
+  push: false,
+  created_at: '2026-03-01T10:00:00Z',
+  updated_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
 
 vi.mock('@/lib/services/notification-service', () => ({
   NotificationService: {
@@ -40,8 +54,8 @@ describe('Notifications Preferences API', () => {
   describe('GET /api/notifications/preferences', () => {
     it('should get notification preferences', async () => {
       const mockPrefs = [
-        { notification_type: 'job_assigned', in_app: true, email: true, push: false },
-        { notification_type: 'job_completed', in_app: true, email: false, push: false }
+        createMockPreference({ id: 'pref-1', notification_type: 'job_assigned', in_app: true, email: true, push: false }),
+        createMockPreference({ id: 'pref-2', notification_type: 'job_completed', in_app: true, email: false, push: false })
       ]
       vi.mocked(NotificationService.getPreferences).mockResolvedValue(mockPrefs)
       const request = new NextRequest('http://localhost:3000/api/notifications/preferences')
@@ -54,7 +68,7 @@ describe('Notifications Preferences API', () => {
 
   describe('PATCH /api/notifications/preferences', () => {
     it('should update notification preference', async () => {
-      const mockPref = { notification_type: 'job_assigned', in_app: true, email: false, push: true }
+      const mockPref = createMockPreference({ notification_type: 'job_assigned', in_app: true, email: false, push: true })
       vi.mocked(NotificationService.updatePreference).mockResolvedValue(mockPref)
       const request = new NextRequest('http://localhost:3000/api/notifications/preferences', {
         method: 'PATCH',

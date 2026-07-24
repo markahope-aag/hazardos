@@ -41,7 +41,12 @@ global.fetch = mockFetch
 
 const mockActiveIntegration: OrganizationIntegration = {
   id: 'integration_123',
+  organization_id: 'org_123',
   integration_type: 'google_calendar',
+  access_token: 'access-token',
+  refresh_token: 'refresh-token',
+  token_expires_at: '2024-01-16T00:00:00Z',
+  external_id: 'calendar-external-id',
   is_active: true,
   settings: {
     calendar_id: 'primary',
@@ -50,18 +55,23 @@ const mockActiveIntegration: OrganizationIntegration = {
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-15T00:00:00Z',
   last_sync_at: '2024-01-15T12:00:00Z',
-  last_sync_status: 'success',
+  last_error: null,
 }
 
 const mockInactiveIntegration: OrganizationIntegration = {
   id: 'integration_456',
+  organization_id: 'org_123',
   integration_type: 'google_calendar',
+  access_token: null,
+  refresh_token: null,
+  token_expires_at: null,
+  external_id: null,
   is_active: false,
   settings: {},
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-15T00:00:00Z',
   last_sync_at: null,
-  last_sync_status: null,
+  last_error: null,
 }
 
 describe('GoogleCalendarCard', () => {

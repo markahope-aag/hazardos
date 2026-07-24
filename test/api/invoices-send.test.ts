@@ -28,6 +28,41 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 }))
 
 import { InvoiceDeliveryService } from '@/lib/services/invoice-delivery-service'
+import type { Invoice } from '@/types/invoices'
+
+function buildMockInvoice(overrides: Partial<Invoice>): Invoice {
+  return {
+    id: 'invoice-123',
+    organization_id: 'org-123',
+    job_id: null,
+    customer_id: 'customer-123',
+    location_id: null,
+    invoice_number: 'INV-001',
+    status: 'draft',
+    invoice_date: new Date().toISOString(),
+    due_date: new Date().toISOString(),
+    subtotal: 1000,
+    tax_rate: 0,
+    tax_amount: 0,
+    discount_amount: 0,
+    total: 1000,
+    amount_paid: 0,
+    balance_due: 1000,
+    payment_terms: null,
+    notes: null,
+    sent_at: null,
+    sent_via: null,
+    viewed_at: null,
+    access_token: null,
+    access_token_expires_at: null,
+    qb_invoice_id: null,
+    qb_synced_at: null,
+    created_by: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    ...overrides
+  }
+}
 
 describe('Invoice Send API', () => {
   const mockProfile = {
@@ -61,11 +96,11 @@ describe('Invoice Send API', () => {
     it('should send invoice via email', async () => {
       setupAuthenticatedUser()
 
-      const sentInvoice = {
+      const sentInvoice = buildMockInvoice({
         id: 'invoice-123',
         status: 'sent',
         sent_at: '2026-03-01T10:00:00Z',
-      }
+      })
       vi.mocked(InvoiceDeliveryService.send).mockResolvedValue(sentInvoice)
 
       const request = new NextRequest('http://localhost:3000/api/invoices/invoice-123/send', {
@@ -76,7 +111,7 @@ describe('Invoice Send API', () => {
         }),
       })
 
-      const response = await POST(request, { params: { id: 'invoice-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'invoice-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -87,11 +122,11 @@ describe('Invoice Send API', () => {
     it('should send invoice via sms when requested', async () => {
       setupAuthenticatedUser()
 
-      const sentInvoice = {
+      const sentInvoice = buildMockInvoice({
         id: 'invoice-123',
         status: 'sent',
         sent_via: 'sms',
-      }
+      })
       vi.mocked(InvoiceDeliveryService.send).mockResolvedValue(sentInvoice)
 
       const request = new NextRequest('http://localhost:3000/api/invoices/invoice-123/send', {
@@ -100,7 +135,7 @@ describe('Invoice Send API', () => {
         body: JSON.stringify({ method: 'sms' }),
       })
 
-      const response = await POST(request, { params: { id: 'invoice-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'invoice-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -110,7 +145,7 @@ describe('Invoice Send API', () => {
 
     it('should default to email when method is omitted', async () => {
       setupAuthenticatedUser()
-      vi.mocked(InvoiceDeliveryService.send).mockResolvedValue({ id: 'invoice-123', status: 'sent' })
+      vi.mocked(InvoiceDeliveryService.send).mockResolvedValue(buildMockInvoice({ id: 'invoice-123', status: 'sent' }))
 
       const request = new NextRequest('http://localhost:3000/api/invoices/invoice-123/send', {
         method: 'POST',
@@ -118,7 +153,7 @@ describe('Invoice Send API', () => {
         body: JSON.stringify({}),
       })
 
-      await POST(request, { params: { id: 'invoice-123' } })
+      await POST(request, { params: Promise.resolve({ id: 'invoice-123' }) })
 
       expect(InvoiceDeliveryService.send).toHaveBeenCalledWith('invoice-123', 'email')
     })
@@ -126,10 +161,10 @@ describe('Invoice Send API', () => {
     it('should send invoice with custom message', async () => {
       setupAuthenticatedUser()
 
-      const sentInvoice = {
+      const sentInvoice = buildMockInvoice({
         id: 'invoice-456',
         status: 'sent',
-      }
+      })
       vi.mocked(InvoiceDeliveryService.send).mockResolvedValue(sentInvoice)
 
       const request = new NextRequest('http://localhost:3000/api/invoices/invoice-456/send', {
@@ -141,7 +176,7 @@ describe('Invoice Send API', () => {
         }),
       })
 
-      const response = await POST(request, { params: { id: 'invoice-456' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'invoice-456' }) })
 
       expect(response.status).toBe(200)
     })

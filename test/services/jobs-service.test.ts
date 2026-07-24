@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { Job as _Job, CreateJobInput, CreateJobFromProposalInput as _CreateJobFromProposalInput, UpdateJobInput } from '@/types/jobs'
+import type { Job, CreateJobInput, CreateJobFromProposalInput as _CreateJobFromProposalInput, UpdateJobInput } from '@/types/jobs'
 
 // Use vi.hoisted to create mocks before vi.mock is processed
 const mockSupabase = vi.hoisted(() => ({
@@ -112,6 +112,7 @@ describe('JobsService', () => {
 
     const mockInput: CreateJobInput = {
       customer_id: 'customer-1',
+      assigned_to: 'tech-1',
       name: 'Asbestos Removal',
       scheduled_start_date: '2026-02-15',
       scheduled_start_time: '09:00',
@@ -136,7 +137,7 @@ describe('JobsService', () => {
         organization_id: 'org-1',
         status: 'scheduled',
         created_by: mockUser.id,
-        customer: { id: 'customer-1', name: 'Test Customer', email: 'test@example.com' },
+        customer: { id: 'customer-1', name: 'Test Customer', email: 'test@example.com', company_name: null, phone: null },
       }
 
       // Mock for profile lookup
@@ -220,7 +221,12 @@ describe('JobsService', () => {
         .mockResolvedValueOnce({ data: mockJob, error: null })
         .mockResolvedValueOnce({ data: mockProfile, error: null })
 
-      await JobsService.create(mockInput)
+      // createJobSchema requires assigned_to, but JobsService.create keeps a
+      // defensive `if (input.assigned_to)` guard. Deliberately omit the
+      // technician (cast past the required field) to exercise that false
+      // branch — mockInput now always carries a technician.
+      const inputWithoutAssignee = { ...mockInput, assigned_to: undefined } as unknown as CreateJobInput
+      await JobsService.create(inputWithoutAssignee)
 
       expect(notificationHelpersMock.jobAssigned).not.toHaveBeenCalled()
     })
@@ -593,7 +599,7 @@ describe('JobsService', () => {
     it('should update job with provided fields', async () => {
       const updates: UpdateJobInput = {
         status: 'in_progress',
-        actual_start_at: '2026-02-15T09:00:00Z',
+        internal_notes: 'Crew arrived on site',
       }
 
       const mockUpdatedJob = {

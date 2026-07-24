@@ -56,8 +56,8 @@ describe('Jobs Available Crew API', () => {
       setupAuthenticatedUser()
 
       const mockCrew = [
-        { id: 'crew-1', name: 'John Doe', role: 'technician', available: true },
-        { id: 'crew-2', name: 'Jane Smith', role: 'supervisor', available: true },
+        { id: 'crew-1', full_name: 'John Doe', email: 'john.doe@example.com', role: 'technician', is_available: true },
+        { id: 'crew-2', full_name: 'Jane Smith', email: 'jane.smith@example.com', role: 'supervisor', is_available: true },
       ]
       vi.mocked(JobsService.getAvailableCrew).mockResolvedValue(mockCrew)
 
@@ -86,7 +86,7 @@ describe('Jobs Available Crew API', () => {
       setupAuthenticatedUser()
 
       const mockCrew = [
-        { id: 'crew-1', name: 'John Doe', role: 'technician', available: true },
+        { id: 'crew-1', full_name: 'John Doe', email: 'john.doe@example.com', role: 'technician', is_available: true },
       ]
       vi.mocked(JobsService.getAvailableCrew).mockResolvedValue(mockCrew)
 

@@ -22,7 +22,7 @@ function createQueryBuilder(response: { data?: unknown[]; error?: unknown } = { 
 }
 
 const mockSupabaseClient = {
-  from: vi.fn(() => createQueryBuilder()),
+  from: vi.fn((_table: string) => createQueryBuilder()),
 }
 
 vi.mock('@/lib/utils/api-handler', () => ({

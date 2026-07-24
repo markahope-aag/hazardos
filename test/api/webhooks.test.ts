@@ -2,6 +2,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/webhooks/route'
 import { WebhookService } from '@/lib/services/webhook-service'
+import type { Webhook } from '@/types/integrations'
+
+const createMockWebhook = (overrides: Partial<Webhook> = {}): Webhook => ({
+  id: 'webhook-1',
+  organization_id: 'org-123',
+  name: 'Job Webhook',
+  url: 'https://example.com/webhook',
+  events: ['job.created'],
+  is_active: true,
+  failure_count: 0,
+  headers: {},
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
+  ...overrides
+})
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -57,8 +72,8 @@ describe('Webhooks API', () => {
       } as any)
 
       const mockWebhooks = [
-        { id: 'webhook-1', url: 'https://example.com/webhook', events: ['job.created'] },
-        { id: 'webhook-2', url: 'https://other.com/hook', events: ['invoice.paid'] }
+        createMockWebhook({ id: 'webhook-1', url: 'https://example.com/webhook', events: ['job.created'] }),
+        createMockWebhook({ id: 'webhook-2', url: 'https://other.com/hook', events: ['invoice.paid'] })
       ]
 
       vi.mocked(WebhookService.list).mockResolvedValue(mockWebhooks)

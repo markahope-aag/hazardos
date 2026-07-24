@@ -194,7 +194,7 @@ describe('Outlook Calendar Integration', () => {
 
       const mockUserInfo = {
         email: 'user@outlook.com',
-        name: 'Test User'
+        displayName: 'Test User'
       }
 
       vi.mocked(OutlookCalendarService.exchangeCodeForTokens).mockResolvedValue(mockTokens)

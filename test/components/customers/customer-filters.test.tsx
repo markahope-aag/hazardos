@@ -43,7 +43,7 @@ describe('CustomerFilters', () => {
     render(
       <CustomerFilters
         {...defaultProps}
-        status="active"
+        status="customer"
       />
     )
 
@@ -65,7 +65,7 @@ describe('CustomerFilters', () => {
     render(
       <CustomerFilters
         {...defaultProps}
-        status="active"
+        status="customer"
         source="referral"
       />
     )
@@ -109,7 +109,7 @@ describe('CustomerFilters', () => {
     render(
       <CustomerFilters
         {...defaultProps}
-        status="active"
+        status="customer"
         source="referral"
       />
     )
@@ -124,7 +124,7 @@ describe('CustomerFilters', () => {
     render(
       <CustomerFilters
         {...defaultProps}
-        status="active"
+        status="customer"
       />
     )
 

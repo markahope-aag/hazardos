@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/feedback/[id]/send/route'
 import { FeedbackService } from '@/lib/services/feedback-service'
+import { logger } from '@/lib/utils/logger'
 
 // Mock FeedbackService
 vi.mock('@/lib/services/feedback-service', () => ({
@@ -40,11 +41,7 @@ vi.mock('@/lib/utils/api-handler', async (importOriginal) => {
 
           return await handler(request, mockContext, params, body, {})
         } catch (error) {
-          return errorHandler.createSecureErrorResponse(error, {
-            error: vi.fn(),
-            warn: vi.fn(),
-            info: vi.fn()
-          })
+          return errorHandler.createSecureErrorResponse(error, logger)
         }
       }
     }

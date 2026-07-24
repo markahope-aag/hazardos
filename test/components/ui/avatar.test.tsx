@@ -1,3 +1,4 @@
+import { createRef } from 'react'
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
@@ -92,7 +93,7 @@ describe('Avatar Component', () => {
   })
 
   it('should forward ref on Avatar', () => {
-    const ref = { current: null } as React.RefObject<HTMLDivElement>
+    const ref = createRef<HTMLDivElement>()
     render(
       <Avatar ref={ref}>
         <AvatarFallback>JD</AvatarFallback>
@@ -102,7 +103,7 @@ describe('Avatar Component', () => {
   })
 
   it('should forward ref on AvatarFallback', () => {
-    const ref = { current: null } as React.RefObject<HTMLDivElement>
+    const ref = createRef<HTMLDivElement>()
     render(
       <Avatar>
         <AvatarFallback ref={ref}>JD</AvatarFallback>

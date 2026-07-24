@@ -37,6 +37,7 @@ const minimalSurvey: SiteSurvey = {
   estimator_id: null,
   customer_id: 'cust-1',
   property_id: null,
+  location_id: null,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
   job_name: '123 Oak inspection',

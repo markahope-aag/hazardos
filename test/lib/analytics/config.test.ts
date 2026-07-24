@@ -15,18 +15,19 @@ describe('analytics config', () => {
     process.env = originalEnv
     global.window = originalWindow
     global.navigator = originalNavigator
+    vi.unstubAllEnvs()
   })
 
   describe('defaultConfig', () => {
     it('should be enabled in production', async () => {
-      process.env.NODE_ENV = 'production'
+      vi.stubEnv('NODE_ENV', 'production')
       const { defaultConfig: prodConfig } = await import('@/lib/analytics/config')
       expect(prodConfig.enabled).toBe(true)
       expect(prodConfig.debug).toBe(false)
     })
 
     it('should be disabled but debug enabled in development', async () => {
-      process.env.NODE_ENV = 'development'
+      vi.stubEnv('NODE_ENV', 'development')
       const { defaultConfig: devConfig } = await import('@/lib/analytics/config')
       expect(devConfig.enabled).toBe(false)
       expect(devConfig.debug).toBe(true)
@@ -56,40 +57,40 @@ describe('analytics config', () => {
     })
 
     it('should return false when analytics disabled and not debug', async () => {
-      process.env.NODE_ENV = 'test'
+      vi.stubEnv('NODE_ENV', 'test')
       const { shouldTrack: testShouldTrack } = await import('@/lib/analytics/config')
       expect(testShouldTrack()).toBe(false)
     })
 
     it('should return true in debug mode even when disabled', async () => {
-      process.env.NODE_ENV = 'development'
+      vi.stubEnv('NODE_ENV', 'development')
       const { shouldTrack: devShouldTrack } = await import('@/lib/analytics/config')
       expect(devShouldTrack()).toBe(true)
     })
 
     it('should respect Do Not Track when enabled', async () => {
-      process.env.NODE_ENV = 'production'
+      vi.stubEnv('NODE_ENV', 'production')
       global.navigator = { doNotTrack: '1' } as any
       const { shouldTrack: prodShouldTrack } = await import('@/lib/analytics/config')
       expect(prodShouldTrack()).toBe(false)
     })
 
     it('should respect Do Not Track "yes" value', async () => {
-      process.env.NODE_ENV = 'production'
+      vi.stubEnv('NODE_ENV', 'production')
       global.navigator = { doNotTrack: 'yes' } as any
       const { shouldTrack: prodShouldTrack } = await import('@/lib/analytics/config')
       expect(prodShouldTrack()).toBe(false)
     })
 
     it('should ignore Do Not Track when not "1" or "yes"', async () => {
-      process.env.NODE_ENV = 'production'
+      vi.stubEnv('NODE_ENV', 'production')
       global.navigator = { doNotTrack: '0' } as any
       const { shouldTrack: prodShouldTrack } = await import('@/lib/analytics/config')
       expect(prodShouldTrack()).toBe(true)
     })
 
     it('should check window.doNotTrack as fallback', async () => {
-      process.env.NODE_ENV = 'production'
+      vi.stubEnv('NODE_ENV', 'production')
       global.navigator = {} as any
       ;(global.window as any).doNotTrack = '1'
       const { shouldTrack: prodShouldTrack } = await import('@/lib/analytics/config')
@@ -97,7 +98,7 @@ describe('analytics config', () => {
     })
 
     it('should apply sampling rate', async () => {
-      process.env.NODE_ENV = 'production'
+      vi.stubEnv('NODE_ENV', 'production')
       global.navigator = { doNotTrack: undefined } as any
 
       // Mock Math.random to return 0.5
@@ -117,7 +118,7 @@ describe('analytics config', () => {
     })
 
     it('should return true with full sampling rate', async () => {
-      process.env.NODE_ENV = 'production'
+      vi.stubEnv('NODE_ENV', 'production')
       global.navigator = { doNotTrack: undefined } as any
       const { shouldTrack: prodShouldTrack } = await import('@/lib/analytics/config')
       expect(prodShouldTrack()).toBe(true)
@@ -302,7 +303,7 @@ describe('analytics config', () => {
 
   describe('integration tests', () => {
     it('should work together for complete tracking decision', async () => {
-      process.env.NODE_ENV = 'production'
+      vi.stubEnv('NODE_ENV', 'production')
       global.window = {} as any
       global.navigator = { doNotTrack: undefined } as any
 

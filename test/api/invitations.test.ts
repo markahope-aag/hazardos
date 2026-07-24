@@ -29,7 +29,7 @@ function createQueryBuilder() {
     order: vi.fn(() => builder),
     insert: vi.fn(() => builder),
     single: vi.fn(() => builder),
-    then: vi.fn((resolve) => {
+    then: vi.fn((resolve: (result: { data: unknown; error: unknown }) => void) => {
       resolve({ data: [], error: null })
     })
   }
@@ -37,7 +37,7 @@ function createQueryBuilder() {
 }
 
 const mockSupabaseClient = {
-  from: vi.fn(() => createQueryBuilder())
+  from: vi.fn((_table: string) => createQueryBuilder())
 }
 
 vi.mock('@/lib/utils/api-handler', () => ({
@@ -109,7 +109,7 @@ describe('Invitations API', () => {
 
       mockSupabaseClient.from.mockImplementation(() => {
         const builder = createQueryBuilder()
-        builder.then.mockImplementation((resolve) => {
+        builder.then.mockImplementation((resolve: (result: { data: unknown; error: unknown }) => void) => {
           resolve({ data: mockInvitations, error: null })
         })
         return builder
@@ -127,7 +127,7 @@ describe('Invitations API', () => {
     it('should handle database errors', async () => {
       mockSupabaseClient.from.mockImplementation(() => {
         const builder = createQueryBuilder()
-        builder.then.mockImplementation((resolve) => {
+        builder.then.mockImplementation((resolve: (result: { data: unknown; error: unknown }) => void) => {
           resolve({ data: null, error: new Error('Database error') })
         })
         return builder
@@ -171,14 +171,14 @@ describe('Invitations API', () => {
         const builder = createQueryBuilder()
 
         if (table === 'profiles') {
-          builder.then.mockImplementation((resolve) => {
+          builder.then.mockImplementation((resolve: (result: { data: unknown; error: unknown }) => void) => {
             resolve({ data: null, error: null })
           })
         } else if (table === 'tenant_invitations') {
           const response = invitationsCall++ === 0
             ? { data: null, error: null }
             : { data: mockInvitation, error: null }
-          builder.then.mockImplementation((resolve) => {
+          builder.then.mockImplementation((resolve: (result: { data: unknown; error: unknown }) => void) => {
             resolve(response)
           })
         }
@@ -248,7 +248,7 @@ describe('Invitations API', () => {
         const builder = createQueryBuilder()
         
         if (table === 'profiles') {
-          builder.then.mockImplementation((resolve) => {
+          builder.then.mockImplementation((resolve: (result: { data: unknown; error: unknown }) => void) => {
             resolve({ 
               data: [{ id: 'user-exists', email: 'existing@example.com' }], 
               error: null 
@@ -281,11 +281,11 @@ describe('Invitations API', () => {
         const builder = createQueryBuilder()
 
         if (table === 'profiles') {
-          builder.then.mockImplementation((resolve) => {
+          builder.then.mockImplementation((resolve: (result: { data: unknown; error: unknown }) => void) => {
             resolve({ data: null, error: null })
           })
         } else if (table === 'tenant_invitations') {
-          builder.then.mockImplementation((resolve) => {
+          builder.then.mockImplementation((resolve: (result: { data: unknown; error: unknown }) => void) => {
             resolve({
               data: { id: 'existing-inv', email: 'pending@example.com' },
               error: null

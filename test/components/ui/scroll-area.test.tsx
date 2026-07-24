@@ -1,3 +1,4 @@
+import { createRef } from 'react'
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
@@ -89,7 +90,7 @@ describe('ScrollArea Component', () => {
   })
 
   it('should forward ref', () => {
-    const ref = { current: null } as React.RefObject<HTMLDivElement>
+    const ref = createRef<HTMLDivElement>()
     render(
       <ScrollArea ref={ref}>
         <div>Content</div>

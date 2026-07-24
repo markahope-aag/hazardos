@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { GET, POST } from '@/app/api/v1/estimates/route'
+import type { ApiKeyAuthContext } from '@/lib/middleware/api-key-auth'
+
+type RouteHandler = (request: NextRequest, context: ApiKeyAuthContext) => Promise<NextResponse>
+type ThenResolve = (result: { data?: unknown[] | null; count?: number | null; error?: unknown }) => void
+
+const typedGET = GET as unknown as RouteHandler
+const typedPOST = POST as unknown as RouteHandler
 
 // Create a chainable query builder mock
 function createQueryBuilder() {
@@ -14,7 +21,7 @@ function createQueryBuilder() {
         single: vi.fn()
       }))
     })),
-    then: vi.fn((resolve) => {
+    then: vi.fn((resolve: ThenResolve) => {
       resolve({
         data: [],
         count: 0,
@@ -26,7 +33,7 @@ function createQueryBuilder() {
 }
 
 const mockSupabaseClient = {
-  from: vi.fn(() => createQueryBuilder())
+  from: vi.fn((_table: string) => createQueryBuilder())
 }
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -58,9 +65,18 @@ describe('V1 Estimates API', () => {
     vi.clearAllMocks()
   })
 
-  const mockContext = {
+  const mockContext: ApiKeyAuthContext = {
     organizationId: 'org-123',
-    apiKey: { id: 'key-1', scopes: ['estimates:read', 'estimates:write'] }
+    apiKey: {
+      id: 'key-1',
+      organization_id: 'org-123',
+      name: 'Test Key',
+      key_prefix: 'hz_test',
+      scopes: ['estimates:read', 'estimates:write'],
+      rate_limit: 1000,
+      is_active: true,
+      created_at: '2026-03-01T10:00:00Z'
+    }
   }
 
   describe('GET /api/v1/estimates', () => {
@@ -85,7 +101,7 @@ describe('V1 Estimates API', () => {
       ]
 
       const builder = createQueryBuilder()
-      builder.then.mockImplementation((resolve) => {
+      builder.then.mockImplementation((resolve: ThenResolve) => {
         resolve({
           data: mockEstimates,
           count: 2,
@@ -97,7 +113,7 @@ describe('V1 Estimates API', () => {
 
       const request = new NextRequest('http://localhost/api/v1/estimates')
 
-      const response = await GET(request, mockContext)
+      const response = await typedGET(request, mockContext)
       expect(response.status).toBe(200)
 
       const json = await response.json()
@@ -113,7 +129,7 @@ describe('V1 Estimates API', () => {
 
       const request = new NextRequest('http://localhost/api/v1/estimates?status=sent')
 
-      const response = await GET(request, mockContext)
+      const response = await typedGET(request, mockContext)
       expect(response.status).toBe(200)
 
       // Verify eq was called with status filter
@@ -125,7 +141,7 @@ describe('V1 Estimates API', () => {
 
       const request = new NextRequest('http://localhost/api/v1/estimates')
 
-      const response = await GET(request, mockContext)
+      const response = await typedGET(request, mockContext)
       expect(response.status).toBe(403)
 
       const json = await response.json()
@@ -137,7 +153,7 @@ describe('V1 Estimates API', () => {
 
       const request = new NextRequest('http://localhost/api/v1/estimates?limit=invalid')
 
-      const response = await GET(request, mockContext)
+      const response = await typedGET(request, mockContext)
       expect(response.status).toBe(400)
 
       const json = await response.json()
@@ -159,7 +175,7 @@ describe('V1 Estimates API', () => {
       }
 
       // Mock customer lookup (success)
-      mockSupabaseClient.from.mockImplementation((table) => {
+      mockSupabaseClient.from.mockImplementation((table: string) => {
         const builder = createQueryBuilder()
         
         if (table === 'customers') {
@@ -169,7 +185,7 @@ describe('V1 Estimates API', () => {
           })
         } else if (table === 'estimates') {
           // For count query
-          builder.then.mockImplementation((resolve) => {
+          builder.then.mockImplementation((resolve: ThenResolve) => {
             resolve({ count: 0 })
           })
           // For insert query  
@@ -202,7 +218,7 @@ describe('V1 Estimates API', () => {
         body: JSON.stringify(requestBody)
       })
 
-      const response = await POST(request, mockContext)
+      const response = await typedPOST(request, mockContext)
       expect(response.status).toBe(201)
 
       const json = await response.json()
@@ -212,7 +228,7 @@ describe('V1 Estimates API', () => {
     it('should return 404 when customer not found', async () => {
       vi.mocked(ApiKeyService.hasScope).mockReturnValue(true)
 
-      mockSupabaseClient.from.mockImplementation((table) => {
+      mockSupabaseClient.from.mockImplementation((table: string) => {
         const builder = createQueryBuilder()
         
         if (table === 'customers') {
@@ -233,7 +249,7 @@ describe('V1 Estimates API', () => {
         })
       })
 
-      const response = await POST(request, mockContext)
+      const response = await typedPOST(request, mockContext)
       expect(response.status).toBe(404)
 
       const json = await response.json()
@@ -251,7 +267,7 @@ describe('V1 Estimates API', () => {
         })
       })
 
-      const response = await POST(request, mockContext)
+      const response = await typedPOST(request, mockContext)
       expect(response.status).toBe(403)
 
       const json = await response.json()
@@ -266,7 +282,7 @@ describe('V1 Estimates API', () => {
         body: 'invalid json'
       })
 
-      const response = await POST(request, mockContext)
+      const response = await typedPOST(request, mockContext)
       expect(response.status).toBe(400)
 
       const json = await response.json()

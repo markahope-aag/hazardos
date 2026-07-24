@@ -1,0 +1,30 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Separate build-info + no emit; keep the main tsbuildinfo untouched.
+    "incremental": false,
+    "composite": false
+  },
+  // `extends` replaces (does not merge) include/exclude, so restate the app
+  // globs AND add the test tree. tsc follows imports, but listing the source
+  // roots explicitly keeps the graph stable regardless of which tests import
+  // what, and surfaces source errors in the same pass.
+  "include": [
+    "next-env.d.ts",
+    "test/vitest-globals.d.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "lib/**/*.ts",
+    "lib/**/*.tsx",
+    "types/**/*.ts",
+    "test/**/*.ts",
+    "test/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "e2e"
+  ]
+}

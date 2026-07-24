@@ -56,6 +56,7 @@ describe('ContactDialog', () => {
   it('renders Edit Contact title when contact is provided', () => {
     const contact = {
       id: 'contact-1',
+      organization_id: 'org-1',
       customer_id: 'cust-1',
       name: 'Jane Smith',
       email: 'jane@example.com',

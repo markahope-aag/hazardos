@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { PATCH } from '@/app/api/commissions/[id]/route'
 import { CommissionService } from '@/lib/services/commission-service'
+import { logger } from '@/lib/utils/logger'
+import type { CommissionEarning } from '@/types/sales'
 
 // Mock CommissionService
 vi.mock('@/lib/services/commission-service', () => ({
@@ -42,11 +44,7 @@ vi.mock('@/lib/utils/api-handler', async (importOriginal) => {
 
           return await handler(request, mockContext, params, body, {})
         } catch (error) {
-          return errorHandler.createSecureErrorResponse(error, {
-            error: vi.fn(),
-            warn: vi.fn(),
-            info: vi.fn()
-          })
+          return errorHandler.createSecureErrorResponse(error, logger)
         }
       }
     }
@@ -61,13 +59,27 @@ describe('Commission ID API', () => {
   describe('PATCH /api/commissions/[id]', () => {
     it('should approve a commission earning', async () => {
       // Arrange
-      const mockEarning = {
+      const mockEarning: CommissionEarning = {
         id: '550e8400-e29b-41d4-a716-446655440001',
+        organization_id: 'org-123',
         user_id: 'user-456',
-        amount: 500.00,
+        plan_id: 'plan-1',
+        opportunity_id: null,
+        job_id: null,
+        invoice_id: null,
+        base_amount: 5000,
+        commission_rate: 0.1,
+        commission_amount: 500.00,
         status: 'approved',
         approved_by: 'user-123',
-        approved_at: new Date().toISOString()
+        approved_at: new Date().toISOString(),
+        rejected_by: null,
+        rejected_at: null,
+        rejection_reason: null,
+        paid_at: null,
+        earning_date: new Date().toISOString(),
+        pay_period: null,
+        created_at: new Date().toISOString()
       }
 
       vi.mocked(CommissionService.approveEarning).mockResolvedValue(mockEarning)
@@ -89,7 +101,7 @@ describe('Commission ID API', () => {
       // Assert
       expect(response.status).toBe(200)
       expect(data.status).toBe('approved')
-      expect(data.amount).toBe(500.00)
+      expect(data.commission_amount).toBe(500.00)
       expect(CommissionService.approveEarning).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440001')
     })
 
@@ -125,13 +137,27 @@ describe('Commission ID API', () => {
 
     it('should mark a commission as paid', async () => {
       // Arrange
-      const mockEarning = {
+      const mockEarning: CommissionEarning = {
         id: '550e8400-e29b-41d4-a716-446655440002',
+        organization_id: 'org-123',
         user_id: 'user-456',
-        amount: 750.00,
+        plan_id: 'plan-1',
+        opportunity_id: null,
+        job_id: null,
+        invoice_id: null,
+        base_amount: 7500,
+        commission_rate: 0.1,
+        commission_amount: 750.00,
         status: 'paid',
-        paid_by: 'user-123',
-        paid_at: new Date().toISOString()
+        approved_by: 'user-123',
+        approved_at: new Date().toISOString(),
+        rejected_by: null,
+        rejected_at: null,
+        rejection_reason: null,
+        paid_at: new Date().toISOString(),
+        earning_date: new Date().toISOString(),
+        pay_period: null,
+        created_at: new Date().toISOString()
       }
 
       vi.mocked(CommissionService.markPaid).mockResolvedValue(mockEarning)
@@ -153,7 +179,7 @@ describe('Commission ID API', () => {
       // Assert
       expect(response.status).toBe(200)
       expect(data.status).toBe('paid')
-      expect(data.amount).toBe(750.00)
+      expect(data.commission_amount).toBe(750.00)
       expect(CommissionService.markPaid).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440002')
     })
   })

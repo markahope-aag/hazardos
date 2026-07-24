@@ -577,7 +577,7 @@ describe('LoggingService', () => {
     beforeEach(() => {
       logger.info('User authentication successful', { userId: 'user-123' })
       logger.warn('Authentication failed for user', { userId: 'user-456' })
-      logger.error('Database connection error', { database: 'postgres' })
+      logger.error('Database connection error', undefined, { database: 'postgres' })
     })
 
     it('should search log messages', () => {

@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/segments/[id]/sync/hubspot/route'
 import { SegmentationService } from '@/lib/services/segmentation-service'
+import { logger } from '@/lib/utils/logger'
+
+vi.spyOn(logger, 'error').mockImplementation(() => {})
+vi.spyOn(logger, 'warn').mockImplementation(() => {})
+vi.spyOn(logger, 'info').mockImplementation(() => {})
 
 const mockSupabaseClient = { from: vi.fn() }
 
@@ -27,9 +32,8 @@ vi.mock('@/lib/utils/api-handler', async (importOriginal) => {
           const params = await props.params
           return await handler(request, mockContext, params, {}, {})
         } catch (error) {
-          return errorHandler.createSecureErrorResponse(error, {
-            error: vi.fn(), warn: vi.fn(), info: vi.fn()
-          })
+          const { logger } = await import('@/lib/utils/logger')
+          return errorHandler.createSecureErrorResponse(error, logger)
         }
       }
     }

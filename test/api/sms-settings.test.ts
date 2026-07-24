@@ -29,6 +29,30 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 }))
 
 import { SmsService } from '@/lib/services/sms-service'
+import type { OrganizationSmsSettings } from '@/types/sms'
+
+const createMockSmsSettings = (overrides: Partial<OrganizationSmsSettings> = {}): OrganizationSmsSettings => ({
+  id: 'sms-settings-1',
+  organization_id: 'org-123',
+  twilio_account_sid: null,
+  twilio_auth_token: null,
+  twilio_phone_number: null,
+  use_platform_twilio: true,
+  sms_enabled: true,
+  appointment_reminders_enabled: true,
+  appointment_reminder_hours: 24,
+  job_status_updates_enabled: true,
+  lead_notifications_enabled: true,
+  payment_reminders_enabled: true,
+  quiet_hours_enabled: true,
+  quiet_hours_start: '21:00',
+  quiet_hours_end: '08:00',
+  timezone: 'America/New_York',
+  sms_brand_prefix: null,
+  created_at: '2026-03-01T10:00:00Z',
+  updated_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
 
 describe('SMS Settings API', () => {
   const mockProfile = {
@@ -62,14 +86,7 @@ describe('SMS Settings API', () => {
     it('should return SMS settings', async () => {
       setupAuthenticatedUser()
 
-      const mockSettings = {
-        sms_enabled: true,
-        appointment_reminders_enabled: true,
-        appointment_reminder_hours: 24,
-        quiet_hours_enabled: true,
-        quiet_hours_start: '21:00',
-        quiet_hours_end: '08:00',
-      }
+      const mockSettings = createMockSmsSettings()
       vi.mocked(SmsService.getSettings).mockResolvedValue(mockSettings)
 
       const request = new NextRequest('http://localhost:3000/api/sms/settings')
@@ -99,10 +116,7 @@ describe('SMS Settings API', () => {
     it('should update SMS settings', async () => {
       setupAuthenticatedUser('admin')
 
-      const updatedSettings = {
-        sms_enabled: true,
-        appointment_reminders_enabled: false,
-      }
+      const updatedSettings = createMockSmsSettings({ appointment_reminders_enabled: false })
       vi.mocked(SmsService.updateSettings).mockResolvedValue(updatedSettings)
 
       const request = new NextRequest('http://localhost:3000/api/sms/settings', {

@@ -2,6 +2,29 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/sms/send/route'
 import { SmsService } from '@/lib/services/sms-service'
+import type { SmsMessage } from '@/types/sms'
+
+const createMockSmsMessage = (overrides: Partial<SmsMessage> = {}): SmsMessage => ({
+  id: 'msg-1',
+  organization_id: 'org-123',
+  customer_id: null,
+  to_phone: '+15551234567',
+  message_type: 'general',
+  body: 'Your appointment is tomorrow',
+  related_entity_type: null,
+  related_entity_id: null,
+  twilio_message_sid: null,
+  status: 'sent',
+  error_code: null,
+  error_message: null,
+  queued_at: '2026-03-01T10:00:00Z',
+  sent_at: null,
+  delivered_at: null,
+  failed_at: null,
+  segments: 1,
+  cost: null,
+  ...overrides
+})
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -53,13 +76,13 @@ describe('POST /api/sms/send', () => {
       })
     } as any)
 
-    const mockMessage = {
+    const mockMessage = createMockSmsMessage({
       id: 'msg-1',
-      to: '+15551234567',
+      to_phone: '+15551234567',
       body: 'Your appointment is tomorrow',
       status: 'sent',
-      sid: 'SM123'
-    }
+      twilio_message_sid: 'SM123'
+    })
 
     vi.mocked(SmsService.send).mockResolvedValue(mockMessage)
 
@@ -106,12 +129,13 @@ describe('POST /api/sms/send', () => {
       })
     } as any)
 
-    const mockMessage = {
+    const mockMessage = createMockSmsMessage({
       id: 'msg-2',
-      to: '+15559876543',
+      to_phone: '+15559876543',
       body: 'Job update',
-      status: 'sent'
-    }
+      status: 'sent',
+      message_type: 'job_status'
+    })
 
     vi.mocked(SmsService.send).mockResolvedValue(mockMessage)
 

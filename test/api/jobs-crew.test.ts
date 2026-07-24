@@ -2,6 +2,25 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST, DELETE } from '@/app/api/jobs/[id]/crew/route'
 import { JobsService } from '@/lib/services/jobs-service'
+import type { JobCrew } from '@/types/jobs'
+
+const createMockCrew = (overrides: Partial<JobCrew> = {}): JobCrew => ({
+  id: '550e8400-e29b-41d4-a716-446655440001',
+  job_id: 'job-123',
+  profile_id: '550e8400-e29b-41d4-a716-446655440002',
+  role: 'lead',
+  is_lead: true,
+  scheduled_start: null,
+  scheduled_end: null,
+  clock_in_at: null,
+  clock_out_at: null,
+  break_minutes: 0,
+  hours_worked: null,
+  notes: null,
+  created_at: '2026-03-01T10:00:00Z',
+  updated_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -59,11 +78,7 @@ describe('Job Crew Management', () => {
     it('should assign crew member to job', async () => {
       setupAuthenticatedUser()
 
-      const mockCrew = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        job_id: 'job-123',
-        profile_id: '550e8400-e29b-41d4-a716-446655440002'
-      }
+      const mockCrew = createMockCrew()
 
       vi.mocked(JobsService.assignCrew).mockResolvedValue(mockCrew)
 

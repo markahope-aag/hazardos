@@ -313,7 +313,7 @@ describe('JobCrewService', () => {
       const result = await JobCrewService.update('crew-1', { role: 'lead' })
 
       expect(result.profile).toBeDefined()
-      expect(result.profile.full_name).toBe('John Doe')
+      expect(result.profile!.full_name).toBe('John Doe')
     })
   })
 

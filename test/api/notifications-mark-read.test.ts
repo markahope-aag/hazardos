@@ -60,7 +60,7 @@ describe('Notification Mark Read API', () => {
         method: 'POST'
       })
 
-      const response = await POST(request, { params: { id: 'notif-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'notif-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -78,7 +78,7 @@ describe('Notification Mark Read API', () => {
         method: 'POST'
       })
 
-      const response = await POST(request, { params: { id: 'notif-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'notif-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(401)
@@ -96,7 +96,7 @@ describe('Notification Mark Read API', () => {
         method: 'POST'
       })
 
-      const response = await POST(request, { params: { id: 'notif-123' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'notif-123' }) })
       const data = await response.json()
 
       expect(response.status).toBe(500)
@@ -114,7 +114,7 @@ describe('Notification Mark Read API', () => {
         method: 'POST'
       })
 
-      const response = await POST(request, { params: { id: notificationId } })
+      const response = await POST(request, { params: Promise.resolve({ id: notificationId }) })
 
       expect(response.status).toBe(200)
       expect(NotificationService.markAsRead).toHaveBeenCalledWith(notificationId)
@@ -129,7 +129,7 @@ describe('Notification Mark Read API', () => {
         method: 'POST'
       })
 
-      const response = await POST(request, { params: { id: 'notif-456' } })
+      const response = await POST(request, { params: Promise.resolve({ id: 'notif-456' }) })
 
       expect(response.status).toBe(200)
       expect(NotificationService.markAsRead).toHaveBeenCalledWith('notif-456')

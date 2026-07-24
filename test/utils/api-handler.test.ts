@@ -154,7 +154,7 @@ describe('API Handler Module', () => {
       vi.mocked(createRequestLogger).mockReturnValue(mockLogger as any)
 
       const handler = createApiHandler(
-        { rateLimit: 'strict' },
+        { rateLimit: 'auth' },
         async () => NextResponse.json({ success: true })
       )
 
@@ -163,7 +163,7 @@ describe('API Handler Module', () => {
 
       expect(response.status).toBe(429)
       expect(mockLogger.warn).toHaveBeenCalledWith('Rate limit exceeded')
-      expect(applyUnifiedRateLimit).toHaveBeenCalledWith(request, 'strict')
+      expect(applyUnifiedRateLimit).toHaveBeenCalledWith(request, 'auth')
     })
 
     it('should validate query parameters with schema', async () => {

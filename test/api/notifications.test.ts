@@ -2,6 +2,29 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/notifications/route'
 import { NotificationService } from '@/lib/services/notification-service'
+import type { Notification } from '@/types/notifications'
+
+const createMockNotification = (overrides: Partial<Notification> = {}): Notification => ({
+  id: 'notif-1',
+  organization_id: '550e8400-e29b-41d4-a716-446655440000',
+  user_id: '550e8400-e29b-41d4-a716-446655440001',
+  type: 'job_assigned',
+  title: 'New Job',
+  message: 'Job assigned',
+  entity_type: null,
+  entity_id: null,
+  action_url: null,
+  action_label: null,
+  is_read: false,
+  read_at: null,
+  priority: 'normal',
+  email_sent: false,
+  email_sent_at: null,
+  metadata: {},
+  created_at: '2026-03-01T10:00:00Z',
+  expires_at: null,
+  ...overrides
+})
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -62,8 +85,8 @@ describe('Notifications API', () => {
       setupAuthenticatedUser()
 
       const mockNotifications = [
-        { id: 'notif-1', title: 'New Job', message: 'Job assigned', is_read: false },
-        { id: 'notif-2', title: 'Payment', message: 'Payment received', is_read: true }
+        createMockNotification({ id: 'notif-1', title: 'New Job', message: 'Job assigned', is_read: false }),
+        createMockNotification({ id: 'notif-2', title: 'Payment', message: 'Payment received', is_read: true, type: 'invoice_paid' })
       ]
 
       // The route now returns a paginated envelope from getAll merged
@@ -89,7 +112,7 @@ describe('Notifications API', () => {
       setupAuthenticatedUser()
 
       const mockUnread = [
-        { id: 'notif-1', title: 'New Job', message: 'Job assigned', is_read: false }
+        createMockNotification({ id: 'notif-1', title: 'New Job', message: 'Job assigned', is_read: false })
       ]
 
       const mockResult = {
@@ -143,13 +166,9 @@ describe('Notifications API', () => {
     it('should create notification', async () => {
       setupAuthenticatedUser()
 
-      const mockNotification = {
-        id: 'notif-1',
-        user_id: '550e8400-e29b-41d4-a716-446655440001',
-        type: 'job_assigned',
-        title: 'New Job',
+      const mockNotification = createMockNotification({
         message: 'You have been assigned a job'
-      }
+      })
 
       vi.mocked(NotificationService.create).mockResolvedValue(mockNotification)
 

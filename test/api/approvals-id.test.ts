@@ -2,6 +2,29 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, PATCH } from '@/app/api/approvals/[id]/route'
 import { ApprovalService } from '@/lib/services/approval-service'
+import { logger } from '@/lib/utils/logger'
+import type { ApprovalRequest } from '@/types/sales'
+
+const baseApproval: ApprovalRequest = {
+  id: '550e8400-e29b-41d4-a716-446655440001',
+  organization_id: 'org-123',
+  entity_type: 'estimate',
+  entity_id: '550e8400-e29b-41d4-a716-446655440010',
+  amount: 5000,
+  requested_by: 'user-456',
+  requested_at: new Date().toISOString(),
+  level1_status: 'pending',
+  level1_approver: null,
+  level1_at: null,
+  level1_notes: null,
+  requires_level2: false,
+  level2_status: null,
+  level2_approver: null,
+  level2_at: null,
+  level2_notes: null,
+  final_status: 'pending',
+  created_at: new Date().toISOString()
+}
 
 // Mock ApprovalService
 vi.mock('@/lib/services/approval-service', () => ({
@@ -42,11 +65,7 @@ vi.mock('@/lib/utils/api-handler', async (importOriginal) => {
 
           return await handler(request, mockContext, params, body, {})
         } catch (error) {
-          return errorHandler.createSecureErrorResponse(error, {
-            error: vi.fn(),
-            warn: vi.fn(),
-            info: vi.fn()
-          })
+          return errorHandler.createSecureErrorResponse(error, logger)
         }
       }
     }
@@ -61,14 +80,9 @@ describe('Approval ID API', () => {
   describe('GET /api/approvals/[id]', () => {
     it('should get an approval request', async () => {
       // Arrange
-      const mockApproval = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        entity_type: 'job_completion',
-        entity_id: '550e8400-e29b-41d4-a716-446655440010',
-        level_1_status: 'pending',
-        level_2_status: null,
-        requested_by: 'user-456',
-        requested_at: new Date().toISOString()
+      const mockApproval: ApprovalRequest = {
+        ...baseApproval,
+        entity_type: 'estimate'
       }
 
       vi.mocked(ApprovalService.getRequest).mockResolvedValue(mockApproval)
@@ -84,7 +98,7 @@ describe('Approval ID API', () => {
       // Assert
       expect(response.status).toBe(200)
       expect(data.id).toBe(mockApproval.id)
-      expect(data.entity_type).toBe('job_completion')
+      expect(data.entity_type).toBe('estimate')
       expect(ApprovalService.getRequest).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440001')
     })
 
@@ -109,12 +123,13 @@ describe('Approval ID API', () => {
   describe('PATCH /api/approvals/[id]', () => {
     it('should approve at level 1', async () => {
       // Arrange
-      const mockResult = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        level_1_status: 'approved',
-        level_1_decided_by: 'user-123',
-        level_1_decided_at: new Date().toISOString(),
-        level_1_notes: 'Looks good'
+      const mockResult: ApprovalRequest = {
+        ...baseApproval,
+        level1_status: 'approved',
+        level1_approver: 'user-123',
+        level1_at: new Date().toISOString(),
+        level1_notes: 'Looks good',
+        final_status: 'approved'
       }
 
       vi.mocked(ApprovalService.decideLevel1).mockResolvedValue(mockResult)
@@ -137,7 +152,7 @@ describe('Approval ID API', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data.level_1_status).toBe('approved')
+      expect(data.level1_status).toBe('approved')
       expect(ApprovalService.decideLevel1).toHaveBeenCalledWith(
         '550e8400-e29b-41d4-a716-446655440001',
         { approved: true, notes: 'Looks good' }
@@ -146,12 +161,13 @@ describe('Approval ID API', () => {
 
     it('should reject at level 1', async () => {
       // Arrange
-      const mockResult = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        level_1_status: 'rejected',
-        level_1_decided_by: 'user-123',
-        level_1_decided_at: new Date().toISOString(),
-        level_1_notes: 'Needs more work'
+      const mockResult: ApprovalRequest = {
+        ...baseApproval,
+        level1_status: 'rejected',
+        level1_approver: 'user-123',
+        level1_at: new Date().toISOString(),
+        level1_notes: 'Needs more work',
+        final_status: 'rejected'
       }
 
       vi.mocked(ApprovalService.decideLevel1).mockResolvedValue(mockResult)
@@ -174,17 +190,19 @@ describe('Approval ID API', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data.level_1_status).toBe('rejected')
+      expect(data.level1_status).toBe('rejected')
     })
 
     it('should approve at level 2', async () => {
       // Arrange
-      const mockResult = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        level_1_status: 'approved',
-        level_2_status: 'approved',
-        level_2_decided_by: 'user-123',
-        level_2_decided_at: new Date().toISOString()
+      const mockResult: ApprovalRequest = {
+        ...baseApproval,
+        level1_status: 'approved',
+        requires_level2: true,
+        level2_status: 'approved',
+        level2_approver: 'user-123',
+        level2_at: new Date().toISOString(),
+        final_status: 'approved'
       }
 
       vi.mocked(ApprovalService.decideLevel2).mockResolvedValue(mockResult)
@@ -206,7 +224,7 @@ describe('Approval ID API', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data.level_2_status).toBe('approved')
+      expect(data.level2_status).toBe('approved')
       expect(ApprovalService.decideLevel2).toHaveBeenCalledWith(
         '550e8400-e29b-41d4-a716-446655440001',
         { approved: true, notes: undefined }
@@ -215,13 +233,15 @@ describe('Approval ID API', () => {
 
     it('should reject at level 2', async () => {
       // Arrange
-      const mockResult = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        level_1_status: 'approved',
-        level_2_status: 'rejected',
-        level_2_decided_by: 'user-123',
-        level_2_decided_at: new Date().toISOString(),
-        level_2_notes: 'Safety concerns'
+      const mockResult: ApprovalRequest = {
+        ...baseApproval,
+        level1_status: 'approved',
+        requires_level2: true,
+        level2_status: 'rejected',
+        level2_approver: 'user-123',
+        level2_at: new Date().toISOString(),
+        level2_notes: 'Safety concerns',
+        final_status: 'rejected'
       }
 
       vi.mocked(ApprovalService.decideLevel2).mockResolvedValue(mockResult)
@@ -244,7 +264,7 @@ describe('Approval ID API', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data.level_2_status).toBe('rejected')
+      expect(data.level2_status).toBe('rejected')
     })
   })
 })

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CustomerListItem from '@/components/customers/customer-list-item'
-import type { Customer } from '@/types/database'
+import { createMockCustomer } from '@/test/helpers/mock-data'
 
 // Mock the hooks and router
 vi.mock('next/navigation', () => ({
@@ -37,7 +37,7 @@ vi.mock('date-fns', () => ({
   }),
 }))
 
-const mockCustomer: Customer = {
+const mockCustomer = createMockCustomer({
   id: 'customer-1',
   organization_id: 'org-1',
   name: 'John Doe',
@@ -60,7 +60,7 @@ const mockCustomer: Customer = {
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
   created_by: 'user-1',
-}
+})
 
 const mockProps = {
   customer: mockCustomer,

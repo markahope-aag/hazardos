@@ -40,6 +40,41 @@ vi.mock('@/lib/services/invoices-service', () => ({
 // Import the route handlers
 import { GET, POST } from '@/app/api/invoices/route'
 import { InvoicesService } from '@/lib/services/invoices-service'
+import type { Invoice } from '@/types/invoices'
+
+function buildMockInvoice(overrides: Partial<Invoice>): Invoice {
+  return {
+    id: 'invoice-1',
+    organization_id: 'org-123',
+    job_id: null,
+    customer_id: 'customer-123',
+    location_id: null,
+    invoice_number: 'INV-001',
+    status: 'draft',
+    invoice_date: new Date().toISOString(),
+    due_date: new Date().toISOString(),
+    subtotal: 1000,
+    tax_rate: 0,
+    tax_amount: 0,
+    discount_amount: 0,
+    total: 1000,
+    amount_paid: 0,
+    balance_due: 1000,
+    payment_terms: null,
+    notes: null,
+    sent_at: null,
+    sent_via: null,
+    viewed_at: null,
+    access_token: null,
+    access_token_expires_at: null,
+    qb_invoice_id: null,
+    qb_synced_at: null,
+    created_by: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    ...overrides
+  }
+}
 
 const mockProfile = {
   organization_id: 'org-123',
@@ -73,8 +108,8 @@ describe('Invoices API', () => {
     it('should return invoices for authenticated user', async () => {
       setupAuthenticatedUser()
 
-      const mockInvoices = [
-        {
+      const mockInvoices: Invoice[] = [
+        buildMockInvoice({
           id: '550e8400-e29b-41d4-a716-446655440001',
           invoice_number: 'INV-001',
           job_id: '550e8400-e29b-41d4-a716-446655440010',
@@ -82,12 +117,12 @@ describe('Invoices API', () => {
           status: 'draft',
           subtotal: 1000.00,
           tax_amount: 80.00,
-          total_amount: 1080.00,
-          issue_date: '2026-01-31',
+          total: 1080.00,
+          invoice_date: '2026-01-31',
           due_date: '2026-02-15',
           created_at: '2026-01-31T10:00:00Z'
-        },
-        {
+        }),
+        buildMockInvoice({
           id: '550e8400-e29b-41d4-a716-446655440002',
           invoice_number: 'INV-002',
           job_id: '550e8400-e29b-41d4-a716-446655440011',
@@ -95,11 +130,11 @@ describe('Invoices API', () => {
           status: 'sent',
           subtotal: 1500.00,
           tax_amount: 120.00,
-          total_amount: 1620.00,
-          issue_date: '2026-01-30',
+          total: 1620.00,
+          invoice_date: '2026-01-30',
           due_date: '2026-02-14',
           created_at: '2026-01-30T10:00:00Z'
-        }
+        })
       ]
 
       vi.mocked(InvoicesService.list).mockResolvedValue(mockInvoices)
@@ -171,14 +206,16 @@ describe('Invoices API', () => {
     it('should create a new invoice for authenticated user', async () => {
       setupAuthenticatedUser()
 
-      const mockCreatedInvoice = {
+      const mockCreatedInvoice = buildMockInvoice({
         id: '550e8400-e29b-41d4-a716-446655440001',
         invoice_number: 'INV-001',
-        ...validInvoiceData,
+        customer_id: validInvoiceData.customer_id,
+        due_date: validInvoiceData.due_date,
+        notes: validInvoiceData.notes,
         status: 'draft',
         organization_id: 'org-123',
         created_at: '2026-01-31T10:00:00Z'
-      }
+      })
 
       vi.mocked(InvoicesService.create).mockResolvedValue(mockCreatedInvoice)
 

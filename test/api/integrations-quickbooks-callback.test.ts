@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { GET } from '@/app/api/integrations/quickbooks/callback/route'
 import { QuickBooksService } from '@/lib/services/quickbooks-service'
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
@@ -102,7 +102,7 @@ describe('QuickBooks Callback API', () => {
   })
 
   it('should handle rate limiting', async () => {
-    const rateLimitResponse = new Response('Rate limited', { status: 429 })
+    const rateLimitResponse = new NextResponse('Rate limited', { status: 429 })
     vi.mocked(applyUnifiedRateLimit).mockResolvedValue(rateLimitResponse)
 
     const request = new NextRequest('http://localhost/api/integrations/quickbooks/callback?code=test-code&state=org-123:valid-state&realmId=realm-123')
@@ -130,7 +130,8 @@ describe('QuickBooks Callback API', () => {
   it('should handle token storage errors', async () => {
     const mockTokens = {
       access_token: 'test-access-token',
-      refresh_token: 'test-refresh-token'
+      refresh_token: 'test-refresh-token',
+      expires_in: 3600
     }
 
     vi.mocked(QuickBooksService.exchangeCodeForTokens).mockResolvedValue(mockTokens)
@@ -161,7 +162,8 @@ describe('QuickBooks Callback API', () => {
   it('should extract organization ID from state correctly', async () => {
     const mockTokens = {
       access_token: 'test-access-token',
-      refresh_token: 'test-refresh-token'
+      refresh_token: 'test-refresh-token',
+      expires_in: 3600
     }
 
     vi.mocked(QuickBooksService.exchangeCodeForTokens).mockResolvedValue(mockTokens)

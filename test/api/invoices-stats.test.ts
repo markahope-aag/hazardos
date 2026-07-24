@@ -62,14 +62,12 @@ describe('Invoice Stats API', () => {
       setupAuthenticatedUser()
 
       const mockStats = {
-        total_invoices: 100,
-        total_amount: 250000,
-        paid_amount: 200000,
-        outstanding_amount: 50000,
-        overdue_amount: 10000,
+        total_outstanding: 50000,
+        total_overdue: 10000,
         draft_count: 5,
         sent_count: 15,
-        paid_count: 80,
+        overdue_count: 3,
+        paid_this_month: 80,
       }
       vi.mocked(InvoicesService.getStats).mockResolvedValue(mockStats)
 
@@ -86,10 +84,12 @@ describe('Invoice Stats API', () => {
       setupAuthenticatedUser()
 
       const emptyStats = {
-        total_invoices: 0,
-        total_amount: 0,
-        paid_amount: 0,
-        outstanding_amount: 0,
+        total_outstanding: 0,
+        total_overdue: 0,
+        draft_count: 0,
+        sent_count: 0,
+        overdue_count: 0,
+        paid_this_month: 0,
       }
       vi.mocked(InvoicesService.getStats).mockResolvedValue(emptyStats)
 
@@ -98,25 +98,28 @@ describe('Invoice Stats API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.total_invoices).toBe(0)
+      expect(data.total_outstanding).toBe(0)
     })
 
-    it('should return stats with payment rate calculation', async () => {
+    it('should return stats with paid this month count', async () => {
       setupAuthenticatedUser()
 
-      const statsWithRate = {
-        total_invoices: 50,
-        paid_count: 40,
-        payment_rate: 80,
+      const statsWithPaid = {
+        total_outstanding: 5000,
+        total_overdue: 1000,
+        draft_count: 2,
+        sent_count: 8,
+        overdue_count: 1,
+        paid_this_month: 40,
       }
-      vi.mocked(InvoicesService.getStats).mockResolvedValue(statsWithRate)
+      vi.mocked(InvoicesService.getStats).mockResolvedValue(statsWithPaid)
 
       const request = new NextRequest('http://localhost:3000/api/invoices/stats')
       const response = await GET(request)
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.payment_rate).toBe(80)
+      expect(data.paid_this_month).toBe(40)
     })
   })
 })

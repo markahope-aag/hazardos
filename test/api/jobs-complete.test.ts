@@ -2,6 +2,50 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST, PATCH } from '@/app/api/jobs/[id]/complete/route'
 import { JobCompletionService } from '@/lib/services/job-completion-service'
+import type { JobCompletion } from '@/types/job-completion'
+
+const createMockCompletion = (overrides: Partial<JobCompletion> = {}): JobCompletion => ({
+  id: 'completion-1',
+  job_id: 'job-123',
+  status: 'draft',
+  estimated_hours: 40,
+  estimated_material_cost: null,
+  estimated_total: null,
+  actual_hours: null,
+  actual_material_cost: null,
+  actual_labor_cost: null,
+  actual_total: null,
+  hours_variance: null,
+  hours_variance_percent: null,
+  cost_variance: null,
+  cost_variance_percent: null,
+  field_notes: 'Work completed successfully',
+  issues_encountered: null,
+  recommendations: null,
+  submitted_at: null,
+  submitted_by: null,
+  reviewed_at: null,
+  reviewed_by: null,
+  review_notes: null,
+  rejection_reason: null,
+  customer_signed: false,
+  customer_signed_at: null,
+  customer_signature_name: null,
+  customer_signature_data: null,
+  created_at: '2026-03-01T10:00:00Z',
+  updated_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
+
+const createMockCompletionSummary = () => ({
+  timeEntries: [],
+  materialUsage: [],
+  equipment: [],
+  photos: [],
+  checklist: { safety: [], quality: [], cleanup: [], documentation: [], custom: [] },
+  completion: null,
+  checklistProgress: { completed: 0, required: 0, total: 0 }
+})
 
 // Mock dependencies
 const mockSupabaseClient = {
@@ -59,12 +103,7 @@ describe('Job Completion API', () => {
         })
       } as any)
 
-      const mockCompletion = {
-        id: 'completion-1',
-        job_id: 'job-123',
-        field_notes: 'Work completed successfully',
-        estimated_hours: 40
-      }
+      const mockCompletion = createMockCompletion()
 
       vi.mocked(JobCompletionService.getCompletion).mockResolvedValue(mockCompletion)
 
@@ -93,11 +132,7 @@ describe('Job Completion API', () => {
         })
       } as any)
 
-      const mockSummary = {
-        total_hours: 40,
-        total_cost: 5000,
-        completion_percentage: 100
-      }
+      const mockSummary = createMockCompletionSummary()
 
       vi.mocked(JobCompletionService.getCompletionSummary).mockResolvedValue(mockSummary)
 
@@ -128,11 +163,7 @@ describe('Job Completion API', () => {
         })
       } as any)
 
-      const mockCompletion = {
-        id: 'completion-1',
-        job_id: 'job-123',
-        estimated_hours: 40
-      }
+      const mockCompletion = createMockCompletion()
 
       vi.mocked(JobCompletionService.createCompletion).mockResolvedValue(mockCompletion)
 
@@ -171,11 +202,7 @@ describe('Job Completion API', () => {
         })
       } as any)
 
-      const mockCompletion = {
-        id: 'completion-1',
-        job_id: 'job-123',
-        status: 'submitted'
-      }
+      const mockCompletion = createMockCompletion({ status: 'submitted' })
 
       vi.mocked(JobCompletionService.submitCompletion).mockResolvedValue(mockCompletion)
 
@@ -215,10 +242,7 @@ describe('Job Completion API', () => {
         })
       } as any)
 
-      const mockUpdated = {
-        id: 'completion-1',
-        field_notes: 'Updated notes'
-      }
+      const mockUpdated = createMockCompletion({ field_notes: 'Updated notes' })
 
       vi.mocked(JobCompletionService.updateCompletion).mockResolvedValue(mockUpdated)
 

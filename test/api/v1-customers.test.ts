@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { GET, POST } from '@/app/api/v1/customers/route'
+import type { ApiKeyAuthContext } from '@/lib/middleware/api-key-auth'
+
+type RouteHandler = (request: NextRequest, context: ApiKeyAuthContext) => Promise<NextResponse>
+type ThenResolve = (result: { data: unknown[] | null; count: number | null; error: unknown }) => void
+
+const typedGET = GET as unknown as RouteHandler
+const typedPOST = POST as unknown as RouteHandler
 
 // Create a chainable query builder mock
 function createQueryBuilder() {
@@ -16,7 +23,7 @@ function createQueryBuilder() {
       }))
     })),
     // Await support - when awaited, return the mock data
-    then: vi.fn((resolve) => {
+    then: vi.fn((resolve: ThenResolve) => {
       resolve({
         data: [],
         count: 0,
@@ -60,9 +67,18 @@ describe('V1 Customers API', () => {
     vi.clearAllMocks()
   })
 
-  const mockContext = {
+  const mockContext: ApiKeyAuthContext = {
     organizationId: 'org-123',
-    apiKey: { id: 'key-1', scopes: ['customers:read', 'customers:write'] }
+    apiKey: {
+      id: 'key-1',
+      organization_id: 'org-123',
+      name: 'Test Key',
+      key_prefix: 'hz_test',
+      scopes: ['customers:read', 'customers:write'],
+      rate_limit: 1000,
+      is_active: true,
+      created_at: '2026-03-01T10:00:00Z'
+    }
   }
 
   describe('GET /api/v1/customers', () => {
@@ -76,7 +92,7 @@ describe('V1 Customers API', () => {
       ]
 
       const builder = createQueryBuilder()
-      builder.then.mockImplementation((resolve) => {
+      builder.then.mockImplementation((resolve: ThenResolve) => {
         resolve({
           data: mockCustomers,
           count: 25,
@@ -89,7 +105,7 @@ describe('V1 Customers API', () => {
       const request = new NextRequest('http://localhost:3000/api/v1/customers?limit=2&offset=0')
 
       // Act
-      const response = await GET(request, mockContext)
+      const response = await typedGET(request, mockContext)
       const data = await response.json()
 
       // Assert
@@ -104,7 +120,7 @@ describe('V1 Customers API', () => {
       vi.mocked(ApiKeyService.hasScope).mockReturnValue(true)
 
       const builder = createQueryBuilder()
-      builder.then.mockImplementation((resolve) => {
+      builder.then.mockImplementation((resolve: ThenResolve) => {
         resolve({
           data: [{ id: 'cust-1', status: 'inactive' }],
           count: 1,
@@ -117,7 +133,7 @@ describe('V1 Customers API', () => {
       const request = new NextRequest('http://localhost:3000/api/v1/customers?status=inactive')
 
       // Act
-      const response = await GET(request, mockContext)
+      const response = await typedGET(request, mockContext)
       const data = await response.json()
 
       // Assert
@@ -130,7 +146,7 @@ describe('V1 Customers API', () => {
       vi.mocked(ApiKeyService.hasScope).mockReturnValue(true)
 
       const builder = createQueryBuilder()
-      builder.then.mockImplementation((resolve) => {
+      builder.then.mockImplementation((resolve: ThenResolve) => {
         resolve({
           data: [{ id: 'cust-1', first_name: 'John' }],
           count: 1,
@@ -143,7 +159,7 @@ describe('V1 Customers API', () => {
       const request = new NextRequest('http://localhost:3000/api/v1/customers?search=John')
 
       // Act
-      const response = await GET(request, mockContext)
+      const response = await typedGET(request, mockContext)
 
       // Assert
       expect(response.status).toBe(200)
@@ -159,7 +175,7 @@ describe('V1 Customers API', () => {
       const request = new NextRequest('http://localhost:3000/api/v1/customers')
 
       // Act
-      const response = await GET(request, mockContext)
+      const response = await typedGET(request, mockContext)
 
       // Assert
       expect(response.status).toBe(403)
@@ -206,7 +222,7 @@ describe('V1 Customers API', () => {
       })
 
       // Act
-      const response = await POST(request, mockContext)
+      const response = await typedPOST(request, mockContext)
       const data = await response.json()
 
       // Assert
@@ -231,7 +247,7 @@ describe('V1 Customers API', () => {
       })
 
       // Act
-      const response = await POST(request, mockContext)
+      const response = await typedPOST(request, mockContext)
 
       // Assert
       expect(response.status).toBe(400)
@@ -254,7 +270,7 @@ describe('V1 Customers API', () => {
       })
 
       // Act
-      const response = await POST(request, mockContext)
+      const response = await typedPOST(request, mockContext)
 
       // Assert
       expect(response.status).toBe(403)

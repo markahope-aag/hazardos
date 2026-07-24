@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/onboard/complete/route'
+import { logger } from '@/lib/utils/logger'
+
+vi.spyOn(logger, 'error').mockImplementation(() => {})
+vi.spyOn(logger, 'warn').mockImplementation(() => {})
+vi.spyOn(logger, 'info').mockImplementation(() => {})
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -62,11 +67,7 @@ vi.mock('@/lib/utils/api-handler', async (importOriginal) => {
           return await handler(request, mockContext, body, {})
         } catch (error) {
           // Convert errors to secure error responses
-          return errorHandler.createSecureErrorResponse(error, {
-            error: vi.fn(),
-            warn: vi.fn(),
-            info: vi.fn()
-          })
+          return errorHandler.createSecureErrorResponse(error, logger)
         }
       }
     }

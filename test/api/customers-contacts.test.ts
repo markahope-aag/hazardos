@@ -32,8 +32,24 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 }))
 
 import { ContactsService } from '@/lib/services/contacts-service'
+import type { CustomerContact } from '@/types/contacts'
 
 const CUSTOMER_UUID = '550e8400-e29b-41d4-a716-446655440001'
+
+function buildMockContact(overrides: Partial<CustomerContact>): CustomerContact {
+  return {
+    id: 'contact-1',
+    organization_id: 'org-123',
+    customer_id: CUSTOMER_UUID,
+    name: 'John Doe',
+    email: 'john@example.com',
+    role: 'general',
+    is_primary: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    ...overrides
+  }
+}
 
 describe('Customer Contacts API', () => {
   const mockProfile = {
@@ -67,9 +83,9 @@ describe('Customer Contacts API', () => {
     it('should return list of contacts for a customer', async () => {
       setupAuthenticatedUser()
 
-      const mockContacts = [
-        { id: 'contact-1', customer_id: CUSTOMER_UUID, name: 'John Doe', email: 'john@example.com', is_primary: true },
-        { id: 'contact-2', customer_id: CUSTOMER_UUID, name: 'Jane Smith', email: 'jane@example.com', is_primary: false },
+      const mockContacts: CustomerContact[] = [
+        buildMockContact({ id: 'contact-1', name: 'John Doe', email: 'john@example.com', is_primary: true }),
+        buildMockContact({ id: 'contact-2', name: 'Jane Smith', email: 'jane@example.com', is_primary: false }),
       ]
       vi.mocked(ContactsService.list).mockResolvedValue(mockContacts)
 
@@ -100,14 +116,13 @@ describe('Customer Contacts API', () => {
     it('should create a new contact for a customer', async () => {
       setupAuthenticatedUser()
 
-      const newContact = {
+      const newContact: CustomerContact = buildMockContact({
         id: 'contact-new',
-        customer_id: CUSTOMER_UUID,
         name: 'New Contact',
         email: 'new@example.com',
         phone: '555-1234',
         is_primary: false,
-      }
+      })
       vi.mocked(ContactsService.create).mockResolvedValue(newContact)
 
       const request = new NextRequest(`http://localhost:3000/api/customers/${CUSTOMER_UUID}/contacts`, {
@@ -138,13 +153,12 @@ describe('Customer Contacts API', () => {
     it('should create primary contact', async () => {
       setupAuthenticatedUser()
 
-      const primaryContact = {
+      const primaryContact: CustomerContact = buildMockContact({
         id: 'contact-primary',
-        customer_id: CUSTOMER_UUID,
         name: 'Primary Contact',
         email: 'primary@example.com',
         is_primary: true,
-      }
+      })
       vi.mocked(ContactsService.create).mockResolvedValue(primaryContact)
 
       const request = new NextRequest(`http://localhost:3000/api/customers/${CUSTOMER_UUID}/contacts`, {
@@ -167,9 +181,8 @@ describe('Customer Contacts API', () => {
     it('should create contact with full details', async () => {
       setupAuthenticatedUser()
 
-      const fullContact = {
+      const fullContact: CustomerContact = buildMockContact({
         id: 'contact-full',
-        customer_id: CUSTOMER_UUID,
         name: 'Full Contact',
         title: 'Property Manager',
         email: 'full@example.com',
@@ -178,7 +191,7 @@ describe('Customer Contacts API', () => {
         role: 'billing',
         preferred_contact_method: 'email',
         notes: 'Prefers morning calls',
-      }
+      })
       vi.mocked(ContactsService.create).mockResolvedValue(fullContact)
 
       const request = new NextRequest(`http://localhost:3000/api/customers/${CUSTOMER_UUID}/contacts`, {

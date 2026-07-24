@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 // Mock dependencies
 vi.mock('@/lib/middleware/unified-rate-limit', () => ({
@@ -255,7 +255,7 @@ describe('SMS Opt-in API', () => {
 
   it('should handle rate limiting', async () => {
     vi.mocked(applyUnifiedRateLimit).mockResolvedValue(
-      new Response('Rate Limited', { status: 429 })
+      new NextResponse('Rate Limited', { status: 429 })
     )
 
     const request = new NextRequest('http://localhost/api/sms/opt-in', {
