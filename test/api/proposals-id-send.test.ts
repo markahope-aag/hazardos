@@ -121,6 +121,36 @@ describe('Proposals Send API', () => {
     expect(data.portal_url).toBeDefined()
   })
 
+  it('should return 403 for a viewer (cannot email proposals + signed credential links)', async () => {
+    setupAuthenticatedUser()
+
+    vi.mocked(mockSupabaseClient.from).mockImplementation((table: string) => {
+      if (table === 'profiles') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { organization_id: 'org-123', role: 'viewer' },
+                error: null,
+              }),
+            }),
+          }),
+        } as any
+      }
+      return mockSupabaseClient as any
+    })
+
+    const request = new NextRequest('http://localhost:3000/api/proposals/550e8400-e29b-41d4-a716-446655440000/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipient_email: 'attacker@example.com' }),
+    })
+
+    const response = await POST(request, { params: Promise.resolve({ id: '550e8400-e29b-41d4-a716-446655440000' }) })
+
+    expect(response.status).toBe(403)
+  })
+
   it('should return 401 for unauthenticated user', async () => {
     vi.mocked(mockSupabaseClient.auth.getUser).mockResolvedValue({
       data: { user: null },
