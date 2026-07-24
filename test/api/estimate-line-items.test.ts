@@ -2,8 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST, PUT } from '@/app/api/estimates/[id]/line-items/route'
 
+type MockFn = ReturnType<typeof vi.fn>
+
+interface MockQueryBuilder {
+  select?: MockFn
+  insert?: MockFn
+  update?: MockFn
+}
+
 const mockSupabaseClient = {
-  from: vi.fn(() => ({
+  from: vi.fn((_table: string): MockQueryBuilder => ({
     select: vi.fn(() => ({
       eq: vi.fn(() => ({
         single: vi.fn(() => Promise.resolve({ data: null, error: null })),
@@ -109,7 +117,7 @@ describe('Estimate Line Items API', () => {
             }))
           }
         }
-        return mockSupabaseClient.from()
+        return mockSupabaseClient.from(table)
       })
 
       const request = new NextRequest('http://localhost/api/estimates/estimate-123/line-items')
@@ -136,7 +144,7 @@ describe('Estimate Line Items API', () => {
             }))
           }
         }
-        return mockSupabaseClient.from()
+        return mockSupabaseClient.from(table)
       })
 
       const request = new NextRequest('http://localhost/api/estimates/estimate-123/line-items')
@@ -256,7 +264,7 @@ describe('Estimate Line Items API', () => {
             }))
           }
         }
-        return mockSupabaseClient.from()
+        return mockSupabaseClient.from(table)
       })
 
       const request = new NextRequest('http://localhost/api/estimates/estimate-123/line-items', {

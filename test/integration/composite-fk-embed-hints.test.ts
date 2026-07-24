@@ -173,9 +173,28 @@ describe.skipIf(!canRunLiveDbTests)('composite-FK embed hints', () => {
         job:jobs!work_orders_job_id_org_fkey(id, job_number, name, job_address, job_city, job_state, scheduled_start_date, customer:customers!customer_id(id, name, company_name))
       `)
       .eq('organization_id', orgId)
+      .overrideTypes<Array<{
+        id: string
+        work_order_number: string
+        status: string
+        notes: string | null
+        issued_at: string | null
+        created_at: string
+        updated_at: string
+        job: {
+          id: string
+          job_number: string
+          name: string
+          job_address: string | null
+          job_city: string | null
+          job_state: string | null
+          scheduled_start_date: string | null
+          customer: { id: string; name: string; company_name: string | null } | null
+        } | null
+      }>, { merge: false }>()
     expect(error).toBeNull()
     expect(data).toHaveLength(1)
-    expect(data![0].job.id).toBe(jobId)
+    expect(data![0].job!.id).toBe(jobId)
   })
 
   it('work_orders detail embed (app/api/work-orders/[id]/route.ts)', async () => {
@@ -185,9 +204,13 @@ describe.skipIf(!canRunLiveDbTests)('composite-FK embed hints', () => {
       .select(`*, job:jobs!work_orders_job_id_org_fkey(id, job_number, name), vehicles:work_order_vehicles(*)`)
       .eq('id', wo!.id)
       .eq('organization_id', orgId)
+      .returns<Array<{
+        job: { id: string; job_number: string; name: string } | null
+        vehicles: unknown[]
+      }>>()
       .single()
     expect(error).toBeNull()
-    expect(data!.job.id).toBe(jobId)
+    expect(data!.job!.id).toBe(jobId)
   })
 
   it('estimate attachments embed (app/api/estimates/[id]/attachments/route.ts)', async () => {
@@ -198,9 +221,21 @@ describe.skipIf(!canRunLiveDbTests)('composite-FK embed hints', () => {
         document:organization_documents!estimate_attached_documents_document_id_org_fkey(id, display_name, file_name, category, expires_on, document_number)
       `)
       .eq('estimate_id', estimateId)
+      .overrideTypes<Array<{
+        document_id: string
+        attached_at: string
+        document: {
+          id: string
+          display_name: string | null
+          file_name: string
+          category: string | null
+          expires_on: string | null
+          document_number: string | null
+        } | null
+      }>, { merge: false }>()
     expect(error).toBeNull()
     expect(data).toHaveLength(1)
-    expect(data![0].document.id).toBe(orgDocumentId)
+    expect(data![0].document!.id).toBe(orgDocumentId)
   })
 
   it('invoice attachments embed (app/api/invoices/[id]/attachments/route.ts)', async () => {
@@ -211,9 +246,22 @@ describe.skipIf(!canRunLiveDbTests)('composite-FK embed hints', () => {
         document:job_documents!invoice_attached_documents_job_document_id_org_fkey(id, file_name, category, mime_type, size_bytes, uploaded_at, notes)
       `)
       .eq('invoice_id', invoiceId)
+      .overrideTypes<Array<{
+        job_document_id: string
+        attached_at: string
+        document: {
+          id: string
+          file_name: string
+          category: string | null
+          mime_type: string | null
+          size_bytes: number | null
+          uploaded_at: string | null
+          notes: string | null
+        } | null
+      }>, { merge: false }>()
     expect(error).toBeNull()
     expect(data).toHaveLength(1)
-    expect(data![0].document.id).toBe(jobDocumentId)
+    expect(data![0].document!.id).toBe(jobDocumentId)
   })
 
   it('property contact history embed (lib/supabase/properties.ts)', async () => {
@@ -223,9 +271,32 @@ describe.skipIf(!canRunLiveDbTests)('composite-FK embed hints', () => {
         'id, organization_id, property_id, contact_id, role, is_current, moved_in_date, moved_out_date, notes, created_by, created_at, updated_at, contact:customers!property_contacts_contact_id_org_fkey(id, name, first_name, last_name, email, phone, mobile_phone)',
       )
       .eq('property_id', propertyId)
+      .overrideTypes<Array<{
+        id: string
+        organization_id: string
+        property_id: string
+        contact_id: string
+        role: string
+        is_current: boolean
+        moved_in_date: string | null
+        moved_out_date: string | null
+        notes: string | null
+        created_by: string | null
+        created_at: string
+        updated_at: string
+        contact: {
+          id: string
+          name: string
+          first_name: string | null
+          last_name: string | null
+          email: string | null
+          phone: string | null
+          mobile_phone: string | null
+        } | null
+      }>, { merge: false }>()
     expect(error).toBeNull()
     expect(data).toHaveLength(1)
-    expect(data![0].contact.id).toBe(customerId)
+    expect(data![0].contact!.id).toBe(customerId)
   })
 
   it('proposal-send credential attachment embed (app/api/proposals/[id]/send/route.ts)', async () => {
@@ -233,9 +304,17 @@ describe.skipIf(!canRunLiveDbTests)('composite-FK embed hints', () => {
       .from('estimate_attached_documents')
       .select(`document:organization_documents!estimate_attached_documents_document_id_org_fkey(id, display_name, file_name, storage_path)`)
       .eq('estimate_id', estimateId)
+      .overrideTypes<Array<{
+        document: {
+          id: string
+          display_name: string | null
+          file_name: string
+          storage_path: string
+        } | null
+      }>, { merge: false }>()
     expect(error).toBeNull()
     expect(data).toHaveLength(1)
-    expect(data![0].document.id).toBe(orgDocumentId)
+    expect(data![0].document!.id).toBe(orgDocumentId)
   })
 
   it('invoice-delivery attachment embed (lib/services/invoice-delivery-service.ts)', async () => {
@@ -243,8 +322,16 @@ describe.skipIf(!canRunLiveDbTests)('composite-FK embed hints', () => {
       .from('invoice_attached_documents')
       .select(`document:job_documents!invoice_attached_documents_job_document_id_org_fkey(id, file_name, mime_type, storage_path)`)
       .eq('invoice_id', invoiceId)
+      .overrideTypes<Array<{
+        document: {
+          id: string
+          file_name: string
+          mime_type: string | null
+          storage_path: string
+        } | null
+      }>, { merge: false }>()
     expect(error).toBeNull()
     expect(data).toHaveLength(1)
-    expect(data![0].document.id).toBe(jobDocumentId)
+    expect(data![0].document!.id).toBe(jobDocumentId)
   })
 })

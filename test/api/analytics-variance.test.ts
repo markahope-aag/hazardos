@@ -27,6 +27,7 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 }))
 
 import { JobCompletionService } from '@/lib/services/job-completion-service'
+import type { VarianceAnalysis, VarianceSummary } from '@/types/job-completion'
 
 describe('Analytics Variance API', () => {
   beforeEach(() => {
@@ -57,13 +58,22 @@ describe('Analytics Variance API', () => {
         })
       } as any)
 
-      const mockVariance = [
+      const mockVariance: VarianceAnalysis[] = [
         {
           job_id: 'job-1',
+          job_number: 'JOB-001',
+          job_name: 'Asbestos Removal',
+          customer_name: 'Acme Corp',
+          completion_date: '2026-01-15',
+          estimated_hours: 40,
+          actual_hours: 45,
+          hours_variance: 5,
+          hours_variance_percent: 12.5,
           estimated_cost: 10000,
           actual_cost: 12000,
-          variance: 2000,
-          variance_percentage: 20
+          cost_variance: 2000,
+          cost_variance_percent: 20,
+          materials_summary: []
         }
       ]
 
@@ -78,7 +88,7 @@ describe('Analytics Variance API', () => {
       // Assert
       expect(response.status).toBe(200)
       expect(data).toHaveLength(1)
-      expect(data[0].variance).toBe(2000)
+      expect(data[0].cost_variance).toBe(2000)
       expect(JobCompletionService.getVarianceAnalysis).toHaveBeenCalled()
     })
 
@@ -100,10 +110,15 @@ describe('Analytics Variance API', () => {
         })
       } as any)
 
-      const mockSummary = {
+      const mockSummary: VarianceSummary = {
         total_jobs: 25,
-        avg_variance: 15.5,
-        total_variance: 5000
+        over_budget_count: 15,
+        under_budget_count: 8,
+        on_target_count: 2,
+        avg_hours_variance: 10.2,
+        avg_cost_variance: 15.5,
+        total_hours_variance: 250,
+        total_cost_variance: 5000
       }
 
       vi.mocked(JobCompletionService.getVarianceSummary).mockResolvedValue(mockSummary)
@@ -117,7 +132,7 @@ describe('Analytics Variance API', () => {
       // Assert
       expect(response.status).toBe(200)
       expect(data.total_jobs).toBe(25)
-      expect(data.avg_variance).toBe(15.5)
+      expect(data.avg_cost_variance).toBe(15.5)
       expect(JobCompletionService.getVarianceSummary).toHaveBeenCalled()
     })
 

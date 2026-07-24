@@ -40,6 +40,7 @@ import { POST as disconnect } from '@/app/api/integrations/quickbooks/disconnect
 import { POST as syncCustomer } from '@/app/api/integrations/quickbooks/sync/customer/route'
 import { POST as syncInvoice } from '@/app/api/integrations/quickbooks/sync/invoice/route'
 import { QuickBooksService } from '@/lib/services/quickbooks-service'
+import type { QuickBooksConnectionStatus } from '@/types/integrations'
 
 describe('Integrations QuickBooks API', () => {
   beforeEach(() => {
@@ -98,11 +99,11 @@ describe('Integrations QuickBooks API', () => {
     it('should return connection status for authenticated user', async () => {
       setupAuthenticatedUser()
 
-      const mockStatus = {
-        connected: true,
+      const mockStatus: QuickBooksConnectionStatus = {
+        is_connected: true,
         company_name: 'Test Company QB',
-        last_sync: '2026-01-31T10:00:00Z',
-        access_token_expires_at: '2026-02-28T10:00:00Z'
+        last_sync_at: '2026-01-31T10:00:00Z',
+        token_expires_at: '2026-02-28T10:00:00Z'
       }
 
       vi.mocked(QuickBooksService.getConnectionStatus).mockResolvedValue(mockStatus)

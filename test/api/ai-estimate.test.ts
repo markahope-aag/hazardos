@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/ai/estimate/route'
 import { AIEstimateService } from '@/lib/services/ai-estimate-service'
+import type { EstimateSuggestion } from '@/types/integrations'
 
 // Mock dependencies
 const mockSupabaseClient = {
@@ -58,16 +59,19 @@ describe('POST /api/ai/estimate', () => {
       })
     } as any)
 
-    const mockEstimate = {
-      estimated_cost: 5000,
-      estimated_duration_hours: 40,
-      line_items: [
-        { description: 'Asbestos removal', quantity: 1, unit_price: 3000, total: 3000 },
-        { description: 'Disposal fees', quantity: 1, unit_price: 500, total: 500 },
-        { description: 'Labor', quantity: 40, unit_price: 37.5, total: 1500 }
+    const mockEstimate: EstimateSuggestion = {
+      id: 'estimate-suggestion-1',
+      organization_id: 'org-123',
+      hazard_types: ['asbestos'],
+      suggested_items: [
+        { description: 'Asbestos removal', quantity: 1, unit_price: 3000, category: 'labor' },
+        { description: 'Disposal fees', quantity: 1, unit_price: 500, category: 'disposal' },
+        { description: 'Labor', quantity: 40, unit_price: 37.5, category: 'labor' }
       ],
-      notes: 'Estimate based on similar asbestos abatement projects',
-      confidence: 0.8
+      total_amount: 5000,
+      confidence_score: 0.8,
+      reasoning: 'Estimate based on similar asbestos abatement projects',
+      created_at: '2024-01-01T00:00:00Z'
     }
 
     vi.mocked(AIEstimateService.suggestEstimate).mockResolvedValue(mockEstimate)
@@ -121,12 +125,15 @@ describe('POST /api/ai/estimate', () => {
       })
     } as any)
 
-    const mockEstimate = {
-      estimated_cost: 12000,
-      estimated_duration_hours: 80,
-      line_items: [],
-      notes: 'Multi-hazard remediation project',
-      confidence: 0.75
+    const mockEstimate: EstimateSuggestion = {
+      id: 'estimate-suggestion-2',
+      organization_id: 'org-123',
+      hazard_types: ['asbestos', 'mold', 'lead'],
+      suggested_items: [],
+      total_amount: 12000,
+      confidence_score: 0.75,
+      reasoning: 'Multi-hazard remediation project',
+      created_at: '2024-01-01T00:00:00Z'
     }
 
     vi.mocked(AIEstimateService.suggestEstimate).mockResolvedValue(mockEstimate)
@@ -172,12 +179,15 @@ describe('POST /api/ai/estimate', () => {
       })
     } as any)
 
-    const mockEstimate = {
-      estimated_cost: 3000,
-      estimated_duration_hours: 24,
-      line_items: [],
-      notes: 'Basic estimate - more details needed for accuracy',
-      confidence: 0.6
+    const mockEstimate: EstimateSuggestion = {
+      id: 'estimate-suggestion-3',
+      organization_id: 'org-123',
+      hazard_types: ['mold'],
+      suggested_items: [],
+      total_amount: 3000,
+      confidence_score: 0.6,
+      reasoning: 'Basic estimate - more details needed for accuracy',
+      created_at: '2024-01-01T00:00:00Z'
     }
 
     vi.mocked(AIEstimateService.suggestEstimate).mockResolvedValue(mockEstimate)

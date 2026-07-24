@@ -36,6 +36,59 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 // Import the route handlers
 import { GET, POST } from '@/app/api/jobs/route'
 import { JobsService } from '@/lib/services/jobs-service'
+import type { Job } from '@/types/jobs'
+
+const createMockJob = (overrides: Partial<Job> = {}): Job => ({
+  id: 'job-1',
+  organization_id: 'org-123',
+  proposal_id: null,
+  estimate_id: null,
+  customer_id: 'customer-1',
+  site_survey_id: null,
+  job_number: 'JOB-001',
+  name: null,
+  status: 'scheduled',
+  hazard_types: ['asbestos'],
+  scheduled_start_date: '2026-02-01',
+  scheduled_start_time: null,
+  scheduled_end_date: null,
+  scheduled_end_time: null,
+  estimated_duration_hours: null,
+  estimated_labor_hours: null,
+  actual_labor_hours: null,
+  actual_start_at: null,
+  actual_end_at: null,
+  job_address: '123 Test St',
+  job_city: null,
+  job_state: null,
+  job_zip: null,
+  job_latitude: null,
+  job_longitude: null,
+  access_notes: null,
+  gate_code: null,
+  lockbox_code: null,
+  contact_onsite_name: null,
+  contact_onsite_phone: null,
+  contract_amount: null,
+  change_order_amount: 0,
+  final_amount: null,
+  completion_notes: null,
+  completion_photos: [],
+  customer_signed_off: false,
+  customer_signoff_at: null,
+  customer_signoff_name: null,
+  inspection_required: false,
+  inspection_passed: null,
+  inspection_date: null,
+  inspection_notes: null,
+  internal_notes: null,
+  special_instructions: null,
+  location_id: null,
+  created_by: null,
+  created_at: '2026-01-31T10:00:00Z',
+  updated_at: '2026-01-31T10:00:00Z',
+  ...overrides
+})
 
 describe('Jobs API', () => {
   beforeEach(() => {
@@ -80,7 +133,7 @@ describe('Jobs API', () => {
 
       // Mock jobs data
       const mockJobs = [
-        {
+        createMockJob({
           id: 'job-1',
           job_number: 'JOB-001',
           customer_id: 'customer-1',
@@ -88,8 +141,8 @@ describe('Jobs API', () => {
           status: 'scheduled',
           scheduled_start_date: '2026-02-01',
           created_at: '2026-01-31T10:00:00Z'
-        },
-        {
+        }),
+        createMockJob({
           id: 'job-2',
           job_number: 'JOB-002',
           customer_id: 'customer-2',
@@ -97,10 +150,11 @@ describe('Jobs API', () => {
           status: 'in_progress',
           scheduled_start_date: '2026-02-02',
           created_at: '2026-01-31T11:00:00Z'
-        }
+        })
       ]
+      const mockJobsResult = { jobs: mockJobs, total: mockJobs.length, limit: 50, offset: 0 }
 
-      vi.mocked(JobsService.list).mockResolvedValue(mockJobs)
+      vi.mocked(JobsService.list).mockResolvedValue(mockJobsResult)
 
       // Create request
       const request = new NextRequest('http://localhost:3000/api/jobs')
@@ -111,7 +165,7 @@ describe('Jobs API', () => {
 
       // Assertions
       expect(response.status).toBe(200)
-      expect(data).toEqual(mockJobs)
+      expect(data).toEqual(mockJobsResult)
       expect(JobsService.list).toHaveBeenCalledWith({
         status: undefined,
         customer_id: undefined,
@@ -136,7 +190,7 @@ describe('Jobs API', () => {
     it('should handle query parameters for filtering', async () => {
       setupAuthenticatedUser()
 
-      vi.mocked(JobsService.list).mockResolvedValue([])
+      vi.mocked(JobsService.list).mockResolvedValue({ jobs: [], total: 0, limit: 50, offset: 0 })
 
       // Create request with query parameters
       const request = new NextRequest('http://localhost:3000/api/jobs?status=scheduled&customer_id=customer-1')
@@ -188,13 +242,20 @@ describe('Jobs API', () => {
     it('should create a new job for authenticated user', async () => {
       setupAuthenticatedUser()
 
-      const mockCreatedJob = {
+      const mockCreatedJob = createMockJob({
         id: '550e8400-e29b-41d4-a716-446655440001',
         job_number: 'JOB-001',
-        ...validJobData,
+        customer_id: validJobData.customer_id,
+        name: validJobData.name,
+        scheduled_start_date: validJobData.scheduled_start_date,
+        job_address: validJobData.job_address,
+        job_city: validJobData.job_city,
+        job_state: validJobData.job_state,
+        job_zip: validJobData.job_zip,
+        hazard_types: validJobData.hazard_types,
         status: 'scheduled',
         created_at: '2026-01-31T10:00:00Z'
-      }
+      })
 
       vi.mocked(JobsService.create).mockResolvedValue(mockCreatedJob)
 

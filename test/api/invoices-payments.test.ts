@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST, DELETE } from '@/app/api/invoices/[id]/payments/route'
 import { InvoicePaymentsService } from '@/lib/services/invoice-payments-service'
+import type { Payment } from '@/types/invoices'
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -55,12 +56,19 @@ describe('Invoice Payments API', () => {
         })
       } as any)
 
-      const mockPayment = {
+      const mockPayment: Payment = {
         id: 'payment-1',
+        organization_id: 'org-123',
         invoice_id: 'invoice-123',
         amount: 1000,
         payment_date: '2026-02-01',
-        payment_method: 'credit_card'
+        payment_method: 'credit_card',
+        reference_number: 'REF-123',
+        notes: null,
+        qb_payment_id: null,
+        qb_synced_at: null,
+        created_by: 'user-1',
+        created_at: new Date().toISOString()
       }
 
       vi.mocked(InvoicePaymentsService.recordPayment).mockResolvedValue(mockPayment)

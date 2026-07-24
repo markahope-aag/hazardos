@@ -37,7 +37,7 @@ interface PricingDataSubset {
 }
 
 const withSortOrder = (items: CalculatedLineItem[], startOrder: number): CalculatedLineItem[] =>
-  items.map((item, idx) => ({ ...item, sort_order: startOrder + idx }) as CalculatedLineItem)
+  items.map((item, idx) => ({ ...item, sort_order: startOrder + idx }))
 
 export function calculateLaborItems(
   pricingData: PricingDataSubset,

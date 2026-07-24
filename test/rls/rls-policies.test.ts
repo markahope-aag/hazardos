@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { config } from 'dotenv'
 
 // Load .env.local for real Supabase credentials (test setup overrides URL to localhost)
@@ -37,8 +37,8 @@ let orgA: { id: string; name: string }
 let orgB: { id: string; name: string }
 let userA: { id: string; email: string }
 let userB: { id: string; email: string }
-let clientA: ReturnType<typeof createClient>
-let clientB: ReturnType<typeof createClient>
+let clientA: SupabaseClient
+let clientB: SupabaseClient
 
 // Helper: create a Supabase client authenticated as a specific user
 function createUserClient(accessToken: string) {

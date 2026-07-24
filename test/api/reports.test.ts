@@ -2,6 +2,31 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/reports/route'
 import { ReportingService } from '@/lib/services/reporting-service'
+import type { SavedReport } from '@/types/reporting'
+
+const createMockReport = (overrides: Partial<SavedReport> = {}): SavedReport => ({
+  id: 'report-1',
+  organization_id: '550e8400-e29b-41d4-a716-446655440000',
+  created_by: 'user-1',
+  name: 'Monthly Revenue',
+  description: null,
+  report_type: 'revenue',
+  config: {
+    date_range: { type: 'this_quarter' },
+    filters: [],
+    metrics: [],
+    columns: [],
+    chart_type: 'none'
+  },
+  is_shared: false,
+  schedule_enabled: false,
+  schedule_frequency: null,
+  schedule_recipients: null,
+  last_sent_at: null,
+  created_at: '2026-03-01T10:00:00Z',
+  updated_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -60,8 +85,8 @@ describe('Reports API', () => {
       setupAuthenticatedUser()
 
       const mockReports = [
-        { id: 'report-1', name: 'Monthly Revenue', report_type: 'revenue' },
-        { id: 'report-2', name: 'Job Completion', report_type: 'jobs' }
+        createMockReport({ id: 'report-1', name: 'Monthly Revenue', report_type: 'revenue' }),
+        createMockReport({ id: 'report-2', name: 'Job Completion', report_type: 'jobs' })
       ]
 
       vi.mocked(ReportingService.listReports).mockResolvedValue(mockReports)
@@ -91,11 +116,7 @@ describe('Reports API', () => {
     it('should create a new report', async () => {
       setupAuthenticatedUser()
 
-      const mockReport = {
-        id: 'report-1',
-        name: 'Q1 Revenue',
-        report_type: 'revenue'
-      }
+      const mockReport = createMockReport({ name: 'Q1 Revenue', report_type: 'revenue' })
 
       vi.mocked(ReportingService.createReport).mockResolvedValue(mockReport)
 

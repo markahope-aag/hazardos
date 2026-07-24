@@ -359,6 +359,9 @@ export interface CalculatedLineItem {
   is_optional: boolean
   is_included: boolean
   notes?: string
+  // Stamped by withSortOrder() after the per-category calculators build the
+  // items, so it is absent during construction and present downstream.
+  sort_order?: number
 }
 
 export interface EstimateCalculation {

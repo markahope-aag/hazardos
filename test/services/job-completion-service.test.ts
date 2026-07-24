@@ -499,6 +499,7 @@ describe('JobCompletionService', () => {
         const photo = await JobCompletionService.createPhoto({
           job_id: 'job-1',
           photo_url: 'https://example.com/photo1.jpg',
+          storage_path: 'completions/job-1/photo1.jpg',
           photo_type: 'after',
         })
 
@@ -773,7 +774,7 @@ describe('JobCompletionService', () => {
         }))
 
         const completion = await JobCompletionService.approveCompletion('comp-1', {
-          notes: 'Looks good',
+          review_notes: 'Looks good',
         })
 
         expect(completion.status).toBe('approved')
@@ -856,7 +857,7 @@ describe('JobCompletionService', () => {
         }))
 
         const completion = await JobCompletionService.rejectCompletion('comp-1', {
-          reason: 'Incomplete checklist',
+          rejection_reason: 'Incomplete checklist',
         })
 
         expect(completion.status).toBe('rejected')

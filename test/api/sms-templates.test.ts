@@ -2,6 +2,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/sms/templates/route'
 import { SmsService } from '@/lib/services/sms-service'
+import type { SmsTemplate } from '@/types/sms'
+
+const createMockSmsTemplate = (overrides: Partial<SmsTemplate> = {}): SmsTemplate => ({
+  id: '550e8400-e29b-41d4-a716-446655440001',
+  organization_id: 'org-123',
+  name: 'Appointment Reminder',
+  message_type: 'appointment_reminder',
+  body: 'Your appointment is tomorrow at {time}',
+  is_active: true,
+  is_system: false,
+  created_at: '2026-03-01T10:00:00Z',
+  updated_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -56,20 +70,18 @@ describe('SMS Templates API', () => {
       setupAuthenticatedUser()
 
       const mockTemplates = [
-        {
+        createMockSmsTemplate({
           id: '550e8400-e29b-41d4-a716-446655440001',
           name: 'Appointment Reminder',
           message_type: 'appointment_reminder',
-          body: 'Your appointment is tomorrow at {time}',
-          organization_id: 'org-123'
-        },
-        {
+          body: 'Your appointment is tomorrow at {time}'
+        }),
+        createMockSmsTemplate({
           id: '550e8400-e29b-41d4-a716-446655440002',
           name: 'Job Status Update',
           message_type: 'job_status',
-          body: 'Your job status: {status}',
-          organization_id: 'org-123'
-        }
+          body: 'Your job status: {status}'
+        })
       ]
       vi.mocked(SmsService.getTemplates).mockResolvedValue(mockTemplates)
 
@@ -113,13 +125,12 @@ describe('SMS Templates API', () => {
     it('should create SMS template', async () => {
       setupAuthenticatedUser('admin')
 
-      const newTemplate = {
+      const newTemplate = createMockSmsTemplate({
         id: '550e8400-e29b-41d4-a716-446655440003',
-        organization_id: 'org-123',
         name: 'Custom Template',
         message_type: 'general',
         body: 'Custom message: {message}'
-      }
+      })
       vi.mocked(SmsService.createTemplate).mockResolvedValue(newTemplate)
 
       const request = new NextRequest('http://localhost:3000/api/sms/templates', {

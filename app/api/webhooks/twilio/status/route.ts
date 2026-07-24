@@ -4,6 +4,7 @@ import { SmsService } from '@/lib/services/sms-service';
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createRequestLogger, formatError } from '@/lib/utils/logger';
+import { decryptSecret } from '@/lib/utils/secret-crypto';
 
 // Twilio status callback webhook
 export async function POST(request: NextRequest) {
@@ -70,10 +71,12 @@ export async function POST(request: NextRequest) {
       .eq('organization_id', message.organization_id)
       .maybeSingle();
 
-    // Resolve auth token: platform-level or org-level
+    // Resolve auth token: platform-level or org-level. The org-level token is
+    // encrypted at rest (lib/utils/secret-crypto), so it must be decrypted
+    // before Twilio signature validation — ciphertext would fail every check.
     const authToken = smsSettings?.use_platform_twilio
       ? (process.env.TWILIO_AUTH_TOKEN || null)
-      : smsSettings?.twilio_auth_token || null;
+      : decryptSecret(smsSettings?.twilio_auth_token) || null;
 
     if (settingsError || !authToken) {
       log.warn(

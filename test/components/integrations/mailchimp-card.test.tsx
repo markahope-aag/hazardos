@@ -34,7 +34,10 @@ global.fetch = mockFetch
 const mockIntegration: OrganizationIntegration = {
   id: 'int-1',
   organization_id: 'org-1',
-  provider: 'mailchimp',
+  integration_type: 'mailchimp',
+  access_token: 'access-token',
+  refresh_token: 'refresh-token',
+  token_expires_at: null,
   external_id: 'us1',
   is_active: true,
   settings: {

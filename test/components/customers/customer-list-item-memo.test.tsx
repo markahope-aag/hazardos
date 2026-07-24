@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react'
 import { vi } from 'vitest'
 import CustomerListItem from '@/components/customers/customer-list-item'
-import type { Customer } from '@/types/database'
+import { createMockCustomer } from '@/test/helpers/mock-data'
 
 // Mock the hooks and components
 vi.mock('next/navigation', () => ({
@@ -20,21 +20,18 @@ vi.mock('@/components/customers/customer-status-badge', () => ({
   default: ({ status }: { status: string }) => <span data-testid="status-badge">{status}</span>,
 }))
 
-const mockCustomer: Customer = {
+const mockCustomer = createMockCustomer({
   id: '1',
   name: 'John Doe',
   email: 'john@example.com',
   phone: '555-0123',
   company_name: 'Test Company',
-  status: 'active',
+  status: 'customer',
   source: 'website',
   created_at: '2023-12-31T12:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
-  address: null,
   notes: null,
-  tags: null,
-  metadata: null,
-}
+})
 
 describe('CustomerListItem Memoization', () => {
   const mockOnEdit = vi.fn()
@@ -149,6 +146,6 @@ describe('CustomerListItem Memoization', () => {
 
     const statusBadge = getByTestId('status-badge')
     expect(statusBadge).toBeInTheDocument()
-    expect(statusBadge).toHaveTextContent('active')
+    expect(statusBadge).toHaveTextContent('customer')
   })
 })

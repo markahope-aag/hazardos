@@ -28,7 +28,7 @@ vi.mock('@/lib/utils/logger', () => ({
 
 // Mock Supabase
 const mockSupabaseClient = {
-  from: vi.fn(() => ({
+  from: vi.fn((_table: string) => ({
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     maybeSingle: vi.fn().mockResolvedValue({ 

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { renderWithClient } from '@/test/helpers/render-with-client'
 import CustomerList from '@/components/customers/customer-list'
 import type { Customer } from '@/types/database'
+import { createMockCustomer } from '@/test/helpers/mock-data'
 
 // Mock hooks
 let mockCustomers: Customer[] = []
@@ -37,7 +38,7 @@ vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: any) => <a href={href} {...rest}>{children}</a>,
 }))
 
-const mockCustomer: Customer = {
+const mockCustomer: Customer = createMockCustomer({
   id: 'cust-1',
   organization_id: 'org-1',
   name: 'John Doe',
@@ -46,12 +47,12 @@ const mockCustomer: Customer = {
   company_name: 'Acme Inc',
   email: 'john@example.com',
   phone: '555-1234',
-  status: 'active',
+  status: 'customer',
   source: 'referral',
   contact_type: 'residential',
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
-}
+})
 
 describe('CustomerList', () => {
   const mockOnEditCustomer = vi.fn()

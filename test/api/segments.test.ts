@@ -2,6 +2,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/segments/route'
 import { SegmentationService } from '@/lib/services/segmentation-service'
+import type { CustomerSegment } from '@/types/integrations'
+
+const createMockSegment = (overrides: Partial<CustomerSegment> = {}): CustomerSegment => ({
+  id: 'seg-1',
+  organization_id: 'org-123',
+  name: 'High Value Customers',
+  segment_type: 'dynamic',
+  rules: [],
+  member_count: 0,
+  is_active: true,
+  created_at: '2026-03-01T10:00:00Z',
+  updated_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -56,8 +70,8 @@ describe('Segments API', () => {
       } as any)
 
       const mockSegments = [
-        { id: 'seg-1', name: 'High Value Customers', criteria: {} },
-        { id: 'seg-2', name: 'Repeat Customers', criteria: {} }
+        createMockSegment({ id: 'seg-1', name: 'High Value Customers' }),
+        createMockSegment({ id: 'seg-2', name: 'Repeat Customers' })
       ]
 
       vi.mocked(SegmentationService.list).mockResolvedValue(mockSegments)
@@ -89,11 +103,10 @@ describe('Segments API', () => {
         })
       } as any)
 
-      const mockSegment = {
-        id: 'seg-1',
+      const mockSegment = createMockSegment({
         name: 'Premium Customers',
-        criteria: { total_spent: { gte: 10000 } }
-      }
+        rules: [{ field: 'total_spent', operator: '>=', value: 10000 }]
+      })
 
       vi.mocked(SegmentationService.create).mockResolvedValue(mockSegment)
 

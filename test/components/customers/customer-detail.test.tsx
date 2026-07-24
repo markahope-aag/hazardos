@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import userEvent from '@testing-library/user-event'
 import CustomerDetail from '@/components/customers/customer-detail'
 import type { Customer } from '@/types/database'
+import { createMockCustomer } from '@/test/helpers/mock-data'
 import type { ReactElement } from 'react'
 
 function render(ui: ReactElement): RenderResult {
@@ -82,7 +83,7 @@ vi.mock('@/components/customers/delete-customer-dialog', () => ({
   ),
 }))
 
-const mockCustomer: Customer = {
+const mockCustomer: Customer = createMockCustomer({
   id: 'customer-1',
   organization_id: 'org-1',
   name: 'John Doe',
@@ -106,7 +107,7 @@ const mockCustomer: Customer = {
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
   created_by: 'user-1',
-}
+})
 
 describe('CustomerDetail Component', () => {
   beforeEach(() => {
@@ -241,7 +242,7 @@ describe('CustomerDetail Component', () => {
   })
 
   it('should render with minimal customer data', () => {
-    const minimalCustomer: Customer = {
+    const minimalCustomer: Customer = createMockCustomer({
       id: 'customer-2',
       organization_id: 'org-1',
       name: 'Jane Smith',
@@ -265,7 +266,7 @@ describe('CustomerDetail Component', () => {
       created_at: '2024-01-01T00:00:00Z',
       updated_at: '2024-01-01T00:00:00Z',
       created_by: 'user-1',
-    }
+    })
 
     render(<CustomerDetail customer={minimalCustomer} />)
 

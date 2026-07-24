@@ -30,15 +30,21 @@ vi.mock('@/lib/stores/survey-types', () => ({
 
 const mockPhoto: PhotoData = {
   id: 'photo-1',
-  category: 'exterior',
+  blob: null,
   dataUrl: 'data:image/png;base64,test',
-  caption: 'Front view',
-  location: 'Main entrance',
-  timestamp: Date.now(),
+  path: null,
+  timestamp: new Date().toISOString(),
   gpsCoordinates: {
     latitude: 40.7128,
     longitude: -74.006,
   },
+  category: 'exterior',
+  area_id: null,
+  location: 'Main entrance',
+  caption: 'Front view',
+  mediaType: 'image',
+  mimeType: 'image/png',
+  fileSize: null,
 }
 
 describe('PhotoDetail', () => {

@@ -2,6 +2,45 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/feedback/submit/[token]/route'
 import { FeedbackService } from '@/lib/services/feedback-service'
+import type { FeedbackSurvey, PublicSurveyView } from '@/types/feedback'
+
+function buildMockSurvey(overrides: Partial<FeedbackSurvey>): FeedbackSurvey {
+  return {
+    id: '550e8400-e29b-41d4-a716-446655440001',
+    organization_id: 'org-123',
+    job_id: 'job-123',
+    customer_id: 'customer-123',
+    access_token: 'valid-token-123',
+    token_expires_at: new Date().toISOString(),
+    status: 'completed',
+    sent_at: null,
+    sent_to_email: null,
+    reminder_sent_at: null,
+    viewed_at: null,
+    completed_at: null,
+    rating_overall: null,
+    rating_quality: null,
+    rating_communication: null,
+    rating_timeliness: null,
+    rating_value: null,
+    would_recommend: null,
+    likelihood_to_recommend: null,
+    feedback_text: null,
+    improvement_suggestions: null,
+    testimonial_text: null,
+    testimonial_permission: false,
+    testimonial_approved: false,
+    testimonial_approved_at: null,
+    testimonial_approved_by: null,
+    customer_name: null,
+    customer_company: null,
+    ip_address: null,
+    user_agent: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    ...overrides
+  }
+}
 
 // Mock FeedbackService
 vi.mock('@/lib/services/feedback-service', () => ({
@@ -23,13 +62,26 @@ describe('Feedback Token API', () => {
   describe('GET /api/feedback/submit/[token]', () => {
     it('should get survey by token', async () => {
       // Arrange
-      const mockSurvey = {
+      const mockSurvey: PublicSurveyView = {
         id: '550e8400-e29b-41d4-a716-446655440001',
-        access_token: 'valid-token-123',
-        job_id: '550e8400-e29b-41d4-a716-446655440010',
-        customer_id: '550e8400-e29b-41d4-a716-446655440020',
+        job_number: 'JOB-001',
+        job_name: 'Asbestos Removal',
+        organization_name: 'HazardOS Test Org',
+        organization_logo: null,
+        customer_name: 'Jane Doe',
         status: 'sent',
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        completed_at: null,
+        rating_overall: null,
+        rating_quality: null,
+        rating_communication: null,
+        rating_timeliness: null,
+        rating_value: null,
+        would_recommend: null,
+        likelihood_to_recommend: null,
+        feedback_text: null,
+        improvement_suggestions: null,
+        testimonial_text: null,
+        testimonial_permission: false
       }
 
       vi.mocked(FeedbackService.getSurveyByToken).mockResolvedValue(mockSurvey)
@@ -44,7 +96,7 @@ describe('Feedback Token API', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data.access_token).toBe('valid-token-123')
+      expect(data.job_number).toBe('JOB-001')
       expect(FeedbackService.getSurveyByToken).toHaveBeenCalledWith('valid-token-123')
     })
 
@@ -69,7 +121,7 @@ describe('Feedback Token API', () => {
   describe('POST /api/feedback/submit/[token]', () => {
     it('should submit feedback responses', async () => {
       // Arrange
-      const mockSubmittedSurvey = {
+      const mockSubmittedSurvey = buildMockSurvey({
         id: '550e8400-e29b-41d4-a716-446655440001',
         rating_overall: 5,
         rating_quality: 5,
@@ -83,7 +135,7 @@ describe('Feedback Token API', () => {
         testimonial_permission: true,
         status: 'completed',
         completed_at: new Date().toISOString()
-      }
+      })
 
       vi.mocked(FeedbackService.submitFeedback).mockResolvedValue(mockSubmittedSurvey)
 
@@ -131,12 +183,12 @@ describe('Feedback Token API', () => {
 
     it('should handle partial feedback submissions', async () => {
       // Arrange
-      const mockSubmittedSurvey = {
+      const mockSubmittedSurvey = buildMockSurvey({
         id: '550e8400-e29b-41d4-a716-446655440002',
         rating_overall: 3,
         feedback_text: 'Good but could improve',
         status: 'completed'
-      }
+      })
 
       vi.mocked(FeedbackService.submitFeedback).mockResolvedValue(mockSubmittedSurvey)
 

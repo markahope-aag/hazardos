@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { GET } from '@/app/api/integrations/mailchimp/callback/route'
 import { MailchimpService } from '@/lib/services/mailchimp-service'
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
@@ -82,13 +82,14 @@ describe('Mailchimp Callback API', () => {
   it('should successfully exchange code for tokens and redirect', async () => {
     const mockTokens = {
       access_token: 'test-access-token',
-      refresh_token: 'test-refresh-token',
       expires_in: 3600
     }
 
     const mockMetadata = {
       dc: 'us1',
-      account_name: 'Test Account'
+      accountname: 'Test Account',
+      login_url: 'https://login.mailchimp.com',
+      api_endpoint: 'https://us1.api.mailchimp.com'
     }
 
     vi.mocked(MailchimpService).exchangeCodeForTokens.mockResolvedValue(mockTokens)
@@ -115,7 +116,7 @@ describe('Mailchimp Callback API', () => {
   })
 
   it('should handle rate limiting', async () => {
-    const rateLimitResponse = new Response('Rate limited', { status: 429 })
+    const rateLimitResponse = new NextResponse('Rate limited', { status: 429 })
     vi.mocked(applyUnifiedRateLimit).mockResolvedValue(rateLimitResponse)
 
     const request = new NextRequest('http://localhost/api/integrations/mailchimp/callback?code=test-code&state=org-123:valid-state')
@@ -143,7 +144,7 @@ describe('Mailchimp Callback API', () => {
   it('should handle metadata retrieval errors', async () => {
     const mockTokens = {
       access_token: 'test-access-token',
-      refresh_token: 'test-refresh-token'
+      expires_in: 3600
     }
 
     vi.mocked(MailchimpService).exchangeCodeForTokens.mockResolvedValue(mockTokens)
@@ -164,12 +165,14 @@ describe('Mailchimp Callback API', () => {
   it('should handle token storage errors', async () => {
     const mockTokens = {
       access_token: 'test-access-token',
-      refresh_token: 'test-refresh-token'
+      expires_in: 3600
     }
 
     const mockMetadata = {
       dc: 'us1',
-      account_name: 'Test Account'
+      accountname: 'Test Account',
+      login_url: 'https://login.mailchimp.com',
+      api_endpoint: 'https://us1.api.mailchimp.com'
     }
 
     vi.mocked(MailchimpService).exchangeCodeForTokens.mockResolvedValue(mockTokens)
@@ -201,11 +204,14 @@ describe('Mailchimp Callback API', () => {
   it('should extract organization ID from state correctly', async () => {
     const mockTokens = {
       access_token: 'test-access-token',
-      refresh_token: 'test-refresh-token'
+      expires_in: 3600
     }
 
     const mockMetadata = {
-      dc: 'us1'
+      dc: 'us1',
+      accountname: 'Test Account',
+      login_url: 'https://login.mailchimp.com',
+      api_endpoint: 'https://us1.api.mailchimp.com'
     }
 
     vi.mocked(MailchimpService).exchangeCodeForTokens.mockResolvedValue(mockTokens)

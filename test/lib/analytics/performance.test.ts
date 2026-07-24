@@ -140,7 +140,7 @@ describe('analytics performance', () => {
   })
 
   it('withPerformanceTracking resolves and records success', async () => {
-    const fn = vi.fn(async (n: number) => n + 1)
+    const fn = vi.fn(async (...args: unknown[]) => (args[0] as number) + 1)
     const wrapped = withPerformanceTracking(fn, 'add-one')
     await expect(wrapped(1)).resolves.toBe(2)
     expect(fn).toHaveBeenCalledWith(1)

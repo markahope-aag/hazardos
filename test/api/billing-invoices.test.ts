@@ -26,6 +26,7 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 }))
 
 import { StripeService } from '@/lib/services/stripe-service'
+import type { BillingInvoice } from '@/types/billing'
 
 describe('Billing Invoices API', () => {
   beforeEach(() => {
@@ -56,26 +57,46 @@ describe('Billing Invoices API', () => {
         })
       } as any)
 
-      const mockInvoices = [
+      const mockInvoices: BillingInvoice[] = [
         {
           id: 'inv_123',
-          number: 'INV-2026-001',
+          organization_id: 'org-123',
+          subscription_id: 'sub_123',
+          stripe_invoice_id: 'in_stripe123',
+          stripe_payment_intent_id: 'pi_123',
+          invoice_number: 'INV-2026-001',
           status: 'paid',
-          amount_due: 9900,
+          subtotal: 9900,
+          tax: 0,
+          total: 9900,
           amount_paid: 9900,
-          created: 1704067200,
-          due_date: 1706745600,
-          invoice_pdf: 'https://stripe.com/invoices/inv_123.pdf'
+          amount_due: 9900,
+          invoice_date: '2024-01-01T00:00:00Z',
+          due_date: '2024-02-01T00:00:00Z',
+          paid_at: '2024-01-01T00:00:00Z',
+          invoice_pdf_url: 'https://stripe.com/invoices/inv_123.pdf',
+          hosted_invoice_url: 'https://stripe.com/invoices/inv_123',
+          created_at: '2024-01-01T00:00:00Z'
         },
         {
           id: 'inv_124',
-          number: 'INV-2026-002',
+          organization_id: 'org-123',
+          subscription_id: 'sub_123',
+          stripe_invoice_id: 'in_stripe124',
+          stripe_payment_intent_id: null,
+          invoice_number: 'INV-2026-002',
           status: 'open',
-          amount_due: 9900,
+          subtotal: 9900,
+          tax: 0,
+          total: 9900,
           amount_paid: 0,
-          created: 1706745600,
-          due_date: 1709337600,
-          invoice_pdf: 'https://stripe.com/invoices/inv_124.pdf'
+          amount_due: 9900,
+          invoice_date: '2024-02-01T00:00:00Z',
+          due_date: '2024-03-01T00:00:00Z',
+          paid_at: null,
+          invoice_pdf_url: 'https://stripe.com/invoices/inv_124.pdf',
+          hosted_invoice_url: 'https://stripe.com/invoices/inv_124',
+          created_at: '2024-02-01T00:00:00Z'
         }
       ]
 
@@ -145,16 +166,26 @@ describe('Billing Invoices API', () => {
         })
       } as any)
 
-      const mockInvoices = [
+      const mockInvoices: BillingInvoice[] = [
         {
           id: 'inv_125',
-          number: 'INV-2026-003',
+          organization_id: 'org-123',
+          subscription_id: 'sub_123',
+          stripe_invoice_id: 'in_stripe125',
+          stripe_payment_intent_id: 'pi_125',
+          invoice_number: 'INV-2026-003',
           status: 'paid',
-          amount_due: 29900,
+          subtotal: 29900,
+          tax: 0,
+          total: 29900,
           amount_paid: 29900,
-          created: 1709337600,
-          due_date: 1712016000,
-          invoice_pdf: 'https://stripe.com/invoices/inv_125.pdf'
+          amount_due: 29900,
+          invoice_date: '2024-03-01T00:00:00Z',
+          due_date: '2024-04-01T00:00:00Z',
+          paid_at: '2024-03-01T00:00:00Z',
+          invoice_pdf_url: 'https://stripe.com/invoices/inv_125.pdf',
+          hosted_invoice_url: 'https://stripe.com/invoices/inv_125',
+          created_at: '2024-03-01T00:00:00Z'
         }
       ]
 
@@ -170,7 +201,7 @@ describe('Billing Invoices API', () => {
       expect(response.status).toBe(200)
       expect(data[0].amount_due).toBe(29900)
       expect(data[0].amount_paid).toBe(29900)
-      expect(data[0].invoice_pdf).toContain('stripe.com')
+      expect(data[0].invoice_pdf_url).toContain('stripe.com')
     })
 
     it('should reject unauthenticated requests', async () => {

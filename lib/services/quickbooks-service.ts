@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import type { QuickBooksConnectionStatus, QuickBooksCompanyInfo } from '@/types/integrations';
 import { SecureError } from '@/lib/utils/secure-error-handler';
+import { encryptSecret, decryptSecret } from '@/lib/utils/secret-crypto';
 
 const QBO_BASE_URL = process.env.QBO_ENVIRONMENT === 'production'
   ? 'https://quickbooks.api.intuit.com'
@@ -93,8 +94,8 @@ export class QuickBooksService {
       .upsert({
         organization_id: organizationId,
         integration_type: 'quickbooks',
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
+        access_token: encryptSecret(tokens.access_token),
+        refresh_token: encryptSecret(tokens.refresh_token),
         token_expires_at: expiresAt.toISOString(),
         external_id: realmId,
         is_active: true,
@@ -126,7 +127,7 @@ export class QuickBooksService {
 
     if (needsRefresh) {
       try {
-        const newTokens = await this.refreshTokens(integration.refresh_token);
+        const newTokens = await this.refreshTokens(decryptSecret(integration.refresh_token)!);
         await this.storeTokens(organizationId, newTokens, integration.external_id);
         return {
           access_token: newTokens.access_token,
@@ -140,7 +141,7 @@ export class QuickBooksService {
     }
 
     return {
-      access_token: integration.access_token,
+      access_token: decryptSecret(integration.access_token)!,
       realmId: integration.external_id,
     };
   }

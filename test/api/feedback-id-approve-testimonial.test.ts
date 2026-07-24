@@ -2,6 +2,46 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST, DELETE } from '@/app/api/feedback/[id]/approve-testimonial/route'
 import { FeedbackService } from '@/lib/services/feedback-service'
+import { logger } from '@/lib/utils/logger'
+import type { FeedbackSurvey } from '@/types/feedback'
+
+function buildMockSurvey(overrides: Partial<FeedbackSurvey>): FeedbackSurvey {
+  return {
+    id: '550e8400-e29b-41d4-a716-446655440001',
+    organization_id: 'org-123',
+    job_id: 'job-123',
+    customer_id: 'customer-123',
+    access_token: 'token-123',
+    token_expires_at: new Date().toISOString(),
+    status: 'completed',
+    sent_at: null,
+    sent_to_email: null,
+    reminder_sent_at: null,
+    viewed_at: null,
+    completed_at: null,
+    rating_overall: null,
+    rating_quality: null,
+    rating_communication: null,
+    rating_timeliness: null,
+    rating_value: null,
+    would_recommend: null,
+    likelihood_to_recommend: null,
+    feedback_text: null,
+    improvement_suggestions: null,
+    testimonial_text: null,
+    testimonial_permission: false,
+    testimonial_approved: false,
+    testimonial_approved_at: null,
+    testimonial_approved_by: null,
+    customer_name: null,
+    customer_company: null,
+    ip_address: null,
+    user_agent: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    ...overrides
+  }
+}
 
 // Mock FeedbackService
 vi.mock('@/lib/services/feedback-service', () => ({
@@ -41,11 +81,7 @@ vi.mock('@/lib/utils/api-handler', async (importOriginal) => {
 
           return await handler(request, mockContext, params, body, {})
         } catch (error) {
-          return errorHandler.createSecureErrorResponse(error, {
-            error: vi.fn(),
-            warn: vi.fn(),
-            info: vi.fn()
-          })
+          return errorHandler.createSecureErrorResponse(error, logger)
         }
       }
     }
@@ -60,14 +96,14 @@ describe('Feedback Approve Testimonial API', () => {
   describe('POST /api/feedback/[id]/approve-testimonial', () => {
     it('should approve a testimonial', async () => {
       // Arrange
-      const mockSurvey = {
+      const mockSurvey = buildMockSurvey({
         id: '550e8400-e29b-41d4-a716-446655440001',
         testimonial_text: 'Great service, highly recommend!',
         testimonial_permission: true,
         testimonial_approved: true,
         testimonial_approved_by: 'user-123',
         testimonial_approved_at: new Date().toISOString()
-      }
+      })
 
       vi.mocked(FeedbackService.approveTestimonial).mockResolvedValue(mockSurvey)
 
@@ -90,10 +126,10 @@ describe('Feedback Approve Testimonial API', () => {
     it('should only allow admin roles to approve', async () => {
       // This is handled by the allowedRoles option in createApiHandlerWithParams
       // The mock bypasses this, but in real usage only admins can access
-      const mockSurvey = {
+      const mockSurvey = buildMockSurvey({
         id: '550e8400-e29b-41d4-a716-446655440001',
         testimonial_approved: true
-      }
+      })
 
       vi.mocked(FeedbackService.approveTestimonial).mockResolvedValue(mockSurvey)
 
@@ -112,14 +148,14 @@ describe('Feedback Approve Testimonial API', () => {
   describe('DELETE /api/feedback/[id]/approve-testimonial', () => {
     it('should reject a testimonial', async () => {
       // Arrange
-      const mockSurvey = {
+      const mockSurvey = buildMockSurvey({
         id: '550e8400-e29b-41d4-a716-446655440002',
         testimonial_text: 'Not appropriate for website',
         testimonial_permission: true,
         testimonial_approved: false,
-        testimonial_rejected_by: 'user-123',
-        testimonial_rejected_at: new Date().toISOString()
-      }
+        testimonial_approved_at: null,
+        testimonial_approved_by: null
+      })
 
       vi.mocked(FeedbackService.rejectTestimonial).mockResolvedValue(mockSurvey)
 

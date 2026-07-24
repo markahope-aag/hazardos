@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { HubSpotConnectionStatus } from '@/types/integrations';
 import { createServiceLogger, formatError } from '@/lib/utils/logger';
 import { SecureError } from '@/lib/utils/secure-error-handler';
+import { encryptSecret, decryptSecret } from '@/lib/utils/secret-crypto';
 
 const log = createServiceLogger('HubSpotService');
 const HUBSPOT_AUTH_URL = 'https://app.hubspot.com/oauth/authorize';
@@ -90,8 +91,8 @@ export class HubSpotService {
       .upsert({
         organization_id: organizationId,
         integration_type: 'hubspot',
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
+        access_token: encryptSecret(tokens.access_token),
+        refresh_token: encryptSecret(tokens.refresh_token),
         token_expires_at: expiresAt.toISOString(),
         external_id: portalId,
         is_active: true,
@@ -128,7 +129,7 @@ export class HubSpotService {
 
     if (needsRefresh) {
       try {
-        const newTokens = await this.refreshTokens(integration.refresh_token);
+        const newTokens = await this.refreshTokens(decryptSecret(integration.refresh_token)!);
         await this.storeTokens(organizationId, newTokens, integration.external_id);
         return {
           access_token: newTokens.access_token,
@@ -142,7 +143,7 @@ export class HubSpotService {
     }
 
     return {
-      access_token: integration.access_token,
+      access_token: decryptSecret(integration.access_token)!,
       portal_id: integration.external_id,
     };
   }

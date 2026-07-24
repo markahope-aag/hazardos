@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, DELETE } from '@/app/api/billing/subscription/route'
 import { StripeService } from '@/lib/services/stripe-service'
+import type { OrganizationSubscription } from '@/types/billing'
 
 // Mock dependencies
 const mockSupabaseClient = {
@@ -60,17 +61,46 @@ describe('Billing Subscription API', () => {
         })
       } as any)
 
-      const mockSubscription = {
+      const mockSubscription: OrganizationSubscription = {
         id: 'sub-123',
         organization_id: 'org-123',
         plan_id: 'plan-1',
+        stripe_customer_id: 'cus_123',
+        stripe_subscription_id: 'sub_stripe123',
         status: 'active',
         billing_cycle: 'monthly',
+        current_period_start: '2026-02-01T00:00:00Z',
         current_period_end: '2026-03-01T00:00:00Z',
+        trial_start: null,
+        trial_end: null,
+        cancel_at_period_end: false,
+        canceled_at: null,
+        cancellation_reason: null,
+        users_count: 5,
+        jobs_this_month: 12,
+        storage_used_mb: 500,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
         plan: {
+          id: 'plan-1',
           name: 'Professional',
           slug: 'professional',
-          price_monthly: 99
+          description: null,
+          price_monthly: 99,
+          price_yearly: null,
+          stripe_product_id: null,
+          stripe_price_id_monthly: null,
+          stripe_price_id_yearly: null,
+          max_users: 20,
+          max_jobs_per_month: 200,
+          max_storage_gb: 100,
+          features: [],
+          feature_flags: {},
+          is_active: true,
+          is_public: true,
+          display_order: 1,
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-01T00:00:00Z'
         }
       }
 

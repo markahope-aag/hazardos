@@ -29,6 +29,25 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 }))
 
 import { JobsService } from '@/lib/services/jobs-service'
+import type { JobEquipment } from '@/types/jobs'
+
+const createMockEquipment = (overrides: Partial<JobEquipment> = {}): JobEquipment => ({
+  id: '550e8400-e29b-41d4-a716-446655440001',
+  job_id: 'job-123',
+  equipment_name: 'HEPA Vacuum',
+  equipment_type: 'hepa_vacuum',
+  quantity: 2,
+  is_rental: false,
+  rental_rate_daily: null,
+  rental_start_date: null,
+  rental_end_date: null,
+  rental_days: null,
+  rental_total: null,
+  status: 'assigned',
+  notes: null,
+  created_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
 
 describe('Job Equipment Management', () => {
   beforeEach(() => {
@@ -63,7 +82,7 @@ describe('Job Equipment Management', () => {
       setupAuthenticatedUser()
 
       const mockEquipmentList = [
-        { id: '550e8400-e29b-41d4-a716-446655440001', job_id: 'job-123', equipment_name: 'HEPA Vacuum', quantity: 2 },
+        createMockEquipment(),
       ]
 
       vi.mocked(JobsService.getEquipment).mockResolvedValue(mockEquipmentList)
@@ -97,14 +116,7 @@ describe('Job Equipment Management', () => {
       // Arrange
       setupAuthenticatedUser()
 
-      const mockEquipment = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        job_id: 'job-123',
-        equipment_name: 'HEPA Vacuum',
-        equipment_type: 'hepa_vacuum',
-        quantity: 2,
-        status: 'assigned'
-      }
+      const mockEquipment = createMockEquipment()
 
       vi.mocked(JobsService.addEquipment).mockResolvedValue(mockEquipment)
 
@@ -133,12 +145,12 @@ describe('Job Equipment Management', () => {
       // Arrange
       setupAuthenticatedUser()
 
-      const mockEquipment = {
+      const mockEquipment = createMockEquipment({
         id: '550e8400-e29b-41d4-a716-446655440002',
         equipment_name: 'Negative Air Machine',
         equipment_type: 'negative_air_machine',
         quantity: 3
-      }
+      })
 
       vi.mocked(JobsService.addEquipment).mockResolvedValue(mockEquipment)
 
@@ -187,10 +199,7 @@ describe('Job Equipment Management', () => {
       // Arrange
       setupAuthenticatedUser()
 
-      const updatedEquipment = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        status: 'deployed'
-      }
+      const updatedEquipment = createMockEquipment({ status: 'deployed' })
 
       vi.mocked(JobsService.updateEquipmentStatus).mockResolvedValue(updatedEquipment)
 
@@ -217,10 +226,7 @@ describe('Job Equipment Management', () => {
       // Arrange
       setupAuthenticatedUser()
 
-      const updatedEquipment = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        status: 'returned'
-      }
+      const updatedEquipment = createMockEquipment({ status: 'returned' })
 
       vi.mocked(JobsService.updateEquipmentStatus).mockResolvedValue(updatedEquipment)
 

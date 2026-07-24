@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
 
 /**
@@ -62,10 +62,10 @@ describe('Multi-Tenant Data Isolation', () => {
           // In real code, this would be:
           // supabase.from('customers').select('*').eq('organization_id', context.profile.organization_id)
 
-          return new Response(JSON.stringify({
+          return NextResponse.json({
             organization_id: context.profile.organization_id,
             message: 'Data scoped to tenant organization'
-          }))
+          })
         }
       )
 
@@ -110,12 +110,12 @@ describe('Multi-Tenant Data Isolation', () => {
           const userOrgId = context.profile.organization_id
 
           if (requestedOrgId !== userOrgId) {
-            return new Response(JSON.stringify({
+            return NextResponse.json({
               error: 'Access denied: Organization mismatch'
-            }), { status: 403 })
+            }, { status: 403 })
           }
 
-          return new Response(JSON.stringify({ success: true }))
+          return NextResponse.json({ success: true })
         }
       )
 
@@ -156,9 +156,9 @@ describe('Multi-Tenant Data Isolation', () => {
       const handler = createApiHandler(
         { requireAuth: true },
         async (_request, context) => {
-          return new Response(JSON.stringify({
+          return NextResponse.json({
             org: context.profile.organization_id
-          }))
+          })
         }
       )
 
@@ -231,7 +231,7 @@ describe('Multi-Tenant Data Isolation', () => {
             organization_id: context.profile.organization_id
           }
 
-          return new Response(JSON.stringify(recordData))
+          return NextResponse.json(recordData)
         }
       )
 
@@ -270,10 +270,10 @@ describe('Multi-Tenant Data Isolation', () => {
       const handler = createApiHandler(
         { requireAuth: true },
         async (_request, context) => {
-          return new Response(JSON.stringify({
+          return NextResponse.json({
             user_id: context.user.id,
             org_id: context.profile.organization_id
-          }))
+          })
         }
       )
 
@@ -345,11 +345,11 @@ describe('Multi-Tenant Data Isolation', () => {
         },
         async (_request, context) => {
           // Platform users can access cross-tenant data for management
-          return new Response(JSON.stringify({
+          return NextResponse.json({
             user_id: context.user.id,
             role: context.profile.role,
             can_access_all_tenants: true
-          }))
+          })
         }
       )
 
@@ -396,7 +396,7 @@ describe('Multi-Tenant Data Isolation', () => {
           allowedRoles: ['platform_owner', 'platform_admin']
         },
         async (_request, _context) => {
-          return new Response(JSON.stringify({ success: true }))
+          return NextResponse.json({ success: true })
         }
       )
 
@@ -440,7 +440,7 @@ describe('Multi-Tenant Data Isolation', () => {
       const handler = createApiHandler(
         { requireAuth: true },
         async (_request, _context) => {
-          return new Response(JSON.stringify({ success: true }))
+          return NextResponse.json({ success: true })
         }
       )
 
@@ -479,9 +479,9 @@ describe('Multi-Tenant Data Isolation', () => {
       const handler = createApiHandler(
         { requireAuth: true },
         async (_request, context) => {
-          return new Response(JSON.stringify({
+          return NextResponse.json({
             org_id: context.profile.organization_id
-          }))
+          })
         }
       )
 
@@ -530,10 +530,10 @@ describe('Multi-Tenant Data Isolation', () => {
         { requireAuth: true },
         async (_request, context) => {
           // Even admins can only access their own org's data
-          return new Response(JSON.stringify({
+          return NextResponse.json({
             org_id: context.profile.organization_id,
             can_access_other_orgs: false
-          }))
+          })
         }
       )
 

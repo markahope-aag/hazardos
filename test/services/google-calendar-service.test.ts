@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GoogleCalendarService } from '@/lib/services/google-calendar-service'
+import { decryptSecret, isEncrypted } from '@/lib/utils/secret-crypto'
 
 // Mock dependencies
 vi.mock('@/lib/supabase/server', () => ({
@@ -121,11 +122,13 @@ describe('GoogleCalendarService', () => {
         access_token: 'access_123',
         refresh_token: 'refresh_123',
         expires_in: 3600,
-      })
+      }, 'user@example.com')
 
       expect(storedData.organization_id).toBe('org-123')
       expect(storedData.integration_type).toBe('google_calendar')
-      expect(storedData.access_token).toBe('access_123')
+      // Encrypted at rest — the plaintext token must never reach the column.
+      expect(isEncrypted(storedData.access_token)).toBe(true)
+      expect(decryptSecret(storedData.access_token)).toBe('access_123')
     })
 
     it('should set correct expiration time', async () => {
@@ -144,7 +147,7 @@ describe('GoogleCalendarService', () => {
         access_token: 'test',
         refresh_token: 'test',
         expires_in: 3600,
-      })
+      }, 'user@example.com')
 
       const expiresAt = new Date(storedData.token_expires_at)
       const expectedExpiry = new Date(now + 3600 * 1000)
@@ -217,7 +220,9 @@ describe('GoogleCalendarService', () => {
 
       expect(storedData.organization_id).toBe('org-123')
       expect(storedData.integration_type).toBe('google_calendar')
-      expect(storedData.access_token).toBe('access_123')
+      // Encrypted at rest — the plaintext token must never reach the column.
+      expect(isEncrypted(storedData.access_token)).toBe(true)
+      expect(decryptSecret(storedData.access_token)).toBe('access_123')
       expect(storedData.external_id).toBe('test@example.com')
       expect(storedData.settings.email).toBe('test@example.com')
     })

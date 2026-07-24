@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/feedback/testimonials/route'
 import { FeedbackService } from '@/lib/services/feedback-service'
+import type { Testimonial } from '@/types/feedback'
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -54,24 +55,24 @@ describe('Feedback Testimonials API', () => {
     it('should return approved testimonials', async () => {
       setupAuthenticatedUser()
 
-      const mockTestimonials = [
+      const mockTestimonials: Testimonial[] = [
         {
           id: '550e8400-e29b-41d4-a716-446655440001',
           customer_name: 'John Doe',
-          testimonial: 'Excellent service!',
-          rating: 5,
-          job_type: 'Asbestos Removal',
-          approved_at: '2026-01-15T10:00:00Z',
-          is_approved: true
+          customer_company: null,
+          testimonial_text: 'Excellent service!',
+          rating_overall: 5,
+          job_number: 'JOB-001',
+          completed_at: '2026-01-15T10:00:00Z'
         },
         {
           id: '550e8400-e29b-41d4-a716-446655440002',
           customer_name: 'Jane Smith',
-          testimonial: 'Very professional team',
-          rating: 5,
-          job_type: 'Mold Remediation',
-          approved_at: '2026-01-20T10:00:00Z',
-          is_approved: true
+          customer_company: null,
+          testimonial_text: 'Very professional team',
+          rating_overall: 5,
+          job_number: 'JOB-002',
+          completed_at: '2026-01-20T10:00:00Z'
         }
       ]
 
@@ -84,7 +85,7 @@ describe('Feedback Testimonials API', () => {
       expect(response.status).toBe(200)
       expect(Array.isArray(data)).toBe(true)
       expect(data).toHaveLength(2)
-      expect(data[0].is_approved).toBe(true)
+      expect(data[0].testimonial_text).toBe('Excellent service!')
       expect(FeedbackService.getApprovedTestimonials).toHaveBeenCalled()
     })
 
@@ -136,14 +137,15 @@ describe('Feedback Testimonials API', () => {
     it('should only return approved testimonials', async () => {
       setupAuthenticatedUser()
 
-      const mockTestimonials = [
+      const mockTestimonials: Testimonial[] = [
         {
           id: '550e8400-e29b-41d4-a716-446655440001',
           customer_name: 'John Doe',
-          testimonial: 'Great work!',
-          rating: 5,
-          is_approved: true,
-          approved_at: '2026-01-15T10:00:00Z'
+          customer_company: null,
+          testimonial_text: 'Great work!',
+          rating_overall: 5,
+          job_number: 'JOB-001',
+          completed_at: '2026-01-15T10:00:00Z'
         }
       ]
 
@@ -154,7 +156,7 @@ describe('Feedback Testimonials API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.every((t: any) => t.is_approved === true)).toBe(true)
+      expect(data.every((t: Testimonial) => Boolean(t.testimonial_text))).toBe(true)
     })
   })
 })

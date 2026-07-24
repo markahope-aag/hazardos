@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { decryptSecret } from '@/lib/utils/secret-crypto'
 
 // Use vi.hoisted to create mocks before vi.mock is processed
 const mockSupabase = vi.hoisted(() => ({
@@ -46,7 +47,7 @@ vi.mock('@/lib/utils/logger', () => ({
 // Mock global fetch
 global.fetch = vi.fn()
 
-import { WebhookService } from '@/lib/services/webhook-service'
+import { WebhookService, type CreateWebhookInput } from '@/lib/services/webhook-service'
 
 describe('WebhookService', () => {
   beforeEach(() => {
@@ -134,10 +135,10 @@ describe('WebhookService', () => {
 
   describe('create', () => {
     it('should create webhook successfully', async () => {
-      const input = {
+      const input: CreateWebhookInput = {
         name: 'Customer Webhook',
         url: 'https://example.com/webhook',
-        events: ['customer.created', 'customer.updated'] as const,
+        events: ['customer.created', 'customer.updated'],
         secret: 'secret123',
         headers: { 'X-Custom': 'value' },
       }
@@ -158,17 +159,19 @@ describe('WebhookService', () => {
         name: 'Customer Webhook',
         url: 'https://example.com/webhook',
         events: ['customer.created', 'customer.updated'],
-        secret: 'secret123',
+        // The signing secret is encrypted at rest.
+        secret: expect.stringMatching(/^enc:v1:/),
         headers: { 'X-Custom': 'value' },
       })
+      expect(decryptSecret(mockSupabase.insert.mock.calls[0][0].secret)).toBe('secret123')
       expect(result).toEqual(mockWebhook)
     })
 
     it('should default headers to empty object if not provided', async () => {
-      const input = {
+      const input: CreateWebhookInput = {
         name: 'Test Webhook',
         url: 'https://example.com/webhook',
-        events: ['job.created'] as const,
+        events: ['job.created'],
       }
 
       mockSupabase.single.mockResolvedValue({ data: {}, error: null })

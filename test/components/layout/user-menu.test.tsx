@@ -34,10 +34,18 @@ const mockUser: SupabaseUser = {
 const mockProfile: Profile = {
   id: 'user-1',
   organization_id: 'org-1',
+  email: 'john.doe@example.com',
   first_name: 'John',
   last_name: 'Doe',
+  full_name: 'John Doe',
   role: 'admin',
+  is_active: true,
   is_platform_user: false,
+  calendar_feed_token: 'feed-token',
+  default_location_id: null,
+  last_login_at: null,
+  login_count: 0,
+  phone: null,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 }
@@ -144,7 +152,7 @@ describe('UserMenu Component', () => {
   })
 
   it('should format role names correctly', () => {
-    const profileWithUnderscoreRole = { ...mockProfile, role: 'tenant_owner' }
+    const profileWithUnderscoreRole = { ...mockProfile, role: 'tenant_owner' as const }
     render(<UserMenu user={mockUser} profile={profileWithUnderscoreRole} />)
 
     expect(screen.getByText('tenant owner')).toBeInTheDocument()

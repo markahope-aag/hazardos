@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import type { JSX } from 'react'
 
 // Mock next/dynamic
 vi.mock('next/dynamic', () => ({
@@ -26,6 +27,7 @@ vi.mock('@/components/error-boundaries', () => ({
 
 // Import after mocks
 import { RevenueChart, JobsByStatus } from '@/components/dashboard/charts-lazy'
+import { DEFAULT_FILTERS } from '@/lib/dashboard/filters'
 
 describe('charts-lazy', () => {
   describe('RevenueChart', () => {
@@ -47,7 +49,7 @@ describe('charts-lazy', () => {
 
   describe('JobsByStatus', () => {
     it('renders wrapped in error boundary', () => {
-      render(<JobsByStatus />)
+      render(<JobsByStatus filters={DEFAULT_FILTERS} />)
 
       const boundary = screen.getByTestId('chart-error-boundary')
       expect(boundary).toBeInTheDocument()
@@ -55,7 +57,7 @@ describe('charts-lazy', () => {
     })
 
     it('shows loading state', () => {
-      render(<JobsByStatus />)
+      render(<JobsByStatus filters={DEFAULT_FILTERS} />)
 
       // Should show loading spinner
       expect(document.querySelector('.animate-spin')).toBeInTheDocument()

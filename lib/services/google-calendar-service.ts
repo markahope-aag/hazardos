@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { GoogleCalendarConnectionStatus } from '@/types/integrations';
 import { createServiceLogger, formatError } from '@/lib/utils/logger';
 import { SecureError } from '@/lib/utils/secure-error-handler';
+import { encryptSecret, decryptSecret } from '@/lib/utils/secret-crypto';
 
 const log = createServiceLogger('GoogleCalendarService');
 
@@ -132,8 +133,8 @@ export class GoogleCalendarService {
       .upsert({
         organization_id: organizationId,
         integration_type: 'google_calendar',
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
+        access_token: encryptSecret(tokens.access_token),
+        refresh_token: encryptSecret(tokens.refresh_token),
         token_expires_at: expiresAt.toISOString(),
         external_id: email,
         is_active: true,
@@ -170,13 +171,13 @@ export class GoogleCalendarService {
 
     if (needsRefresh) {
       try {
-        const newTokens = await this.refreshTokens(integration.refresh_token);
+        const newTokens = await this.refreshTokens(decryptSecret(integration.refresh_token)!);
         const expiresAtNew = new Date(Date.now() + newTokens.expires_in * 1000);
 
         await supabase
           .from('organization_integrations')
           .update({
-            access_token: newTokens.access_token,
+            access_token: encryptSecret(newTokens.access_token),
             token_expires_at: expiresAtNew.toISOString(),
             updated_at: new Date().toISOString(),
           })
@@ -193,7 +194,7 @@ export class GoogleCalendarService {
     }
 
     return {
-      access_token: integration.access_token,
+      access_token: decryptSecret(integration.access_token)!,
       email: integration.external_id,
     };
   }

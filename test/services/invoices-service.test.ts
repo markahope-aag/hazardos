@@ -537,9 +537,9 @@ describe('InvoicesService', () => {
 
       const invoice = await InvoicesService.getById('inv-1')
 
-      expect(invoice?.line_items[0].sort_order).toBe(1)
-      expect(invoice?.line_items[1].sort_order).toBe(3)
-      expect(invoice?.line_items[2].sort_order).toBe(5)
+      expect(invoice?.line_items?.[0].sort_order).toBe(1)
+      expect(invoice?.line_items?.[1].sort_order).toBe(3)
+      expect(invoice?.line_items?.[2].sort_order).toBe(5)
     })
   })
 

@@ -2,10 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import CustomerInfoCard from '@/components/customers/customer-info-card'
 import type { Customer } from '@/types/database'
+import { createMockCustomer } from '@/test/helpers/mock-data'
 
-const mockCustomer: Customer = {
+const mockCustomer: Customer = createMockCustomer({
   id: '1',
-  org_id: 'org-1',
+  organization_id: 'org-1',
   first_name: 'John',
   last_name: 'Doe',
   email: 'john.doe@example.com',
@@ -21,7 +22,7 @@ const mockCustomer: Customer = {
   marketing_consent: true,
   created_at: '2024-01-15T10:00:00Z',
   updated_at: '2024-01-15T10:00:00Z',
-}
+})
 
 describe('CustomerInfoCard Component', () => {
   it('should render without crashing', () => {

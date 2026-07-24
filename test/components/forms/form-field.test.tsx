@@ -453,15 +453,15 @@ describe('FormField', () => {
     })
 
     it('should handle rapid value changes', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: 1 })
       const handleChange = vi.fn()
-      
+
       render(<FormField {...defaultProps} onChange={handleChange} />)
-      
+
       const input = screen.getByRole('textbox')
-      
+
       // Rapid typing
-      await user.type(input, 'rapid', { delay: 1 })
+      await user.type(input, 'rapid')
       
       expect(handleChange).toHaveBeenCalledTimes(5)
       expect(handleChange).toHaveBeenLastCalledWith('rapid')

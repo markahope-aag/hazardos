@@ -14,7 +14,7 @@ function createQueryBuilder() {
     or: vi.fn(() => builder),
     in: vi.fn(() => builder),
     order: vi.fn(() => builder),
-    then: vi.fn((resolve) => {
+    then: vi.fn((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
       resolve({ data: [], error: null })
     })
   }
@@ -22,7 +22,7 @@ function createQueryBuilder() {
 }
 
 const mockSupabaseClient = {
-  from: vi.fn(() => createQueryBuilder())
+  from: vi.fn((_table: string) => createQueryBuilder())
 }
 
 vi.mock('@/lib/utils/api-handler', () => ({
@@ -61,7 +61,7 @@ describe('Analytics Jobs By Hazard API', () => {
   it('should return empty result when no jobs found', async () => {
     mockSupabaseClient.from.mockImplementation(() => {
       const builder = createQueryBuilder()
-      builder.then.mockImplementation((resolve) => {
+      builder.then.mockImplementation((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
         resolve({ data: [], error: null })
       })
       return builder
@@ -102,7 +102,7 @@ describe('Analytics Jobs By Hazard API', () => {
 
     mockSupabaseClient.from.mockImplementation(() => {
       const builder = createQueryBuilder()
-      builder.then.mockImplementation((resolve) => {
+      builder.then.mockImplementation((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
         resolve({ data: mockJobs, error: null })
       })
       return builder
@@ -146,7 +146,7 @@ describe('Analytics Jobs By Hazard API', () => {
 
     mockSupabaseClient.from.mockImplementation(() => {
       const builder = createQueryBuilder()
-      builder.then.mockImplementation((resolve) => {
+      builder.then.mockImplementation((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
         resolve({ data: mockJobs, error: null })
       })
       return builder
@@ -178,7 +178,7 @@ describe('Analytics Jobs By Hazard API', () => {
 
     mockSupabaseClient.from.mockImplementation(() => {
       const builder = createQueryBuilder()
-      builder.then.mockImplementation((resolve) => {
+      builder.then.mockImplementation((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
         resolve({ data: mockJobs, error: null })
       })
       return builder
@@ -207,7 +207,7 @@ describe('Analytics Jobs By Hazard API', () => {
 
     mockSupabaseClient.from.mockImplementation(() => {
       const builder = createQueryBuilder()
-      builder.then.mockImplementation((resolve) => {
+      builder.then.mockImplementation((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
         resolve({ data: mockJobs, error: null })
       })
       return builder
@@ -247,7 +247,7 @@ describe('Analytics Jobs By Hazard API', () => {
     ]
 
     const mockChain = createQueryBuilder()
-    mockChain.then.mockImplementation((resolve) => {
+    mockChain.then.mockImplementation((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
       resolve({ data: mockJobs, error: null })
     })
 

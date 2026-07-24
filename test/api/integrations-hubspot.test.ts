@@ -192,9 +192,9 @@ describe('HubSpot Integration', () => {
       setupAuthenticatedUser()
 
       const syncResults = {
-        synced: 10,
-        failed: 0,
-        total: 10
+        processed: 10,
+        succeeded: 10,
+        failed: 0
       }
       vi.mocked(HubSpotService.syncAllContacts).mockResolvedValue(syncResults)
 
@@ -212,9 +212,9 @@ describe('HubSpot Integration', () => {
       // Assert
       expect(response.status).toBe(200)
       expect(data.success).toBe(true)
-      expect(data.synced).toBe(10)
+      expect(data.processed).toBe(10)
       expect(data.failed).toBe(0)
-      expect(data.total).toBe(10)
+      expect(data.succeeded).toBe(10)
       expect(HubSpotService.syncAllContacts).toHaveBeenCalledWith('org-123')
     })
 

@@ -138,6 +138,7 @@ describe('Survey Mappers', () => {
         environment: {
           temperature: 72,
           humidity: 45,
+          hvacType: null,
           moistureIssues: [],
           moistureNotes: '',
           hasStructuralConcerns: false,
@@ -373,7 +374,16 @@ describe('Survey Mappers', () => {
       clearance_required: true,
       clearance_lab: null,
       regulatory_notifications_needed: true,
-      notes: null
+      notes: null,
+      cancellation_reason: null,
+      cancelled_at: null,
+      cancelled_by: null,
+      location_id: null,
+      parent_survey_id: null,
+      property_id: null,
+      revision_notes: null,
+      survey_root_id: 'survey-1',
+      version: 1
     }
 
     it('should map currentSurveyId from db id', () => {

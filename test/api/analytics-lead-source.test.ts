@@ -13,7 +13,7 @@ function createQueryBuilder() {
     or: vi.fn(() => builder),
     order: vi.fn(() => builder),
     limit: vi.fn(() => builder),
-    then: vi.fn((resolve) => {
+    then: vi.fn((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
       resolve({ data: [], error: null })
     })
   }
@@ -21,7 +21,7 @@ function createQueryBuilder() {
 }
 
 const mockSupabaseClient = {
-  from: vi.fn(() => createQueryBuilder())
+  from: vi.fn((_table: string) => createQueryBuilder())
 }
 
 vi.mock('@/lib/utils/api-handler', () => ({
@@ -62,7 +62,7 @@ describe('Analytics Lead Source API', () => {
     mockSupabaseClient.from.mockImplementation((table) => {
       const builder = createQueryBuilder()
       if (table === 'jobs') {
-        builder.then.mockImplementation((resolve) => {
+        builder.then.mockImplementation((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
           resolve({ data: [], error: null })
         })
       }
@@ -98,15 +98,15 @@ describe('Analytics Lead Source API', () => {
       const builder = createQueryBuilder()
       
       if (table === 'jobs') {
-        builder.then.mockImplementation((resolve) => {
+        builder.then.mockImplementation((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
           resolve({ data: mockJobs, error: null })
         })
       } else if (table === 'site_surveys') {
-        builder.then.mockImplementation((resolve) => {
+        builder.then.mockImplementation((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
           resolve({ data: mockSurveys, error: null })
         })
       } else if (table === 'customers') {
-        builder.then.mockImplementation((resolve) => {
+        builder.then.mockImplementation((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
           resolve({ data: mockCustomers, error: null })
         })
       }
@@ -136,15 +136,15 @@ describe('Analytics Lead Source API', () => {
       const builder = createQueryBuilder()
       
       if (table === 'jobs') {
-        builder.then.mockImplementation((resolve) => {
+        builder.then.mockImplementation((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
           resolve({ data: mockJobs, error: null })
         })
       } else if (table === 'site_surveys') {
-        builder.then.mockImplementation((resolve) => {
+        builder.then.mockImplementation((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
           resolve({ data: mockSurveys, error: null })
         })
       } else if (table === 'customers') {
-        builder.then.mockImplementation((resolve) => {
+        builder.then.mockImplementation((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
           resolve({ data: mockCustomers, error: null })
         })
       }
@@ -182,15 +182,15 @@ describe('Analytics Lead Source API', () => {
       const builder = createQueryBuilder()
       
       if (table === 'jobs') {
-        builder.then.mockImplementation((resolve) => {
+        builder.then.mockImplementation((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
           resolve({ data: mockJobs, error: null })
         })
       } else if (table === 'site_surveys') {
-        builder.then.mockImplementation((resolve) => {
+        builder.then.mockImplementation((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
           resolve({ data: mockSurveys, error: null })
         })
       } else if (table === 'customers') {
-        builder.then.mockImplementation((resolve) => {
+        builder.then.mockImplementation((resolve: (result: { data: unknown[]; error: unknown }) => void) => {
           resolve({ data: mockCustomers, error: null })
         })
       }

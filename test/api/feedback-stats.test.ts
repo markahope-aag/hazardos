@@ -26,6 +26,7 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 }))
 
 import { FeedbackService } from '@/lib/services/feedback-service'
+import type { FeedbackStats } from '@/types/feedback'
 
 describe('Feedback Stats API', () => {
   beforeEach(() => {
@@ -56,11 +57,15 @@ describe('Feedback Stats API', () => {
         })
       } as any)
 
-      const mockStats = {
-        total_feedback: 150,
-        average_rating: 4.5,
-        positive_count: 120,
-        negative_count: 30,
+      const mockStats: FeedbackStats = {
+        total_surveys: 150,
+        completed_surveys: 128,
+        avg_overall_rating: 4.5,
+        avg_quality_rating: 4.4,
+        avg_communication_rating: 4.6,
+        avg_timeliness_rating: 4.3,
+        nps_score: 65,
+        testimonials_count: 30,
         response_rate: 85.5
       }
 
@@ -74,9 +79,9 @@ describe('Feedback Stats API', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data.total_feedback).toBe(150)
-      expect(data.average_rating).toBe(4.5)
-      expect(data.positive_count).toBe(120)
+      expect(data.total_surveys).toBe(150)
+      expect(data.avg_overall_rating).toBe(4.5)
+      expect(data.testimonials_count).toBe(30)
       expect(FeedbackService.getFeedbackStats).toHaveBeenCalled()
     })
 

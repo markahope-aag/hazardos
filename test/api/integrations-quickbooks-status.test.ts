@@ -26,6 +26,7 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 }))
 
 import { QuickBooksService } from '@/lib/services/quickbooks-service'
+import type { QuickBooksConnectionStatus } from '@/types/integrations'
 
 describe('QuickBooks Status API', () => {
   beforeEach(() => {
@@ -56,12 +57,11 @@ describe('QuickBooks Status API', () => {
         })
       } as any)
 
-      const mockStatus = {
-        connected: true,
+      const mockStatus: QuickBooksConnectionStatus = {
+        is_connected: true,
         company_name: 'ABC Construction Inc',
         realm_id: 'qb-realm-123',
-        last_sync: '2026-02-01T10:00:00Z',
-        sync_enabled: true
+        last_sync_at: '2026-02-01T10:00:00Z'
       }
 
       vi.mocked(QuickBooksService.getConnectionStatus).mockResolvedValue(mockStatus)
@@ -74,7 +74,7 @@ describe('QuickBooks Status API', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data.connected).toBe(true)
+      expect(data.is_connected).toBe(true)
       expect(data.company_name).toBe('ABC Construction Inc')
       expect(data.realm_id).toBe('qb-realm-123')
       expect(QuickBooksService.getConnectionStatus).toHaveBeenCalledWith('org-123')
@@ -98,12 +98,8 @@ describe('QuickBooks Status API', () => {
         })
       } as any)
 
-      const mockStatus = {
-        connected: false,
-        company_name: null,
-        realm_id: null,
-        last_sync: null,
-        sync_enabled: false
+      const mockStatus: QuickBooksConnectionStatus = {
+        is_connected: false
       }
 
       vi.mocked(QuickBooksService.getConnectionStatus).mockResolvedValue(mockStatus)
@@ -116,7 +112,7 @@ describe('QuickBooks Status API', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data.connected).toBe(false)
+      expect(data.is_connected).toBe(false)
     })
 
     it('should reject unauthenticated requests', async () => {

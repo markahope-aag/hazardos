@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
+import { ROLES } from '@/lib/auth/roles'
 import { sendProposalSchema } from '@/lib/validations/proposals'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -22,6 +23,11 @@ function escapeHtml(value: string): string {
  */
 export const POST = createApiHandlerWithParams(
   {
+    // Sending a proposal emails the portal access token plus 14-day signed
+    // links to the org's license/insurance/bond documents. Gate to content
+    // creators (owner/admin/estimator); a viewer must not be able to
+    // exfiltrate credentials to an arbitrary address.
+    allowedRoles: ROLES.TENANT_WRITE,
     rateLimit: 'general',
     bodySchema: sendProposalSchema,
   },

@@ -27,7 +27,7 @@ vi.mock('recharts', () => ({
   XAxis: ({ dataKey }: { dataKey: string }) => (
     <div data-testid="x-axis" data-key={dataKey} />
   ),
-  YAxis: ({ tickFormatter }: { tickFormatter: (value: number) => string }) => (
+  YAxis: ({ tickFormatter }: { tickFormatter?: (value: number) => string }) => (
     <div data-testid="y-axis" data-formatter={tickFormatter ? 'custom' : 'default'} />
   ),
   CartesianGrid: ({ strokeDasharray }: { strokeDasharray: string }) => (
@@ -52,7 +52,7 @@ vi.mock('@/components/charts/recharts-lazy', () => ({
   XAxis: ({ dataKey }: { dataKey: string }) => (
     <div data-testid="x-axis" data-key={dataKey} />
   ),
-  YAxis: ({ tickFormatter }: { tickFormatter: (value: number) => string }) => (
+  YAxis: ({ tickFormatter }: { tickFormatter?: (value: number) => string }) => (
     <div data-testid="y-axis" data-formatter={tickFormatter ? 'custom' : 'default'} />
   ),
   CartesianGrid: ({ strokeDasharray }: { strokeDasharray: string }) => (

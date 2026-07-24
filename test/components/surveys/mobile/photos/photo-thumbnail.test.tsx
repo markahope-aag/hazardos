@@ -15,6 +15,11 @@ const mockPhoto = {
   timestamp: Date.now().toString(),
   blob: null, // Required by PhotoData type
   location: 'Test location', // Required by PhotoData type
+  path: null,
+  area_id: null,
+  mediaType: 'image' as const,
+  mimeType: 'image/png',
+  fileSize: null,
 }
 
 describe('PhotoThumbnail', () => {

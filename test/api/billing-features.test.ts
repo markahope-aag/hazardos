@@ -29,6 +29,7 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 }))
 
 import { FeatureFlagsService } from '@/lib/services/feature-flags-service'
+import type { FeatureFlag, UsageLimits, UsageStats, UsageWarning } from '@/types/feature-flags'
 
 describe('Billing Features API', () => {
   beforeEach(() => {
@@ -59,25 +60,29 @@ describe('Billing Features API', () => {
         })
       } as any)
 
-      const mockFeatures = {
+      const mockFeatures: Record<FeatureFlag, boolean> = {
         advanced_reporting: true,
-        ai_estimates: true,
-        custom_branding: false
+        quickbooks: false,
+        api_access: false,
+        custom_branding: false,
+        priority_support: false,
+        unlimited_users: false,
+        unlimited_jobs: false
       }
 
-      const mockLimits = {
-        max_users: 10,
-        max_jobs_per_month: 100,
-        max_storage_gb: 50
+      const mockLimits: UsageLimits = {
+        maxUsers: 10,
+        maxJobsPerMonth: 100,
+        maxStorageGb: 50
       }
 
-      const mockUsage = {
-        users_count: 5,
-        jobs_this_month: 45,
-        storage_used_gb: 12.5
+      const mockUsage: UsageStats = {
+        usersCount: 5,
+        jobsThisMonth: 45,
+        storageUsedMb: 12500
       }
 
-      const mockWarnings = []
+      const mockWarnings: UsageWarning[] = []
 
       vi.mocked(FeatureFlagsService.getFeatureFlagsForOrg).mockResolvedValue(mockFeatures)
       vi.mocked(FeatureFlagsService.getUsageLimitsForOrg).mockResolvedValue(mockLimits)
@@ -117,14 +122,36 @@ describe('Billing Features API', () => {
         })
       } as any)
 
-      const mockWarnings = [
-        { type: 'storage', message: 'Storage usage at 90% of limit', severity: 'warning' },
-        { type: 'jobs', message: 'Jobs this month at 85% of limit', severity: 'info' }
+      const mockWarnings: UsageWarning[] = [
+        { type: 'storage', level: 'warning', current: 45, limit: 50, percentage: 90, message: 'Storage usage at 90% of limit' },
+        { type: 'jobs', level: 'warning', current: 85, limit: 100, percentage: 85, message: 'Jobs this month at 85% of limit' }
       ]
 
-      vi.mocked(FeatureFlagsService.getFeatureFlagsForOrg).mockResolvedValue({})
-      vi.mocked(FeatureFlagsService.getUsageLimitsForOrg).mockResolvedValue({})
-      vi.mocked(FeatureFlagsService.getUsageStats).mockResolvedValue({})
+      const defaultFeatures: Record<FeatureFlag, boolean> = {
+        quickbooks: false,
+        api_access: false,
+        custom_branding: false,
+        advanced_reporting: false,
+        priority_support: false,
+        unlimited_users: false,
+        unlimited_jobs: false
+      }
+
+      const defaultLimits: UsageLimits = {
+        maxUsers: 10,
+        maxJobsPerMonth: 100,
+        maxStorageGb: 50
+      }
+
+      const defaultUsage: UsageStats = {
+        usersCount: 5,
+        jobsThisMonth: 85,
+        storageUsedMb: 46000
+      }
+
+      vi.mocked(FeatureFlagsService.getFeatureFlagsForOrg).mockResolvedValue(defaultFeatures)
+      vi.mocked(FeatureFlagsService.getUsageLimitsForOrg).mockResolvedValue(defaultLimits)
+      vi.mocked(FeatureFlagsService.getUsageStats).mockResolvedValue(defaultUsage)
       vi.mocked(FeatureFlagsService.checkUsageWarnings).mockResolvedValue(mockWarnings)
 
       const request = new NextRequest('http://localhost:3000/api/billing/features')

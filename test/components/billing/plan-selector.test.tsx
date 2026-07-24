@@ -26,13 +26,24 @@ const mockPlans: SubscriptionPlan[] = [
     description: 'Perfect for small teams',
     price_monthly: 2900, // $29.00
     price_yearly: 29000, // $290.00 (10 months)
-    is_popular: false,
+    stripe_product_id: 'prod_starter',
+    stripe_price_id_monthly: 'price_starter_monthly',
+    stripe_price_id_yearly: 'price_starter_yearly',
+    max_users: 5,
+    max_jobs_per_month: 50,
+    max_storage_gb: 10,
     features: [
       'Up to 5 users',
       '50 jobs per month',
       '10GB storage',
       'Email support',
     ],
+    feature_flags: {},
+    is_active: true,
+    is_public: true,
+    display_order: 1,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
   },
   {
     id: 'plan_pro',
@@ -41,7 +52,12 @@ const mockPlans: SubscriptionPlan[] = [
     description: 'Best for growing businesses',
     price_monthly: 9900, // $99.00
     price_yearly: 99000, // $990.00 (10 months)
-    is_popular: true,
+    stripe_product_id: 'prod_pro',
+    stripe_price_id_monthly: 'price_pro_monthly',
+    stripe_price_id_yearly: 'price_pro_yearly',
+    max_users: 25,
+    max_jobs_per_month: null,
+    max_storage_gb: 100,
     features: [
       'Up to 25 users',
       'Unlimited jobs',
@@ -49,6 +65,12 @@ const mockPlans: SubscriptionPlan[] = [
       'Priority support',
       'Advanced reporting',
     ],
+    feature_flags: {},
+    is_active: true,
+    is_public: true,
+    display_order: 2,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
   },
   {
     id: 'plan_enterprise',
@@ -57,7 +79,12 @@ const mockPlans: SubscriptionPlan[] = [
     description: 'For large organizations',
     price_monthly: 19900, // $199.00
     price_yearly: 199000, // $1,990.00 (10 months)
-    is_popular: false,
+    stripe_product_id: 'prod_enterprise',
+    stripe_price_id_monthly: 'price_enterprise_monthly',
+    stripe_price_id_yearly: 'price_enterprise_yearly',
+    max_users: null,
+    max_jobs_per_month: null,
+    max_storage_gb: 1000,
     features: [
       'Unlimited users',
       'Unlimited jobs',
@@ -66,6 +93,12 @@ const mockPlans: SubscriptionPlan[] = [
       'Custom integrations',
       'SLA guarantee',
     ],
+    feature_flags: {},
+    is_active: true,
+    is_public: true,
+    display_order: 3,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
   },
 ]
 
@@ -155,7 +188,7 @@ describe('PlanSelector', () => {
 
     render(<PlanSelector plans={mockPlans} />)
 
-    const starterCard = screen.getByText('Starter').closest('[class*="border"]')
+    const starterCard = screen.getByText('Starter').closest('[class*="border"]') as HTMLElement
     const starterButton = within(starterCard).getByRole('button', { name: /select plan/i })
     fireEvent.click(starterButton)
     
@@ -187,7 +220,7 @@ describe('PlanSelector', () => {
     const billingToggle = screen.getByRole('switch')
     fireEvent.click(billingToggle)
 
-    const starterCard = screen.getByText('Starter').closest('[class*="border"]')
+    const starterCard = screen.getByText('Starter').closest('[class*="border"]') as HTMLElement
     const starterButton = within(starterCard).getByRole('button', { name: /select plan/i })
     fireEvent.click(starterButton)
     
@@ -205,7 +238,7 @@ describe('PlanSelector', () => {
 
     render(<PlanSelector plans={mockPlans} />)
 
-    const starterCard = screen.getByText('Starter').closest('[class*="border"]')
+    const starterCard = screen.getByText('Starter').closest('[class*="border"]') as HTMLElement
     const starterButton = within(starterCard).getByRole('button', { name: /select plan/i })
     fireEvent.click(starterButton)
 
@@ -223,7 +256,7 @@ describe('PlanSelector', () => {
 
     render(<PlanSelector plans={mockPlans} />)
 
-    const starterCard = screen.getByText('Starter').closest('[class*="border"]')
+    const starterCard = screen.getByText('Starter').closest('[class*="border"]') as HTMLElement
     const starterButton = within(starterCard).getByRole('button', { name: /select plan/i })
     fireEvent.click(starterButton)
 
@@ -241,7 +274,7 @@ describe('PlanSelector', () => {
 
     render(<PlanSelector plans={mockPlans} />)
 
-    const starterCard = screen.getByText('Starter').closest('[class*="border"]')
+    const starterCard = screen.getByText('Starter').closest('[class*="border"]') as HTMLElement
     const starterButton = within(starterCard).getByRole('button', { name: /select plan/i })
     fireEvent.click(starterButton)
 
@@ -281,8 +314,19 @@ describe('PlanSelector', () => {
       description: 'Very expensive plan',
       price_monthly: 123456, // $1,234.56
       price_yearly: 1234560, // $12,345.60
-      is_popular: false,
+      stripe_product_id: 'prod_expensive',
+      stripe_price_id_monthly: 'price_expensive_monthly',
+      stripe_price_id_yearly: 'price_expensive_yearly',
+      max_users: null,
+      max_jobs_per_month: null,
+      max_storage_gb: null,
       features: ['Everything'],
+      feature_flags: {},
+      is_active: true,
+      is_public: true,
+      display_order: 1,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
     }
 
     render(<PlanSelector plans={[expensivePlan]} />)
@@ -299,8 +343,19 @@ describe('PlanSelector', () => {
       description: 'Basic plan',
       price_monthly: 1000,
       price_yearly: 10000,
-      is_popular: false,
+      stripe_product_id: 'prod_minimal',
+      stripe_price_id_monthly: 'price_minimal_monthly',
+      stripe_price_id_yearly: 'price_minimal_yearly',
+      max_users: null,
+      max_jobs_per_month: null,
+      max_storage_gb: null,
       features: [],
+      feature_flags: {},
+      is_active: true,
+      is_public: true,
+      display_order: 1,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
     }
 
     render(<PlanSelector plans={[minimalPlan]} />)
@@ -333,7 +388,7 @@ describe('PlanSelector', () => {
 
     render(<PlanSelector plans={mockPlans} />)
 
-    const starterCard = screen.getByText('Starter').closest('[class*="border"]')
+    const starterCard = screen.getByText('Starter').closest('[class*="border"]') as HTMLElement
     const starterButton = within(starterCard).getByRole('button', { name: /select plan/i })
     const allButtons = screen.getAllByRole('button', { name: /select plan/i })
 

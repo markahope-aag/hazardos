@@ -5,7 +5,7 @@ import { FeatureGate, FeatureLockedCard, FeatureBadge, FeatureListItem } from '@
 describe('FeatureGate Component', () => {
   it('should render children when enabled', () => {
     render(
-      <FeatureGate feature="ai_proposals" enabled={true}>
+      <FeatureGate feature="custom_branding" enabled={true}>
         <div>Feature Content</div>
       </FeatureGate>
     )
@@ -15,7 +15,7 @@ describe('FeatureGate Component', () => {
 
   it('should not render children when disabled', () => {
     render(
-      <FeatureGate feature="ai_proposals" enabled={false}>
+      <FeatureGate feature="custom_branding" enabled={false}>
         <div>Feature Content</div>
       </FeatureGate>
     )
@@ -26,7 +26,7 @@ describe('FeatureGate Component', () => {
   it('should render fallback when disabled and fallback provided', () => {
     render(
       <FeatureGate
-        feature="ai_proposals"
+        feature="custom_branding"
         enabled={false}
         fallback={<div>Fallback Content</div>}
       >
@@ -40,7 +40,7 @@ describe('FeatureGate Component', () => {
 
   it('should show upgrade prompt when disabled and showUpgradePrompt is true', () => {
     render(
-      <FeatureGate feature="ai_proposals" enabled={false} showUpgradePrompt={true}>
+      <FeatureGate feature="custom_branding" enabled={false} showUpgradePrompt={true}>
         <div>Feature Content</div>
       </FeatureGate>
     )
@@ -50,7 +50,7 @@ describe('FeatureGate Component', () => {
 
   it('should return null when disabled, no fallback, and showUpgradePrompt is false', () => {
     const { container } = render(
-      <FeatureGate feature="ai_proposals" enabled={false} showUpgradePrompt={false}>
+      <FeatureGate feature="custom_branding" enabled={false} showUpgradePrompt={false}>
         <div>Feature Content</div>
       </FeatureGate>
     )
@@ -155,28 +155,28 @@ describe('FeatureLockedCard Component', () => {
 describe('FeatureBadge Component', () => {
   it('should render without crashing', () => {
     expect(() =>
-      render(<FeatureBadge feature="ai_proposals" enabled={true} />)
+      render(<FeatureBadge feature="custom_branding" enabled={true} />)
     ).not.toThrow()
   })
 
   it('should show Enabled badge when enabled', () => {
-    render(<FeatureBadge feature="ai_proposals" enabled={true} />)
+    render(<FeatureBadge feature="custom_branding" enabled={true} />)
     expect(screen.getByText('Enabled')).toBeInTheDocument()
   })
 
   it('should show plan badge when disabled', () => {
-    render(<FeatureBadge feature="ai_proposals" enabled={false} />)
+    render(<FeatureBadge feature="custom_branding" enabled={false} />)
     // Should show Pro, Starter, or Enterprise based on feature config
     expect(screen.getByText(/Pro|Starter|Enterprise/)).toBeInTheDocument()
   })
 
   it('should accept custom className', () => {
-    render(<FeatureBadge feature="ai_proposals" enabled={true} className="custom-badge" />)
+    render(<FeatureBadge feature="custom_branding" enabled={true} className="custom-badge" />)
     expect(screen.getByText('Enabled')).toHaveClass('custom-badge')
   })
 
   it('should have green styling when enabled', () => {
-    render(<FeatureBadge feature="ai_proposals" enabled={true} />)
+    render(<FeatureBadge feature="custom_branding" enabled={true} />)
     expect(screen.getByText('Enabled')).toHaveClass('bg-green-100')
     expect(screen.getByText('Enabled')).toHaveClass('text-green-800')
   })
@@ -185,23 +185,25 @@ describe('FeatureBadge Component', () => {
 describe('FeatureListItem Component', () => {
   it('should render without crashing', () => {
     expect(() =>
-      render(<FeatureListItem feature="ai_proposals" enabled={true} />)
+      render(<FeatureListItem feature="custom_branding" enabled={true} />)
     ).not.toThrow()
   })
 
   it('should render feature name', () => {
-    render(<FeatureListItem feature="ai_proposals" enabled={true} />)
-    // Feature name from config should be displayed
-    expect(screen.getByText(/AI|Proposals|ai_proposals/i)).toBeInTheDocument()
+    render(<FeatureListItem feature="custom_branding" enabled={true} />)
+    // Feature name from config should be displayed. Match the exact display
+    // name — a loose /Custom/i regex also matches "customer-facing" in the
+    // description, which trips getByText's single-match requirement.
+    expect(screen.getByText('Custom Branding')).toBeInTheDocument()
   })
 
   it('should render badge', () => {
-    render(<FeatureListItem feature="ai_proposals" enabled={true} />)
+    render(<FeatureListItem feature="custom_branding" enabled={true} />)
     expect(screen.getByText('Enabled')).toBeInTheDocument()
   })
 
   it('should show lock icon when disabled', () => {
-    const { container } = render(<FeatureListItem feature="ai_proposals" enabled={false} />)
+    const { container } = render(<FeatureListItem feature="custom_branding" enabled={false} />)
     // Should have at least one lock icon
     const svgs = container.querySelectorAll('svg')
     expect(svgs.length).toBeGreaterThan(0)
@@ -210,7 +212,7 @@ describe('FeatureListItem Component', () => {
   it('should be clickable when onClick provided', () => {
     const handleClick = () => {}
     const { container } = render(
-      <FeatureListItem feature="ai_proposals" enabled={true} onClick={handleClick} />
+      <FeatureListItem feature="custom_branding" enabled={true} onClick={handleClick} />
     )
 
     const item = container.firstChild as HTMLElement
@@ -219,7 +221,7 @@ describe('FeatureListItem Component', () => {
 
   it('should not have cursor-pointer when no onClick', () => {
     const { container } = render(
-      <FeatureListItem feature="ai_proposals" enabled={true} />
+      <FeatureListItem feature="custom_branding" enabled={true} />
     )
 
     const item = container.firstChild as HTMLElement

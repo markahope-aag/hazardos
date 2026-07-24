@@ -21,7 +21,7 @@ vi.mock('@/components/ui/use-toast', () => ({
 const mockApiKeys: ApiKey[] = [
   {
     id: '1',
-    org_id: 'org-1',
+    organization_id: 'org-1',
     name: 'Production API Key',
     key_prefix: 'hzd_prod_abc12',
     scopes: ['customers:read', 'jobs:read'] as ApiKeyScope[],
@@ -29,19 +29,19 @@ const mockApiKeys: ApiKey[] = [
     last_used_at: '2024-01-15T10:00:00Z',
     is_active: true,
     created_at: '2024-01-01',
-    expires_at: null,
+    expires_at: undefined,
   },
   {
     id: '2',
-    org_id: 'org-1',
+    organization_id: 'org-1',
     name: 'Test API Key',
     key_prefix: 'hzd_test_xyz99',
     scopes: ['customers:read', 'customers:write', 'jobs:read', 'jobs:write'] as ApiKeyScope[],
     rate_limit: 500,
-    last_used_at: null,
+    last_used_at: undefined,
     is_active: true,
     created_at: '2024-01-01',
-    expires_at: null,
+    expires_at: undefined,
   },
 ]
 

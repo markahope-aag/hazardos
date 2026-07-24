@@ -2,6 +2,28 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/approvals/route'
 import { ApprovalService } from '@/lib/services/approval-service'
+import type { ApprovalRequest } from '@/types/sales'
+
+const baseApproval: ApprovalRequest = {
+  id: 'approval-1',
+  organization_id: '550e8400-e29b-41d4-a716-446655440000',
+  entity_type: 'estimate',
+  entity_id: '550e8400-e29b-41d4-a716-446655440001',
+  amount: 5000,
+  requested_by: 'user-1',
+  requested_at: new Date().toISOString(),
+  level1_status: 'pending',
+  level1_approver: null,
+  level1_at: null,
+  level1_notes: null,
+  requires_level2: false,
+  level2_status: null,
+  level2_approver: null,
+  level2_at: null,
+  level2_notes: null,
+  final_status: 'pending',
+  created_at: new Date().toISOString()
+}
 
 const mockSupabaseClient = {
   auth: { getUser: vi.fn() },
@@ -59,10 +81,15 @@ describe('Approvals API', () => {
     it('should list approval requests', async () => {
       setupAuthenticatedUser()
 
-      const mockRequests = [
-        { id: 'approval-1', entity_type: 'estimate', status: 'pending', amount: 5000 },
-        { id: 'approval-2', entity_type: 'change_order', status: 'approved', amount: 2000 }
-      ]
+      const mockRequests = {
+        requests: [
+          { ...baseApproval, id: 'approval-1', entity_type: 'estimate' as const },
+          { ...baseApproval, id: 'approval-2', entity_type: 'change_order' as const, final_status: 'approved' as const }
+        ],
+        total: 2,
+        limit: 20,
+        offset: 0
+      }
 
       vi.mocked(ApprovalService.getRequests).mockResolvedValue(mockRequests)
 
@@ -77,7 +104,7 @@ describe('Approvals API', () => {
     it('should filter by entity type', async () => {
       setupAuthenticatedUser()
 
-      vi.mocked(ApprovalService.getRequests).mockResolvedValue([])
+      vi.mocked(ApprovalService.getRequests).mockResolvedValue({ requests: [], total: 0, limit: 20, offset: 0 })
 
       const request = new NextRequest('http://localhost:3000/api/approvals?entity_type=estimate')
       await GET(request)
@@ -90,7 +117,7 @@ describe('Approvals API', () => {
     it('should filter pending only', async () => {
       setupAuthenticatedUser()
 
-      vi.mocked(ApprovalService.getRequests).mockResolvedValue([])
+      vi.mocked(ApprovalService.getRequests).mockResolvedValue({ requests: [], total: 0, limit: 20, offset: 0 })
 
       const request = new NextRequest('http://localhost:3000/api/approvals?pending_only=true')
       await GET(request)
@@ -117,12 +144,12 @@ describe('Approvals API', () => {
     it('should create approval request', async () => {
       setupAuthenticatedUser()
 
-      const mockRequest = {
+      const mockRequest: ApprovalRequest = {
+        ...baseApproval,
         id: 'approval-1',
         entity_type: 'estimate',
         entity_id: '550e8400-e29b-41d4-a716-446655440001',
-        amount: 5000,
-        status: 'pending'
+        amount: 5000
       }
 
       vi.mocked(ApprovalService.createRequest).mockResolvedValue(mockRequest)

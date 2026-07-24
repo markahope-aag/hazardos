@@ -245,7 +245,7 @@ describe('PhotoCapture', () => {
   })
 
   it('should handle different photo categories', () => {
-    const categories = ['exterior', 'interior', 'asbestos_materials', 'lead_components', 'utility_access'] as const
+    const categories = ['exterior', 'interior', 'hazard_area', 'other', 'utility_access'] as const
 
     categories.forEach(category => {
       const { unmount } = render(<PhotoCapture category={category} />)

@@ -3,13 +3,13 @@ import { NextRequest } from 'next/server'
 import { GET, PATCH } from '@/app/api/organizations/me/route'
 
 const mockSupabaseClient = {
-  from: vi.fn(() => ({
+  from: vi.fn((_table: string) => ({
     select: vi.fn(() => ({
       eq: vi.fn(() => ({
         single: vi.fn(() => Promise.resolve({ data: null, error: null }))
       }))
     })),
-    update: vi.fn(() => ({
+    update: vi.fn((_updates: Record<string, unknown>) => ({
       eq: vi.fn(() => ({
         select: vi.fn(() => ({
           single: vi.fn(() => Promise.resolve({ data: null, error: null }))
@@ -79,10 +79,11 @@ describe('Organizations Me API', () => {
                   error: null
                 })
               }))
-            }))
+            })),
+            update: vi.fn()
           }
         }
-        return mockSupabaseClient.from()
+        return mockSupabaseClient.from(table)
       })
 
       const request = new NextRequest('http://localhost/api/organizations/me')
@@ -104,10 +105,11 @@ describe('Organizations Me API', () => {
                   error: { message: 'Database connection failed' }
                 })
               }))
-            }))
+            })),
+            update: vi.fn()
           }
         }
-        return mockSupabaseClient.from()
+        return mockSupabaseClient.from(table)
       })
 
       const request = new NextRequest('http://localhost/api/organizations/me')
@@ -142,6 +144,7 @@ describe('Organizations Me API', () => {
       mockSupabaseClient.from.mockImplementation((table) => {
         if (table === 'organizations') {
           return {
+            select: vi.fn(),
             update: vi.fn(() => ({
               eq: vi.fn(() => ({
                 select: vi.fn(() => ({
@@ -154,7 +157,7 @@ describe('Organizations Me API', () => {
             }))
           }
         }
-        return mockSupabaseClient.from()
+        return mockSupabaseClient.from(table)
       })
 
       const request = new NextRequest('http://localhost/api/organizations/me', {
@@ -190,7 +193,8 @@ describe('Organizations Me API', () => {
       mockSupabaseClient.from.mockImplementation((table) => {
         if (table === 'organizations') {
           return {
-            update: vi.fn((updates) => {
+            select: vi.fn(),
+            update: vi.fn((updates: Record<string, unknown>) => {
               capturedUpdates = updates
               return {
                 eq: vi.fn(() => ({
@@ -205,7 +209,7 @@ describe('Organizations Me API', () => {
             })
           }
         }
-        return mockSupabaseClient.from()
+        return mockSupabaseClient.from(table)
       })
 
       const request = new NextRequest('http://localhost/api/organizations/me', {
@@ -231,6 +235,7 @@ describe('Organizations Me API', () => {
       mockSupabaseClient.from.mockImplementation((table) => {
         if (table === 'organizations') {
           return {
+            select: vi.fn(),
             update: vi.fn(() => ({
               eq: vi.fn(() => ({
                 select: vi.fn(() => ({
@@ -243,7 +248,7 @@ describe('Organizations Me API', () => {
             }))
           }
         }
-        return mockSupabaseClient.from()
+        return mockSupabaseClient.from(table)
       })
 
       const request = new NextRequest('http://localhost/api/organizations/me', {
@@ -268,7 +273,8 @@ describe('Organizations Me API', () => {
       mockSupabaseClient.from.mockImplementation((table) => {
         if (table === 'organizations') {
           return {
-            update: vi.fn((updates) => {
+            select: vi.fn(),
+            update: vi.fn((updates: Record<string, unknown>) => {
               capturedUpdates = updates
               return {
                 eq: vi.fn(() => ({
@@ -283,7 +289,7 @@ describe('Organizations Me API', () => {
             })
           }
         }
-        return mockSupabaseClient.from()
+        return mockSupabaseClient.from(table)
       })
 
       const request = new NextRequest('http://localhost/api/organizations/me', {

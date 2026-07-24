@@ -3,6 +3,7 @@ import { createHmac, randomBytes } from 'crypto';
 import type { Webhook, WebhookDelivery, WebhookEventType } from '@/types/integrations';
 import { logger, formatError } from '@/lib/utils/logger';
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler';
+import { encryptSecret, decryptSecret } from '@/lib/utils/secret-crypto';
 
 const MAX_RETRY_ATTEMPTS = 5;
 const RETRY_DELAYS = [60, 300, 900, 3600, 7200]; // Seconds: 1m, 5m, 15m, 1h, 2h
@@ -37,7 +38,7 @@ export class WebhookService {
       .order('created_at', { ascending: false });
 
     if (error) throwDbError(error, 'fetch webhooks');
-    return data || [];
+    return (data || []).map((webhook) => ({ ...webhook, secret: decryptSecret(webhook.secret) ?? undefined }));
   }
 
   static async get(webhookId: string): Promise<Webhook | null> {
@@ -50,7 +51,8 @@ export class WebhookService {
       .single();
 
     if (error) throwDbError(error, 'fetch webhook');
-    return data;
+    if (!data) return null;
+    return { ...data, secret: decryptSecret(data.secret) ?? undefined };
   }
 
   static async create(
@@ -66,14 +68,14 @@ export class WebhookService {
         name: input.name,
         url: input.url,
         events: input.events,
-        secret: input.secret,
+        secret: encryptSecret(input.secret),
         headers: input.headers || {},
       })
       .select()
       .single();
 
     if (error) throwDbError(error, 'create webhook');
-    return data;
+    return { ...data, secret: decryptSecret(data.secret) ?? undefined };
   }
 
   static async update(
@@ -89,7 +91,7 @@ export class WebhookService {
     if (input.name !== undefined) updateData.name = input.name;
     if (input.url !== undefined) updateData.url = input.url;
     if (input.events !== undefined) updateData.events = input.events;
-    if (input.secret !== undefined) updateData.secret = input.secret;
+    if (input.secret !== undefined) updateData.secret = encryptSecret(input.secret);
     if (input.headers !== undefined) updateData.headers = input.headers;
     if (input.is_active !== undefined) updateData.is_active = input.is_active;
 
@@ -101,7 +103,7 @@ export class WebhookService {
       .single();
 
     if (error) throwDbError(error, 'update webhook');
-    return data;
+    return { ...data, secret: decryptSecret(data.secret) ?? undefined };
   }
 
   static async delete(webhookId: string): Promise<void> {
@@ -137,7 +139,11 @@ export class WebhookService {
     // Deliver to all webhooks in parallel for better performance
     await Promise.all(
       webhooks.map(webhook =>
-        this.deliver(webhook as Webhook, eventType, payload).catch(err => {
+        this.deliver(
+          { ...webhook, secret: decryptSecret(webhook.secret) } as Webhook,
+          eventType,
+          payload,
+        ).catch(err => {
           // Log error but don't fail other deliveries
           logger.error({ 
             error: formatError(err, 'WEBHOOK_DELIVERY_FAILED'), 
@@ -323,7 +329,10 @@ export class WebhookService {
 
     if (!webhook) throw new SecureError('NOT_FOUND', 'Webhook not found');
 
-    return this.attemptDelivery(delivery as WebhookDelivery, webhook as Webhook);
+    return this.attemptDelivery(
+      delivery as WebhookDelivery,
+      { ...webhook, secret: decryptSecret(webhook.secret) } as Webhook,
+    );
   }
 
   // ========== HELPER METHODS ==========

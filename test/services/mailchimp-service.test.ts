@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MailchimpService } from '@/lib/services/mailchimp-service'
+import { decryptSecret, isEncrypted } from '@/lib/utils/secret-crypto'
 
 // Mock dependencies
 vi.mock('@/lib/supabase/server', () => ({
@@ -86,7 +87,9 @@ describe('MailchimpService', () => {
 
       expect(storedData.organization_id).toBe('org-123')
       expect(storedData.integration_type).toBe('mailchimp')
-      expect(storedData.access_token).toBe('access_123')
+      // Encrypted at rest — the plaintext token must never reach the column.
+      expect(isEncrypted(storedData.access_token)).toBe(true)
+      expect(decryptSecret(storedData.access_token)).toBe('access_123')
       expect(storedData.external_id).toBe('us1')
       expect(storedData.settings.account_name).toBe('Test Account')
     })

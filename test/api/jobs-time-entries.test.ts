@@ -31,6 +31,24 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 }))
 
 import { JobCompletionService } from '@/lib/services/job-completion-service'
+import type { JobTimeEntry } from '@/types/job-completion'
+
+const createMockTimeEntry = (overrides: Partial<JobTimeEntry> = {}): JobTimeEntry => ({
+  id: 'entry-1',
+  job_id: '550e8400-e29b-41d4-a716-446655440001',
+  profile_id: 'user-1',
+  work_date: '2026-03-01',
+  hours: 8,
+  work_type: 'regular',
+  hourly_rate: null,
+  billable: true,
+  description: null,
+  notes: null,
+  created_by: 'user-1',
+  created_at: '2026-03-01T10:00:00Z',
+  updated_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
 
 const JOB_UUID = '550e8400-e29b-41d4-a716-446655440001'
 
@@ -67,8 +85,8 @@ describe('Job Time Entries API', () => {
       setupAuthenticatedUser()
 
       const mockTimeEntries = [
-        { id: 'entry-1', job_id: JOB_UUID, user_id: 'user-1', hours: 8, work_date: '2026-03-01' },
-        { id: 'entry-2', job_id: JOB_UUID, user_id: 'user-2', hours: 6, work_date: '2026-03-02' },
+        createMockTimeEntry({ id: 'entry-1', job_id: JOB_UUID, profile_id: 'user-1', hours: 8, work_date: '2026-03-01' }),
+        createMockTimeEntry({ id: 'entry-2', job_id: JOB_UUID, profile_id: 'user-2', hours: 6, work_date: '2026-03-02' }),
       ]
       vi.mocked(JobCompletionService.getTimeEntries).mockResolvedValue(mockTimeEntries)
 
@@ -99,14 +117,14 @@ describe('Job Time Entries API', () => {
     it('should create a time entry', async () => {
       setupAuthenticatedUser()
 
-      const newEntry = {
+      const newEntry = createMockTimeEntry({
         id: 'entry-new',
         job_id: JOB_UUID,
-        user_id: 'user-123',
+        profile_id: 'user-123',
         hours: 8,
         work_date: '2026-03-01',
         description: 'Removal work',
-      }
+      })
       vi.mocked(JobCompletionService.createTimeEntry).mockResolvedValue(newEntry)
 
       const request = new NextRequest(`http://localhost:3000/api/jobs/${JOB_UUID}/time-entries`, {
@@ -136,13 +154,13 @@ describe('Job Time Entries API', () => {
     it('should create time entry with work_type', async () => {
       setupAuthenticatedUser()
 
-      const overtimeEntry = {
+      const overtimeEntry = createMockTimeEntry({
         id: 'entry-overtime',
         job_id: JOB_UUID,
         hours: 10,
         work_type: 'overtime',
         work_date: '2026-03-01',
-      }
+      })
       vi.mocked(JobCompletionService.createTimeEntry).mockResolvedValue(overtimeEntry)
 
       const request = new NextRequest(`http://localhost:3000/api/jobs/${JOB_UUID}/time-entries`, {

@@ -51,9 +51,10 @@ describe('WebhookForm', () => {
       events: ['job.created'] as WebhookEventType[],
       is_active: true,
       failure_count: 0,
+      headers: {},
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      last_triggered_at: null,
+      last_triggered_at: undefined,
     }
 
     render(<WebhookForm webhook={webhook} availableEvents={availableEvents} />)
@@ -116,9 +117,10 @@ describe('WebhookForm', () => {
       events: ['job.created'] as WebhookEventType[],
       is_active: true,
       failure_count: 0,
+      headers: {},
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      last_triggered_at: null,
+      last_triggered_at: undefined,
     }
 
     render(<WebhookForm webhook={webhook} availableEvents={availableEvents} />)

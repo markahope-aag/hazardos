@@ -17,6 +17,7 @@ describe('cors config', () => {
 
   afterEach(() => {
     process.env = originalEnv
+    vi.unstubAllEnvs()
   })
 
   describe('getCorsConfig', () => {
@@ -70,7 +71,7 @@ describe('cors config', () => {
     })
 
     it('should include development origins in development', () => {
-      process.env.NODE_ENV = 'development'
+      vi.stubEnv('NODE_ENV', 'development')
       
       const config = getCorsConfig('internal')
       
@@ -110,7 +111,7 @@ describe('cors config', () => {
     })
 
     it('should reject public-api requests without origin when not wildcard', () => {
-      process.env.NODE_ENV = 'production'
+      vi.stubEnv('NODE_ENV', 'production')
       process.env.CORS_ALLOWED_ORIGINS = 'https://specific.com'
       
       expect(isOriginAllowed(null, 'public-api')).toBe(false)

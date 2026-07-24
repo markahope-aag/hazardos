@@ -55,7 +55,7 @@ describe('VisuallyHidden Component', () => {
   })
 
   it('should handle empty children', () => {
-    render(<VisuallyHidden></VisuallyHidden>)
+    render(<VisuallyHidden>{null}</VisuallyHidden>)
 
     // Should render an empty span with sr-only class
     const spans = document.querySelectorAll('span.sr-only')

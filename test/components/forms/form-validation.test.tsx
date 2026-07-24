@@ -151,7 +151,7 @@ const ValidatedForm = ({ onSubmit, validationRules, children }: ValidatedFormPro
   return (
     <form onSubmit={handleSubmit} noValidate>
       {React.Children.map(children, child => {
-        if (React.isValidElement(child) && child.props.name) {
+        if (React.isValidElement<TestFieldProps>(child) && child.props.name) {
           const name = child.props.name
           return React.cloneElement(child, {
             value: values[name] || '',
@@ -724,16 +724,16 @@ describe('ValidatedForm Integration', () => {
     })
 
     it('should handle rapid input changes', async () => {
-      const user = userEvent.setup()
-      
+      const user = userEvent.setup({ delay: 1 })
+
       renderForm({
         name: { required: true }
       })
 
       const nameInput = screen.getByLabelText('Name')
-      
+
       // Rapid typing should not cause issues
-      await user.type(nameInput, 'rapid typing test', { delay: 1 })
+      await user.type(nameInput, 'rapid typing test')
       
       expect(nameInput).toHaveValue('rapid typing test')
     })

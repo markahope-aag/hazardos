@@ -49,7 +49,7 @@ Object.defineProperty(window, 'removeEventListener', {
 describe('useOnlineStatus', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    navigator.onLine = true
+    Object.defineProperty(navigator, 'onLine', { writable: true, value: true })
   })
 
   afterEach(() => {
@@ -57,14 +57,14 @@ describe('useOnlineStatus', () => {
   })
 
   it('should return initial online status', () => {
-    navigator.onLine = true
+    Object.defineProperty(navigator, 'onLine', { writable: true, value: true })
     const { result } = renderHook(() => useOnlineStatus())
     
     expect(result.current).toBe(true)
   })
 
   it('should return false when navigator is offline', () => {
-    navigator.onLine = false
+    Object.defineProperty(navigator, 'onLine', { writable: true, value: false })
     const { result } = renderHook(() => useOnlineStatus())
     
     expect(result.current).toBe(false)
@@ -87,7 +87,7 @@ describe('useOnlineStatus', () => {
   })
 
   it('should update to online when online event fires', () => {
-    navigator.onLine = false
+    Object.defineProperty(navigator, 'onLine', { writable: true, value: false })
     const { result } = renderHook(() => useOnlineStatus())
 
     // Get the online handler from the addEventListener call
@@ -105,7 +105,7 @@ describe('useOnlineStatus', () => {
   })
 
   it('should default to true when online', () => {
-    navigator.onLine = true
+    Object.defineProperty(navigator, 'onLine', { writable: true, value: true })
     const { result } = renderHook(() => useOnlineStatus())
 
     expect(result.current).toBe(true)
@@ -115,7 +115,7 @@ describe('useOnlineStatus', () => {
 describe('useOnlineSync', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    navigator.onLine = true
+    Object.defineProperty(navigator, 'onLine', { writable: true, value: true })
     mockSaveDraft.mockResolvedValue(true)
     mockProcessPhotoQueue.mockResolvedValue(undefined)
   })
@@ -131,7 +131,7 @@ describe('useOnlineSync', () => {
   })
 
   it('should sync when online', async () => {
-    navigator.onLine = true
+    Object.defineProperty(navigator, 'onLine', { writable: true, value: true })
     const { result } = renderHook(() => useOnlineSync())
 
     let syncResult: boolean | undefined
@@ -145,7 +145,7 @@ describe('useOnlineSync', () => {
   })
 
   it('should not sync when offline', async () => {
-    navigator.onLine = false
+    Object.defineProperty(navigator, 'onLine', { writable: true, value: false })
     const { result } = renderHook(() => useOnlineSync())
     
     let syncResult: boolean | undefined
@@ -159,7 +159,7 @@ describe('useOnlineSync', () => {
   })
 
   it('should retry sync when online', async () => {
-    navigator.onLine = true
+    Object.defineProperty(navigator, 'onLine', { writable: true, value: true })
     const { result } = renderHook(() => useOnlineSync())
 
     let retryResult: boolean | undefined
@@ -173,7 +173,7 @@ describe('useOnlineSync', () => {
   })
 
   it('should not retry sync when offline', async () => {
-    navigator.onLine = false
+    Object.defineProperty(navigator, 'onLine', { writable: true, value: false })
     const { result } = renderHook(() => useOnlineSync())
     
     let retryResult: boolean | undefined

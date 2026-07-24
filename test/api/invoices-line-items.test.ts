@@ -29,6 +29,24 @@ vi.mock('@/lib/middleware/unified-rate-limit', () => ({
 }))
 
 import { InvoicesService } from '@/lib/services/invoices-service'
+import type { InvoiceLineItem } from '@/types/invoices'
+
+function buildMockLineItem(overrides: Partial<InvoiceLineItem>): InvoiceLineItem {
+  return {
+    id: 'line-item-1',
+    invoice_id: '550e8400-e29b-41d4-a716-446655440010',
+    description: 'Line item',
+    quantity: 1,
+    unit: null,
+    unit_price: 100,
+    line_total: 100,
+    source_type: null,
+    source_id: null,
+    sort_order: 0,
+    created_at: new Date().toISOString(),
+    ...overrides
+  }
+}
 
 const mockProfile = {
   organization_id: 'org-123',
@@ -62,14 +80,14 @@ describe('Invoice Line Items Management', () => {
     it('should add line item to invoice', async () => {
       setupAuthenticatedUser()
 
-      const mockLineItem = {
+      const mockLineItem = buildMockLineItem({
         id: '550e8400-e29b-41d4-a716-446655440001',
         invoice_id: '550e8400-e29b-41d4-a716-446655440010',
         description: 'Asbestos Removal - Living Room',
         quantity: 1,
         unit_price: 2500.00,
-        total: 2500.00
-      }
+        line_total: 2500.00
+      })
 
       vi.mocked(InvoicesService.addLineItem).mockResolvedValue(mockLineItem)
 
@@ -88,20 +106,20 @@ describe('Invoice Line Items Management', () => {
 
       expect(response.status).toBe(201)
       expect(data.description).toBe('Asbestos Removal - Living Room')
-      expect(data.total).toBe(2500.00)
+      expect(data.line_total).toBe(2500.00)
       expect(InvoicesService.addLineItem).toHaveBeenCalled()
     })
 
     it('should add multiple quantity line item', async () => {
       setupAuthenticatedUser()
 
-      const mockLineItem = {
+      const mockLineItem = buildMockLineItem({
         id: '550e8400-e29b-41d4-a716-446655440002',
         description: 'HEPA Filter - 24" x 24"',
         quantity: 5,
         unit_price: 45.00,
-        total: 225.00
-      }
+        line_total: 225.00
+      })
 
       vi.mocked(InvoicesService.addLineItem).mockResolvedValue(mockLineItem)
 
@@ -120,7 +138,7 @@ describe('Invoice Line Items Management', () => {
 
       expect(response.status).toBe(201)
       expect(data.quantity).toBe(5)
-      expect(data.total).toBe(225.00)
+      expect(data.line_total).toBe(225.00)
     })
 
     it('should reject unauthenticated requests', async () => {
@@ -165,13 +183,13 @@ describe('Invoice Line Items Management', () => {
     it('should update line item details', async () => {
       setupAuthenticatedUser()
 
-      const updatedLineItem = {
+      const updatedLineItem = buildMockLineItem({
         id: '550e8400-e29b-41d4-a716-446655440001',
         description: 'Updated Description',
         quantity: 2,
         unit_price: 2600.00,
-        total: 5200.00
-      }
+        line_total: 5200.00
+      })
 
       vi.mocked(InvoicesService.updateLineItem).mockResolvedValue(updatedLineItem)
 
@@ -191,7 +209,7 @@ describe('Invoice Line Items Management', () => {
 
       expect(response.status).toBe(200)
       expect(data.description).toBe('Updated Description')
-      expect(data.total).toBe(5200.00)
+      expect(data.line_total).toBe(5200.00)
       expect(InvoicesService.updateLineItem).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440001', {
         description: 'Updated Description',
         quantity: 2,

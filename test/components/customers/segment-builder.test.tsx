@@ -45,12 +45,13 @@ describe('SegmentBuilder Component', () => {
   it('should display Edit Segment title when segment provided', () => {
     const segment = {
       id: '1',
-      org_id: 'org-1',
+      organization_id: 'org-1',
       name: 'Test Segment',
       description: 'Test description',
       segment_type: 'dynamic' as const,
       rules: [{ field: 'status', operator: '=' as const, value: 'active' }],
-      customer_count: 10,
+      member_count: 10,
+      is_active: true,
       created_at: '2024-01-01',
       updated_at: '2024-01-01',
     }
@@ -101,12 +102,13 @@ describe('SegmentBuilder Component', () => {
   it('should display Update Segment button when editing', () => {
     const segment = {
       id: '1',
-      org_id: 'org-1',
+      organization_id: 'org-1',
       name: 'Test Segment',
-      description: null,
+      description: undefined,
       segment_type: 'dynamic' as const,
       rules: [{ field: 'status', operator: '=' as const, value: 'active' }],
-      customer_count: 10,
+      member_count: 10,
+      is_active: true,
       created_at: '2024-01-01',
       updated_at: '2024-01-01',
     }
@@ -152,12 +154,13 @@ describe('SegmentBuilder Component', () => {
   it('should pre-fill values when segment is provided', () => {
     const segment = {
       id: '1',
-      org_id: 'org-1',
+      organization_id: 'org-1',
       name: 'Premium Customers',
       description: 'High value customers',
       segment_type: 'dynamic' as const,
       rules: [{ field: 'status', operator: '=' as const, value: 'active' }],
-      customer_count: 10,
+      member_count: 10,
+      is_active: true,
       created_at: '2024-01-01',
       updated_at: '2024-01-01',
     }

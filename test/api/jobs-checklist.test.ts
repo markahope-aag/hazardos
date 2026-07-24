@@ -1,6 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/jobs/[id]/checklist/route'
+import type { JobCompletionChecklist, GroupedChecklists } from '@/types/job-completion'
+
+const createMockChecklistItem = (overrides: Partial<JobCompletionChecklist> = {}): JobCompletionChecklist => ({
+  id: 'item-1',
+  job_id: 'job-123',
+  category: 'safety',
+  item_name: 'Complete safety inspection',
+  item_description: null,
+  sort_order: 0,
+  is_required: true,
+  is_completed: false,
+  completed_at: null,
+  completed_by: null,
+  completion_notes: null,
+  evidence_photo_ids: [],
+  created_at: '2026-03-01T10:00:00Z',
+  updated_at: '2026-03-01T10:00:00Z',
+  ...overrides
+})
 
 // Mock Supabase client
 const mockSupabaseClient = {
@@ -67,8 +86,8 @@ describe('Job Checklist API', () => {
       // Arrange
       setupAuthenticatedUser()
       const mockChecklist = [
-        { id: 'item-1', task: 'Complete safety inspection', completed: false },
-        { id: 'item-2', task: 'Submit photos', completed: true },
+        createMockChecklistItem({ id: 'item-1', item_name: 'Complete safety inspection', is_completed: false }),
+        createMockChecklistItem({ id: 'item-2', item_name: 'Submit photos', category: 'documentation', is_completed: true }),
       ]
       vi.mocked(JobCompletionService.getChecklist).mockResolvedValue(mockChecklist)
 
@@ -87,13 +106,16 @@ describe('Job Checklist API', () => {
     it('should return grouped checklist when grouped=true', async () => {
       // Arrange
       setupAuthenticatedUser()
-      const mockGroupedChecklist = {
-        'Pre-Work': [
-          { id: 'item-1', task: 'Safety inspection', completed: false },
+      const mockGroupedChecklist: GroupedChecklists = {
+        safety: [
+          createMockChecklistItem({ id: 'item-1', item_name: 'Safety inspection', category: 'safety', is_completed: false }),
         ],
-        'Completion': [
-          { id: 'item-2', task: 'Submit photos', completed: true },
+        quality: [],
+        cleanup: [],
+        documentation: [
+          createMockChecklistItem({ id: 'item-2', item_name: 'Submit photos', category: 'documentation', is_completed: true }),
         ],
+        custom: [],
       }
       vi.mocked(JobCompletionService.getChecklistGrouped).mockResolvedValue(mockGroupedChecklist)
 
@@ -105,7 +127,7 @@ describe('Job Checklist API', () => {
 
       // Assert
       expect(response.status).toBe(200)
-      expect(data['Pre-Work']).toBeDefined()
+      expect(data.safety).toBeDefined()
       expect(JobCompletionService.getChecklistGrouped).toHaveBeenCalledWith('job-123')
     })
 
@@ -131,9 +153,9 @@ describe('Job Checklist API', () => {
       // Arrange
       setupAuthenticatedUser()
       const mockChecklist = [
-        { id: 'item-1', task: 'Complete safety inspection', completed: false },
-        { id: 'item-2', task: 'Set up containment', completed: false },
-        { id: 'item-3', task: 'Submit final photos', completed: false },
+        createMockChecklistItem({ id: 'item-1', item_name: 'Complete safety inspection' }),
+        createMockChecklistItem({ id: 'item-2', item_name: 'Set up containment' }),
+        createMockChecklistItem({ id: 'item-3', item_name: 'Submit final photos' }),
       ]
       vi.mocked(JobCompletionService.initializeChecklist).mockResolvedValue(mockChecklist)
 

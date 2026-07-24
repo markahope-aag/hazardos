@@ -88,10 +88,17 @@ export const POST = createApiHandlerWithParams(
         }
       }
 
-      const resolveUrl = (m: SurveyPhotoMetadata): string =>
-        (m.path && signedByPath[m.path]) ||
-        (m.url?.startsWith('data:') ? m.url : m.url) ||
-        ''
+      // Only ever surface a storage-signed URL or an inline data: URL. A raw
+      // m.url from photo_metadata is attacker-controllable (anyone who can edit
+      // the survey), and embed URLs are fetched server-side below — returning
+      // an arbitrary URL here was a read-SSRF-with-exfiltration primitive
+      // (e.g. http://169.254.169.254/… fetched and base64'd into the emailed
+      // PDF). Photos lacking a signed storage path are dropped, not fetched.
+      const resolveUrl = (m: SurveyPhotoMetadata): string => {
+        if (m.path && signedByPath[m.path]) return signedByPath[m.path]
+        if (m.url?.startsWith('data:')) return m.url
+        return ''
+      }
 
       // Fetch image bytes server-side and convert to base64 data URLs so
       // jsPDF can embed them. Failures fall through to a text link.

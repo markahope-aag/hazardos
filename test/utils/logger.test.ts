@@ -170,6 +170,10 @@ describe('Logger Module', () => {
   })
 
   describe('formatError', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs()
+    })
+
     it('should format Error instances with type', () => {
       const error = new Error('Something went wrong')
       const formatted = formatError(error, 'DATABASE_ERROR')
@@ -181,28 +185,22 @@ describe('Logger Module', () => {
     })
 
     it('should include stack trace in development', () => {
-      const originalEnv = process.env.NODE_ENV
-      process.env.NODE_ENV = 'development'
+      vi.stubEnv('NODE_ENV', 'development')
 
       const error = new Error('Test error')
       const formatted = formatError(error, 'TEST_ERROR')
 
       expect(formatted.stack).toBeDefined()
       expect(typeof formatted.stack).toBe('string')
-
-      process.env.NODE_ENV = originalEnv
     })
 
     it('should exclude stack trace in production', () => {
-      const originalEnv = process.env.NODE_ENV
-      process.env.NODE_ENV = 'production'
+      vi.stubEnv('NODE_ENV', 'production')
 
       const error = new Error('Test error')
       const formatted = formatError(error, 'TEST_ERROR')
 
       expect(formatted.stack).toBeUndefined()
-
-      process.env.NODE_ENV = originalEnv
     })
 
     it('should include field when provided', () => {
