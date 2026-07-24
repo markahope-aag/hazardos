@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { assertRowsAffected } from '@/lib/utils/db-write';
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler';
 import { requiresMarketingConsent } from '@/lib/utils/sms-consent';
+import { encryptSecret, decryptSecret } from '@/lib/utils/secret-crypto';
 import type {
   SmsMessage,
   SmsDeliveryLogEntry,
@@ -30,7 +31,19 @@ export class SmsService {
       .maybeSingle();
 
     if (error) throwDbError(error, 'fetch SMS settings');
-    return data;
+    if (!data) return null;
+    // Conditional spread so the returned shape matches the row exactly — an
+    // unconditional assignment would invent null keys for columns the query
+    // didn't return.
+    return {
+      ...data,
+      ...(data.twilio_account_sid !== undefined && {
+        twilio_account_sid: decryptSecret(data.twilio_account_sid),
+      }),
+      ...(data.twilio_auth_token !== undefined && {
+        twilio_auth_token: decryptSecret(data.twilio_auth_token),
+      }),
+    };
   }
 
   static async updateSettings(
@@ -44,13 +57,28 @@ export class SmsService {
       .upsert({
         organization_id: organizationId,
         ...settings,
+        ...(settings.twilio_account_sid !== undefined && {
+          twilio_account_sid: encryptSecret(settings.twilio_account_sid),
+        }),
+        ...(settings.twilio_auth_token !== undefined && {
+          twilio_auth_token: encryptSecret(settings.twilio_auth_token),
+        }),
         updated_at: new Date().toISOString(),
       })
       .select()
       .single();
 
     if (error) throwDbError(error, 'update SMS settings');
-    return data;
+    // Conditional spread — see getSettings.
+    return {
+      ...data,
+      ...(data.twilio_account_sid !== undefined && {
+        twilio_account_sid: decryptSecret(data.twilio_account_sid),
+      }),
+      ...(data.twilio_auth_token !== undefined && {
+        twilio_auth_token: decryptSecret(data.twilio_auth_token),
+      }),
+    };
   }
 
   // ========== SENDING ==========

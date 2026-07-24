@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { MailchimpConnectionStatus, MailchimpList } from '@/types/integrations';
 import { createServiceLogger, formatError } from '@/lib/utils/logger';
 import { SecureError } from '@/lib/utils/secure-error-handler';
+import { encryptSecret, decryptSecret } from '@/lib/utils/secret-crypto';
 
 const log = createServiceLogger('MailchimpService');
 const MAILCHIMP_AUTH_URL = 'https://login.mailchimp.com/oauth2/authorize';
@@ -82,7 +83,7 @@ export class MailchimpService {
       .upsert({
         organization_id: organizationId,
         integration_type: 'mailchimp',
-        access_token: tokens.access_token,
+        access_token: encryptSecret(tokens.access_token),
         refresh_token: null, // Mailchimp tokens don't expire (no refresh needed)
         token_expires_at: expiresAt.toISOString(),
         external_id: metadata.dc, // Data center
@@ -118,7 +119,7 @@ export class MailchimpService {
     const settings = integration.settings as { api_endpoint?: string } | null;
 
     return {
-      access_token: integration.access_token,
+      access_token: decryptSecret(integration.access_token)!,
       api_endpoint: settings?.api_endpoint || `https://${integration.external_id}.api.mailchimp.com/3.0`,
     };
   }

@@ -109,6 +109,11 @@ vi.mock('next/link', () => {
 // Mock environment variables
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
+// Deterministic 32-byte key so lib/utils/secret-crypto can encrypt/decrypt
+// third-party secrets under test. encryptSecret throws without it.
+process.env.SECRETS_ENCRYPTION_KEY = Buffer.from(
+  '0123456789abcdef0123456789abcdef',
+).toString('base64')
 
 // Mock Supabase client
 vi.mock('@/lib/supabase/client', () => ({

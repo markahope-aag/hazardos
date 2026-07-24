@@ -4,6 +4,7 @@ import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { throwDbError } from '@/lib/utils/secure-error-handler';
 import type { LeadWebhookEndpoint, LeadProvider } from '@/types/integrations';
 import { logger, formatError } from '@/lib/utils/logger';
+import { encryptSecret, decryptSecret } from '@/lib/utils/secret-crypto';
 
 export interface CreateEndpointInput {
   name: string;
@@ -87,7 +88,11 @@ export class LeadWebhookService {
       .order('created_at', { ascending: false });
 
     if (error) throwDbError(error, 'fetch webhook endpoints');
-    return data || [];
+    return (data || []).map((endpoint) => ({
+      ...endpoint,
+      api_key: decryptSecret(endpoint.api_key) ?? undefined,
+      secret: decryptSecret(endpoint.secret) ?? undefined,
+    }));
   }
 
   static async get(endpointId: string): Promise<LeadWebhookEndpoint | null> {
@@ -100,7 +105,8 @@ export class LeadWebhookService {
       .single();
 
     if (error) throwDbError(error, 'fetch webhook endpoint');
-    return data;
+    if (!data) return null;
+    return { ...data, api_key: decryptSecret(data.api_key) ?? undefined, secret: decryptSecret(data.secret) ?? undefined };
   }
 
   static async getBySlug(slug: string): Promise<LeadWebhookEndpoint | null> {
@@ -118,7 +124,8 @@ export class LeadWebhookService {
       .single();
 
     if (error && error.code !== 'PGRST116') throwDbError(error, 'fetch webhook endpoint');
-    return data;
+    if (!data) return null;
+    return { ...data, api_key: decryptSecret(data.api_key) ?? undefined, secret: decryptSecret(data.secret) ?? undefined };
   }
 
   static async create(
@@ -138,15 +145,15 @@ export class LeadWebhookService {
         name: input.name,
         slug: input.slug,
         provider: input.provider,
-        api_key: input.api_key,
-        secret: input.secret,
+        api_key: encryptSecret(input.api_key),
+        secret: encryptSecret(input.secret),
         field_mapping: fieldMapping,
       })
       .select()
       .single();
 
     if (error) throwDbError(error, 'create webhook endpoint');
-    return data;
+    return { ...data, api_key: decryptSecret(data.api_key) ?? undefined, secret: decryptSecret(data.secret) ?? undefined };
   }
 
   static async update(
@@ -160,8 +167,8 @@ export class LeadWebhookService {
     };
 
     if (input.name !== undefined) updateData.name = input.name;
-    if (input.api_key !== undefined) updateData.api_key = input.api_key;
-    if (input.secret !== undefined) updateData.secret = input.secret;
+    if (input.api_key !== undefined) updateData.api_key = encryptSecret(input.api_key);
+    if (input.secret !== undefined) updateData.secret = encryptSecret(input.secret);
     if (input.field_mapping !== undefined) updateData.field_mapping = input.field_mapping;
     if (input.is_active !== undefined) updateData.is_active = input.is_active;
 
@@ -173,7 +180,7 @@ export class LeadWebhookService {
       .single();
 
     if (error) throwDbError(error, 'update webhook endpoint');
-    return data;
+    return { ...data, api_key: decryptSecret(data.api_key) ?? undefined, secret: decryptSecret(data.secret) ?? undefined };
   }
 
   static async delete(endpointId: string): Promise<void> {
@@ -205,7 +212,9 @@ export class LeadWebhookService {
       if (endpoint.api_key) {
         const rawHeader = headers['authorization'] || headers['x-api-key'] || '';
         const providedKey = rawHeader.replace(/^Bearer\s+/i, '');
-        const expected = Buffer.from(endpoint.api_key);
+        // AES-GCM ciphertext is randomized, so the stored key must be
+        // decrypted before it can ever be compared to the incoming plaintext.
+        const expected = Buffer.from(decryptSecret(endpoint.api_key)!);
         const provided = Buffer.from(providedKey);
         const keyValid =
           expected.length > 0 &&
@@ -218,7 +227,7 @@ export class LeadWebhookService {
 
       if (endpoint.secret) {
         const signature = headers['x-signature'] || headers['x-webhook-signature'];
-        if (!this.verifySignature(payload, endpoint.secret, signature)) {
+        if (!this.verifySignature(payload, decryptSecret(endpoint.secret)!, signature)) {
           return this.logAndReturn(endpoint, payload, headers, ipAddress, 'failed', 'Invalid signature');
         }
       }

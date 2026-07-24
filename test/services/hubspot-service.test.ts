@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { HubSpotService } from '@/lib/services/hubspot-service'
+import { decryptSecret, isEncrypted } from '@/lib/utils/secret-crypto'
 
 // Mock dependencies
 vi.mock('@/lib/supabase/server', () => ({
@@ -177,7 +178,9 @@ describe('HubSpotService', () => {
 
       expect(storedData.organization_id).toBe('org-123')
       expect(storedData.integration_type).toBe('hubspot')
-      expect(storedData.access_token).toBe('access_123')
+      // Encrypted at rest — the plaintext token must never reach the column.
+      expect(isEncrypted(storedData.access_token)).toBe(true)
+      expect(decryptSecret(storedData.access_token)).toBe('access_123')
       expect(storedData.external_id).toBe('portal_123')
       expect(storedData.is_active).toBe(true)
     })

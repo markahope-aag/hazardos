@@ -4,6 +4,7 @@ import { SmsService } from '@/lib/services/sms-service'
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createRequestLogger, formatError } from '@/lib/utils/logger'
+import { decryptSecret } from '@/lib/utils/secret-crypto'
 
 // Twilio inbound SMS webhook. Responsibilities:
 //   - Verify the Twilio signature on the inbound HTTP request.
@@ -66,9 +67,11 @@ export async function POST(request: NextRequest) {
 
     if (dedicated) {
       organizationId = dedicated.organization_id
+      // The org-level token is encrypted at rest (lib/utils/secret-crypto) —
+      // decrypt before Twilio signature validation, or every check fails.
       authToken = dedicated.use_platform_twilio
         ? process.env.TWILIO_AUTH_TOKEN || null
-        : dedicated.twilio_auth_token
+        : decryptSecret(dedicated.twilio_auth_token)
       resolution = 'dedicated'
     }
 

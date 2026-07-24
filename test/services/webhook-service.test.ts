@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { decryptSecret } from '@/lib/utils/secret-crypto'
 
 // Use vi.hoisted to create mocks before vi.mock is processed
 const mockSupabase = vi.hoisted(() => ({
@@ -158,9 +159,11 @@ describe('WebhookService', () => {
         name: 'Customer Webhook',
         url: 'https://example.com/webhook',
         events: ['customer.created', 'customer.updated'],
-        secret: 'secret123',
+        // The signing secret is encrypted at rest.
+        secret: expect.stringMatching(/^enc:v1:/),
         headers: { 'X-Custom': 'value' },
       })
+      expect(decryptSecret(mockSupabase.insert.mock.calls[0][0].secret)).toBe('secret123')
       expect(result).toEqual(mockWebhook)
     })
 

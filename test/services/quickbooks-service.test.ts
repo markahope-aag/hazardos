@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { QuickBooksService } from '@/lib/services/quickbooks-service'
+import { decryptSecret, isEncrypted } from '@/lib/utils/secret-crypto'
 
 // Mock fetch globally
 const mockFetch = vi.fn()
@@ -164,13 +165,17 @@ describe('QuickBooksService', () => {
         expect.objectContaining({
           organization_id: 'org-123',
           integration_type: 'quickbooks',
-          access_token: 'access-token',
-          refresh_token: 'refresh-token',
           external_id: 'realm-456',
           is_active: true
         }),
         { onConflict: 'organization_id,integration_type' }
       )
+      // Tokens are encrypted at rest — plaintext must never reach the column.
+      const upserted = mockUpsert.mock.calls[0][0]
+      expect(isEncrypted(upserted.access_token)).toBe(true)
+      expect(isEncrypted(upserted.refresh_token)).toBe(true)
+      expect(decryptSecret(upserted.access_token)).toBe('access-token')
+      expect(decryptSecret(upserted.refresh_token)).toBe('refresh-token')
     })
 
     it('should calculate token expiration time correctly', async () => {
