@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // Public health endpoint for external monitors (Uptime Kuma etc.).
 // Returns 200 when everything is green, 503 when any registered cron has a
@@ -30,7 +30,13 @@ const MONITORED_CRONS: Array<{ cron_name: string; sla_minutes: number }> = [
 ]
 
 export async function GET(_request: NextRequest) {
-  const supabase = await createClient()
+  // Service-role client: this endpoint is intentionally unauthenticated (Uptime
+  // Kuma probes it with no session), so the cookie/anon client hit RLS on
+  // cron_runs / scheduled_reminders and read zero rows — which made the check
+  // report a permanent 503. The response exposes only cron names, timestamps
+  // and a count (nothing org-scoped), and cron_runs is platform infra, so
+  // reading past RLS here is correct.
+  const supabase = createAdminClient()
   const now = new Date()
 
   const statuses: CronStatus[] = []
