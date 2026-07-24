@@ -73,8 +73,17 @@ export function PhotosTab({
               <Button
                 variant="destructive"
                 size="sm"
-                className="absolute top-2 right-2 p-1 h-auto opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                onClick={() => onDeletePhoto(photo.id)}
+                // Always visible + tappable: a hover-only (opacity-0
+                // group-hover) control is unreachable on touch, which is the
+                // primary device for field crews. Confirm before deleting —
+                // there is no undo.
+                className="absolute top-2 right-2 p-1 h-auto z-10"
+                aria-label="Delete photo"
+                onClick={() => {
+                  if (window.confirm('Delete this photo? This cannot be undone.')) {
+                    onDeletePhoto(photo.id)
+                  }
+                }}
               >
                 <Trash2 className="w-3 h-3" />
               </Button>

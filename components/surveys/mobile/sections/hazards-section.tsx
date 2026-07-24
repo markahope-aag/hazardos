@@ -240,7 +240,12 @@ export function HazardsSection() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={(e) => { e.stopPropagation(); removeHazard(activeArea.id, hazard.id) }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (window.confirm('Remove this hazard? This cannot be undone.')) {
+                            removeHazard(activeArea.id, hazard.id)
+                          }
+                        }}
                         aria-label="Remove hazard"
                         className="text-destructive hover:text-destructive min-h-[44px] min-w-[44px]"
                       >
@@ -281,7 +286,14 @@ export function HazardsSection() {
 
         <Button
           variant="ghost"
-          onClick={() => { removeArea(activeArea.id); handleBack() }}
+          onClick={() => {
+            // Removing an area cascades to every hazard and linked photo under
+            // it — confirm, since there is no undo.
+            if (window.confirm('Remove this area and all its hazards and linked photos? This cannot be undone.')) {
+              removeArea(activeArea.id)
+              handleBack()
+            }
+          }}
           className="w-full text-destructive hover:text-destructive hover:bg-destructive/5 min-h-[48px]"
         >
           <Trash2 className="h-4 w-4 mr-2" />Remove Area
