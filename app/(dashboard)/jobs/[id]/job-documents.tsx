@@ -40,6 +40,7 @@ interface JobDocumentsProps {
 const CATEGORY_LABEL: Record<JobDocumentCategory, string> = {
   permit: 'Permit',
   manifest: 'Waste manifest',
+  waste_label: 'Waste labels',
   clearance: 'Clearance report',
   air_monitoring: 'Air monitoring',
   insurance: 'Insurance (COI)',
@@ -55,6 +56,7 @@ const CATEGORY_LABEL: Record<JobDocumentCategory, string> = {
 const CATEGORY_BADGE: Record<JobDocumentCategory, string> = {
   permit: 'bg-blue-100 text-blue-700',
   manifest: 'bg-amber-100 text-amber-700',
+  waste_label: 'bg-orange-100 text-orange-700',
   clearance: 'bg-green-100 text-green-700',
   air_monitoring: 'bg-teal-100 text-teal-700',
   insurance: 'bg-purple-100 text-purple-700',

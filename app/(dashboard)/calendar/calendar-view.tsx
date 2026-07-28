@@ -1362,6 +1362,7 @@ function ExternalDetail({ event }: { event: ExternalEvent }) {
 const CATEGORY_LABEL: Record<JobDocumentCategory, string> = {
   permit: 'Permit',
   manifest: 'Waste manifest',
+  waste_label: 'Waste labels',
   clearance: 'Clearance report',
   air_monitoring: 'Air monitoring',
   insurance: 'Insurance (COI)',

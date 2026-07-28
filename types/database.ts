@@ -63,6 +63,7 @@ export type PropertyContactRole = 'owner' | 'previous_owner' | 'tenant' | 'site_
 export type JobDocumentCategory =
   | 'permit'
   | 'manifest'
+  | 'waste_label'
   | 'clearance'
   | 'air_monitoring'
   | 'insurance'

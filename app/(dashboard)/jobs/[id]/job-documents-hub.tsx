@@ -12,10 +12,11 @@ import {
 } from '@/components/ui/alert-dialog'
 import {
   FileText, Upload, Download, Trash2, ExternalLink, FileWarning, Calculator,
-  ClipboardList, FlaskConical, Shield, ClipboardCheck, Send, FilePlus,
+  ClipboardList, FlaskConical, Shield, ClipboardCheck, Send, FilePlus, Tags,
 } from 'lucide-react'
 import { JobDocuments } from './job-documents'
 import { OppGeneratorModal } from '@/components/jobs/opp-generator-modal'
+import { WasteLabelModal } from '@/components/jobs/waste-label-modal'
 import {
   useJobDocuments,
   useUploadJobDocument,
@@ -309,6 +310,14 @@ export function JobDocumentsHub({
   // navigate the whole flow without bouncing to index pages.
   const hasAnyProjectLink = !!(survey || estimate || workOrder)
   const [oppOpen, setOppOpen] = useState(false)
+  const [wasteLabelOpen, setWasteLabelOpen] = useState(false)
+
+  const wasteLabelActions = (
+    <Button size="sm" variant="default" onClick={() => setWasteLabelOpen(true)}>
+      <FilePlus className="h-4 w-4 mr-2" />
+      Print labels
+    </Button>
+  )
 
   const oppActions = (
     <>
@@ -403,6 +412,16 @@ export function JobDocumentsHub({
 
       <CategoryDocsCard
         jobId={jobId}
+        category="waste_label"
+        title="Waste Container Labels"
+        icon={<Tags className="h-4 w-4" />}
+        description="Identification labels attached to every container leaving the site. Prints on Avery 5162 sheets — 14 per sheet."
+        emptyText="No label sheets generated yet. Click Print labels to make a sheet from this job's data."
+        extraActions={wasteLabelActions}
+      />
+
+      <CategoryDocsCard
+        jobId={jobId}
         category="opp"
         title="Occupant Protection Plan (OPP)"
         icon={<Shield className="h-4 w-4" />}
@@ -435,11 +454,12 @@ export function JobDocumentsHub({
       <JobDocuments
         jobId={jobId}
         title="Other documents"
-        excludeCategories={['manifest', 'opp', 'regulatory', 'daily_log']}
+        excludeCategories={['manifest', 'waste_label', 'opp', 'regulatory', 'daily_log']}
         emptyHint="No other documents yet. Upload permits, clearance reports, COIs, photos, or anything else."
       />
 
       <OppGeneratorModal jobId={jobId} open={oppOpen} onOpenChange={setOppOpen} />
+      <WasteLabelModal jobId={jobId} open={wasteLabelOpen} onOpenChange={setWasteLabelOpen} />
     </div>
   )
 }
