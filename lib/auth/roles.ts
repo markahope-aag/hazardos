@@ -40,4 +40,13 @@ export const ROLES = {
 
   /** Read-only access (all authenticated users) */
   TENANT_READ: [ROLE.PLATFORM_OWNER, ROLE.PLATFORM_ADMIN, ROLE.TENANT_OWNER, ROLE.ADMIN, ROLE.ESTIMATOR, ROLE.TECHNICIAN, ROLE.VIEWER] as string[],
+
+  /**
+   * Money: contract amounts, margins, costs, invoicing.
+   *
+   * Everyone except technicians. Requested on the 2026-07-28 client call —
+   * the field crew works the job but must not see what it is worth.
+   * Office read-only staff (viewer) still need it for billing questions.
+   */
+  FINANCIAL_VIEW: [ROLE.PLATFORM_OWNER, ROLE.PLATFORM_ADMIN, ROLE.TENANT_OWNER, ROLE.ADMIN, ROLE.ESTIMATOR, ROLE.VIEWER] as string[],
 } as const

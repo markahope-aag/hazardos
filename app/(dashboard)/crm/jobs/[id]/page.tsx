@@ -2,6 +2,7 @@
 
 import { use, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,10 +20,12 @@ import {
 import {
   ArrowLeft, Building2, User, MapPin, AlertCircle, DollarSign,
   Shield, Calendar, Users, FileText, Clock, Loader2,
-  CheckCircle2, Circle, MinusCircle, Phone,
+  CheckCircle2, Circle, MinusCircle, Phone, ClipboardList,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
+import { ROLES } from '@/lib/auth/roles'
 import { useToast } from '@/components/ui/use-toast'
 import { formatCurrency } from '@/lib/utils'
 import { getJobPaymentStatus } from '@/lib/utils/job-payment-status'
@@ -57,6 +60,11 @@ export default function JobDetailPage({ params }: Props) {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'overview' | 'financials' | 'crew' | 'documents' | 'activity'>('overview')
   const [showStatusModal, setShowStatusModal] = useState(false)
+  const [generatingWorkOrder, setGeneratingWorkOrder] = useState(false)
+  const router = useRouter()
+  const { profile } = useMultiTenantAuth()
+  // Technicians work the job but must not see what it is worth.
+  const canViewFinancials = ROLES.FINANCIAL_VIEW.includes(profile?.role ?? '')
   const [statusForm, setStatusForm] = useState({ status: '', notes: '', actual_hours: '' })
 
   const { data: job, isLoading, error } = useQuery({
@@ -130,11 +138,44 @@ export default function JobDetailPage({ params }: Props) {
 
   const tabs = [
     { id: 'overview' as const, label: 'Overview' },
-    { id: 'financials' as const, label: 'Financials' },
+    ...(canViewFinancials ? [{ id: 'financials' as const, label: 'Financials' }] : []),
     { id: 'crew' as const, label: 'Crew & Schedule' },
     { id: 'documents' as const, label: 'Documents' },
     { id: 'activity' as const, label: 'Activity' },
   ]
+
+
+  // The work order is what the crew physically takes to site. The API has
+  // always accepted a job_id; there was simply no way to reach it from the
+  // job, which is where the office actually works.
+  const generateWorkOrder = async () => {
+    setGeneratingWorkOrder(true)
+    try {
+      const res = await fetch('/api/work-orders', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ job_id: job.id }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not generate the work order')
+      }
+      const workOrder = await res.json()
+      toast({
+        title: 'Work order created',
+        description: `${workOrder.work_order_number} is ready to review and print.`,
+      })
+      router.push(`/work-orders/${workOrder.id}`)
+    } catch (error) {
+      toast({
+        title: 'Could not generate the work order',
+        description: error instanceof Error ? error.message : 'Unexpected error',
+        variant: 'destructive',
+      })
+    } finally {
+      setGeneratingWorkOrder(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -160,6 +201,10 @@ export default function JobDetailPage({ params }: Props) {
               </Link>
             </Button>
           )}
+          <Button variant="outline" onClick={generateWorkOrder} disabled={generatingWorkOrder}>
+            <ClipboardList className="h-4 w-4 mr-2" />
+            {generatingWorkOrder ? 'Generating…' : 'Generate Work Order'}
+          </Button>
           <Button variant="outline" onClick={() => { setStatusForm({ status: job.status, notes: '', actual_hours: '' }); setShowStatusModal(true) }}>
             Update Status
           </Button>
@@ -265,19 +310,26 @@ export default function JobDetailPage({ params }: Props) {
                 )}
               </div>
 
-              <Separator />
+              {/* Money on the overview card, not just the Financials tab —
+                  hiding the tab alone would still have shown technicians the
+                  job's value right here. */}
+              {canViewFinancials && (
+                <>
+                  <Separator />
 
-              {/* Revenue + Payment Status */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" />Revenue</span>
-                  <span className="font-bold">{formatCurrency(job.actual_revenue || job.estimated_revenue || job.contract_amount || 0, false)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Payment</span>
-                  <Badge className={`text-xs border-0 ${ps.color}`}>{ps.label}</Badge>
-                </div>
-              </div>
+                  {/* Revenue + Payment Status */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" />Revenue</span>
+                      <span className="font-bold">{formatCurrency(job.actual_revenue || job.estimated_revenue || job.contract_amount || 0, false)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-muted-foreground">Payment</span>
+                      <Badge className={`text-xs border-0 ${ps.color}`}>{ps.label}</Badge>
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -355,7 +407,7 @@ export default function JobDetailPage({ params }: Props) {
             </div>
           )}
 
-          {activeTab === 'financials' && (() => {
+          {activeTab === 'financials' && canViewFinancials && (() => {
             const lineItems = [
               { label: 'Revenue', estimated: job.estimated_revenue ?? job.contract_amount ?? null, actual: job.actual_revenue ?? null },
               { label: 'Labor Cost', estimated: job.estimated_labor_cost ?? null, actual: job.actual_labor_cost ?? null },
