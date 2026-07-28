@@ -146,6 +146,8 @@ export function mapDbToStore(db: Record<string, unknown>): Partial<SurveyStoreSt
     equipmentAccessNotes: accessInfo.equipmentAccessNotes || '',
     elevatorAvailable: accessInfo.elevatorAvailable ?? null,
     minDoorwayWidth: accessInfo.minDoorwayWidth || 32,
+    siteAccessContactName: accessInfo.siteAccessContactName || '',
+    siteAccessContactPhone: accessInfo.siteAccessContactPhone || '',
   }
 
   const environment: EnvironmentData = {
