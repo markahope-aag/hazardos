@@ -119,7 +119,7 @@ export interface SurveyEnvironmentInfo {
   hasStructuralConcerns: boolean | null
   structuralConcerns: string[]
   structuralNotes: string
-  utilityShutoffsLocated: boolean | null
+  powerWaterAvailable: boolean | null
 }
 
 export interface SurveyAsbestosMaterial {

@@ -157,7 +157,7 @@ export function mapDbToStore(db: Record<string, unknown>): Partial<SurveyStoreSt
     hasStructuralConcerns: environmentInfo.hasStructuralConcerns ?? null,
     structuralConcerns: (environmentInfo.structuralConcerns || []) as EnvironmentData['structuralConcerns'],
     structuralNotes: environmentInfo.structuralNotes || '',
-    utilityShutoffsLocated: environmentInfo.utilityShutoffsLocated ?? null,
+    powerWaterAvailable: environmentInfo.powerWaterAvailable ?? null,
   }
 
   // Hazards — new area-based structure or legacy format
@@ -237,7 +237,7 @@ export function createInitialDbRecord(
       hasStructuralConcerns: null,
       structuralConcerns: [],
       structuralNotes: '',
-      utilityShutoffsLocated: null,
+      powerWaterAvailable: null,
     },
     photo_metadata: [],
     started_at: new Date().toISOString(),

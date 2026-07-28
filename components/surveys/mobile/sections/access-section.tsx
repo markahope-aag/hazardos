@@ -2,6 +2,7 @@
 
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { useSurveyStore } from '@/lib/stores/survey-store'
 import {
   AccessRestriction,
@@ -167,6 +168,35 @@ export function AccessSection() {
             ⚠️ Equipment may require disassembly
           </p>
         )}
+      </section>
+
+      {/* Site access contact — who the crew actually calls to get in on
+          the day. Frequently a super, caretaker or tenant rather than the
+          billing contact held on the job. */}
+      <section className="space-y-3">
+        <Label htmlFor="site-access-contact-name" className="text-base">
+          Site access contact
+        </Label>
+        <p className="text-sm text-muted-foreground mb-3">
+          Who the crew calls to get on site
+        </p>
+        <Input
+          id="site-access-contact-name"
+          value={access.siteAccessContactName}
+          onChange={(e) => updateAccess({ siteAccessContactName: e.target.value })}
+          placeholder="Name"
+          autoComplete="off"
+        />
+        <Input
+          id="site-access-contact-phone"
+          type="tel"
+          inputMode="tel"
+          value={access.siteAccessContactPhone}
+          onChange={(e) => updateAccess({ siteAccessContactPhone: e.target.value })}
+          placeholder="Phone"
+          autoComplete="off"
+          aria-label="Site access contact phone"
+        />
       </section>
     </div>
   )

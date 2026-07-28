@@ -83,6 +83,9 @@ export interface AccessData {
   equipmentAccessNotes: string
   elevatorAvailable: boolean | null
   minDoorwayWidth: number
+  // Who the crew calls to get on site. Often not the billing contact.
+  siteAccessContactName: string
+  siteAccessContactPhone: string
 }
 
 // Environment Section
@@ -118,7 +121,7 @@ export interface EnvironmentData {
   hasStructuralConcerns: boolean | null
   structuralConcerns: StructuralConcern[]
   structuralNotes: string
-  utilityShutoffsLocated: boolean | null
+  powerWaterAvailable: boolean | null
 }
 
 // ============================================
@@ -414,6 +417,8 @@ export const DEFAULT_ACCESS_DATA: AccessData = {
   equipmentAccessNotes: '',
   elevatorAvailable: null,
   minDoorwayWidth: 32,
+  siteAccessContactName: '',
+  siteAccessContactPhone: '',
 }
 
 export const DEFAULT_ENVIRONMENT_DATA: EnvironmentData = {
@@ -425,7 +430,7 @@ export const DEFAULT_ENVIRONMENT_DATA: EnvironmentData = {
   hasStructuralConcerns: null,
   structuralConcerns: [],
   structuralNotes: '',
-  utilityShutoffsLocated: null,
+  powerWaterAvailable: null,
 }
 
 export const DEFAULT_HAZARDS_DATA: HazardsData = {
@@ -447,7 +452,7 @@ export const DEFAULT_SURVEY_FORM_DATA: SurveyFormData = {
 
 // Photo Requirements by Category
 export const PHOTO_REQUIREMENTS: Record<PhotoCategory, { label: string; required: number }> = {
-  exterior: { label: 'Exterior', required: 4 },
+  exterior: { label: 'Exterior', required: 1 },
   interior: { label: 'Interior', required: 0 },
   hazard_area: { label: 'Hazard Areas', required: 0 },
   utility_access: { label: 'Utility/Access', required: 0 },

@@ -493,11 +493,11 @@ export default function SurveyDetailPage() {
                   <DetailRow label="Structural Notes" value={envInfo.structuralNotes} />
                 )}
                 <DetailRow
-                  label="Utility Shutoffs"
+                  label="Power/Water Available"
                   value={
-                    envInfo.utilityShutoffsLocated === true
+                    envInfo.powerWaterAvailable === true
                       ? 'Located'
-                      : envInfo.utilityShutoffsLocated === false
+                      : envInfo.powerWaterAvailable === false
                         ? 'Not located'
                         : null
                   }

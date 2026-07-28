@@ -209,11 +209,11 @@ export function SurveyReviewModal({ surveyId, open, onOpenChange }: SurveyReview
                         }
                       />
                       <DetailRow
-                        label="Utility Shutoffs"
+                        label="Power/Water Available"
                         value={
-                          env.utilityShutoffsLocated === true
+                          env.powerWaterAvailable === true
                             ? 'Located'
-                            : env.utilityShutoffsLocated === false
+                            : env.powerWaterAvailable === false
                               ? 'Not located'
                               : null
                         }

@@ -29,6 +29,9 @@ import {
   TEAM,
   COMPANIES,
   CONTACTS,
+  PROPERTIES,
+  LABS,
+  LAB_REPORTS,
   OPPORTUNITIES,
   SURVEYS,
   ESTIMATES,
@@ -228,6 +231,10 @@ async function wipe(orgId) {
   await db.from('estimates').delete().eq('organization_id', orgId)
   await db.from('opportunities').delete().eq('organization_id', orgId)
   await db.from('site_surveys').delete().eq('organization_id', orgId)
+  await db.from('lab_reports').delete().eq('organization_id', orgId)
+  await db.from('labs').delete().eq('organization_id', orgId)
+  await db.from('property_contacts').delete().eq('organization_id', orgId)
+  await db.from('properties').delete().eq('organization_id', orgId)
   await db.from('customers').delete().eq('organization_id', orgId)
   await db.from('companies').delete().eq('organization_id', orgId)
   await db.from('activity_log').delete().eq('organization_id', orgId)
@@ -291,7 +298,93 @@ async function seedContacts(orgId, users, companyIds) {
   return ids
 }
 
-async function seedOpportunities(orgId, users, companyIds, contactIds) {
+async function seedProperties(orgId, users, contactIds) {
+  step('Properties')
+  const ids = {}
+
+  for (const p of PROPERTIES) {
+    const { key, contacts, ...fields } = p
+    const [row] = await insert('properties', {
+      ...fields,
+      organization_id: orgId,
+      // normalized_address is a generated column — the database composes it
+      // for dedupe/matching. Writing it is rejected.
+      created_by: users.dana,
+    })
+    ids[key] = row.id
+
+    await insert(
+      'property_contacts',
+      contacts.map((c) => ({
+        organization_id: orgId,
+        property_id: row.id,
+        contact_id: contactIds[c.contactKey],
+        role: c.role,
+        is_current: c.is_current ?? true,
+        created_by: users.dana,
+      })),
+      'property_contacts',
+    )
+
+    const current = contacts.filter((c) => c.is_current ?? true).length
+    const past = contacts.length - current
+    done(
+      `${p.address_line1}, ${p.city} — ${current} contact${current === 1 ? '' : 's'}${past ? ` (+${past} past)` : ''}`,
+    )
+  }
+
+  // Point residential contacts at the property they own, so the contact
+  // detail page shows the address rather than a blank.
+  for (const p of PROPERTIES) {
+    const owner = p.contacts.find((c) => c.role === 'owner' && (c.is_current ?? true))
+    if (!owner) continue
+    await db
+      .from('customers')
+      .update({ property_id: ids[p.key] })
+      .eq('id', contactIds[owner.contactKey])
+  }
+
+  return ids
+}
+
+async function seedLabs(orgId) {
+  step('Labs')
+  const ids = {}
+  for (const l of LABS) {
+    const { key, ...fields } = l
+    const [row] = await insert('labs', { ...fields, organization_id: orgId, is_active: true })
+    ids[key] = row.id
+    done(l.name)
+  }
+  return ids
+}
+
+async function seedLabReports(orgId, users, labIds, contactIds, propertyIds) {
+  step('Lab reports')
+  let seq = 4210
+  for (const r of LAB_REPORTS) {
+    const { key, labKey, propertyKey, contactKey, orderedOffset, receivedOffset, ...fields } = r
+    const property = PROPERTIES.find((p) => p.key === propertyKey)
+    const [row] = await insert('lab_reports', {
+      ...fields,
+      organization_id: orgId,
+      lab_id: labIds[labKey],
+      customer_id: contactIds[contactKey],
+      report_number: `LAB-2026-${seq++}`,
+      ordered_date: isoDate(orderedOffset),
+      received_date: receivedOffset != null ? isoDate(receivedOffset) : null,
+      site_address: property.address_line1,
+      site_city: property.city,
+      site_state: property.state,
+      site_zip: property.zip,
+      created_by: users.priya,
+      created_at: isoStamp(orderedOffset),
+    })
+    done(`${row.report_number} — ${r.sample_type} — ${r.status}`)
+  }
+}
+
+async function seedOpportunities(orgId, users, companyIds, contactIds, propertyIds) {
   step('Opportunities')
   const stages = must(
     'read stages',
@@ -301,7 +394,7 @@ async function seedOpportunities(orgId, users, companyIds, contactIds) {
   const ids = {}
 
   for (const o of OPPORTUNITIES) {
-    const { key, contactKey, companyKey, stage, ownerKey, closeOffset, ...fields } = o
+    const { key, contactKey, companyKey, propertyKey, stage, ownerKey, closeOffset, ...fields } = o
     const stageId = stageByName.get(stage)
     if (!stageId) throw new Error(`pipeline stage "${stage}" not found`)
 
@@ -311,6 +404,7 @@ async function seedOpportunities(orgId, users, companyIds, contactIds) {
       organization_id: orgId,
       customer_id: contactIds[contactKey],
       company_id: companyKey ? companyIds[companyKey] : null,
+      property_id: propertyKey ? propertyIds[propertyKey] : null,
       primary_contact_id: contactIds[contactKey],
       stage_id: stageId,
       owner_id: users[ownerKey],
@@ -328,11 +422,11 @@ async function seedOpportunities(orgId, users, companyIds, contactIds) {
 // 5. Surveys, estimates, proposals
 // ---------------------------------------------------------------------------
 
-async function seedSurveys(orgId, users, contactIds) {
+async function seedSurveys(orgId, users, contactIds, propertyIds) {
   step('Site surveys')
   const ids = {}
   for (const s of SURVEYS) {
-    const { key, oppKey, contactKey, estimatorKey, scheduledOffset, photos, ...fields } = s
+    const { key, oppKey, contactKey, propertyKey, estimatorKey, scheduledOffset, photos, ...fields } = s
     const contact = CONTACTS.find((c) => c.key === contactKey)
     const isDone = ['completed', 'estimated', 'quoted', 'submitted'].includes(s.status)
 
@@ -340,6 +434,7 @@ async function seedSurveys(orgId, users, contactIds) {
       ...fields,
       organization_id: orgId,
       customer_id: contactIds[contactKey],
+      property_id: propertyKey ? propertyIds[propertyKey] : null,
       customer_name: `${contact.first_name} ${contact.last_name}`,
       customer_email: contact.email,
       customer_phone: contact.mobile_phone,
@@ -467,7 +562,7 @@ async function seedProposals(orgId, users, contactIds, estimateIds) {
 // 6. Jobs and invoices
 // ---------------------------------------------------------------------------
 
-async function seedJobs(orgId, users, contactIds, companyIds, opportunityIds, estimateIds, proposalIds, surveyIds) {
+async function seedJobs(orgId, users, contactIds, companyIds, propertyIds, opportunityIds, estimateIds, proposalIds, surveyIds) {
   step('Jobs')
   const ids = {}
   let seq = 1180
@@ -481,6 +576,7 @@ async function seedJobs(orgId, users, contactIds, companyIds, opportunityIds, es
       oppKey,
       contactKey,
       companyKey,
+      propertyKey,
       crewLeadKey,
       startOffset,
       durationDays,
@@ -504,6 +600,7 @@ async function seedJobs(orgId, users, contactIds, companyIds, opportunityIds, es
       organization_id: orgId,
       customer_id: contactIds[contactKey],
       company_id: companyKey ? companyIds[companyKey] : null,
+      property_id: propertyKey ? propertyIds[propertyKey] : null,
       primary_contact_id: contactIds[contactKey],
       opportunity_id: oppKey ? opportunityIds[oppKey] : null,
       estimate_id: estimateKey ? estimateIds[estimateKey] : null,
@@ -721,8 +818,9 @@ async function main() {
 
   const companyIds = await seedCompanies(orgId, users)
   const contactIds = await seedContacts(orgId, users, companyIds)
-  const opportunityIds = await seedOpportunities(orgId, users, companyIds, contactIds)
-  const surveyIds = await seedSurveys(orgId, users, contactIds)
+  const propertyIds = await seedProperties(orgId, users, contactIds)
+  const opportunityIds = await seedOpportunities(orgId, users, companyIds, contactIds, propertyIds)
+  const surveyIds = await seedSurveys(orgId, users, contactIds, propertyIds)
   const estimateIds = await seedEstimates(orgId, users, contactIds, surveyIds)
   const proposalIds = await seedProposals(orgId, users, contactIds, estimateIds)
   const jobIds = await seedJobs(
@@ -730,11 +828,14 @@ async function main() {
     users,
     contactIds,
     companyIds,
+    propertyIds,
     opportunityIds,
     estimateIds,
     proposalIds,
     surveyIds,
   )
+  const labIds = await seedLabs(orgId)
+  await seedLabReports(orgId, users, labIds, contactIds, propertyIds)
   await seedInvoices(orgId, users, contactIds, jobIds)
   await seedPhotos(orgId, contactIds, companyIds, surveyIds)
 

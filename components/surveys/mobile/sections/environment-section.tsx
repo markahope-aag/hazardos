@@ -225,15 +225,15 @@ export function EnvironmentSection() {
         )}
       </section>
 
-      {/* Utility Shutoffs */}
+      {/* Power / water availability */}
       <section className="space-y-3">
-        <Label className="text-base">Were utility shutoffs located?</Label>
+        <Label className="text-base">Is power/water available?</Label>
         <p className="text-sm text-muted-foreground mb-3">
-          Water, gas, and electrical shutoff locations identified
+          Working power and water on site for the crew to use
         </p>
         <YesNoToggle
-          value={environment.utilityShutoffsLocated}
-          onChange={(value) => updateEnvironment({ utilityShutoffsLocated: value })}
+          value={environment.powerWaterAvailable}
+          onChange={(value) => updateEnvironment({ powerWaterAvailable: value })}
         />
       </section>
     </div>

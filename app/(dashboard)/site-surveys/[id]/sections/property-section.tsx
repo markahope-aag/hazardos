@@ -206,10 +206,10 @@ export function PropertySection({ survey }: PropertySectionProps) {
                   <p className="font-medium">{environmentInfo.hasStructuralConcerns ? 'Yes' : 'No'}</p>
                 </div>
               )}
-              {environmentInfo.utilityShutoffsLocated !== null && (
+              {environmentInfo.powerWaterAvailable !== null && (
                 <div>
-                  <label className="text-sm text-muted-foreground">Utility Shutoffs Located</label>
-                  <p className="font-medium">{environmentInfo.utilityShutoffsLocated ? 'Yes' : 'No'}</p>
+                  <label className="text-sm text-muted-foreground">Power/Water Available</label>
+                  <p className="font-medium">{environmentInfo.powerWaterAvailable ? 'Yes' : 'No'}</p>
                 </div>
               )}
             </div>

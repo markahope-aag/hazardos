@@ -16,6 +16,7 @@ import {
   DEFAULT_SURVEY_FORM_DATA,
   DEFAULT_SURVEY_AREA,
   DEFAULT_AREA_HAZARD,
+  PHOTO_REQUIREMENTS,
 } from './survey-types'
 import { mapStoreToDb, mapDbToStore, createInitialDbRecord } from './survey-mappers'
 import { createClient } from '@/lib/supabase/client'
@@ -775,7 +776,7 @@ export const useSurveyStore = create<SurveyState>()(
             if (e.temperature === null) errors.push('Temperature is required')
             if (e.humidity === null) errors.push('Humidity is required')
             if (e.hasStructuralConcerns === null) errors.push('Structural concerns question is required')
-            if (e.utilityShutoffsLocated === null) errors.push('Utility shutoffs question is required')
+            if (e.powerWaterAvailable === null) errors.push('Utility shutoffs question is required')
             break
           }
           case 'hazards': {
@@ -797,7 +798,14 @@ export const useSurveyStore = create<SurveyState>()(
           case 'photos': {
             const photos = state.formData.photos.photos
             const exteriorCount = photos.filter((p) => p.category === 'exterior').length
-            if (exteriorCount < 4) errors.push(`${4 - exteriorCount} more exterior photos required`)
+            // Single source of truth — this used to hardcode 4 alongside
+            // PHOTO_REQUIREMENTS, so changing the requirement in one place
+            // left the other disagreeing.
+            const exteriorRequired = PHOTO_REQUIREMENTS.exterior.required
+            if (exteriorCount < exteriorRequired) {
+              const short = exteriorRequired - exteriorCount
+              errors.push(`${short} more exterior photo${short === 1 ? '' : 's'} required`)
+            }
             break
           }
           case 'review': {

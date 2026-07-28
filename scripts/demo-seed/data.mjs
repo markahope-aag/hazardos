@@ -291,6 +291,26 @@ export const CONTACTS = [
     ownerKey: 'priya',
   },
   {
+    // Sold 1427 S Clarkson to Gregory Hahn in 2024. Kept on the property
+    // record as the previous owner — he's who to ask about work that
+    // predates the current owner.
+    key: 'harold',
+    first_name: 'Harold',
+    last_name: 'Vance',
+    companyKey: null,
+    contact_type: 'residential',
+    contact_role: 'other',
+    email: 'h.vance@example.com',
+    mobile_phone: '(720) 555-0305',
+    status: 'past_customer',
+    address_line1: '4102 E Amherst Avenue',
+    city: 'Denver',
+    state: 'CO',
+    zip: '80222',
+    lead_source: 'referral',
+    ownerKey: 'priya',
+  },
+  {
     key: 'angela',
     first_name: 'Angela',
     last_name: 'Boone',
@@ -313,6 +333,7 @@ export const CONTACTS = [
 export const OPPORTUNITIES = [
   {
     key: 'opp-alpine-boiler',
+    propertyKey: 'prop-jasmine',
     name: 'Alpine Ridge — boiler room TSI removal',
     contactKey: 'ray',
     companyKey: 'alpineridge',
@@ -334,6 +355,7 @@ export const OPPORTUNITIES = [
   },
   {
     key: 'opp-frsd-tile',
+    propertyKey: 'prop-holly',
     name: 'FRSD 14 — Adams Elementary floor tile abatement',
     contactKey: 'yvonne',
     companyKey: 'frontrange',
@@ -355,6 +377,7 @@ export const OPPORTUNITIES = [
   },
   {
     key: 'opp-cherry-transite',
+    propertyKey: 'prop-steele',
     name: 'Cherry Creek — 4-plex transite siding removal',
     contactKey: 'karen',
     companyKey: 'cherrycreek',
@@ -376,6 +399,7 @@ export const OPPORTUNITIES = [
   },
   {
     key: 'opp-kessler-lead',
+    propertyKey: 'prop-curtis',
     name: 'Kessler GC — lead paint stabilization, Curtis St',
     contactKey: 'bill',
     companyKey: 'kessler',
@@ -397,6 +421,7 @@ export const OPPORTUNITIES = [
   },
   {
     key: 'opp-hahn-vermiculite',
+    propertyKey: 'prop-clarkson',
     name: 'Hahn residence — attic vermiculite removal',
     contactKey: 'gregory',
     companyKey: null,
@@ -418,6 +443,7 @@ export const OPPORTUNITIES = [
   },
   {
     key: 'opp-duarte-mold',
+    propertyKey: 'prop-32nd',
     name: 'Duarte residence — basement mold remediation',
     contactKey: 'marisol',
     companyKey: null,
@@ -439,6 +465,7 @@ export const OPPORTUNITIES = [
   },
   {
     key: 'opp-baseline-survey',
+    propertyKey: 'prop-arapahoe',
     name: 'Baseline Industrial — pre-demolition asbestos survey',
     contactKey: 'nina',
     companyKey: 'baseline',
@@ -460,6 +487,7 @@ export const OPPORTUNITIES = [
   },
   {
     key: 'opp-boone-inquiry',
+    propertyKey: 'prop-eudora',
     name: 'Boone residence — popcorn ceiling testing',
     contactKey: 'angela',
     companyKey: null,
@@ -481,6 +509,7 @@ export const OPPORTUNITIES = [
   },
   {
     key: 'opp-lindqvist-lost',
+    propertyKey: 'prop-marion',
     name: 'Lindqvist residence — duct insulation removal',
     contactKey: 'peter',
     companyKey: null,
@@ -509,6 +538,7 @@ export const OPPORTUNITIES = [
 export const SURVEYS = [
   {
     key: 'srv-alpine',
+    propertyKey: 'prop-jasmine',
     oppKey: 'opp-alpine-boiler',
     contactKey: 'ray',
     job_name: 'Alpine Ridge — boiler room TSI',
@@ -534,6 +564,7 @@ export const SURVEYS = [
   },
   {
     key: 'srv-frsd',
+    propertyKey: 'prop-holly',
     oppKey: 'opp-frsd-tile',
     contactKey: 'yvonne',
     job_name: 'Adams Elementary — 9x9 floor tile & mastic',
@@ -558,6 +589,7 @@ export const SURVEYS = [
   },
   {
     key: 'srv-cherry',
+    propertyKey: 'prop-steele',
     oppKey: 'opp-cherry-transite',
     contactKey: 'karen',
     job_name: 'Steele St 4-plex — transite siding',
@@ -581,6 +613,7 @@ export const SURVEYS = [
   },
   {
     key: 'srv-kessler',
+    propertyKey: 'prop-curtis',
     oppKey: 'opp-kessler-lead',
     contactKey: 'bill',
     job_name: 'Curtis St — lead paint stabilization',
@@ -605,6 +638,7 @@ export const SURVEYS = [
   },
   {
     key: 'srv-hahn',
+    propertyKey: 'prop-clarkson',
     oppKey: 'opp-hahn-vermiculite',
     contactKey: 'gregory',
     job_name: 'Hahn residence — attic vermiculite',
@@ -630,6 +664,7 @@ export const SURVEYS = [
   },
   {
     key: 'srv-duarte',
+    propertyKey: 'prop-32nd',
     oppKey: 'opp-duarte-mold',
     contactKey: 'marisol',
     job_name: 'Duarte residence — basement mold',
@@ -654,6 +689,7 @@ export const SURVEYS = [
   },
   {
     key: 'srv-baseline',
+    propertyKey: 'prop-arapahoe',
     oppKey: 'opp-baseline-survey',
     contactKey: 'nina',
     job_name: 'Baseline Industrial — pre-demo survey',
@@ -675,6 +711,7 @@ export const SURVEYS = [
   },
   {
     key: 'srv-boone',
+    propertyKey: 'prop-eudora',
     oppKey: 'opp-boone-inquiry',
     contactKey: 'angela',
     job_name: 'Boone residence — ceiling texture sampling',
@@ -914,6 +951,7 @@ export const PROPOSALS = [
 export const JOBS = [
   {
     key: 'job-frsd',
+    propertyKey: 'prop-holly',
     proposalKey: 'prop-frsd',
     estimateKey: 'est-frsd',
     surveyKey: 'srv-frsd',
@@ -953,6 +991,7 @@ export const JOBS = [
   },
   {
     key: 'job-alpine',
+    propertyKey: 'prop-jasmine',
     proposalKey: 'prop-alpine',
     estimateKey: 'est-alpine',
     surveyKey: 'srv-alpine',
@@ -992,6 +1031,7 @@ export const JOBS = [
   },
   {
     key: 'job-cherry-phase1',
+    propertyKey: 'prop-steele',
     estimateKey: null,
     contactKey: 'karen',
     companyKey: 'cherrycreek',
@@ -1028,6 +1068,7 @@ export const JOBS = [
   },
   {
     key: 'job-kessler-active',
+    propertyKey: 'prop-curtis',
     contactKey: 'bill',
     companyKey: 'kessler',
     name: 'Kessler GC — Curtis St stairwell lead abatement',
@@ -1053,6 +1094,7 @@ export const JOBS = [
   },
   {
     key: 'job-alpine-phase2',
+    propertyKey: 'prop-jasmine',
     contactKey: 'ray',
     companyKey: 'alpineridge',
     name: 'Alpine Ridge — unit 12B duct insulation',
@@ -1075,6 +1117,7 @@ export const JOBS = [
   },
   {
     key: 'job-cherry-siding',
+    propertyKey: 'prop-steele',
     contactKey: 'karen',
     companyKey: 'cherrycreek',
     name: 'Cherry Creek — Steele St transite siding',
@@ -1097,6 +1140,7 @@ export const JOBS = [
   },
   {
     key: 'job-hahn-scheduled',
+    propertyKey: 'prop-clarkson',
     contactKey: 'gregory',
     companyKey: null,
     name: 'Hahn residence — attic vermiculite removal',
@@ -1184,6 +1228,254 @@ export const INVOICES = [
     amount_paid: 0,
     payment_terms: 'net_30',
     notes: 'Draft — hold until clearance passes.',
+  },
+]
+
+// Properties are the physical locations. Jobs, surveys and opportunities all
+// hang off an address, and contacts/companies relate to it — so the same
+// property accumulates history as work repeats and as it changes hands.
+//
+// `contacts` links people to the address with a role. `is_current: false`
+// records someone who used to be connected (a prior owner), which is what
+// makes the property, rather than the contact, the durable record.
+export const PROPERTIES = [
+  {
+    key: 'prop-jasmine',
+    address_line1: '1180 Jasmine Street',
+    city: 'Denver',
+    state: 'CO',
+    zip: '80220',
+    property_type: 'residential_multi_family',
+    notes:
+      '36-unit garden complex, 1979. Boiler room TSI abated July 2026; remaining duct insulation being handled unit by unit.',
+    contacts: [{ contactKey: 'ray', role: 'owner' }],
+  },
+  {
+    key: 'prop-steele',
+    address_line1: '1455 Steele Street',
+    city: 'Denver',
+    state: 'CO',
+    zip: '80206',
+    property_type: 'residential_multi_family',
+    notes:
+      '4-plex, 1973. Common-area TSI removed May 2026. Transite siding scheduled — tenants remain in occupancy throughout.',
+    contacts: [
+      { contactKey: 'karen', role: 'billing_contact' },
+      { contactKey: 'doug', role: 'site_contact' },
+    ],
+  },
+  {
+    key: 'prop-holly',
+    address_line1: '6500 Holly Street',
+    city: 'Commerce City',
+    state: 'CO',
+    zip: '80022',
+    property_type: 'government',
+    notes:
+      'Adams Elementary, 1968. 9x9 VAT abated across 19 rooms during the summer 2026 shutdown. Clearance passed before staff return.',
+    contacts: [{ contactKey: 'yvonne', role: 'site_contact' }],
+  },
+  {
+    key: 'prop-curtis',
+    address_line1: '2100 Curtis Street',
+    city: 'Denver',
+    state: 'CO',
+    zip: '80205',
+    property_type: 'commercial',
+    notes: '1955 two-storey commercial. Lead paint stabilisation ahead of tenant fit-out.',
+    contacts: [{ contactKey: 'bill', role: 'site_contact' }],
+  },
+  {
+    key: 'prop-clarkson',
+    address_line1: '1427 S Clarkson Street',
+    city: 'Denver',
+    state: 'CO',
+    zip: '80210',
+    property_type: 'residential_single_family',
+    notes:
+      'Bungalow, 1958. Zonolite attic insulation. Sale pending — clearance letter required before closing.',
+    contacts: [
+      { contactKey: 'gregory', role: 'owner' },
+      // Sold in 2024. Keeping the prior owner on the property is the point
+      // of the record: the next crew sees who to ask about work predating
+      // the current owner.
+      { contactKey: 'harold', role: 'previous_owner', is_current: false },
+    ],
+  },
+  {
+    key: 'prop-32nd',
+    address_line1: '3390 W 32nd Avenue',
+    city: 'Denver',
+    state: 'CO',
+    zip: '80211',
+    property_type: 'residential_single_family',
+    notes: '1987 two-storey. Basement mould following an April sewer backup. Travelers claim open.',
+    contacts: [{ contactKey: 'marisol', role: 'owner' }],
+  },
+  {
+    key: 'prop-arapahoe',
+    address_line1: '3300 Arapahoe Avenue',
+    city: 'Boulder',
+    state: 'CO',
+    zip: '80303',
+    property_type: 'industrial',
+    notes:
+      '41,000 sq ft light industrial, 1963. Pre-demolition survey ahead of redevelopment — roofing, TSI, floor tile and transite partitions all suspect.',
+    contacts: [{ contactKey: 'nina', role: 'site_contact' }],
+  },
+  {
+    key: 'prop-eudora',
+    address_line1: '2214 Eudora Street',
+    city: 'Denver',
+    state: 'CO',
+    zip: '80207',
+    property_type: 'residential_single_family',
+    notes: '1982 ranch. Ceiling texture sampling requested ahead of a kitchen remodel.',
+    contacts: [{ contactKey: 'angela', role: 'owner' }],
+  },
+  {
+    key: 'prop-marion',
+    address_line1: '860 Marion Street',
+    city: 'Denver',
+    state: 'CO',
+    zip: '80218',
+    property_type: 'residential_single_family',
+    notes:
+      'Duct insulation removal quoted June 2026, lost on price to Mile High Environmental. Worth a follow-up in Q4.',
+    contacts: [{ contactKey: 'peter', role: 'owner' }],
+  },
+]
+
+// Analytical labs the company sends samples to.
+export const LABS = [
+  {
+    key: 'rma',
+    name: 'Rocky Mountain Analytical',
+    contact_name: 'Denise Fowler',
+    contact_email: 'samples@rmanalytical.com',
+    contact_phone: '(303) 555-0410',
+    address: '1290 W Bayaud Avenue, Denver, CO 80223',
+    notes: 'NVLAP accredited. Same-day PCM on air clearances if delivered before 2pm.',
+  },
+  {
+    key: 'frontrange',
+    name: 'Front Range Testing',
+    contact_name: 'Owen Brackett',
+    contact_email: 'intake@frontrangetesting.com',
+    contact_phone: '(720) 555-0420',
+    address: '8801 E Hampden Avenue, Denver, CO 80231',
+    notes: 'Used for lead wipes and mould. AIHA-LAP accredited.',
+  },
+]
+
+// Lab reports: samples ordered against surveys and jobs. Mix of received
+// (results back) and still-ordered so the list shows both states.
+export const LAB_REPORTS = [
+  {
+    key: 'lab-alpine-clearance',
+    labKey: 'rma',
+    propertyKey: 'prop-jasmine',
+    contactKey: 'ray',
+    sample_type: 'asbestos_air',
+    status: 'received',
+    orderedOffset: -17,
+    receivedOffset: -16,
+    sample_description: '5 clearance air samples, boiler room and mechanical chase (PCM).',
+    notes: 'All five below 0.01 f/cc. Cleared first attempt at 0.004 f/cc.',
+  },
+  {
+    key: 'lab-alpine-bulk',
+    labKey: 'rma',
+    propertyKey: 'prop-jasmine',
+    contactKey: 'ray',
+    sample_type: 'asbestos_bulk',
+    status: 'received',
+    orderedOffset: -39,
+    receivedOffset: -37,
+    sample_description: '6 bulk samples — pipe lagging and mudded fittings (PLM).',
+    notes: 'Chrysotile 15-20% in lagging, 8% in fitting mud. Confirms RACM.',
+  },
+  {
+    key: 'lab-frsd-bulk',
+    labKey: 'rma',
+    propertyKey: 'prop-holly',
+    contactKey: 'yvonne',
+    sample_type: 'asbestos_bulk',
+    status: 'received',
+    orderedOffset: -62,
+    receivedOffset: -59,
+    sample_description: '9 bulk samples — 9x9 floor tile and black mastic, rooms 100-118.',
+    notes: 'Tile 3% chrysotile, mastic 5%. Both regulated.',
+  },
+  {
+    key: 'lab-frsd-clearance',
+    labKey: 'rma',
+    propertyKey: 'prop-holly',
+    contactKey: 'yvonne',
+    sample_type: 'asbestos_air',
+    status: 'received',
+    orderedOffset: -33,
+    receivedOffset: -32,
+    sample_description: '18 clearance air samples across 19 rooms and the main corridor.',
+    notes: 'All below limit. District cleared for staff return.',
+  },
+  {
+    key: 'lab-kessler-paint',
+    labKey: 'frontrange',
+    propertyKey: 'prop-curtis',
+    contactKey: 'bill',
+    sample_type: 'lead_paint',
+    status: 'received',
+    orderedOffset: -14,
+    receivedOffset: -11,
+    sample_description: '8 paint chip samples — window trim, door casings, plaster walls.',
+    notes: 'Window trim 1.8 mg/cm2, casings 1.2. Above the 1.0 action level.',
+  },
+  {
+    key: 'lab-kessler-wipe',
+    labKey: 'frontrange',
+    propertyKey: 'prop-curtis',
+    contactKey: 'bill',
+    sample_type: 'lead_dust',
+    status: 'ordered',
+    orderedOffset: -1,
+    sample_description: '12 clearance wipe samples — floors, sills and troughs, second floor.',
+    notes: 'Awaiting results before the space is released to the tenant.',
+  },
+  {
+    key: 'lab-duarte-mold',
+    labKey: 'frontrange',
+    propertyKey: 'prop-32nd',
+    contactKey: 'marisol',
+    sample_type: 'mold_surface',
+    status: 'received',
+    orderedOffset: -5,
+    receivedOffset: -3,
+    sample_description: '4 tape lifts — basement framing and drywall, north wall.',
+    notes: 'Stachybotrys and Aspergillus/Penicillium present. Supports the claim scope.',
+  },
+  {
+    key: 'lab-hahn-bulk',
+    labKey: 'rma',
+    propertyKey: 'prop-clarkson',
+    contactKey: 'gregory',
+    sample_type: 'asbestos_bulk',
+    status: 'received',
+    orderedOffset: -10,
+    receivedOffset: -8,
+    sample_description: '3 bulk samples — loose-fill attic vermiculite.',
+    notes: 'Tremolite detected, trace. Handle as ACM per state guidance.',
+  },
+  {
+    key: 'lab-baseline-survey',
+    labKey: 'rma',
+    propertyKey: 'prop-arapahoe',
+    contactKey: 'nina',
+    sample_type: 'asbestos_bulk',
+    status: 'ordered',
+    orderedOffset: -2,
+    sample_description: '24 bulk samples — roofing, TSI, floor tile and transite partitions.',
+    notes: 'Pre-demolition survey. Results needed before the abatement scope can be priced.',
   },
 ]
 
