@@ -90,7 +90,16 @@ async function fetchNotificationsBundle(): Promise<NotificationsBundle> {
   // Single endpoint returns the list + unread count, halving auth
   // round-trips at every 30s poll cycle.
   const res = await fetch('/api/notifications?limit=20')
-  if (!res.ok) throw new Error('Failed to fetch notifications')
+  if (!res.ok) {
+    // Carry the HTTP status so the global query-error handler can tell a
+    // 401 apart from a real failure. Throwing a bare Error made an expected
+    // signed-out/expired-session poll look like a server error, which
+    // surfaced a "Something went wrong" toast on the login screen.
+    const error = Object.assign(new Error('Failed to fetch notifications'), {
+      status: res.status,
+    })
+    throw error
+  }
   const data = await res.json()
   return {
     notifications: Array.isArray(data) ? data : data.notifications ?? [],
