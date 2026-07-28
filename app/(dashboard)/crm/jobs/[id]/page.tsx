@@ -27,6 +27,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { formatCurrency } from '@/lib/utils'
 import { getJobPaymentStatus } from '@/lib/utils/job-payment-status'
 import EntityActivityFeed from '@/components/activity/entity-activity-feed'
+import { JobDocumentsHub } from '@/app/(dashboard)/jobs/[id]/job-documents-hub'
 import { eachDayOfInterval, format } from 'date-fns'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -556,6 +557,7 @@ export default function JobDetailPage({ params }: Props) {
             ]
 
             return (
+              <div className="space-y-6">
               <Card>
                 <CardHeader><CardTitle className="text-base flex items-center gap-2"><FileText className="h-5 w-5" />Required Documents</CardTitle></CardHeader>
                 <CardContent>
@@ -579,6 +581,17 @@ export default function JobDetailPage({ params }: Props) {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* The checklist above only reports what's missing. The hub is
+                  where documents are actually uploaded, and where the waste
+                  labels and OPP are generated. It used to render only on the
+                  legacy /jobs/[id] page, so once that list collapsed into the
+                  CRM one there was no route to it from normal navigation.
+                  Project-record links are passed null here — the CRM page has
+                  its own related-record links further up, so repeating them
+                  inside the hub would be redundant. */}
+              <JobDocumentsHub jobId={job.id} survey={null} estimate={null} workOrder={null} />
+              </div>
             )
           })()}
 
