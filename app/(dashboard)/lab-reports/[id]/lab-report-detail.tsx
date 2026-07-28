@@ -12,6 +12,7 @@ import {
   Loader2,
   FileText,
   Ban,
+  ClipboardList,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -27,6 +28,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/components/ui/use-toast'
+import { ChainOfCustodyModal } from '@/components/lab-reports/chain-of-custody-modal'
 import {
   LAB_REPORT_STATUS_CONFIG,
   LAB_SAMPLE_TYPE_LABELS,
@@ -52,6 +54,7 @@ export function LabReportDetail({ report: initial }: Props) {
   const [uploading, setUploading] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [cocOpen, setCocOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const statusConfig = LAB_REPORT_STATUS_CONFIG[report.status]
 
@@ -156,6 +159,12 @@ export function LabReportDetail({ report: initial }: Props) {
           </div>
         </div>
         <div className="flex gap-2">
+          {report.status !== 'cancelled' && (
+            <Button onClick={() => setCocOpen(true)} disabled={busy}>
+              <ClipboardList className="h-4 w-4 mr-2" />
+              Chain of custody
+            </Button>
+          )}
           {report.status !== 'cancelled' && (
             <Button variant="outline" onClick={cancelReport} disabled={busy}>
               <Ban className="h-4 w-4 mr-2" />
@@ -375,6 +384,8 @@ export function LabReportDetail({ report: initial }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ChainOfCustodyModal reportId={report.id} open={cocOpen} onOpenChange={setCocOpen} />
     </div>
   )
 }

@@ -80,7 +80,7 @@ describe('Survey Mappers', () => {
         hasStructuralConcerns: null,
         structuralConcerns: [],
         structuralNotes: '',
-        utilityShutoffsLocated: null
+        powerWaterAvailable: null
       })
     })
 
@@ -144,7 +144,7 @@ describe('Survey Mappers', () => {
           hasStructuralConcerns: false,
           structuralConcerns: [],
           structuralNotes: '',
-          utilityShutoffsLocated: true
+          powerWaterAvailable: true
         },
         hazards: {
           areas: [{
@@ -218,7 +218,7 @@ describe('Survey Mappers', () => {
       expect(result.environment_info).toMatchObject({
         temperature: 72,
         humidity: 45,
-        utilityShutoffsLocated: true
+        powerWaterAvailable: true
       })
     })
 
@@ -338,7 +338,7 @@ describe('Survey Mappers', () => {
         hasStructuralConcerns: false,
         structuralConcerns: [],
         structuralNotes: '',
-        utilityShutoffsLocated: true
+        powerWaterAvailable: true
       },
       hazard_assessments: {
         areas: [{
@@ -436,7 +436,7 @@ describe('Survey Mappers', () => {
       expect(result.formData?.environment).toMatchObject({
         temperature: 72,
         humidity: 45,
-        utilityShutoffsLocated: true
+        powerWaterAvailable: true
       })
     })
 

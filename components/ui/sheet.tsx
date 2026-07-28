@@ -36,7 +36,7 @@ const SheetOverlay = React.forwardRef<
     {...props}
   />
 ))
-SheetOverlay.displayName = DialogPrimitive.Overlay.displayName
+SheetOverlay.displayName = 'SheetOverlay'
 
 type SheetSide = 'top' | 'right' | 'bottom' | 'left'
 
@@ -88,7 +88,7 @@ const SheetContent = React.forwardRef<
     </DialogPrimitive.Content>
   </SheetPortal>
 ))
-SheetContent.displayName = DialogPrimitive.Content.displayName
+SheetContent.displayName = 'SheetContent'
 
 function SheetHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
@@ -121,7 +121,7 @@ const SheetTitle = React.forwardRef<
     {...props}
   />
 ))
-SheetTitle.displayName = DialogPrimitive.Title.displayName
+SheetTitle.displayName = 'SheetTitle'
 
 const SheetDescription = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Description>,
@@ -133,7 +133,7 @@ const SheetDescription = React.forwardRef<
     {...props}
   />
 ))
-SheetDescription.displayName = DialogPrimitive.Description.displayName
+SheetDescription.displayName = 'SheetDescription'
 
 export {
   Sheet,

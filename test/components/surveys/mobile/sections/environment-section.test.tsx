@@ -26,7 +26,7 @@ let mockEnvironmentData: any = {
   hasStructuralConcerns: false,
   structuralConcerns: [],
   structuralNotes: '',
-  utilityShutoffsLocated: null,
+  powerWaterAvailable: null,
 }
 
 vi.mock('@/lib/stores/survey-store', () => ({
@@ -54,7 +54,7 @@ describe('EnvironmentSection', () => {
       hasStructuralConcerns: false,
       structuralConcerns: [],
       structuralNotes: '',
-      utilityShutoffsLocated: null,
+      powerWaterAvailable: null,
     }
   })
 
@@ -82,10 +82,10 @@ describe('EnvironmentSection', () => {
     expect(screen.getByText('Are there structural concerns?')).toBeInTheDocument()
   })
 
-  it('renders utility shutoffs question', () => {
+  it('renders the power/water availability question', () => {
     render(<EnvironmentSection />)
 
-    expect(screen.getByText('Were utility shutoffs located?')).toBeInTheDocument()
+    expect(screen.getByText('Is power/water available?')).toBeInTheDocument()
   })
 
   it('shows high humidity warning when humidity > 60', () => {
