@@ -1,47 +1,16 @@
-import { describe, it, expect, vi } from 'vitest'
-import type React from 'react'
-import { screen } from '@testing-library/react'
-import { renderWithClient } from '@/test/helpers/render-with-client'
+import { describe, it, expect } from 'vitest'
+import { redirect } from 'next/navigation'
 import JobsPage from '@/app/(dashboard)/jobs/page'
 
-/** Thenable Supabase-style builder: `await .from().select()...` → `{ data, error }`. */
-function jobsListQueryBuilder(data: unknown[]) {
-  const b: Record<string, unknown> = {}
-  const self = () => b
-  for (const m of ['select', 'eq', 'gte', 'lte', 'order', 'range'] as const) {
-    b[m] = self
-  }
-  ;(b as { then: (onFulfilled: (v: { data: unknown[]; error: null }) => unknown) => unknown }).then = (
-    onFulfilled: (v: { data: unknown[]; error: null }) => unknown,
-  ) => Promise.resolve({ data, error: null }).then(onFulfilled)
-  return b
-}
+// /jobs used to render a second, separately-maintained jobs list alongside
+// /crm/jobs — different filters, pagination and status config, so ordinary
+// navigation could show two Jobs lists that disagreed. It is now a redirect to
+// the canonical CRM list, matching /customers -> /crm/contacts. The list
+// rendering itself is covered by the CRM jobs page tests.
 
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn().mockResolvedValue({
-    from: vi.fn(() => jobsListQueryBuilder([])),
-  }),
-}))
-
-async function renderPage(searchParams: Record<string, string> = {}) {
-  const ui = (await JobsPage({
-    searchParams: Promise.resolve(searchParams),
-  })) as React.ReactElement
-  return renderWithClient(ui)
-}
-
-describe('JobsPage (dashboard index)', () => {
-  it('renders heading and empty table copy', async () => {
-    await renderPage()
-    expect(screen.getByRole('heading', { name: 'Jobs' })).toBeInTheDocument()
-    expect(screen.getByText('Manage scheduled and completed jobs')).toBeInTheDocument()
-    // Responsive table renders both mobile and desktop empty states.
-    expect(screen.getAllByText('No jobs found').length).toBeGreaterThan(0)
-  })
-
-  it('links to new job and calendar', async () => {
-    await renderPage()
-    expect(screen.getByRole('link', { name: /new job/i })).toHaveAttribute('href', '/jobs/new')
-    expect(screen.getByRole('link', { name: /calendar view/i })).toHaveAttribute('href', '/calendar')
+describe('JobsPage (legacy dashboard index)', () => {
+  it('redirects to the canonical CRM jobs list', () => {
+    expect(() => JobsPage()).toThrowError(/NEXT_REDIRECT/)
+    expect(redirect).toHaveBeenCalledWith('/crm/jobs')
   })
 })

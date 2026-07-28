@@ -220,10 +220,11 @@ export class JobCompletionService {
 
     if (error) throwDbError(error, 'create job completion')
 
-    await supabase
-      .from('jobs')
-      .update({ completion_id: data.id })
-      .eq('id', input.job_id)
+    // jobs.completion_id is linked by the trg_link_job_completion_to_job
+    // trigger, not from here. Doing it as an application write refused
+    // silently for technicians once `jobs` writes became TENANT_WRITE:
+    // RLS matches zero rows without raising, so the completion was created
+    // and orphaned with no error surfaced.
 
     await JobVarianceService.updateCompletionVariance(input.job_id)
 
