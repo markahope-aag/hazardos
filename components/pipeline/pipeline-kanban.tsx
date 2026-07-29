@@ -25,7 +25,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoveRight } from 'lucide-react'
+import { MoveRight, MapPin } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { cn, formatCurrency } from '@/lib/utils'
 import { DataErrorBoundary } from '@/components/error-boundaries'
@@ -257,6 +257,12 @@ function OpportunityCard({ opportunity, isDragging, stages, onMove }: Opportunit
     `${opportunity.customer?.first_name || ''} ${opportunity.customer?.last_name || ''}`.trim() ||
     'Unknown'
 
+  // Street plus city is enough to place it; the full address would wrap and
+  // the card is deliberately dense.
+  const siteAddress = [opportunity.service_address_line1, opportunity.service_city]
+    .filter(Boolean)
+    .join(', ')
+
   return (
     <Card
       ref={setNodeRef}
@@ -306,6 +312,15 @@ function OpportunityCard({ opportunity, isDragging, stages, onMove }: Opportunit
         <p className="text-xs text-muted-foreground truncate">
           {customerName}
         </p>
+        {/* The site address, on the card itself — asked for on the client
+            call. The office recognises a job by where it is long before they
+            recognise it by name. */}
+        {siteAddress && (
+          <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+            <MapPin className="h-3 w-3 shrink-0" />
+            <span className="truncate">{siteAddress}</span>
+          </p>
+        )}
         {/* Hazard chips help triage at a glance — an asbestos abatement
             in negotiation reads very differently from a mold remediation
             stuck in proposal. */}

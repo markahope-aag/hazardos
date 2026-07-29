@@ -200,7 +200,11 @@ export interface EstimateWithRelations extends Estimate {
     first_name: string | null
     last_name: string | null
     email: string | null
+    // Contacts carry mobile/office far more often than the legacy `phone`;
+    // callers should fall back across all three.
     phone: string | null
+    mobile_phone?: string | null
+    office_phone?: string | null
   } | null
   created_by_user?: {
     id: string

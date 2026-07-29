@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
+import { buildLabReportFilename, summariseResult } from '@/lib/utils/lab-report-filename'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 const BUCKET = 'lab-reports'
@@ -22,7 +23,12 @@ export const POST = createApiHandlerWithParams(
 
     const { data: report, error: loadErr } = await context.supabase
       .from('lab_reports')
-      .select('id, storage_path')
+      .select(
+        `id, storage_path, report_number, ordered_date, received_date,
+         site_address, site_city,
+         customer:customers!customer_id(name, company_name, first_name, last_name),
+         samples:lab_report_samples(result)`,
+      )
       .eq('id', params.id)
       .eq('organization_id', orgId)
       .maybeSingle()
@@ -41,7 +47,43 @@ export const POST = createApiHandlerWithParams(
       throw new SecureError('VALIDATION_ERROR', 'File exceeds 25MB limit', 'file')
     }
 
-    const safeName = file.name.replace(/[^\w.\- ]+/g, '_')
+    // Rename on the way in. "If I then send the file to somebody else, they
+    // would not just have lab 2026 42 16" — the office forwards these, so the
+    // filename has to say who, what, where and when on its own.
+    const reportRow = report as unknown as {
+      report_number: string | null
+      ordered_date: string | null
+      received_date: string | null
+      site_address: string | null
+      site_city: string | null
+      customer: {
+        name: string | null
+        company_name: string | null
+        first_name: string | null
+        last_name: string | null
+      } | null
+      samples: Array<{ result: string | null }> | null
+    }
+    const cust = Array.isArray(reportRow.customer) ? reportRow.customer[0] : reportRow.customer
+    const subject =
+      cust?.company_name ||
+      [cust?.first_name, cust?.last_name].filter(Boolean).join(' ') ||
+      cust?.name ||
+      null
+
+    const extension = file.name.includes('.') ? file.name.split('.').pop() : 'pdf'
+    const displayName = buildLabReportFilename({
+      subject,
+      result: summariseResult(reportRow.samples),
+      siteAddress: reportRow.site_address,
+      siteCity: reportRow.site_city,
+      // The report date is when it came back; falls back to when it went out.
+      date: reportRow.received_date || reportRow.ordered_date,
+      reportNumber: reportRow.report_number,
+      extension,
+    })
+
+    const safeName = displayName.replace(/[^\w.\- ()]+/g, '_')
     const uniqueId = crypto.randomUUID()
     const storagePath = `${orgId}/${params.id}/${uniqueId}-${safeName}`
 
@@ -69,7 +111,7 @@ export const POST = createApiHandlerWithParams(
     const { data: updated, error: updateErr } = await context.supabase
       .from('lab_reports')
       .update({
-        file_name: file.name,
+        file_name: displayName,
         storage_path: storagePath,
         mime_type: file.type || null,
         size_bytes: file.size,

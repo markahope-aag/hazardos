@@ -37,6 +37,9 @@ export const SURVEY_VIEW_OPTIONS = [
   { value: 'completed', label: 'Completed' },
   { value: 'converted', label: 'Converted' },
   { value: 'cancelled', label: 'Cancelled' },
+  // Visits that produced nothing to quote — kept on the property, out of
+  // the working list.
+  { value: 'archived', label: 'Archived' },
   { value: 'all', label: 'All surveys' },
 ] as const
 

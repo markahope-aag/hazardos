@@ -186,8 +186,16 @@ export default function PropertiesPage() {
                         <span className="text-gray-400">—</span>
                       )}
                     </TableCell>
+                    {/* The counts are the natural way in — asked for on the
+                        client call. Both deep-link to the property's own tabs
+                        rather than a filtered global list, so the context of
+                        which property you're looking at is never lost. */}
                     <TableCell className="text-right text-sm">
-                      <span className="inline-flex items-center gap-1 text-gray-700">
+                      <Link
+                        href={`/crm/properties/${p.id}#contacts`}
+                        className="inline-flex items-center gap-1 text-gray-700 hover:text-primary hover:underline"
+                        aria-label={`${p.current_contact_count} contacts at ${p.address_line1}`}
+                      >
                         <Users className="h-3.5 w-3.5 text-gray-400" />
                         {p.current_contact_count}
                         {p.past_contact_count > 0 && (
@@ -195,13 +203,17 @@ export default function PropertiesPage() {
                             {' '}/ {p.past_contact_count} past
                           </span>
                         )}
-                      </span>
+                      </Link>
                     </TableCell>
                     <TableCell className="text-right text-sm text-gray-700">
-                      <span className="inline-flex items-center gap-1">
+                      <Link
+                        href={`/crm/properties/${p.id}#jobs`}
+                        className="inline-flex items-center gap-1 hover:text-primary hover:underline"
+                        aria-label={`${p.job_count} jobs at ${p.address_line1}`}
+                      >
                         <Briefcase className="h-3.5 w-3.5 text-gray-400" />
                         {p.job_count}
-                      </span>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}

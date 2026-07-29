@@ -25,6 +25,8 @@ export class CustomersService {
       locationId?: string | 'unassigned'
       sortBy?: string
       sortOrder?: 'asc' | 'desc'
+      /** Archived contacts (moved away) are hidden unless explicitly asked for. */
+      includeArchived?: boolean
       limit?: number
       offset?: number
     } = {}
@@ -66,6 +68,13 @@ export class CustomersService {
 
     if (options.status) {
       query = query.eq('status', options.status)
+    }
+
+    // A contact who moved away should not clutter the working list. They stay
+    // fully retrievable — that's why archiving exists rather than deleting —
+    // but you have to ask for them.
+    if (!options.includeArchived) {
+      query = query.or('contact_status.is.null,contact_status.neq.archived')
     }
 
     if (options.contactType) {

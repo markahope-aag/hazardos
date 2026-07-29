@@ -451,6 +451,13 @@ export default function EstimateDetailPage() {
     return full || c.name || 'Unnamed customer'
   })()
 
+  // Contacts carry mobile/office far more often than the legacy `phone`.
+  const customerPhone =
+    estimate.customer?.mobile_phone ||
+    estimate.customer?.office_phone ||
+    estimate.customer?.phone ||
+    null
+
   return (
     <div className="space-y-6">
       {/* Back link */}
@@ -478,6 +485,21 @@ export default function EstimateDetailPage() {
           <p className="text-lg text-muted-foreground">
             {estimate.project_name || estimate.site_survey?.job_name || 'Untitled Project'}
           </p>
+          {/* Customer and phone at the top, asked for on the client call.
+              When the customer rings about this estimate, the office needs
+              the number in view without scrolling to the sidebar. */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            <span>{customerName}</span>
+            {customerPhone && (
+              <a
+                href={`tel:${customerPhone.replace(/[^\d+]/g, '')}`}
+                className="inline-flex items-center gap-1 hover:text-primary hover:underline"
+              >
+                <Phone className="h-3.5 w-3.5" />
+                {customerPhone}
+              </a>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

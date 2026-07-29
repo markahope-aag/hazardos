@@ -33,6 +33,17 @@ const CONTACT_ROLE_LABELS: Record<string, string> = {
   other: 'Other',
 }
 
+const CONTACT_CATEGORY_LABELS: Record<string, string> = {
+  property_owner: 'Property Owner',
+  homeowner: 'Homeowner',
+  realtor: 'Realtor',
+  project_manager: 'Project Manager',
+  designated_person: 'Designated Person',
+  landlord: 'Landlord',
+  contractor: 'Contractor',
+  other: 'Other',
+}
+
 const PREFERRED_METHOD_LABELS: Record<string, string> = {
   email: 'Email',
   phone: 'Phone',
@@ -224,9 +235,22 @@ export function CustomerDetailSidebar({
               {customer.contact_type}
             </Badge>
             <CustomerStatusBadge status={customer.status} />
-            {customer.contact_role && (
+            {/* The reason this exists: spotting that a contact is a realtor
+                who brings repeat work, without reading the name field for a
+                hand-typed "(realtor)". */}
+            {customer.contact_category && (
               <Badge variant="secondary">
+                {CONTACT_CATEGORY_LABELS[customer.contact_category] || customer.contact_category}
+              </Badge>
+            )}
+            {customer.contact_role && (
+              <Badge variant="outline">
                 {CONTACT_ROLE_LABELS[customer.contact_role] || customer.contact_role}
+              </Badge>
+            )}
+            {customer.contact_status === 'archived' && (
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                Archived
               </Badge>
             )}
             {customer.contact_status === 'do_not_contact' && (

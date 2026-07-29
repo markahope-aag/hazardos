@@ -60,6 +60,24 @@ export interface AttributionTouchpoint {
 
 // Customer management types
 export type PropertyContactRole = 'owner' | 'previous_owner' | 'tenant' | 'site_contact' | 'billing_contact'
+/**
+ * What kind of party a contact is — asked for on the 2026-07-28 client call
+ * so a realtor who brings repeat work is visible at a glance.
+ *
+ * Distinct from ContactType (residential/commercial) and ContactRole (their
+ * role on a particular deal). Surfaced in the UI as "Contact Type", which is
+ * the client's own language for it.
+ */
+export type ContactCategory =
+  | 'property_owner'
+  | 'homeowner'
+  | 'realtor'
+  | 'project_manager'
+  | 'designated_person'
+  | 'landlord'
+  | 'contractor'
+  | 'other'
+
 export type JobDocumentCategory =
   | 'permit'
   | 'manifest'
@@ -1672,6 +1690,7 @@ export type Database = {
           company_id: string | null
           company_name: string | null
           contact_role: Database["public"]["Enums"]["contact_role"] | null
+          contact_category: Database["public"]["Enums"]["contact_category"] | null
           contact_status: Database["public"]["Enums"]["contact_status"] | null
           contact_type: string
           converting_touch_campaign: string | null
@@ -1757,6 +1776,7 @@ export type Database = {
           company_id?: string | null
           company_name?: string | null
           contact_role?: Database["public"]["Enums"]["contact_role"] | null
+          contact_category?: Database["public"]["Enums"]["contact_category"] | null
           contact_status?: Database["public"]["Enums"]["contact_status"] | null
           contact_type?: string
           converting_touch_campaign?: string | null
@@ -1842,6 +1862,7 @@ export type Database = {
           company_id?: string | null
           company_name?: string | null
           contact_role?: Database["public"]["Enums"]["contact_role"] | null
+          contact_category?: Database["public"]["Enums"]["contact_category"] | null
           contact_status?: Database["public"]["Enums"]["contact_status"] | null
           contact_type?: string
           converting_touch_campaign?: string | null
@@ -9181,6 +9202,15 @@ export type Database = {
         | "government"
         | "direct_homeowner"
         | "other"
+      contact_category:
+        | "property_owner"
+        | "homeowner"
+        | "realtor"
+        | "project_manager"
+        | "designated_person"
+        | "landlord"
+        | "contractor"
+        | "other"
       contact_role:
         | "decision_maker"
         | "influencer"
@@ -9188,7 +9218,7 @@ export type Database = {
         | "property_manager"
         | "site_contact"
         | "other"
-      contact_status: "active" | "inactive" | "do_not_contact"
+      contact_status: "active" | "inactive" | "do_not_contact" | "archived"
       containment_level: "type_i" | "type_ii" | "type_iii"
       customer_source: "phone" | "website" | "mail" | "referral" | "other"
       customer_status:
@@ -9271,6 +9301,7 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "cancelled"
+        | "archived"
       sms_message_type:
         | "appointment_reminder"
         | "job_status"
@@ -9444,6 +9475,16 @@ export const Constants = {
         "direct_homeowner",
         "other",
       ],
+      contact_category: [
+        "property_owner",
+        "homeowner",
+        "realtor",
+        "project_manager",
+        "designated_person",
+        "landlord",
+        "contractor",
+        "other",
+      ],
       contact_role: [
         "decision_maker",
         "influencer",
@@ -9452,7 +9493,7 @@ export const Constants = {
         "site_contact",
         "other",
       ],
-      contact_status: ["active", "inactive", "do_not_contact"],
+      contact_status: ["active", "inactive", "do_not_contact", "archived"],
       containment_level: ["type_i", "type_ii", "type_iii"],
       customer_source: ["phone", "website", "mail", "referral", "other"],
       customer_status: [
@@ -9544,6 +9585,7 @@ export const Constants = {
         "in_progress",
         "completed",
         "cancelled",
+        "archived",
       ],
       sms_message_type: [
         "appointment_reminder",

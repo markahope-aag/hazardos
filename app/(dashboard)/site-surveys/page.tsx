@@ -89,7 +89,7 @@ export default function SiteSurveysPage() {
   const filters = useMemo(() => ({
     search: searchParams.get('search') || '',
     view: (searchParams.get('view') || 'open') as
-      'open' | 'completed' | 'converted' | 'cancelled' | 'all',
+      'open' | 'completed' | 'converted' | 'cancelled' | 'archived' | 'all',
     technician: searchParams.get('technician') || 'all',
     from: searchParams.get('from') || '',
     to: searchParams.get('to') || '',
@@ -126,13 +126,19 @@ export default function SiteSurveysPage() {
         return versionScoped.filter(s => s.status === 'estimated' || hasEstimate(s))
       case 'cancelled':
         return versionScoped.filter(s => s.status === 'cancelled')
+      case 'archived':
+        return versionScoped.filter(s => s.status === 'archived')
       case 'open':
       default:
+        // Archived surveys are visits that produced nothing to quote. They
+        // stay on the property but must not read as outstanding work — that
+        // is the entire point of archiving them.
         return versionScoped.filter(
           s =>
             s.status !== 'cancelled' &&
             s.status !== 'completed' &&
             s.status !== 'estimated' &&
+            s.status !== 'archived' &&
             !hasEstimate(s),
         )
     }

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { CustomerStatus, CustomerSource, ContactType, ContactRole } from '@/types/database'
+import type { CustomerStatus, CustomerSource, ContactType, ContactRole, ContactCategory } from '@/types/database'
 
 // Contact type options
 export const CONTACT_TYPE_OPTIONS = [
@@ -17,6 +17,21 @@ export const CONTACT_ROLE_OPTIONS = [
   { value: 'other' as ContactRole, label: 'Other' },
 ]
 
+// Contact category — "Contact Type" in the UI. Ordered by how often the
+// client says they use them, not alphabetically.
+export const CONTACT_CATEGORY_OPTIONS = [
+  { value: 'homeowner' as ContactCategory, label: 'Homeowner' },
+  { value: 'property_owner' as ContactCategory, label: 'Property Owner' },
+  { value: 'landlord' as ContactCategory, label: 'Landlord' },
+  { value: 'realtor' as ContactCategory, label: 'Realtor' },
+  { value: 'project_manager' as ContactCategory, label: 'Project Manager' },
+  { value: 'contractor' as ContactCategory, label: 'Contractor' },
+  // Schools name an AHERA "designated person" — the client does a lot of
+  // school work and asked for this one specifically.
+  { value: 'designated_person' as ContactCategory, label: 'Designated Person' },
+  { value: 'other' as ContactCategory, label: 'Other' },
+]
+
 // Customer form validation schema
 export const customerSchema = z.object({
   first_name: z.string().min(1, 'First name is required').max(100),
@@ -25,6 +40,11 @@ export const customerSchema = z.object({
   title: z.string().max(100).optional().or(z.literal('')),
   contact_type: z.enum(['residential', 'commercial']),
   contact_role: z.enum(['decision_maker', 'influencer', 'billing', 'property_manager', 'site_contact', 'other']).optional(),
+  // No .or(z.literal('')) here — an empty string is not a valid category and
+  // would be written straight through to the enum column.
+  contact_category: z
+    .enum(['property_owner', 'homeowner', 'realtor', 'project_manager', 'designated_person', 'landlord', 'contractor', 'other'])
+    .optional(),
   company_name: z.string().max(255, 'Company name is too long').optional().or(z.literal('')),
   company_id: z.string().uuid().optional().or(z.literal('')),
   email: z.string().email('Invalid email address').optional().or(z.literal('')),

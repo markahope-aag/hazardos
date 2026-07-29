@@ -10,13 +10,13 @@ import { FormField } from '@/components/ui/form-field'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { customerSchema, CUSTOMER_STATUS_OPTIONS, CUSTOMER_SOURCE_OPTIONS, CONTACT_TYPE_OPTIONS, CONTACT_ROLE_OPTIONS } from '@/lib/validations/customer-form'
+import { customerSchema, CUSTOMER_STATUS_OPTIONS, CUSTOMER_SOURCE_OPTIONS, CONTACT_TYPE_OPTIONS, CONTACT_ROLE_OPTIONS, CONTACT_CATEGORY_OPTIONS } from '@/lib/validations/customer-form'
 import { useFormAnalytics } from '@/lib/hooks/use-analytics'
 import { useSearchCompanies } from '@/lib/hooks/use-companies'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import { logger, formatError } from '@/lib/utils/logger'
 import type { CustomerFormData } from '@/lib/validations/customer-form'
-import type { Customer, CustomerStatus, CustomerSource, ContactType, ContactRole } from '@/types/database'
+import type { Customer, CustomerStatus, CustomerSource, ContactType, ContactRole, ContactCategory } from '@/types/database'
 
 interface CustomerFormProps {
   customer?: Customer
@@ -57,6 +57,7 @@ export default function CustomerForm({
       title: customer.title || '',
       contact_type: (customer.contact_type as ContactType | null) || 'residential',
       contact_role: (customer.contact_role as ContactRole | null) || undefined,
+      contact_category: (customer.contact_category as ContactCategory | null) || undefined,
       company_name: customer.company_name || '',
       company_id: customer.company_id || '',
       email: customer.email || '',
@@ -166,6 +167,24 @@ export default function CustomerForm({
             <Input id="last_name" {...register('last_name')} />
           </FormField>
         </div>
+        {/* Applies to residential and commercial alike — a homeowner is
+            residential, a realtor could be either — so this sits outside the
+            commercial-only block below. */}
+        <FormField label="Contact Type" error={errors.contact_category?.message}>
+          <Select
+            value={watch('contact_category') || ''}
+            onValueChange={(v) => setValue('contact_category', v as ContactCategory)}
+          >
+            <SelectTrigger id="contact_category">
+              <SelectValue placeholder="Select contact type" />
+            </SelectTrigger>
+            <SelectContent>
+              {CONTACT_CATEGORY_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormField>
         {watchedContactType === 'commercial' && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField label="Title / Role" error={errors.title?.message}>
