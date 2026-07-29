@@ -10,6 +10,7 @@ import {
   Edit,
   Target,
   Trash2,
+  Archive,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -20,8 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useRouter } from 'next/navigation'
-// useToast is no longer used here — the two dialogs that emitted toasts
-// own their own toast calls. Kept the import list tidy as a result.
+import { useToast } from '@/components/ui/use-toast'
 import EditCustomerModal from './edit-customer-modal'
 import DeleteCustomerDialog from './delete-customer-dialog'
 import CustomerActivityFeed from './customer-activity-feed'
@@ -60,6 +60,7 @@ interface CustomerDetailProps {
  */
 export default function CustomerDetail({ customer }: CustomerDetailProps) {
   const router = useRouter()
+  const { toast } = useToast()
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showLogCallDialog, setShowLogCallDialog] = useState(false)
@@ -115,6 +116,41 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
   const displayName =
     [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.name
 
+  const [archiving, setArchiving] = useState(false)
+
+  // Reversible on purpose — "so that if they, for some reason or another,
+  // need it for, I don't know, whatever reason".
+  const handleToggleArchive = async () => {
+    const archiving_ = customer.contact_status !== 'archived'
+    setArchiving(true)
+    try {
+      const res = await fetch(`/api/customers/${customer.id}/archive`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ archived: archiving_ }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not update the contact')
+      }
+      toast({
+        title: archiving_ ? 'Contact archived' : 'Contact restored',
+        description: archiving_
+          ? 'Hidden from the contact list. The record and its history are kept.'
+          : 'Back in the contact list.',
+      })
+      router.refresh()
+    } catch (error) {
+      toast({
+        title: 'Could not update the contact',
+        description: error instanceof Error ? error.message : 'Unexpected error',
+        variant: 'destructive',
+      })
+    } finally {
+      setArchiving(false)
+    }
+  }
+
   const handleStatusChange = async (newStatus: CustomerStatus) => {
     if (newStatus === customer.status) return
     setIsUpdatingStatus(true)
@@ -168,6 +204,13 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />
+              {/* Archive, not delete, when someone moves away. Deleting a
+                  contact cascades to invoices, payments, jobs and disposal
+                  manifests, which are retention-bound. */}
+              <DropdownMenuItem onClick={handleToggleArchive} disabled={archiving}>
+                <Archive className="mr-2 h-4 w-4" />
+                {customer.contact_status === 'archived' ? 'Restore from archive' : 'Archive'}
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setShowDeleteDialog(true)}
                 className="text-destructive"

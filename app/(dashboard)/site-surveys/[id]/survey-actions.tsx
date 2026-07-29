@@ -34,6 +34,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase/client'
 import {
   MoreHorizontal,
+  Archive,
   Edit,
   CheckCircle,
   XCircle,
@@ -54,6 +55,37 @@ export function SurveyActions({ survey, onStatusChange }: SurveyActionsProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
+
+  const handleToggleArchive = async () => {
+    const archiving = survey.status !== 'archived'
+    setIsUpdating(true)
+    try {
+      const res = await fetch(`/api/site-surveys/${survey.id}/archive`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ archived: archiving }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Could not update the survey')
+      }
+      toast({
+        title: archiving ? 'Survey archived' : 'Survey restored',
+        description: archiving
+          ? 'Filed against the property and removed from the open list.'
+          : 'Back in the open list as a draft.',
+      })
+      router.refresh()
+    } catch (error) {
+      toast({
+        title: 'Could not update the survey',
+        description: error instanceof Error ? error.message : 'Unexpected error',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsUpdating(false)
+    }
+  }
 
   const updateStatus = async (newStatus: string) => {
     setIsUpdating(true)
@@ -213,6 +245,14 @@ export function SurveyActions({ survey, onStatusChange }: SurveyActionsProps) {
               Mark as Estimated
             </DropdownMenuItem>
           )}
+
+          {/* "I don't want it to die, but I don't want it showing up saying
+              there's a survey here you need to address." Stays on the
+              property; leaves the open list. */}
+          <DropdownMenuItem onClick={handleToggleArchive} disabled={isUpdating}>
+            <Archive className="h-4 w-4 mr-2" />
+            {survey.status === 'archived' ? 'Restore from archive' : 'Archive (no estimate needed)'}
+          </DropdownMenuItem>
 
           {canCancel && (
             <>

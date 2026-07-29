@@ -32,6 +32,8 @@ export const createOpportunitySchema = z.object({
   property_type: z.enum(PROPERTY_TYPES).optional(),
   property_age: z.number().int().min(1700).max(new Date().getFullYear() + 1).optional(),
   regulatory_trigger: z.enum(REGULATORY_TRIGGERS).optional(),
+  /** Quoted without attending site — e.g. from a hover report. */
+  no_visit: z.boolean().optional(),
   estimated_affected_area_sqft: z.number().min(0).optional(),
   // Site address on the opportunity itself (overrides customer's
   // default when the job is somewhere other than the billing address).
@@ -57,6 +59,8 @@ export const updateOpportunitySchema = z.object({
   property_type: z.enum(PROPERTY_TYPES).optional(),
   property_age: z.number().int().min(1700).max(new Date().getFullYear() + 1).optional(),
   regulatory_trigger: z.enum(REGULATORY_TRIGGERS).optional(),
+  /** Quoted without attending site — e.g. from a hover report. */
+  no_visit: z.boolean().optional(),
   estimated_affected_area_sqft: z.number().min(0).optional(),
   service_address_line1: z.string().max(255).optional(),
   service_city: z.string().max(120).optional(),

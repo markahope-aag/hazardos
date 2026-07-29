@@ -518,6 +518,12 @@ export default function OpportunityDetailPage({ params }: Props) {
                           <p className="font-medium capitalize">{opp.urgency}</p>
                         </div>
                       )}
+                      {opp.no_visit && (
+                        <div>
+                          <p className="text-muted-foreground">Site Visit</p>
+                          <p className="font-medium">No visit — quoted remotely</p>
+                        </div>
+                      )}
                       {opp.regulatory_trigger && (
                         <div>
                           <p className="text-muted-foreground">Regulatory Trigger</p>

@@ -55,6 +55,7 @@ export interface Opportunity {
   estimated_affected_area_sqft: number | null
   urgency: import('@/types/database').UrgencyLevel | null
   regulatory_trigger: import('@/types/database').RegulatoryTrigger | null
+  no_visit: boolean
   // Pipeline dates
   assessment_date: string | null
   estimate_sent_date: string | null
@@ -216,6 +217,7 @@ export interface CreateOpportunityInput {
   property_type?: string
   property_age?: number
   regulatory_trigger?: string
+  no_visit?: boolean
   estimated_affected_area_sqft?: number
   service_address_line1?: string
   service_city?: string
@@ -238,6 +240,7 @@ export interface UpdateOpportunityInput {
   property_type?: string
   property_age?: number
   regulatory_trigger?: string
+  no_visit?: boolean
   estimated_affected_area_sqft?: number
   service_address_line1?: string
   service_city?: string

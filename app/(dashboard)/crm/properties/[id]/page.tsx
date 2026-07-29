@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
 import {
   MapPin, ArrowLeft, Users, Briefcase, ClipboardList, Target,
-  UserMinus, Save,
+  UserMinus, Save, UserPlus, FlaskConical,
 } from 'lucide-react'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -87,7 +87,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     )
   }
 
-  const { property, contacts, site_surveys, opportunities, jobs } = data
+  const { property, contacts, site_surveys, opportunities, jobs, lab_reports } = data
   const current = contacts.filter((c) => c.is_current)
   const past = contacts.filter((c) => !c.is_current)
 
@@ -188,12 +188,29 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="contacts" className="scroll-mt-20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-gray-500" />
-            Contacts
-          </CardTitle>
+          <div className="flex items-start justify-between gap-4">
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-gray-500" />
+              Contacts
+            </CardTitle>
+            {/* Adding a contact from the property they're attached to, rather
+                than creating one elsewhere and linking it afterwards. Carries
+                the address through so it isn't retyped. */}
+            <Button size="sm" variant="outline" asChild>
+              <Link
+                href={`/crm/contacts?newContact=true&propertyId=${property.id}` +
+                  `&address=${encodeURIComponent(property.address_line1 ?? '')}` +
+                  `&city=${encodeURIComponent(property.city ?? '')}` +
+                  `&state=${encodeURIComponent(property.state ?? '')}` +
+                  `&zip=${encodeURIComponent(property.zip ?? '')}`}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add contact
+              </Link>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <section>
@@ -311,7 +328,58 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
         </CardContent>
       </Card>
 
-      <Card>
+      {/* Lab results are a fact about the building, so they live here
+          permanently — they do not leave with the occupant. */}
+      <Card id="lab-reports" className="scroll-mt-20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FlaskConical className="h-5 w-5 text-gray-500" />
+            Lab reports ({lab_reports.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {lab_reports.length === 0 ? (
+            <div className="text-sm text-gray-500">No lab reports for this property.</div>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {lab_reports.map((lr) => (
+                <li key={lr.id} className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link
+                      href={`/lab-reports/${lr.id}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {lr.report_number}
+                    </Link>
+                    {lr.sample_type && (
+                      <span className="text-gray-600">
+                        {' '}— {lr.sample_type.replace(/_/g, ' ')}
+                      </span>
+                    )}
+                    {lr.file_name && (
+                      <span className="block text-xs text-gray-500 truncate">{lr.file_name}</span>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <Badge variant="outline" className="capitalize">
+                      {lr.status ?? 'ordered'}
+                    </Badge>
+                    {(lr.received_date || lr.ordered_date) && (
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        {new Date(
+                          `${lr.received_date || lr.ordered_date}T12:00:00`,
+                        ).toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card id="jobs" className="scroll-mt-20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ClipboardList className="h-5 w-5 text-gray-500" />

@@ -29,6 +29,20 @@ export interface PropertyHistory {
   site_surveys: Pick<SiteSurvey, 'id' | 'job_name' | 'hazard_type' | 'status' | 'created_at' | 'scheduled_date'>[]
   opportunities: Pick<Opportunity, 'id' | 'name' | 'opportunity_status' | 'estimated_value' | 'created_at'>[]
   jobs: Pick<Job, 'id' | 'job_number' | 'status' | 'created_at' | 'scheduled_start_date'>[]
+  /**
+   * Lab results belong to the building, not the occupant — "Joe Schmoe moved
+   * away from 123 Main Street. I still want to know that that kitchen had no
+   * asbestos on that floor."
+   */
+  lab_reports: Array<{
+    id: string
+    report_number: string
+    sample_type: string | null
+    status: string | null
+    ordered_date: string | null
+    received_date: string | null
+    file_name: string | null
+  }>
 }
 
 export class PropertiesService {
@@ -144,7 +158,7 @@ export class PropertiesService {
     const property = await this.getProperty(id)
     if (!property) return null
 
-    const [contactsRes, surveysRes, oppsRes, jobsRes] = await Promise.all([
+    const [contactsRes, surveysRes, oppsRes, jobsRes, labsRes] = await Promise.all([
       this.supabase
         .from('property_contacts')
         .select(
@@ -172,17 +186,24 @@ export class PropertiesService {
         .select('id, job_number, status, created_at, scheduled_start_date')
         .eq('property_id', id)
         .order('created_at', { ascending: false }),
+      this.supabase
+        .from('lab_reports')
+        .select('id, report_number, sample_type, status, ordered_date, received_date, file_name')
+        .eq('property_id', id)
+        .order('ordered_date', { ascending: false }),
     ])
 
     if (contactsRes.error) throw new Error(`Failed to load property contacts: ${contactsRes.error.message}`)
     if (surveysRes.error) throw new Error(`Failed to load property surveys: ${surveysRes.error.message}`)
     if (oppsRes.error) throw new Error(`Failed to load property opportunities: ${oppsRes.error.message}`)
     if (jobsRes.error) throw new Error(`Failed to load property jobs: ${jobsRes.error.message}`)
+    if (labsRes.error) throw new Error(`Failed to load property lab reports: ${labsRes.error.message}`)
 
     return {
       property,
       contacts: (contactsRes.data || []) as unknown as PropertyContactWithContact[],
       site_surveys: surveysRes.data || [],
+      lab_reports: (labsRes.data || []) as PropertyHistory['lab_reports'],
       opportunities: (oppsRes.data || []) as unknown as PropertyHistory['opportunities'],
       jobs: jobsRes.data || [],
     }

@@ -85,6 +85,7 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
     property_type: '' as '' | 'residential_single_family' | 'residential_multi_family' | 'commercial' | 'industrial' | 'government',
     property_age: '',
     regulatory_trigger: '' as '' | 'inspection_required' | 'sale_pending' | 'tenant_complaint' | 'voluntary',
+    no_visit: false,
     estimated_affected_area_sqft: '',
     service_address_line1: '',
     service_city: '',
@@ -106,6 +107,7 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
       property_type: opp.property_type || '',
       property_age: opp.property_age != null ? String(opp.property_age) : '',
       regulatory_trigger: opp.regulatory_trigger || '',
+      no_visit: opp.no_visit ?? false,
       estimated_affected_area_sqft:
         opp.estimated_affected_area_sqft != null ? String(opp.estimated_affected_area_sqft) : '',
       service_address_line1: opp.service_address_line1 || '',
@@ -130,6 +132,7 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
         property_type: form.property_type || undefined,
         property_age: form.property_age ? parseInt(form.property_age, 10) : undefined,
         regulatory_trigger: form.regulatory_trigger || undefined,
+        no_visit: form.no_visit,
         estimated_affected_area_sqft: form.estimated_affected_area_sqft
           ? parseFloat(form.estimated_affected_area_sqft)
           : undefined,
@@ -284,6 +287,24 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
                     )
                   })}
                 </div>
+              </div>
+              <div>
+                {/* Hover reports and the like arrive without anyone attending
+                    site. Gina fakes these today with dummy 3pm jobs so they
+                    don't read as real visits. */}
+                <label className="flex items-start gap-2 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={form.no_visit}
+                    onCheckedChange={(c) => setForm(prev => ({ ...prev, no_visit: c === true }))}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    No site visit
+                    <span className="block text-xs text-muted-foreground">
+                      Quoted without attending — e.g. from a hover report
+                    </span>
+                  </span>
+                </label>
               </div>
               <div>
                 <Label>Urgency</Label>

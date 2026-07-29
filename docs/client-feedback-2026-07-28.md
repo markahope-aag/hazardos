@@ -23,29 +23,29 @@ demo tenant in August.
 > needs column-level restriction or a technician-facing view that omits them.
 > Flagged to the client; not yet decided.
 
-## P1 — Broke live in front of the client
+## P1 — Broke live in front of the client — COMPLETE
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| 1 | **Send email from the app errors** | ⬜ | `app/api/contacts/[id]/email/route.ts` exists but failed in the demo. Also needs an attachment control, and both the email and its attachments must land in the contact's history. |
-| 2 | **Preview the estimate as the customer sees it** | ⬜ | No customer-facing estimate view exists. Gina: "when they call me they say 'line item blah blah' — I need to see what they see." |
+| 1 | **Send email from the app errors** | ✅ | `app/api/contacts/[id]/email/route.ts` exists but failed in the demo. Also needs an attachment control, and both the email and its attachments must land in the contact's history. |
+| 2 | **Preview the estimate as the customer sees it** | ✅ | No customer-facing estimate view exists. Gina: "when they call me they say 'line item blah blah' — I need to see what they see." |
 
-## P2 — Small, visible, cheap
+## P2 — Small, visible, cheap — COMPLETE
 
 The sweep that makes August testing go well.
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| 3 | **Contact Type field** | ⬜ | Property Owner, Homeowner, Realtor, Project Manager, Designated Person (schools), Landlord, Contractor, Other. Gina currently types "(realtor)" after the name. |
-| 4 | **Address on the pipeline card** | ⬜ | |
-| 5 | **Property list: contacts and jobs clickable** | ⬜ | Counts already render; they just aren't links. |
-| 6 | **Add a contact from the property** | ⬜ | |
-| 7 | **Archive a contact rather than delete** | ⬜ | "Move away" should archive. Record must stay retrievable. |
-| 8 | **Archive a survey** | ⬜ | A visit producing no estimate should stop showing as outstanding but stay on the property. ~26:00. |
-| 9 | **"No visit" flag on an opportunity** | ⬜ | For hover reports. Currently faked with 3pm dummy jobs. |
-| 10 | **Phone number at the top of the estimate** | ⬜ | |
-| 11 | **Lab report file naming** | ⬜ | Ace of Space format: `<result> (<address>) <date>`. |
-| 12 | **Lab reports attach permanently to the property** | ⬜ | "Joe Schmoe moved away — I still want to know that kitchen had no asbestos." Currently only linked to a customer. |
+| 3 | **Contact Type field** | ✅ | Property Owner, Homeowner, Realtor, Project Manager, Designated Person (schools), Landlord, Contractor, Other. Gina currently types "(realtor)" after the name. |
+| 4 | **Address on the pipeline card** | ✅ | |
+| 5 | **Property list: contacts and jobs clickable** | ✅ | Counts already render; they just aren't links. |
+| 6 | **Add a contact from the property** | ✅ | |
+| 7 | **Archive a contact rather than delete** | ✅ | "Move away" should archive. Record must stay retrievable. |
+| 8 | **Archive a survey** | ✅ | A visit producing no estimate should stop showing as outstanding but stay on the property. ~26:00. |
+| 9 | **"No visit" flag on an opportunity** | ✅ | For hover reports. Currently faked with 3pm dummy jobs. |
+| 10 | **Phone number at the top of the estimate** | ✅ | |
+| 11 | **Lab report file naming** | ✅ | Ace of Space format: `<result> (<address>) <date>`. |
+| 12 | **Lab reports attach permanently to the property** | ✅ | "Joe Schmoe moved away — I still want to know that kitchen had no asbestos." Currently only linked to a customer. |
 
 ## P3 — Core workflow
 
