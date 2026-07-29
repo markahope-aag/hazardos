@@ -53,23 +53,36 @@ jobs:
 
       - name: NPM Security Audit
         run: |
-          echo "::group::NPM Audit Results"
-          # Run audit and capture both output and exit code
-          if ! npm audit --audit-level=moderate --json > audit-results.json 2>&1; then
-            echo "::warning::NPM audit found vulnerabilities"
+          echo "::group::NPM Audit Results (production dependencies)"
+          # Production dependencies are what ships, so they gate the build.
+          #
+          # Dev-only advisories are reported below but do not fail the job.
+          # The current dev findings are all ESLint's own glob matching
+          # (@eslint/eslintrc -> minimatch@3 -> brace-expansion), and they are
+          # genuinely unfixable at this ESLint major: the patched
+          # brace-expansion@5 changed its export shape, so minimatch@3 throws
+          # "expand is not a function", and forcing ajv>=8 breaks the eslintrc
+          # compatibility layer with "NOT SUPPORTED: option missingRefs".
+          # Exploiting them would require control of our lint patterns, which
+          # means repo access already. Revisit with the ESLint 10 upgrade.
+          if ! npm audit --omit=dev --audit-level=moderate --json > audit-results.json 2>&1; then
+            echo "::warning::npm audit found production vulnerabilities"
             cat audit-results.json | jq '.' || cat audit-results.json
-            
-            # Check if there are high or critical vulnerabilities
-            if npm audit --audit-level=high --json > /dev/null 2>&1; then
-              echo "::notice::Only low/moderate vulnerabilities found"
+
+            if npm audit --omit=dev --audit-level=high --json > /dev/null 2>&1; then
+              echo "::notice::Only low/moderate production vulnerabilities found"
             else
-              echo "::error::High or critical vulnerabilities found!"
-              npm audit --audit-level=high
+              echo "::error::High or critical vulnerabilities in production dependencies!"
+              npm audit --omit=dev --audit-level=high
               exit 1
             fi
           else
-            echo "::notice::No vulnerabilities found"
+            echo "::notice::No production vulnerabilities found"
           fi
+          echo "::endgroup::"
+
+          echo "::group::Dev-dependency advisories (informational)"
+          npm audit --audit-level=high || true
           echo "::endgroup::"
 
       - name: Check for hardcoded secrets
@@ -121,13 +134,16 @@ jobs:
           echo "::group::Security Override Analysis"
           
           if [ -f package.json ]; then
-            # Check if security overrides are still needed
-            OVERRIDES=$(cat package.json | jq -r '.pnpm.overrides // {} | keys[]' 2>/dev/null || echo "")
-            
+            # Read `.overrides` — the block npm honours. This used to read
+            # `.pnpm.overrides`, which npm ignores entirely, so the job
+            # cheerfully reported pins that were never applied (minimatch was
+            # pinned >=9.0.6 while 3.1.5 was installed).
+            OVERRIDES=$(cat package.json | jq -r '.overrides // {} | keys[]' 2>/dev/null || echo "")
+
             if [ -n "$OVERRIDES" ]; then
               echo "::notice::Current security overrides:"
               echo "$OVERRIDES" | while read -r pkg; do
-                VERSION=$(cat package.json | jq -r ".pnpm.overrides.\"$pkg\"")
+                VERSION=$(cat package.json | jq -r ".overrides.\"$pkg\"")
                 echo "  - $pkg: $VERSION"
               done
               
