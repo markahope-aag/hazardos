@@ -2,30 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
-import {
-  Building2,
-  MapPin,
-  Calendar,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-  FileText,
-  DollarSign,
-} from 'lucide-react'
+import { CheckCircle, AlertCircle, Loader2, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import {
   Dialog,
   DialogContent,
@@ -34,19 +15,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import type { ProposalWithRelations, EstimateLineItem, LineItemType } from '@/types/estimates'
-import { formatCurrency } from '@/lib/utils'
+import type { ProposalWithRelations } from '@/types/estimates'
+import { CustomerDocument } from '@/components/proposals/customer-document'
 
-const LINE_ITEM_TYPE_LABELS: Record<LineItemType, string> = {
-  labor: 'Labor',
-  equipment: 'Equipment',
-  material: 'Materials',
-  disposal: 'Disposal',
-  travel: 'Travel',
-  permit: 'Permits',
-  testing: 'Testing',
-  other: 'Other',
-}
 
 export default function ProposalPortalPage() {
   const params = useParams()
@@ -241,315 +212,33 @@ export default function ProposalPortalPage() {
   const customer = proposal.customer
   const organization = proposal.organization
 
-  // Group line items by type
-  const groupedLineItems = estimate.line_items?.reduce((acc, item) => {
-    const type = item.item_type
-    if (!acc[type]) acc[type] = []
-    if (item.is_included) acc[type].push(item)
-    return acc
-  }, {} as Record<LineItemType, EstimateLineItem[]>) || {}
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              {organization?.name && (
-                <h1 className="text-xl font-bold">{organization.name}</h1>
-              )}
-              <p className="text-sm text-muted-foreground">
-                Proposal {proposal.proposal_number}
-              </p>
-            </div>
-            {signed ? (
-              <Badge className="bg-green-100 text-green-700">
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Signed
-              </Badge>
-            ) : (
-              <Badge variant="outline">
-                {proposal.status === 'viewed' ? 'Viewed' : 'Awaiting Signature'}
-              </Badge>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        {/* Success message */}
-        {signed && (
-          <Card className="bg-green-50 border-green-200">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-4">
-                <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold text-green-800">Proposal Signed Successfully</h3>
-                  <p className="text-sm text-green-700 mt-1">
-                    Thank you for accepting this proposal. We will be in touch shortly to schedule your project.
-                  </p>
-                  {proposal.signed_at && (
-                    <p className="text-xs text-green-600 mt-2">
-                      Signed on {new Date(proposal.signed_at).toLocaleString()}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Cover Letter */}
-        {proposal.cover_letter && (
-          <Card>
-            <CardContent className="pt-6">
-              <p className="whitespace-pre-wrap">{proposal.cover_letter}</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Project Info */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                Customer
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              <p className="font-medium">
-                {customer?.company_name || `${customer?.first_name} ${customer?.last_name}`}
-              </p>
-              {customer?.email && (
-                <p className="text-sm text-muted-foreground">{customer.email}</p>
-              )}
-              {customer?.phone && (
-                <p className="text-sm text-muted-foreground">{customer.phone}</p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Site Location
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              {estimate.site_survey && (
-                <>
-                  <p className="text-sm">{estimate.site_survey.site_address}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {estimate.site_survey.site_city}, {estimate.site_survey.site_state} {estimate.site_survey.site_zip}
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Scope of Work */}
-        {estimate.scope_of_work && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Scope of Work</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm whitespace-pre-wrap">{estimate.scope_of_work}</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Inclusions */}
-        {proposal.inclusions && proposal.inclusions.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>What&apos;s Included</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="list-disc list-inside space-y-1">
-                {proposal.inclusions.map((item, idx) => (
-                  <li key={idx} className="text-sm">{item}</li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Line Items */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              Pricing Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {(Object.entries(groupedLineItems) as [LineItemType, EstimateLineItem[]][]).map(([type, items]) => (
-              <div key={type}>
-                <div className="px-6 py-2 bg-muted/50">
-                  <h4 className="font-medium text-sm">{LINE_ITEM_TYPE_LABELS[type]}</h4>
-                </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[50%]">Description</TableHead>
-                      <TableHead className="text-right">Qty</TableHead>
-                      <TableHead>Unit</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((item: EstimateLineItem) => (
-                      <TableRow key={item.id}>
-                        <TableCell>{item.description}</TableCell>
-                        <TableCell className="text-right">{item.quantity}</TableCell>
-                        <TableCell>{item.unit}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(item.total_price)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ))}
-
-            {/* Summary */}
-            <div className="px-6 py-4 bg-muted/30">
-              <div className="space-y-2 max-w-xs ml-auto">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span>{formatCurrency(estimate.subtotal)}</span>
-                </div>
-                {estimate.markup_percent > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Service Fee</span>
-                    <span>{formatCurrency(estimate.markup_amount)}</span>
-                  </div>
-                )}
-                {estimate.discount_amount > 0 && (
-                  <div className="flex justify-between text-sm text-green-700 font-medium">
-                    <span>
-                      Discount
-                      {estimate.discount_percent > 0 && Number(estimate.discount_amount) > 0 &&
-                        // Only show "(X%)" when the percent path drove the
-                        // amount — i.e. there was no flat-amount override.
-                        // The recompute helper sets discount_amount from
-                        // discount_percent in that case, so showing the % is
-                        // accurate. Flat-amount discounts have
-                        // discount_percent==0 by the edit form's design.
-                        ` (${estimate.discount_percent}%)`}
-                    </span>
-                    <span>−{formatCurrency(estimate.discount_amount)}</span>
-                  </div>
-                )}
-                {estimate.tax_percent > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tax</span>
-                    <span>{formatCurrency(estimate.tax_amount)}</span>
-                  </div>
-                )}
-                <Separator />
-                <div className="flex justify-between font-bold text-lg">
-                  <span>Total</span>
-                  <span>{formatCurrency(estimate.total)}</span>
-                </div>
-                {estimate.discount_amount > 0 && (
-                  <p className="text-xs text-green-700 text-right pt-1">
-                    You&apos;re saving {formatCurrency(estimate.discount_amount)}
-                  </p>
-                )}
+    <>
+      <CustomerDocument
+        estimate={estimate}
+        proposal={proposal}
+        customer={customer}
+        organizationName={organization?.name}
+        signed={signed}
+        footer={
+          !signed ? (
+            <div className="sticky bottom-0 bg-white border-t p-4 -mx-4">
+              <div className="max-w-4xl mx-auto">
+                <Button
+                  onClick={() => setShowSignDialog(true)}
+                  className="w-full md:w-auto"
+                  size="lg"
+                >
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                  Accept &amp; Sign Proposal
+                </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          ) : null
+        }
+      />
 
-        {/* Timeline */}
-        {(estimate.estimated_duration_days || proposal.valid_until) && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Timeline
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {estimate.estimated_duration_days && (
-                <p className="text-sm">
-                  <span className="text-muted-foreground">Estimated Duration:</span>{' '}
-                  {estimate.estimated_duration_days} days
-                </p>
-              )}
-              {proposal.valid_until && (
-                <p className="text-sm">
-                  <span className="text-muted-foreground">Proposal Valid Until:</span>{' '}
-                  {new Date(proposal.valid_until).toLocaleDateString()}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Payment Terms */}
-        {proposal.payment_terms && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment Terms</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm whitespace-pre-wrap">{proposal.payment_terms}</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Exclusions */}
-        {proposal.exclusions && proposal.exclusions.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Exclusions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="list-disc list-inside space-y-1">
-                {proposal.exclusions.map((item, idx) => (
-                  <li key={idx} className="text-sm text-muted-foreground">{item}</li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Terms and Conditions */}
-        {proposal.terms_and_conditions && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Terms and Conditions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                {proposal.terms_and_conditions}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Sign Button */}
-        {!signed && (
-          <div className="sticky bottom-0 bg-white border-t p-4 -mx-4">
-            <div className="max-w-4xl mx-auto">
-              <Button
-                onClick={() => setShowSignDialog(true)}
-                className="w-full md:w-auto"
-                size="lg"
-              >
-                <CheckCircle className="h-5 w-5 mr-2" />
-                Accept & Sign Proposal
-              </Button>
-            </div>
-          </div>
-        )}
-      </main>
 
       {/* Sign Dialog */}
       <Dialog open={showSignDialog} onOpenChange={setShowSignDialog}>
@@ -625,6 +314,6 @@ export default function ProposalPortalPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   )
 }

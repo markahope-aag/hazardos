@@ -20,6 +20,7 @@ import {
   History,
   GitBranch,
   ClipboardList,
+  Eye,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -480,6 +481,15 @@ export default function EstimateDetailPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Always available, at any status. The office is most often asked
+              "what does the customer see?" while a call is in progress, and
+              that happens well before anything has been sent. */}
+          <Button variant="outline" asChild>
+            <Link href={`/estimates/${estimate.id}/preview`}>
+              <Eye className="h-4 w-4 mr-2" />
+              View as Customer
+            </Link>
+          </Button>
           {estimate.status === 'draft' && (
             <Button onClick={handleSubmitForApproval} disabled={actionPending}>
               <Send className="h-4 w-4 mr-2" />
