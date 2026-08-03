@@ -1,0 +1,72 @@
+name: RLS Integration
+
+# Authorization tests against a REAL Postgres with RLS enforced.
+#
+# The main unit suite mocks the Supabase client, so it cannot observe a policy at
+# all — a mocked call returns whatever the mock says regardless of what the
+# database would have allowed. These tests sign in as actual seeded users and let
+# Postgres decide, which is the only way an RLS regression is visible.
+#
+# The runner brings up a full local Supabase stack from supabase/migrations, so
+# this also continuously proves the baseline still rebuilds from empty.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'tests/integration/**'
+      - 'vitest.integration.config.ts'
+      - '.github/workflows/rls-integration.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'tests/integration/**'
+      - 'vitest.integration.config.ts'
+      - '.github/workflows/rls-integration.yml'
+
+concurrency:
+  group: rls-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  rls:
+    name: RLS & tenant isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Applies supabase/migrations to an empty database. If the baseline ever
+      # stops rebuilding from scratch, this step fails and the cause is obvious.
+      - name: Start local Supabase stack
+        run: supabase start
+
+      - name: Export stack credentials
+        run: |
+          supabase status -o env | sed -E 's/^API_URL=/SUPABASE_TEST_URL=/;
+                                           s/^ANON_KEY=/SUPABASE_TEST_ANON_KEY=/;
+                                           s/^SERVICE_ROLE_KEY=/SUPABASE_TEST_SERVICE_ROLE_KEY=/' \
+            | grep -E '^SUPABASE_TEST_' | tr -d '"' >> "$GITHUB_ENV"
+
+      - name: Run integration tests
+        run: npm run test:integration
+
+      - name: Stop stack
+        if: always()
+        run: supabase stop --no-backup
