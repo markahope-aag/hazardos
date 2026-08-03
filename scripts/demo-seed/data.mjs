@@ -1,37 +1,25 @@
-// Fixture content for the client demo tenant.
+// Fixture content for the seeded tenants.
 //
 // Pure data — no I/O, no Supabase. `index.mjs` resolves the cross-references
 // by `key` and writes the rows. Keeping the content here means editing the
 // demo story (names, amounts, statuses) never means touching the seed logic.
+//
+// Tenant identity — the organisation row, the login addresses, the shared
+// password — lives in profiles.mjs, so this one story can be seeded into more
+// than one organisation.
 
-export const DEMO_ORG = {
-  name: 'Summit Abatement Services',
-  address: '4820 Pecos Street, Unit B',
-  city: 'Denver',
-  state: 'CO',
-  zip: '80211',
-  phone: '(303) 555-0188',
-  email: 'mark.hope+demo.summit@asymmetric.pro',
-  website: 'https://summitabatement.com',
-  license_number: 'CO-ACA-2291',
-  timezone: 'America/Denver',
-  status: 'active',
-  subscription_tier: 'professional',
-}
-
-export const DEMO_PASSWORD = 'SummitDemo-2026!'
-
-const EMAIL_DOMAIN = 'summitabatement.com'
-
+// `slot` is a stable, role-descriptive handle used to build login aliases. It
+// is deliberately independent of the person's name so the addresses in a
+// handed-out login package survive a rename of the fixture staff.
 export const TEAM = [
-  { key: 'dana', first: 'Dana', last: 'Whitfield', role: 'tenant_owner', phone: '(303) 555-0101' },
-  { key: 'marcus', first: 'Marcus', last: 'Reyes', role: 'admin', phone: '(303) 555-0102' },
-  { key: 'priya', first: 'Priya', last: 'Raman', role: 'estimator', phone: '(303) 555-0103' },
-  { key: 'elena', first: 'Elena', last: 'Vasquez', role: 'estimator', phone: '(303) 555-0104' },
-  { key: 'tony', first: 'Tony', last: 'Delgado', role: 'technician', phone: '(303) 555-0105' },
-  { key: 'sam', first: 'Sam', last: 'Okafor', role: 'technician', phone: '(303) 555-0106' },
-  { key: 'rachel', first: 'Rachel', last: 'Kim', role: 'viewer', phone: '(303) 555-0107' },
-].map((m) => ({ ...m, email: `${m.first}.${m.last}`.toLowerCase() + `@${EMAIL_DOMAIN}` }))
+  { key: 'dana', slot: 'owner', first: 'Dana', last: 'Whitfield', role: 'tenant_owner', phone: '(303) 555-0101' },
+  { key: 'marcus', slot: 'admin', first: 'Marcus', last: 'Reyes', role: 'admin', phone: '(303) 555-0102' },
+  { key: 'priya', slot: 'estimator1', first: 'Priya', last: 'Raman', role: 'estimator', phone: '(303) 555-0103' },
+  { key: 'elena', slot: 'estimator2', first: 'Elena', last: 'Vasquez', role: 'estimator', phone: '(303) 555-0104' },
+  { key: 'tony', slot: 'tech1', first: 'Tony', last: 'Delgado', role: 'technician', phone: '(303) 555-0105' },
+  { key: 'sam', slot: 'tech2', first: 'Sam', last: 'Okafor', role: 'technician', phone: '(303) 555-0106' },
+  { key: 'rachel', slot: 'viewer', first: 'Rachel', last: 'Kim', role: 'viewer', phone: '(303) 555-0107' },
+]
 
 export const COMPANIES = [
   {

@@ -10,11 +10,14 @@
  * (scripts/qa-setup-tester-accounts.mjs points 10 role-permutation logins at
  * it). Nothing here touches Acme.
  *
- * Idempotent: re-running wipes this org's business data and rebuilds it. The
- * organisation row and the team logins are reused so the demo URL and
- * passwords stay stable.
+ * Idempotent: re-running wipes the target org's business data and rebuilds it.
+ * The organisation row and the team logins are reused so sign-in details stay
+ * stable.
  *
- * Usage: node scripts/demo-seed/index.mjs
+ * Usage: node scripts/demo-seed/index.mjs [--profile=<key>]
+ *
+ *   summit  the client demo tenant (default)
+ *   ahs     disposable evaluation sandbox; logins are aliases we control
  */
 
 import { readFileSync } from 'node:fs'
@@ -24,9 +27,7 @@ import sharp from 'sharp'
 import { randomUUID, createHash } from 'node:crypto'
 
 import {
-  DEMO_ORG,
-  DEMO_PASSWORD,
-  TEAM,
+  TEAM as BASE_TEAM,
   COMPANIES,
   CONTACTS,
   PROPERTIES,
@@ -40,6 +41,16 @@ import {
   INVOICES,
   PHOTO_PLAN,
 } from './data.mjs'
+import { resolveProfile, PROTECTED_ORG_IDS } from './profiles.mjs'
+
+// ---------------------------------------------------------------------------
+// Tenant selection
+// ---------------------------------------------------------------------------
+
+const PROFILE = resolveProfile(process.argv.slice(2))
+const ORG = PROFILE.org
+const PASSWORD = PROFILE.password
+const TEAM = BASE_TEAM.map((m) => ({ ...m, email: PROFILE.teamEmail(m) }))
 
 // ---------------------------------------------------------------------------
 // Environment
@@ -111,17 +122,17 @@ async function ensureOrg() {
   const { data: existing } = await db
     .from('organizations')
     .select('id')
-    .eq('name', DEMO_ORG.name)
+    .eq('name', ORG.name)
     .maybeSingle()
 
   if (existing) {
-    must('update org', await db.from('organizations').update(DEMO_ORG).eq('id', existing.id))
-    done(`reusing ${DEMO_ORG.name} (${existing.id})`)
+    must('update org', await db.from('organizations').update(ORG).eq('id', existing.id))
+    done(`reusing ${ORG.name} (${existing.id})`)
     return existing.id
   }
 
-  const [org] = await insert('organizations', DEMO_ORG)
-  done(`created ${DEMO_ORG.name} (${org.id}) — pipeline stages seeded by trigger`)
+  const [org] = await insert('organizations', ORG)
+  done(`created ${ORG.name} (${org.id}) — pipeline stages seeded by trigger`)
   return org.id
 }
 
@@ -141,14 +152,14 @@ async function ensureTeam(orgId) {
 
     if (existing) {
       await db.auth.admin.updateUserById(existing.id, {
-        password: DEMO_PASSWORD,
+        password: PASSWORD,
         email_confirm: true,
       })
       userId = existing.id
     } else {
       const { data, error } = await db.auth.admin.createUser({
         email: member.email,
-        password: DEMO_PASSWORD,
+        password: PASSWORD,
         email_confirm: true,
         user_metadata: { first_name: member.first, last_name: member.last },
       })
@@ -182,7 +193,33 @@ async function ensureTeam(orgId) {
 // 3. Teardown of previous business data
 // ---------------------------------------------------------------------------
 
+// A wipe deletes an organisation's whole business dataset and its R2 objects.
+// ensureOrg() resolves its target by name, so a duplicated or mistyped profile
+// name is all that stands between "rebuild the sandbox" and "empty the client
+// demo". Confirm the id we are about to clear really belongs to this profile.
+async function assertSafeToWipe(orgId) {
+  if (PROTECTED_ORG_IDS.has(orgId)) {
+    throw new Error(`refusing to wipe protected organisation ${orgId}`)
+  }
+
+  const { data: row, error } = await db
+    .from('organizations')
+    .select('name')
+    .eq('id', orgId)
+    .maybeSingle()
+
+  if (error) throw new Error(`wipe guard lookup failed: ${error.message}`)
+  if (!row) throw new Error(`wipe guard: organisation ${orgId} not found`)
+  if (row.name !== ORG.name) {
+    throw new Error(
+      `refusing to wipe "${row.name}" (${orgId}) — ` +
+        `profile "${PROFILE.key}" targets "${ORG.name}"`,
+    )
+  }
+}
+
 async function wipe(orgId) {
+  await assertSafeToWipe(orgId)
   step('Clearing previous demo data')
 
   const surveyIds = (
@@ -810,7 +847,7 @@ async function seedPhotos(orgId, contactIds, companyIds, surveyIds) {
 // ---------------------------------------------------------------------------
 
 async function main() {
-  console.log(`Seeding demo tenant "${DEMO_ORG.name}"\n${'='.repeat(52)}`)
+  console.log(`Seeding "${ORG.name}" — ${PROFILE.label}\n${'='.repeat(52)}`)
 
   const orgId = await ensureOrg()
   const users = await ensureTeam(orgId)
@@ -841,9 +878,9 @@ async function main() {
 
   console.log(`\n${'='.repeat(52)}`)
   console.log('Demo tenant ready.\n')
-  console.log(`  Organisation : ${DEMO_ORG.name} (${orgId})`)
+  console.log(`  Organisation : ${ORG.name} (${orgId})`)
   console.log(`  Sign in as   : ${TEAM[0].email}`)
-  console.log(`  Password     : ${DEMO_PASSWORD}`)
+  console.log(`  Password     : ${PASSWORD}`)
   console.log(`\n  All ${TEAM.length} logins share that password:`)
   for (const m of TEAM) console.log(`    ${m.role.padEnd(13)} ${m.email}`)
 }
