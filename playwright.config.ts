@@ -17,7 +17,33 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // Signs in once and seeds an organisation; everything authenticated depends
+    // on it. Kept separate so a login failure reports as one clear failure
+    // rather than as every spec failing for an unrelated-looking reason.
+    { name: 'setup', testMatch: /fixtures\/auth\.setup\.ts/ },
+
+    // Specs that must run signed OUT (the login form itself).
+    {
+      name: 'anonymous',
+      testMatch: /auth\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+
+    {
+      name: 'chromium',
+      testIgnore: /auth\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/user.json' },
+      dependencies: ['setup'],
+    },
+
+    // The survey wizard is a phone-first flow; testing it on a desktop viewport
+    // would exercise markup field crews never see.
+    {
+      name: 'mobile',
+      testMatch: /mobile\/.*\.spec\.ts/,
+      use: { ...devices['Pixel 7'], storageState: 'e2e/.auth/user.json' },
+      dependencies: ['setup'],
+    },
   ],
   webServer: process.env.CI
     ? {

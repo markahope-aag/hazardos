@@ -56,3 +56,6 @@ supabase.exe
 # The .qa-harness/ scripts were retired on 2026-08-04. Their assertions live in
 # tests/integration/ and run in CI; the findings they produced are preserved in
 # docs/qa/. Nothing should recreate a prod-touching harness here.
+
+# Playwright auth fixture: seeded session + tenant, regenerated on every run
+e2e/.auth/

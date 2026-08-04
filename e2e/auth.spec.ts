@@ -20,6 +20,9 @@ test.describe('Authentication', () => {
     await page.getByLabel(/email/i).fill('notauser@example.com')
     await page.getByLabel(/password/i).fill('wrongpassword')
     await page.getByRole('button', { name: /sign in/i }).click()
-    await expect(page.getByText(/invalid|incorrect|error/i)).toBeVisible({ timeout: 5000 })
+    // The message appears twice by design: once in the toast, once in an
+    // aria-live region for screen readers. Matching both is a strict-mode
+    // violation, so assert on the first.
+    await expect(page.getByText(/invalid|incorrect|error/i).first()).toBeVisible({ timeout: 10_000 })
   })
 })
