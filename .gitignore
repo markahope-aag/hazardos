@@ -59,3 +59,7 @@ supabase.exe
 
 # Playwright auth fixture: seeded session + tenant, regenerated on every run
 e2e/.auth/
+
+# Playwright run output
+test-results/
+playwright-report/
