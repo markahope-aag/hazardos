@@ -114,6 +114,30 @@ const nextConfig = {
      * Development mode is more permissive to allow hot reload and dev tools.
      * Production mode is strict and uses 'unsafe-inline' only where necessary.
      */
+
+    // The Supabase origin is derived from configuration rather than assumed to
+    // match https://*.supabase.co. The wildcard is correct for hosted projects
+    // but silently excludes a local stack (http://127.0.0.1:54321) or a
+    // self-hosted deployment, and the browser then refuses the auth request
+    // outright — a production build pointed at a local stack cannot sign in at
+    // all. In production this resolves to the hosted URL, which the wildcard
+    // already covers, so nothing is loosened.
+    const supabaseOrigin = (() => {
+      try {
+        return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').origin;
+      } catch {
+        return null;
+      }
+    })();
+    const supabaseSources = supabaseOrigin
+      ? [supabaseOrigin, supabaseOrigin.replace(/^http/, 'ws')]
+      : [];
+
+    // Only meaningful when the app itself is served over https. Left on in
+    // production; omitted when the configured app URL is plain http, otherwise
+    // every request to http://localhost is upgraded to https and fails.
+    const appIsHttps = !(process.env.NEXT_PUBLIC_APP_URL ?? '').startsWith('http://');
+
     const cspDirectives = {
       // Default fallback - restrict to self
       'default-src': ["'self'"],
@@ -128,7 +152,7 @@ const nextConfig = {
       'style-src': ["'self'", "'unsafe-inline'"],
 
       // Images - allow self, data URIs, blobs, Supabase storage, and HTTPS
-      'img-src': ["'self'", 'data:', 'blob:', 'https://*.supabase.co', 'https:'],
+      'img-src': ["'self'", 'data:', 'blob:', 'https://*.supabase.co', ...supabaseSources, 'https:'],
 
       // Fonts - allow self and data URIs (for inline fonts)
       'font-src': ["'self'", 'data:'],
@@ -137,6 +161,7 @@ const nextConfig = {
       'connect-src': isDev
         ? [
             "'self'",
+            ...supabaseSources,
             'https://*.supabase.co',
             'wss://*.supabase.co',
             'https://api.stripe.com',
@@ -151,6 +176,7 @@ const nextConfig = {
           ]
         : [
             "'self'",
+            ...supabaseSources,
             'https://*.supabase.co',
             'wss://*.supabase.co',
             'https://api.stripe.com',
@@ -184,10 +210,10 @@ const nextConfig = {
       'worker-src': ["'self'", 'blob:'],
 
       // Media sources - allow self, Supabase storage, and blobs
-      'media-src': ["'self'", 'https://*.supabase.co', 'blob:'],
+      'media-src': ["'self'", 'https://*.supabase.co', ...supabaseSources, 'blob:'],
 
       // Upgrade insecure requests in production
-      ...(isDev ? {} : { 'upgrade-insecure-requests': [] }),
+      ...(isDev || !appIsHttps ? {} : { 'upgrade-insecure-requests': [] }),
     };
 
     // Build CSP header value
