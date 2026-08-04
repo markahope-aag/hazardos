@@ -64,8 +64,33 @@ jobs:
                                            s/^SERVICE_ROLE_KEY=/SUPABASE_TEST_SERVICE_ROLE_KEY=/' \
             | grep -E '^SUPABASE_TEST_' | tr -d '"' >> "$GITHUB_ENV"
 
+      # The API tests drive real HTTP, so the app has to be running. It must be a
+      # production build: `next dev` 308-redirects every /api route to a trailing
+      # slash and then 500s, which never happens in a built app or on production.
+      - name: Build the app against the local stack
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_TEST_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_TEST_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_TEST_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+        run: npm run build
+
+      - name: Start the app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_TEST_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_TEST_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_TEST_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+        run: |
+          npm start > "$RUNNER_TEMP/app.log" 2>&1 &
+          echo "APP_TEST_URL=http://localhost:3000" >> "$GITHUB_ENV"
+
       - name: Run integration tests
         run: npm run test:integration
+
+      - name: App log on failure
+        if: failure()
+        run: tail -100 "$RUNNER_TEMP/app.log" || true
 
       - name: Stop stack
         if: always()

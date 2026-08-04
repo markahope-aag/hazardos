@@ -162,6 +162,45 @@ describe('RLS role scoping', () => {
     expect(error).not.toBeNull()
   })
 
+  // Ported from .qa-harness/50-sec-extra.mjs (SEC2, SEC3, SEC5): TENANT_WRITE
+  // must exclude viewer and technician on the money-bearing tables, not just on
+  // the CRM ones covered above.
+  test('viewer cannot update a job', async () => {
+    const r = await updateProbe({
+      svc: t.svc,
+      client: t.roles.viewer.client,
+      table: 'jobs',
+      id: t.fixtures.jobId,
+      column: 'status',
+      sentinel: 'completed',
+    })
+    expect(r.applied).toBe(false)
+  })
+
+  test('technician cannot update a job', async () => {
+    const r = await updateProbe({
+      svc: t.svc,
+      client: t.roles.technician.client,
+      table: 'jobs',
+      id: t.fixtures.jobId,
+      column: 'status',
+      sentinel: 'cancelled',
+    })
+    expect(r.applied).toBe(false)
+  })
+
+  test('technician cannot update an invoice', async () => {
+    const r = await updateProbe({
+      svc: t.svc,
+      client: t.roles.technician.client,
+      table: 'invoices',
+      id: t.fixtures.voidInvoiceId,
+      column: 'notes',
+      sentinel: `${t.tag}-tech-invoice`,
+    })
+    expect(r.applied).toBe(false)
+  })
+
   test('a viewer cannot mint an API key', async () => {
     const sentinel = `${t.tag}-apikey`
     await t.roles.viewer.client.from('api_keys').insert({
@@ -174,6 +213,72 @@ describe('RLS role scoping', () => {
     const { data: landed } = await t.svc.from('api_keys').select('id').eq('name', sentinel)
     if (landed?.length) await t.svc.from('api_keys').delete().eq('name', sentinel)
     expect(landed ?? []).toHaveLength(0)
+  })
+})
+
+/**
+ * Positive controls, ported from .qa-harness/30-regression.mjs. Every test above
+ * asserts a denial, and a denial suite that never checks the allow path can go
+ * green by locking everyone out. These prove TENANT_WRITE still lets the right
+ * roles work.
+ */
+describe('CONTROL: authorised roles can still write', () => {
+  let t: Tenant
+
+  beforeAll(async () => {
+    t = await createTenant('allow')
+  })
+
+  afterAll(async () => {
+    await t?.cleanup()
+  })
+
+  test('estimator can rename an opportunity', async () => {
+    const r = await updateProbe({
+      svc: t.svc,
+      client: t.roles.estimator.client,
+      table: 'opportunities',
+      id: t.fixtures.opportunityId,
+      column: 'name',
+      sentinel: `${t.tag}-allowed`,
+    })
+    expect(r.applied, `estimator was blocked (code=${r.code})`).toBe(true)
+  })
+
+  test('estimator can edit an estimate', async () => {
+    const r = await updateProbe({
+      svc: t.svc,
+      client: t.roles.estimator.client,
+      table: 'estimates',
+      id: t.fixtures.estimateId,
+      column: 'project_name',
+      sentinel: `${t.tag}-allowed`,
+    })
+    expect(r.applied, `estimator was blocked (code=${r.code})`).toBe(true)
+  })
+
+  test('estimator can reprice an estimate line item', async () => {
+    const r = await updateProbe({
+      svc: t.svc,
+      client: t.roles.estimator.client,
+      table: 'estimate_line_items',
+      id: t.fixtures.lineItemId,
+      column: 'unit_price',
+      sentinel: 250.5,
+    })
+    expect(r.applied, `estimator was blocked (code=${r.code})`).toBe(true)
+  })
+
+  test('admin can rename a pipeline stage', async () => {
+    const r = await updateProbe({
+      svc: t.svc,
+      client: t.roles.admin.client,
+      table: 'pipeline_stages',
+      id: t.fixtures.stageId,
+      column: 'name',
+      sentinel: `${t.tag}-allowed`,
+    })
+    expect(r.applied, `admin was blocked (code=${r.code})`).toBe(true)
   })
 })
 

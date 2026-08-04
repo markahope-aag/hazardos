@@ -204,7 +204,38 @@ Located in `supabase/migrations/`. Push with:
 npx supabase db push
 ```
 
-Key migration series:
+### The schema is baselined — read this before re-baselining
+
+As of 2026-08-03 the migration set is a **squashed baseline**, because the
+original 198-file chain could not rebuild an empty database. The originals live
+in `supabase/migrations-archive/` as read-only history. **Never move anything
+back out of the archive** — those files contain statements that were recorded as
+applied but never actually ran.
+
+Three files make up the baseline, and they are a set:
+
+| File | Contains | Why it exists |
+|------|----------|---------------|
+| `00000000000000_baseline.sql` | `public` schema | `supabase db dump` output |
+| `00000000000001_baseline_non_public.sql` | `on_auth_user_created` trigger, 8 storage buckets, 36 storage RLS policies | **`db dump` dumps `public` ONLY** |
+| `00000000000002_baseline_reference_data.sql` | `platform_settings`, `subscription_plans` rows | the dump is schema-only |
+
+**If you ever re-baseline, regenerate all three.** Running `supabase db dump`
+alone silently drops the trigger on `auth.users`, so a rebuilt database creates
+no `profiles` row on signup and every new user ends up with no organisation and
+no role. It fails silently, and only an integration test catches it.
+
+Only add to `00000000000002` if the data is **global**. Anything org-scoped
+(pipeline stages, credential types, AI settings) is seeded by AFTER INSERT
+triggers on `organizations` and must not be duplicated there.
+
+Verify any re-baseline by rebuilding from empty and diffing against production:
+```bash
+npx supabase db reset          # applies the baseline to an empty local DB
+npm run test:integration       # proves auth/RLS still work on the result
+```
+
+Key migration series (all in `migrations-archive/`, historical reference only):
 - `20260131*` — Initial schema (customers, site surveys, profiles, orgs)
 - `20260201*` — Estimates, jobs, invoices
 - `20260202*` — Customer contacts
@@ -212,6 +243,19 @@ Key migration series:
 - `20260403*` — CRM rebuild (companies, enhanced contacts/opportunities/jobs, multi-touch attribution)
 
 ## Testing & Building
+
+### `next dev` leaves artifacts that break `next build`
+
+`tsconfig.json` includes `.next/dev/types/**/*.ts` so the dev server's generated
+route types reach your editor. Those same files then get type-checked by a later
+production build, and `.next/dev/types/routes.d.ts` fails to parse — the build
+dies with `Type error: Expression expected` pointing at a file nobody wrote.
+
+A `prebuild` script now deletes `.next/dev` before every build, so this should
+not resurface. If you ever see a build fail inside `.next/`, the cause is stale
+generated output, not your code: delete `.next` and rebuild. On Windows, stop the
+dev server first or the directory stays locked and `rm -rf` reports
+"Directory not empty".
 
 ```bash
 npm run type-check    # TypeScript check

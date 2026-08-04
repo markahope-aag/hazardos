@@ -100,6 +100,50 @@ describe('invoice payment integrity', () => {
     await t?.cleanup()
   })
 
+  test('CONTROL: a valid payment within the balance posts', async () => {
+    // Ported from 30-regression. Without this, the overpayment test below would
+    // pass even if record_invoice_payment rejected everything.
+    const inv = await t.svc
+      .from('invoices')
+      .insert({
+        organization_id: t.orgId,
+        customer_id: t.fixtures.customerId,
+        invoice_number: `INV-${t.tag}-valid`,
+        status: 'sent',
+        invoice_date: '2026-07-01',
+        due_date: '2026-08-01',
+        subtotal: 100,
+        tax_rate: 0,
+        tax_amount: 0,
+        discount_amount: 0,
+        total: 100,
+        amount_paid: 0,
+        balance_due: 100,
+      })
+      .select('id')
+      .single()
+    expect(inv.error).toBeNull()
+
+    const { error } = await t.roles.admin.client.rpc('record_invoice_payment', {
+      p_invoice_id: inv.data!.id,
+      p_amount: 60,
+      p_payment_date: '2026-07-02',
+      p_payment_method: 'check',
+      p_reference_number: `${t.tag}-valid`,
+      p_notes: 'valid payment control',
+      p_created_by: t.roles.admin.userId,
+    })
+    expect(error, `valid payment was rejected: ${error?.message}`).toBeNull()
+
+    const { data: after } = await t.svc
+      .from('invoices')
+      .select('amount_paid, balance_due')
+      .eq('id', inv.data!.id)
+      .single()
+    expect(Number(after?.amount_paid)).toBe(60)
+    expect(Number(after?.balance_due)).toBe(40)
+  })
+
   test('the server rejects a payment larger than the invoice balance', async () => {
     // A $500 payment against a $100 invoice. The browser dialog guards this, but
     // the guard that counts is the one in record_invoice_payment.
