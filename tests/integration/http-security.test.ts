@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, test } from 'vitest'
-import { apiCall, appUrl, waitForApp } from './helpers/api'
+import { apiCall, appUrl, waitForApp, setClientIp } from './helpers/api'
 
 /**
  * Transport-level security behaviour that only exists at the HTTP edge: which
@@ -11,6 +11,7 @@ import { apiCall, appUrl, waitForApp } from './helpers/api'
  */
 describe('HTTP edge security', () => {
   beforeAll(async () => {
+    setClientIp('10.99.4.1') // own rate-limit bucket; see helpers/api.ts
     await waitForApp()
   })
 

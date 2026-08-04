@@ -1,5 +1,5 @@
 import { beforeAll, afterAll, describe, expect, test } from 'vitest'
-import { apiCall, mintApiKey, waitForApp } from './helpers/api'
+import { apiCall, mintApiKey, waitForApp, setClientIp } from './helpers/api'
 import { createTenant, type Tenant } from './helpers/fixtures'
 
 /**
@@ -19,6 +19,7 @@ describe('v1 API authentication and scoping', () => {
   let tinyQuotaKey: string
 
   beforeAll(async () => {
+    setClientIp('10.99.1.1') // own rate-limit bucket; see helpers/api.ts
     await waitForApp()
     t = await createTenant('api')
     other = await createTenant('api-other')

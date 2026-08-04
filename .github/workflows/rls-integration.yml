@@ -61,7 +61,8 @@ jobs:
         run: |
           supabase status -o env | sed -E 's/^API_URL=/SUPABASE_TEST_URL=/;
                                            s/^ANON_KEY=/SUPABASE_TEST_ANON_KEY=/;
-                                           s/^SERVICE_ROLE_KEY=/SUPABASE_TEST_SERVICE_ROLE_KEY=/' \
+                                           s/^SERVICE_ROLE_KEY=/SUPABASE_TEST_SERVICE_ROLE_KEY=/;
+                                           s/^DB_URL=/SUPABASE_TEST_DB_URL=/' \
             | grep -E '^SUPABASE_TEST_' | tr -d '"' >> "$GITHUB_ENV"
 
       # The API tests drive real HTTP, so the app has to be running. It must be a

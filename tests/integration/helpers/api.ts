@@ -16,12 +16,36 @@ export interface ApiResponse {
   headers: Headers
 }
 
+/**
+ * The rate limiter buckets by `x-forwarded-for` (see memory-rate-limit.ts), and
+ * the public bucket is 60 requests/minute. Without separate addresses the whole
+ * HTTP suite shares one bucket and starts 429ing itself partway through — which
+ * looks exactly like a flaky application bug.
+ *
+ * Each test file claims its own address in beforeAll.
+ */
+let defaultClientIp = '10.99.0.1'
+
+export function setClientIp(ip: string): void {
+  defaultClientIp = ip
+}
+
 export async function apiCall(
   method: string,
   path: string,
-  opts: { key?: string; body?: unknown; headers?: Record<string, string>; rawBody?: string } = {},
+  opts: {
+    key?: string
+    body?: unknown
+    headers?: Record<string, string>
+    rawBody?: string
+    clientIp?: string
+  } = {},
 ): Promise<ApiResponse> {
-  const headers: Record<string, string> = { 'content-type': 'application/json', ...opts.headers }
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+    'x-forwarded-for': opts.clientIp ?? defaultClientIp,
+    ...opts.headers,
+  }
   if (opts.key) headers.authorization = `Bearer ${opts.key}`
 
   const res = await fetch(`${appUrl()}${path}`, {

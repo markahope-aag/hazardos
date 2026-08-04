@@ -128,6 +128,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^25.1.0",
     "@types/papaparse": "^5.5.2",
+    "@types/pg": "^8.20.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.64.0",

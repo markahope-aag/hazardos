@@ -53,5 +53,6 @@ public/swe-worker-*.js.map
 supabase.exe
 .claude/worktrees/
 
-# QA security/integrity harness (disposable, prod-touching — never commit)
-.qa-harness/
+# The .qa-harness/ scripts were retired on 2026-08-04. Their assertions live in
+# tests/integration/ and run in CI; the findings they produced are preserved in
+# docs/qa/. Nothing should recreate a prod-touching harness here.

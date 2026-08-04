@@ -5,6 +5,7 @@ export interface StackCredentials {
   url: string
   anonKey: string
   serviceRoleKey: string
+  dbUrl?: string
 }
 
 let cached: StackCredentials | null = null
@@ -23,6 +24,7 @@ export function stack(): StackCredentials {
     url: process.env.SUPABASE_TEST_URL,
     anonKey: process.env.SUPABASE_TEST_ANON_KEY,
     serviceRoleKey: process.env.SUPABASE_TEST_SERVICE_ROLE_KEY,
+    dbUrl: process.env.SUPABASE_TEST_DB_URL,
   }
 
   if (fromEnv.url && fromEnv.anonKey && fromEnv.serviceRoleKey) {
@@ -54,8 +56,35 @@ export function stack(): StackCredentials {
     throw new Error(`Refusing to run destructive integration tests against ${url}`)
   }
 
-  cached = { url, anonKey, serviceRoleKey }
+  cached = { url, anonKey, serviceRoleKey, dbUrl: parsed.DB_URL }
   return cached
+}
+
+/**
+ * Run SQL directly against the test database.
+ *
+ * Some properties are not observable through PostgREST at all — whether a
+ * function is SECURITY DEFINER, whether its search_path is pinned, whether an
+ * index is valid. Those live in pg_catalog, which PostgREST deliberately does
+ * not expose, so auditing them needs a real connection.
+ */
+export async function dbQuery<T = Record<string, unknown>>(
+  sql: string,
+  params: unknown[] = [],
+): Promise<T[]> {
+  const { dbUrl } = stack()
+  if (!dbUrl) {
+    throw new Error('no DB_URL for the test stack; set SUPABASE_TEST_DB_URL or run `supabase start`')
+  }
+  const { Client } = await import('pg')
+  const client = new Client({ connectionString: dbUrl })
+  await client.connect()
+  try {
+    const res = await client.query(sql, params)
+    return res.rows as T[]
+  } finally {
+    await client.end()
+  }
 }
 
 const noPersist = { auth: { persistSession: false, autoRefreshToken: false } }

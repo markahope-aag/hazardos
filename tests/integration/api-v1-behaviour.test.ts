@@ -1,15 +1,15 @@
 import { beforeAll, afterAll, describe, expect, test } from 'vitest'
 import { randomUUID } from 'node:crypto'
-import { apiCall, mintApiKey, waitForApp } from './helpers/api'
+import { apiCall, mintApiKey, waitForApp, setClientIp } from './helpers/api'
 import { createTenant, type Tenant } from './helpers/fixtures'
 
 /**
  * Behaviour of the public API beyond authentication: input validation, search
  * filtering, cross-org semantics and column exposure.
  *
- * Ported from .qa-harness/40-v1-api.mjs. Several of these encode defects the
- * harness discovered rather than behaviour it confirmed; where one is still
- * failing it is quarantined explicitly with a comment, never silently dropped.
+ * Ported from .qa-harness/40-v1-api.mjs. Several of these encoded defects the
+ * harness reported as FAILING in July 2026; all of them now pass, so those
+ * findings were stale by the time the suite was written.
  */
 describe('v1 API behaviour', () => {
   let t: Tenant
@@ -17,6 +17,7 @@ describe('v1 API behaviour', () => {
   let key: string
 
   beforeAll(async () => {
+    setClientIp('10.99.2.1') // own rate-limit bucket; see helpers/api.ts
     await waitForApp()
     t = await createTenant('apib')
     other = await createTenant('apib-other')
@@ -66,8 +67,8 @@ describe('v1 API behaviour', () => {
   })
 
   test('DELETE cannot reach another organisation record', async () => {
-    // The response body is a separate question (see the quarantined test below);
-    // what must hold unconditionally is that the row survives.
+    // The response code is asserted separately below; what must hold here,
+    // unconditionally, is that the foreign row survives.
     const r = await apiCall('DELETE', `/api/v1/customers/${other.fixtures.customerId}`, { key })
     const { data: survivor } = await other.svc
       .from('customers')
@@ -75,6 +76,16 @@ describe('v1 API behaviour', () => {
       .eq('id', other.fixtures.customerId)
       .maybeSingle()
     expect(survivor, `foreign row was deleted (status ${r.status})`).not.toBeNull()
+  })
+
+  test('DELETE of an unknown id reports not-found rather than success', async () => {
+    // The harness recorded this as returning 200 {success:true} with no
+    // affected-row check, which tells an integrator their delete worked when
+    // nothing happened.
+    const r = await apiCall('DELETE', '/api/v1/customers/00000000-0000-0000-0000-000000000000', {
+      key,
+    })
+    expect(r.status, `unknown id returned ${r.status} ${r.text.slice(0, 120)}`).toBe(404)
   })
 
   test('the collection endpoint does not expose internal or integration columns', async () => {
