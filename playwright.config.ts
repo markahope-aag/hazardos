@@ -31,7 +31,10 @@ export default defineConfig({
 
     {
       name: 'chromium',
-      testIgnore: /auth\.spec\.ts/,
+      // mobile/ is excluded on purpose: those specs belong to the phone project
+      // below. Without this they run twice, and the desktop pass exercises
+      // markup that field crews never see.
+      testIgnore: [/auth\.spec\.ts/, /mobile\//],
       use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/user.json' },
       dependencies: ['setup'],
     },
