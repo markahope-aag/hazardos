@@ -445,8 +445,8 @@ export default function NewJobPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Estimated Duration (hours)</Label>
-                <Input
+                <Label htmlFor="estimated-duration-hours">Estimated Duration (hours)</Label>
+                <Input id="estimated-duration-hours"
                   type="number"
                   step="0.5"
                   min="0"
@@ -476,22 +476,22 @@ export default function NewJobPage() {
 
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label>City</Label>
-                    <Input
+                    <Label htmlFor="city">City</Label>
+                    <Input id="city"
                       value={formData.job_city}
                       onChange={(e) => setFormData(prev => ({ ...prev, job_city: e.target.value }))}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>State</Label>
-                    <Input
+                    <Label htmlFor="state">State</Label>
+                    <Input id="state"
                       value={formData.job_state}
                       onChange={(e) => setFormData(prev => ({ ...prev, job_state: e.target.value }))}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>ZIP</Label>
-                    <Input
+                    <Label htmlFor="zip">ZIP</Label>
+                    <Input id="zip"
                       value={formData.job_zip}
                       onChange={(e) => setFormData(prev => ({ ...prev, job_zip: e.target.value }))}
                     />
@@ -499,8 +499,8 @@ export default function NewJobPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Access Notes</Label>
-                  <Textarea
+                  <Label htmlFor="access-notes">Access Notes</Label>
+                  <Textarea id="access-notes"
                     value={formData.access_notes}
                     onChange={(e) => setFormData(prev => ({ ...prev, access_notes: e.target.value }))}
                     placeholder="Gate codes, parking instructions, etc."
@@ -534,8 +534,8 @@ export default function NewJobPage() {
                   is scoped to the selected customer so crews can't
                   accidentally pick another customer's survey. */}
               <div className="space-y-2">
-                <Label>Linked Site Survey</Label>
-                <select
+                <Label htmlFor="linked-site-survey">Linked Site Survey</Label>
+                <select id="linked-site-survey"
                   value={formData.site_survey_id}
                   onChange={(e) =>
                     setFormData(prev => ({ ...prev, site_survey_id: e.target.value }))
@@ -565,8 +565,8 @@ export default function NewJobPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Special Instructions</Label>
-                <Textarea
+                <Label htmlFor="special-instructions">Special Instructions</Label>
+                <Textarea id="special-instructions"
                   value={formData.special_instructions}
                   onChange={(e) => setFormData(prev => ({ ...prev, special_instructions: e.target.value }))}
                   placeholder="Any special requirements or instructions for the crew"

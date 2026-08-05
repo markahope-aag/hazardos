@@ -240,8 +240,8 @@ export function InvoicePayments({ invoice, payments }: InvoicePaymentsProps) {
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Amount *</Label>
-                <Input
+                <Label htmlFor="amount">Amount *</Label>
+                <Input id="amount"
                   type="number"
                   step="0.01"
                   min="0"
@@ -251,8 +251,8 @@ export function InvoicePayments({ invoice, payments }: InvoicePaymentsProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Payment Date *</Label>
-                <Input
+                <Label htmlFor="payment-date">Payment Date *</Label>
+                <Input id="payment-date"
                   type="date"
                   value={form.payment_date}
                   onChange={(e) => setForm(prev => ({ ...prev, payment_date: e.target.value }))}
@@ -261,12 +261,12 @@ export function InvoicePayments({ invoice, payments }: InvoicePaymentsProps) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Payment Method</Label>
+                <Label htmlFor="payment-method">Payment Method</Label>
                 <Select
                   value={form.payment_method}
                   onValueChange={(value) => setForm(prev => ({ ...prev, payment_method: value as PaymentMethod }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="payment-method">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -279,8 +279,8 @@ export function InvoicePayments({ invoice, payments }: InvoicePaymentsProps) {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Reference Number</Label>
-                <Input
+                <Label htmlFor="reference-number">Reference Number</Label>
+                <Input id="reference-number"
                   value={form.reference_number}
                   onChange={(e) => setForm(prev => ({ ...prev, reference_number: e.target.value }))}
                   placeholder="Check #, Transaction ID"
@@ -288,8 +288,8 @@ export function InvoicePayments({ invoice, payments }: InvoicePaymentsProps) {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Notes</Label>
-              <Textarea
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea id="notes"
                 value={form.notes}
                 onChange={(e) => setForm(prev => ({ ...prev, notes: e.target.value }))}
                 placeholder="Optional notes about this payment"

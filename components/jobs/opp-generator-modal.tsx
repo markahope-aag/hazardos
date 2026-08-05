@@ -200,59 +200,59 @@ export function OppGeneratorModal({ jobId, open, onOpenChange }: Props) {
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Company Name</Label>
-                  <Input
+                  <Label htmlFor="company-name">Company Name</Label>
+                  <Input id="company-name"
                     value={form.company_name}
                     onChange={(e) => update('company_name', e.target.value)}
                   />
                 </div>
                 <div>
-                  <Label>DHS Company No.</Label>
-                  <Input
+                  <Label htmlFor="dhs-company-no">DHS Company No.</Label>
+                  <Input id="dhs-company-no"
                     value={form.company_license_number}
                     onChange={(e) => update('company_license_number', e.target.value)}
                   />
                 </div>
                 <div className="col-span-2">
-                  <Label>Address</Label>
-                  <Input
+                  <Label htmlFor="address">Address</Label>
+                  <Input id="address"
                     value={form.company_address}
                     onChange={(e) => update('company_address', e.target.value)}
                   />
                 </div>
                 <div>
-                  <Label>City</Label>
-                  <Input
+                  <Label htmlFor="city">City</Label>
+                  <Input id="city"
                     value={form.company_city}
                     onChange={(e) => update('company_city', e.target.value)}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label>State</Label>
-                    <Input
+                    <Label htmlFor="state">State</Label>
+                    <Input id="state"
                       value={form.company_state}
                       onChange={(e) => update('company_state', e.target.value)}
                     />
                   </div>
                   <div>
-                    <Label>Zip</Label>
-                    <Input
+                    <Label htmlFor="zip">Zip</Label>
+                    <Input id="zip"
                       value={form.company_zip}
                       onChange={(e) => update('company_zip', e.target.value)}
                     />
                   </div>
                 </div>
                 <div>
-                  <Label>Contact Person</Label>
-                  <Input
+                  <Label htmlFor="contact-person">Contact Person</Label>
+                  <Input id="contact-person"
                     value={form.company_contact_name}
                     onChange={(e) => update('company_contact_name', e.target.value)}
                   />
                 </div>
                 <div>
-                  <Label>Telephone</Label>
-                  <Input
+                  <Label htmlFor="telephone">Telephone</Label>
+                  <Input id="telephone"
                     value={form.company_phone}
                     onChange={(e) => update('company_phone', e.target.value)}
                   />
@@ -266,61 +266,61 @@ export function OppGeneratorModal({ jobId, open, onOpenChange }: Props) {
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <Label>Property Type or Name</Label>
-                  <Input
+                  <Label htmlFor="property-type-or-name">Property Type or Name</Label>
+                  <Input id="property-type-or-name"
                     value={form.property_name}
                     onChange={(e) => update('property_name', e.target.value)}
                   />
                 </div>
                 <div>
-                  <Label>Address</Label>
-                  <Input
+                  <Label htmlFor="address-2">Address</Label>
+                  <Input id="address-2"
                     value={form.property_address}
                     onChange={(e) => update('property_address', e.target.value)}
                   />
                 </div>
                 <div>
-                  <Label>City</Label>
-                  <Input
+                  <Label htmlFor="city-2">City</Label>
+                  <Input id="city-2"
                     value={form.property_city}
                     onChange={(e) => update('property_city', e.target.value)}
                   />
                 </div>
                 <div>
-                  <Label>Property Contact</Label>
-                  <Input
+                  <Label htmlFor="property-contact">Property Contact</Label>
+                  <Input id="property-contact"
                     value={form.property_contact_name}
                     onChange={(e) => update('property_contact_name', e.target.value)}
                   />
                 </div>
                 <div>
-                  <Label>Telephone</Label>
-                  <Input
+                  <Label htmlFor="telephone-2">Telephone</Label>
+                  <Input id="telephone-2"
                     value={form.property_phone}
                     onChange={(e) => update('property_phone', e.target.value)}
                   />
                 </div>
                 <div>
-                  <Label>Project start date</Label>
-                  <Input
+                  <Label htmlFor="project-start-date">Project start date</Label>
+                  <Input id="project-start-date"
                     type="date"
                     value={form.project_start_date}
                     onChange={(e) => update('project_start_date', e.target.value)}
                   />
                 </div>
                 <div>
-                  <Label>Project end date</Label>
-                  <Input
+                  <Label htmlFor="project-end-date">Project end date</Label>
+                  <Input id="project-end-date"
                     type="date"
                     value={form.project_end_date}
                     onChange={(e) => update('project_end_date', e.target.value)}
                   />
                 </div>
                 <div className="col-span-2">
-                  <Label>Project work shifts</Label>
+                  <Label htmlFor="project-work-shifts">Project work shifts</Label>
                   <div className="flex items-center gap-6 pt-1">
                     <label className="flex items-center gap-2">
-                      <Checkbox
+                      <Checkbox id="project-work-shifts"
                         checked={form.shift_am}
                         onCheckedChange={(v) => update('shift_am', v === true)}
                       />
@@ -366,8 +366,8 @@ export function OppGeneratorModal({ jobId, open, onOpenChange }: Props) {
               </p>
               <div className="space-y-3">
                 <div>
-                  <Label>Containment or barrier system</Label>
-                  <Textarea
+                  <Label htmlFor="containment-or-barrier-system">Containment or barrier system</Label>
+                  <Textarea id="containment-or-barrier-system"
                     rows={3}
                     placeholder="Describe negative air system, glovebag, full containment, mini-containment used for barrier."
                     value={form.containment}
@@ -375,8 +375,8 @@ export function OppGeneratorModal({ jobId, open, onOpenChange }: Props) {
                   />
                 </div>
                 <div>
-                  <Label>Ventilation system shutdown</Label>
-                  <Textarea
+                  <Label htmlFor="ventilation-system-shutdown">Ventilation system shutdown</Label>
+                  <Textarea id="ventilation-system-shutdown"
                     rows={3}
                     placeholder="Describe areas where ventilation system has been shut down."
                     value={form.ventilation}
@@ -384,8 +384,8 @@ export function OppGeneratorModal({ jobId, open, onOpenChange }: Props) {
                   />
                 </div>
                 <div>
-                  <Label>Work practices</Label>
-                  <Textarea
+                  <Label htmlFor="work-practices">Work practices</Label>
+                  <Textarea id="work-practices"
                     rows={3}
                     placeholder="Describe wet methods, debris-lowering system, waste handling methods, etc."
                     value={form.work_practices}
@@ -393,8 +393,8 @@ export function OppGeneratorModal({ jobId, open, onOpenChange }: Props) {
                   />
                 </div>
                 <div>
-                  <Label>Final cleaning and clearance</Label>
-                  <Textarea
+                  <Label htmlFor="final-cleaning-and-clearance">Final cleaning and clearance</Label>
+                  <Textarea id="final-cleaning-and-clearance"
                     rows={3}
                     placeholder="Describe air scrubbing, HEPA vacuuming, wet cleaning, encapsulant, air sampling, etc."
                     value={form.final_cleaning}

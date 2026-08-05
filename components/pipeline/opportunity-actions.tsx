@@ -254,9 +254,9 @@ export function OpportunityActions({ opportunity, stages }: OpportunityActionsPr
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Stage</Label>
+              <Label htmlFor="stage">Stage</Label>
               <Select value={selectedStageId} onValueChange={setSelectedStageId}>
-                <SelectTrigger>
+                <SelectTrigger id="stage">
                   <SelectValue placeholder="Select a stage" />
                 </SelectTrigger>
                 <SelectContent>
@@ -279,8 +279,8 @@ export function OpportunityActions({ opportunity, stages }: OpportunityActionsPr
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Notes (optional)</Label>
-              <Textarea
+              <Label htmlFor="notes-optional">Notes (optional)</Label>
+              <Textarea id="notes-optional"
                 value={moveNotes}
                 onChange={(e) => setMoveNotes(e.target.value)}
                 placeholder="Add notes about this stage change..."
@@ -311,9 +311,9 @@ export function OpportunityActions({ opportunity, stages }: OpportunityActionsPr
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Loss Reason</Label>
+              <Label htmlFor="loss-reason">Loss Reason</Label>
               <Select value={lossReason} onValueChange={setLossReason}>
-                <SelectTrigger>
+                <SelectTrigger id="loss-reason">
                   <SelectValue placeholder="Select a reason" />
                 </SelectTrigger>
                 <SelectContent>
@@ -336,8 +336,8 @@ export function OpportunityActions({ opportunity, stages }: OpportunityActionsPr
               />
             </div>
             <div className="space-y-2">
-              <Label>Additional Notes</Label>
-              <Textarea
+              <Label htmlFor="additional-notes">Additional Notes</Label>
+              <Textarea id="additional-notes"
                 value={lossNotes}
                 onChange={(e) => setLossNotes(e.target.value)}
                 placeholder="Any additional details about why we lost..."

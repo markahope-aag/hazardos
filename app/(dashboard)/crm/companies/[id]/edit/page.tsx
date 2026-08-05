@@ -205,12 +205,12 @@ export default function EditCompanyPage() {
               />
             </div>
             <div>
-              <Label>Company type</Label>
+              <Label htmlFor="company-type">Company type</Label>
               <Select
                 value={form.company_type}
                 onValueChange={(v) => update('company_type', v)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="company-type">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -223,12 +223,12 @@ export default function EditCompanyPage() {
               </Select>
             </div>
             <div>
-              <Label>Account status</Label>
+              <Label htmlFor="account-status">Account status</Label>
               <Select
                 value={form.account_status}
                 onValueChange={(v) => update('account_status', v)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="account-status">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -251,6 +251,7 @@ export default function EditCompanyPage() {
             <div className="sm:col-span-2">
               <Label htmlFor="primary_contact">Primary contact</Label>
               <PrimaryContactPicker
+                id="primary_contact"
                 companyId={companyId}
                 value={form.primary_contact_id}
                 onChange={(id) => update('primary_contact_id', id)}

@@ -132,22 +132,22 @@ export function TravelRatesTab({ data, onDataChange }: PricingTabProps) {
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Min Miles *</Label>
-                  <Input name="min_miles" type="number" min="0" defaultValue={editing?.min_miles || 0} required />
+                  <Label htmlFor="min-miles">Min Miles *</Label>
+                  <Input id="min-miles" name="min_miles" type="number" min="0" defaultValue={editing?.min_miles || 0} required />
                 </div>
                 <div className="space-y-2">
-                  <Label>Max Miles</Label>
-                  <Input name="max_miles" type="number" min="0" defaultValue={editing?.max_miles || ''} placeholder="Leave empty for unlimited" />
+                  <Label htmlFor="max-miles">Max Miles</Label>
+                  <Input id="max-miles" name="max_miles" type="number" min="0" defaultValue={editing?.max_miles || ''} placeholder="Leave empty for unlimited" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Flat Fee</Label>
-                  <Input name="flat_fee" type="number" step="0.01" min="0" defaultValue={editing?.flat_fee || ''} placeholder="Fixed fee" />
+                  <Label htmlFor="flat-fee">Flat Fee</Label>
+                  <Input id="flat-fee" name="flat_fee" type="number" step="0.01" min="0" defaultValue={editing?.flat_fee || ''} placeholder="Fixed fee" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Per Mile Rate</Label>
-                  <Input name="per_mile_rate" type="number" step="0.01" min="0" defaultValue={editing?.per_mile_rate || ''} placeholder="Rate per mile" />
+                  <Label htmlFor="per-mile-rate">Per Mile Rate</Label>
+                  <Input id="per-mile-rate" name="per_mile_rate" type="number" step="0.01" min="0" defaultValue={editing?.per_mile_rate || ''} placeholder="Rate per mile" />
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">Provide either a flat fee, per mile rate, or both</p>

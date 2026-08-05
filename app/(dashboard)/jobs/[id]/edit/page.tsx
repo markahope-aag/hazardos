@@ -269,8 +269,8 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
               />
             </div>
             <div>
-              <Label>Linked Site Survey</Label>
-              <select
+              <Label htmlFor="linked-site-survey">Linked Site Survey</Label>
+              <select id="linked-site-survey"
                 value={form.site_survey_id}
                 onChange={(e) =>
                   setForm(prev => ({ ...prev, site_survey_id: e.target.value }))
@@ -300,8 +300,8 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Assigned Technician *</Label>
-              <select
+              <Label htmlFor="assigned-technician">Assigned Technician *</Label>
+              <select id="assigned-technician"
                 value={form.assigned_to}
                 onChange={(e) =>
                   setForm(prev => ({ ...prev, assigned_to: e.target.value }))
@@ -385,8 +385,8 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
                 </Popover>
               </div>
               <div>
-                <Label>Estimated Duration (hours)</Label>
-                <Input
+                <Label htmlFor="estimated-duration-hours">Estimated Duration (hours)</Label>
+                <Input id="estimated-duration-hours"
                   type="number"
                   min={0}
                   step={0.5}
@@ -406,8 +406,8 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Address *</Label>
-              <Input
+              <Label htmlFor="address">Address *</Label>
+              <Input id="address"
                 value={form.job_address}
                 onChange={(e) =>
                   setForm(prev => ({ ...prev, job_address: e.target.value }))
@@ -445,15 +445,15 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Gate code</Label>
-                <Input
+                <Label htmlFor="gate-code">Gate code</Label>
+                <Input id="gate-code"
                   value={form.gate_code}
                   onChange={(e) => setForm(prev => ({ ...prev, gate_code: e.target.value }))}
                 />
               </div>
               <div>
-                <Label>Lockbox code</Label>
-                <Input
+                <Label htmlFor="lockbox-code">Lockbox code</Label>
+                <Input id="lockbox-code"
                   value={form.lockbox_code}
                   onChange={(e) => setForm(prev => ({ ...prev, lockbox_code: e.target.value }))}
                 />
@@ -461,15 +461,15 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Onsite contact name</Label>
-                <Input
+                <Label htmlFor="onsite-contact-name">Onsite contact name</Label>
+                <Input id="onsite-contact-name"
                   value={form.contact_onsite_name}
                   onChange={(e) => setForm(prev => ({ ...prev, contact_onsite_name: e.target.value }))}
                 />
               </div>
               <div>
-                <Label>Onsite contact phone</Label>
-                <Input
+                <Label htmlFor="onsite-contact-phone">Onsite contact phone</Label>
+                <Input id="onsite-contact-phone"
                   type="tel"
                   value={form.contact_onsite_phone}
                   onChange={(e) => setForm(prev => ({ ...prev, contact_onsite_phone: e.target.value }))}
@@ -477,8 +477,8 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
               </div>
             </div>
             <div>
-              <Label>Access notes</Label>
-              <Textarea
+              <Label htmlFor="access-notes">Access notes</Label>
+              <Textarea id="access-notes"
                 value={form.access_notes}
                 onChange={(e) => setForm(prev => ({ ...prev, access_notes: e.target.value }))}
                 rows={2}
@@ -493,8 +493,8 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Special instructions (customer-facing)</Label>
-              <Textarea
+              <Label htmlFor="special-instructions-customer-facing">Special instructions (customer-facing)</Label>
+              <Textarea id="special-instructions-customer-facing"
                 value={form.special_instructions}
                 onChange={(e) =>
                   setForm(prev => ({ ...prev, special_instructions: e.target.value }))
@@ -503,8 +503,8 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
               />
             </div>
             <div>
-              <Label>Internal notes</Label>
-              <Textarea
+              <Label htmlFor="internal-notes">Internal notes</Label>
+              <Textarea id="internal-notes"
                 value={form.internal_notes}
                 onChange={(e) => setForm(prev => ({ ...prev, internal_notes: e.target.value }))}
                 rows={3}

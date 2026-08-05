@@ -243,10 +243,10 @@ export default function NewLabReportPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Lab</Label>
+              <Label htmlFor="lab">Lab</Label>
               <div className="flex gap-2">
                 <Select value={labId} onValueChange={setLabId}>
-                  <SelectTrigger>
+                  <SelectTrigger id="lab">
                     <SelectValue placeholder="Pick a lab" />
                   </SelectTrigger>
                   <SelectContent>
@@ -267,9 +267,9 @@ export default function NewLabReportPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Sample type</Label>
+              <Label htmlFor="sample-type">Sample type</Label>
               <Select value={sampleType} onValueChange={(v) => setSampleType(v as LabSampleType)}>
-                <SelectTrigger>
+                <SelectTrigger id="sample-type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -397,9 +397,9 @@ export default function NewLabReportPage() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Customer</Label>
+              <Label htmlFor="customer">Customer</Label>
               <Select value={customerId} onValueChange={setCustomerId}>
-                <SelectTrigger>
+                <SelectTrigger id="customer">
                   <SelectValue placeholder="—" />
                 </SelectTrigger>
                 <SelectContent>
@@ -413,9 +413,9 @@ export default function NewLabReportPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Estimate</Label>
+              <Label htmlFor="estimate">Estimate</Label>
               <Select value={estimateId} onValueChange={setEstimateId}>
-                <SelectTrigger>
+                <SelectTrigger id="estimate">
                   <SelectValue placeholder="—" />
                 </SelectTrigger>
                 <SelectContent>
@@ -429,9 +429,9 @@ export default function NewLabReportPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Work Order</Label>
+              <Label htmlFor="work-order">Work Order</Label>
               <Select value={workOrderId} onValueChange={setWorkOrderId}>
-                <SelectTrigger>
+                <SelectTrigger id="work-order">
                   <SelectValue placeholder="—" />
                 </SelectTrigger>
                 <SelectContent>
@@ -445,9 +445,9 @@ export default function NewLabReportPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Invoice</Label>
+              <Label htmlFor="invoice">Invoice</Label>
               <Select value={invoiceId} onValueChange={setInvoiceId}>
-                <SelectTrigger>
+                <SelectTrigger id="invoice">
                   <SelectValue placeholder="—" />
                 </SelectTrigger>
                 <SelectContent>

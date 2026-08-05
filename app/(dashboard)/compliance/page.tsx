@@ -254,9 +254,9 @@ function AddCredentialDialog() {
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label>Worker</Label>
+            <Label htmlFor="worker">Worker</Label>
             <Select value={form.worker_id} onValueChange={(v) => setForm((p) => ({ ...p, worker_id: v }))}>
-              <SelectTrigger aria-label="Worker">
+              <SelectTrigger id="worker" aria-label="Worker">
                 <SelectValue placeholder="Select worker" />
               </SelectTrigger>
               <SelectContent>
@@ -269,9 +269,9 @@ function AddCredentialDialog() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Credential type</Label>
+            <Label htmlFor="credential-type">Credential type</Label>
             <Select value={form.credential_type_id} onValueChange={onTypeChange}>
-              <SelectTrigger aria-label="Credential type">
+              <SelectTrigger id="credential-type" aria-label="Credential type">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
@@ -284,8 +284,8 @@ function AddCredentialDialog() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Identifier (license / cert number)</Label>
-            <Input
+            <Label htmlFor="identifier-license-cert-number">Identifier (license / cert number)</Label>
+            <Input id="identifier-license-cert-number"
               value={form.identifier}
               onChange={(e) => setForm((p) => ({ ...p, identifier: e.target.value }))}
               placeholder="Optional"
@@ -293,16 +293,16 @@ function AddCredentialDialog() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Issued</Label>
-              <Input
+              <Label htmlFor="issued">Issued</Label>
+              <Input id="issued"
                 type="date"
                 value={form.issued_date}
                 onChange={(e) => setForm((p) => ({ ...p, issued_date: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label>Expires</Label>
-              <Input
+              <Label htmlFor="expires">Expires</Label>
+              <Input id="expires"
                 type="date"
                 value={form.expiry_date}
                 onChange={(e) => setForm((p) => ({ ...p, expiry_date: e.target.value }))}

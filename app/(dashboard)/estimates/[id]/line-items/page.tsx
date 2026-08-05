@@ -235,12 +235,12 @@ export default function LineItemsPage() {
         <CardContent>
           <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-6 gap-3">
             <div className="md:col-span-1">
-              <Label>Type</Label>
+              <Label htmlFor="type">Type</Label>
               <Select
                 value={draft.item_type}
                 onValueChange={(v) => setDraft({ ...draft, item_type: v as ItemType })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -253,8 +253,8 @@ export default function LineItemsPage() {
               </Select>
             </div>
             <div className="md:col-span-3">
-              <Label>Description</Label>
-              <Input
+              <Label htmlFor="description">Description</Label>
+              <Input id="description"
                 value={draft.description}
                 onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                 placeholder="e.g. Abatement crew on-site"
@@ -263,8 +263,8 @@ export default function LineItemsPage() {
               />
             </div>
             <div className="md:col-span-1">
-              <Label>Qty</Label>
-              <Input
+              <Label htmlFor="qty">Qty</Label>
+              <Input id="qty"
                 type="number"
                 min="0"
                 step="0.01"
@@ -273,8 +273,8 @@ export default function LineItemsPage() {
               />
             </div>
             <div className="md:col-span-1">
-              <Label>Unit price</Label>
-              <Input
+              <Label htmlFor="unit-price">Unit price</Label>
+              <Input id="unit-price"
                 type="number"
                 min="0"
                 step="0.01"
@@ -283,8 +283,8 @@ export default function LineItemsPage() {
               />
             </div>
             <div className="md:col-span-3">
-              <Label>Category (optional)</Label>
-              <Input
+              <Label htmlFor="category-optional">Category (optional)</Label>
+              <Input id="category-optional"
                 value={draft.category}
                 onChange={(e) => setDraft({ ...draft, category: e.target.value })}
                 placeholder="e.g. friable asbestos removal"
@@ -292,8 +292,8 @@ export default function LineItemsPage() {
               />
             </div>
             <div className="md:col-span-2">
-              <Label>Unit</Label>
-              <Input
+              <Label htmlFor="unit">Unit</Label>
+              <Input id="unit"
                 value={draft.unit}
                 onChange={(e) => setDraft({ ...draft, unit: e.target.value })}
                 placeholder="each / hr / sqft / day"

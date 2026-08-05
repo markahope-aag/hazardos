@@ -236,12 +236,12 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
               />
             </div>
             <div>
-              <Label>Pipeline Stage</Label>
+              <Label htmlFor="pipeline-stage">Pipeline Stage</Label>
               <Select
                 value={form.stage_id}
                 onValueChange={(v) => setForm(prev => ({ ...prev, stage_id: v }))}
               >
-                <SelectTrigger><SelectValue placeholder="Select a stage" /></SelectTrigger>
+                <SelectTrigger id="pipeline-stage"><SelectValue placeholder="Select a stage" /></SelectTrigger>
                 <SelectContent>
                   {stages.map(s => (
                     <SelectItem key={s.id} value={s.id}>
@@ -262,7 +262,7 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Hazards</Label>
+                <Label htmlFor="hazards">Hazards</Label>
                 {/* Multi-select: an opportunity can carry more than one hazard.
                     The old single Select collapsed hazard_types to [first] on
                     save, silently dropping the rest (OP19). */}
@@ -271,7 +271,7 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
                     const checked = form.hazard_types.includes(opt.value)
                     return (
                       <label key={opt.value} className="flex items-center gap-2 text-sm cursor-pointer">
-                        <Checkbox
+                        <Checkbox id="hazards"
                           checked={checked}
                           onCheckedChange={(c) =>
                             setForm(prev => ({
@@ -307,14 +307,14 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
                 </label>
               </div>
               <div>
-                <Label>Urgency</Label>
+                <Label htmlFor="urgency">Urgency</Label>
                 <Select
                   value={form.urgency}
                   onValueChange={(v) =>
                     setForm(prev => ({ ...prev, urgency: v as typeof prev.urgency }))
                   }
                 >
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger id="urgency"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="routine">Routine</SelectItem>
                     <SelectItem value="urgent">Urgent</SelectItem>
@@ -325,14 +325,14 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Property Type</Label>
+                <Label htmlFor="property-type">Property Type</Label>
                 <Select
                   value={form.property_type}
                   onValueChange={(v) =>
                     setForm(prev => ({ ...prev, property_type: v as typeof prev.property_type }))
                   }
                 >
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger id="property-type"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="residential_single_family">Residential (Single Family)</SelectItem>
                     <SelectItem value="residential_multi_family">Residential (Multi-Family)</SelectItem>
@@ -343,8 +343,8 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
                 </Select>
               </div>
               <div>
-                <Label>Year Built</Label>
-                <Input
+                <Label htmlFor="year-built">Year Built</Label>
+                <Input id="year-built"
                   type="number"
                   value={form.property_age}
                   onChange={(e) => setForm(prev => ({ ...prev, property_age: e.target.value }))}
@@ -356,14 +356,14 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Regulatory Trigger</Label>
+                <Label htmlFor="regulatory-trigger">Regulatory Trigger</Label>
                 <Select
                   value={form.regulatory_trigger}
                   onValueChange={(v) =>
                     setForm(prev => ({ ...prev, regulatory_trigger: v as typeof prev.regulatory_trigger }))
                   }
                 >
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger id="regulatory-trigger"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="inspection_required">Inspection Required</SelectItem>
                     <SelectItem value="sale_pending">Sale Pending</SelectItem>
@@ -373,8 +373,8 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
                 </Select>
               </div>
               <div>
-                <Label>Estimated Affected Area (sq ft)</Label>
-                <Input
+                <Label htmlFor="estimated-affected-area-sq-ft">Estimated Affected Area (sq ft)</Label>
+                <Input id="estimated-affected-area-sq-ft"
                   type="number"
                   value={form.estimated_affected_area_sqft}
                   onChange={(e) =>
@@ -423,8 +423,8 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Estimated Value ($)</Label>
-                <Input
+                <Label htmlFor="estimated-value">Estimated Value ($)</Label>
+                <Input id="estimated-value"
                   type="number"
                   min={0}
                   step={100}

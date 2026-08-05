@@ -243,7 +243,7 @@ export function ContactDialog({
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
                 <Select value={role} onValueChange={(val) => setRole(val as ContactRole)}>
-                  <SelectTrigger>
+                  <SelectTrigger id="role">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -261,7 +261,7 @@ export function ContactDialog({
                   value={preferredMethod || 'none'}
                   onValueChange={(val) => setPreferredMethod(val === 'none' ? '' : val as ContactMethod | '')}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="preferredMethod">
                     <SelectValue placeholder="Select..." />
                   </SelectTrigger>
                   <SelectContent>

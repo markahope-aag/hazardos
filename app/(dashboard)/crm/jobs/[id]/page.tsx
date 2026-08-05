@@ -662,9 +662,9 @@ export default function JobDetailPage({ params }: Props) {
           <DialogHeader><DialogTitle>Update Job Status</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label>New Status</Label>
+              <Label htmlFor="new-status">New Status</Label>
               <Select value={statusForm.status} onValueChange={(v) => setStatusForm(f => ({ ...f, status: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="new-status"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {/* 'Completed' is intentionally omitted here so completion
                       goes through the full flow (which captures materials).
@@ -678,13 +678,13 @@ export default function JobDetailPage({ params }: Props) {
             </div>
             {statusForm.status === 'completed' && (
               <div>
-                <Label>Actual Labor Hours</Label>
-                <Input type="number" step="0.5" value={statusForm.actual_hours} onChange={(e) => setStatusForm(f => ({ ...f, actual_hours: e.target.value }))} placeholder="e.g., 24.5" />
+                <Label htmlFor="actual-labor-hours">Actual Labor Hours</Label>
+                <Input id="actual-labor-hours" type="number" step="0.5" value={statusForm.actual_hours} onChange={(e) => setStatusForm(f => ({ ...f, actual_hours: e.target.value }))} placeholder="e.g., 24.5" />
               </div>
             )}
             <div>
-              <Label>Notes</Label>
-              <Textarea value={statusForm.notes} onChange={(e) => setStatusForm(f => ({ ...f, notes: e.target.value }))} rows={3} placeholder="Status update notes..." />
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea id="notes" value={statusForm.notes} onChange={(e) => setStatusForm(f => ({ ...f, notes: e.target.value }))} rows={3} placeholder="Status update notes..." />
             </div>
           </div>
           <DialogFooter>

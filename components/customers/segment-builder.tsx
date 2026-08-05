@@ -170,7 +170,7 @@ export function SegmentBuilder({ segment, availableFields }: SegmentBuilderProps
             <div className="space-y-2">
               <Label htmlFor="type">Segment Type</Label>
               <Select value={segmentType} onValueChange={(v) => setSegmentType(v as 'dynamic' | 'static')}>
-                <SelectTrigger>
+                <SelectTrigger id="type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -207,12 +207,12 @@ export function SegmentBuilder({ segment, availableFields }: SegmentBuilderProps
               <div key={index} className="flex items-start gap-4 p-4 border rounded-lg bg-muted/50">
                 <div className="flex-1 grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
-                    <Label>Field</Label>
+                    <Label htmlFor="field">Field</Label>
                     <Select
                       value={rule.field}
                       onValueChange={(v) => updateRule(index, { field: v, operator: '=', value: '' })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="field">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -226,12 +226,12 @@ export function SegmentBuilder({ segment, availableFields }: SegmentBuilderProps
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Operator</Label>
+                    <Label htmlFor="operator">Operator</Label>
                     <Select
                       value={rule.operator}
                       onValueChange={(v) => updateRule(index, { operator: v as SegmentRule['operator'] })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="operator">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -246,9 +246,9 @@ export function SegmentBuilder({ segment, availableFields }: SegmentBuilderProps
 
                   {needsValue(rule.operator) && (
                     <div className="space-y-2">
-                      <Label>Value</Label>
+                      <Label htmlFor="value">Value</Label>
                       {getFieldType(rule.field) === 'date' ? (
-                        <Input
+                        <Input id="value"
                           type="date"
                           value={rule.value as string || ''}
                           onChange={(e) => updateRule(index, { value: e.target.value })}

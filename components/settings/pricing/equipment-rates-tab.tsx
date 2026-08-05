@@ -128,16 +128,16 @@ export function EquipmentRatesTab({ data, onDataChange }: PricingTabProps) {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Name *</Label>
-                <Input name="name" defaultValue={editing?.name} placeholder="e.g., HEPA Vacuum" required />
+                <Label htmlFor="name">Name *</Label>
+                <Input id="name" name="name" defaultValue={editing?.name} placeholder="e.g., HEPA Vacuum" required />
               </div>
               <div className="space-y-2">
-                <Label>Rate per Day *</Label>
-                <Input name="rate_per_day" type="number" step="0.01" min="0" defaultValue={editing?.rate_per_day} required />
+                <Label htmlFor="rate-per-day">Rate per Day *</Label>
+                <Input id="rate-per-day" name="rate_per_day" type="number" step="0.01" min="0" defaultValue={editing?.rate_per_day} required />
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
-                <Input name="description" defaultValue={editing?.description || ''} placeholder="Optional description" />
+                <Label htmlFor="description">Description</Label>
+                <Input id="description" name="description" defaultValue={editing?.description || ''} placeholder="Optional description" />
               </div>
             </div>
             <DialogFooter>

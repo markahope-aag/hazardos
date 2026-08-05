@@ -227,8 +227,8 @@ export function InvoiceLineItems({ invoice, lineItems }: InvoiceLineItemsProps) 
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Description *</Label>
-              <Input
+              <Label htmlFor="description">Description *</Label>
+              <Input id="description"
                 value={form.description}
                 onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Service or item description"
@@ -236,8 +236,8 @@ export function InvoiceLineItems({ invoice, lineItems }: InvoiceLineItemsProps) 
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Quantity *</Label>
-                <Input
+                <Label htmlFor="quantity">Quantity *</Label>
+                <Input id="quantity"
                   type="number"
                   step="0.01"
                   min="0"
@@ -246,16 +246,16 @@ export function InvoiceLineItems({ invoice, lineItems }: InvoiceLineItemsProps) 
                 />
               </div>
               <div className="space-y-2">
-                <Label>Unit</Label>
-                <Input
+                <Label htmlFor="unit">Unit</Label>
+                <Input id="unit"
                   value={form.unit}
                   onChange={(e) => setForm(prev => ({ ...prev, unit: e.target.value }))}
                   placeholder="e.g., hours"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Unit Price *</Label>
-                <Input
+                <Label htmlFor="unit-price">Unit Price *</Label>
+                <Input id="unit-price"
                   type="number"
                   step="0.01"
                   min="0"

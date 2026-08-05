@@ -235,12 +235,12 @@ export function JobNotes({ job, notes = [] }: JobNotesProps) {
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Note Type</Label>
+                  <Label htmlFor="note-type">Note Type</Label>
                   <Select
                     value={noteForm.note_type}
                     onValueChange={(value) => setNoteForm(prev => ({ ...prev, note_type: value }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="note-type">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

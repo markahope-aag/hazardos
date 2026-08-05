@@ -134,9 +134,9 @@ export function DisposalFeesTab({ data, onDataChange }: PricingTabProps) {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Hazard Type *</Label>
+                <Label htmlFor="hazard-type">Hazard Type *</Label>
                 <Select name="hazard_type" defaultValue={editing?.hazard_type || 'asbestos_friable'}>
-                  <SelectTrigger>
+                  <SelectTrigger id="hazard-type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -147,12 +147,12 @@ export function DisposalFeesTab({ data, onDataChange }: PricingTabProps) {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Cost per Cubic Yard *</Label>
-                <Input name="cost_per_cubic_yard" type="number" step="0.01" min="0" defaultValue={editing?.cost_per_cubic_yard} required />
+                <Label htmlFor="cost-per-cubic-yard">Cost per Cubic Yard *</Label>
+                <Input id="cost-per-cubic-yard" name="cost_per_cubic_yard" type="number" step="0.01" min="0" defaultValue={editing?.cost_per_cubic_yard} required />
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
-                <Input name="description" defaultValue={editing?.description || ''} placeholder="Optional description" />
+                <Label htmlFor="description">Description</Label>
+                <Input id="description" name="description" defaultValue={editing?.description || ''} placeholder="Optional description" />
               </div>
             </div>
             <DialogFooter>

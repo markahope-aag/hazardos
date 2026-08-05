@@ -279,13 +279,13 @@ export default function NewInvoicePage() {
 
               {completedJobs.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Link to Job (Optional)</Label>
+                  <Label htmlFor="link-to-job-optional">Link to Job (Optional)</Label>
                   <Select
                     value={formData.job_id || 'none'}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, job_id: value === 'none' ? '' : value }))}
                     disabled={loadingJobs}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="link-to-job-optional">
                       <SelectValue placeholder="Select a completed job" />
                     </SelectTrigger>
                     <SelectContent>
@@ -341,7 +341,7 @@ export default function NewInvoicePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Payment Terms</Label>
+                  <Label htmlFor="payment-terms">Payment Terms</Label>
                   <Select
                     value={formData.payment_terms}
                     onValueChange={(value) => {
@@ -351,7 +351,7 @@ export default function NewInvoicePage() {
                       setFormData(prev => ({ ...prev, due_date: addDays(new Date(), days) }))
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="payment-terms">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -367,8 +367,8 @@ export default function NewInvoicePage() {
 
               {!formData.job_id && (
                 <div className="space-y-2">
-                  <Label>Tax Rate (%)</Label>
-                  <Input
+                  <Label htmlFor="tax-rate">Tax Rate (%)</Label>
+                  <Input id="tax-rate"
                     type="number"
                     step="0.01"
                     min="0"
@@ -381,8 +381,8 @@ export default function NewInvoicePage() {
               )}
 
               <div className="space-y-2">
-                <Label>Notes</Label>
-                <Textarea
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea id="notes"
                   value={formData.notes}
                   onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                   placeholder="Notes to appear on the invoice"

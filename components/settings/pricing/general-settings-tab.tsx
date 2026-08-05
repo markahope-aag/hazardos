@@ -75,8 +75,8 @@ export function GeneralSettingsTab({ data, onDataChange }: PricingTabProps) {
       <CardContent className="space-y-6">
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label>Default Markup %</Label>
-            <Input
+            <Label htmlFor="default-markup">Default Markup %</Label>
+            <Input id="default-markup"
               type="number"
               min="0"
               max="100"
@@ -85,8 +85,8 @@ export function GeneralSettingsTab({ data, onDataChange }: PricingTabProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label>Minimum Markup %</Label>
-            <Input
+            <Label htmlFor="minimum-markup">Minimum Markup %</Label>
+            <Input id="minimum-markup"
               type="number"
               min="0"
               max="100"
@@ -95,8 +95,8 @@ export function GeneralSettingsTab({ data, onDataChange }: PricingTabProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label>Maximum Markup %</Label>
-            <Input
+            <Label htmlFor="maximum-markup">Maximum Markup %</Label>
+            <Input id="maximum-markup"
               type="number"
               min="0"
               max="100"
@@ -109,8 +109,8 @@ export function GeneralSettingsTab({ data, onDataChange }: PricingTabProps) {
         <div className="space-y-4">
           <h3 className="font-medium">Office Address (for travel distance calculations)</h3>
           <div className="space-y-2">
-            <Label>Street Address</Label>
-            <Input
+            <Label htmlFor="street-address">Street Address</Label>
+            <Input id="street-address"
               value={settingsForm.office_address_line1}
               onChange={(e) => setSettingsForm(prev => ({ ...prev, office_address_line1: e.target.value }))}
               placeholder="123 Main St"
@@ -118,22 +118,22 @@ export function GeneralSettingsTab({ data, onDataChange }: PricingTabProps) {
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>City</Label>
-              <Input
+              <Label htmlFor="city">City</Label>
+              <Input id="city"
                 value={settingsForm.office_city}
                 onChange={(e) => setSettingsForm(prev => ({ ...prev, office_city: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label>State</Label>
-              <Input
+              <Label htmlFor="state">State</Label>
+              <Input id="state"
                 value={settingsForm.office_state}
                 onChange={(e) => setSettingsForm(prev => ({ ...prev, office_state: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label>ZIP</Label>
-              <Input
+              <Label htmlFor="zip">ZIP</Label>
+              <Input id="zip"
                 value={settingsForm.office_zip}
                 onChange={(e) => setSettingsForm(prev => ({ ...prev, office_zip: e.target.value }))}
               />

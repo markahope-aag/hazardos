@@ -199,7 +199,7 @@ function CreateSurveyForm({ onSuccess }: { onSuccess: () => void }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="customer">Customer *</Label>
-        <CustomerCombobox
+        <CustomerCombobox id="customer"
           value={customerId}
           onValueChange={setCustomerId}
         />
@@ -239,7 +239,7 @@ function CreateSurveyForm({ onSuccess }: { onSuccess: () => void }) {
       <div className="space-y-2">
         <Label htmlFor="technician">Assigned Technician *</Label>
         <Select value={technicianId} onValueChange={setTechnicianId} required>
-          <SelectTrigger>
+          <SelectTrigger id="technician">
             <SelectValue placeholder="Select technician" />
           </SelectTrigger>
           <SelectContent>

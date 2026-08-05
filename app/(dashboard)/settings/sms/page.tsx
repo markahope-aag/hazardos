@@ -349,12 +349,12 @@ export default function SmsSettingsPage() {
                 />
               </div>
               <div>
-                <Label>Timezone</Label>
+                <Label htmlFor="timezone">Timezone</Label>
                 <Select
                   value={settings.timezone}
                   onValueChange={(value) => updateSetting('timezone', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="timezone">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -386,8 +386,8 @@ export default function SmsSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <Label>Brand prefix</Label>
-            <Input
+            <Label htmlFor="brand-prefix">Brand prefix</Label>
+            <Input id="brand-prefix"
               type="text"
               maxLength={24}
               placeholder="e.g., Acme Remediation"
@@ -504,8 +504,8 @@ export default function SmsSettingsPage() {
         <CardContent className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
             <div className="flex-1">
-              <Label>Your phone number</Label>
-              <Input
+              <Label htmlFor="your-phone-number">Your phone number</Label>
+              <Input id="your-phone-number"
                 type="tel"
                 placeholder="+15551234567"
                 value={testPhone}

@@ -332,12 +332,12 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
                     })}
                   </div>
                   <div className="space-y-2">
-                    <Label>Role (applies to all selected)</Label>
+                    <Label htmlFor="role-applies-to-all-selected">Role (applies to all selected)</Label>
                     <Select
                       value={assignForm.role}
                       onValueChange={(value) => setAssignForm(prev => ({ ...prev, role: value }))}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="role-applies-to-all-selected">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -351,7 +351,7 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
                   </div>
                   {assignForm.profile_ids.length > 0 && (
                     <div className="space-y-2">
-                      <Label>Crew Lead (optional)</Label>
+                      <Label htmlFor="crew-lead-optional">Crew Lead (optional)</Label>
                       <Select
                         value={assignForm.lead_profile_id}
                         onValueChange={(value) =>
@@ -361,7 +361,7 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
                           }))
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id="crew-lead-optional">
                           <SelectValue placeholder="No lead" />
                         </SelectTrigger>
                         <SelectContent>

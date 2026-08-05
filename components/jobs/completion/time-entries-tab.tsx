@@ -64,7 +64,7 @@ export function TimeEntriesTab({
               value={newTimeEntry.work_type}
               onValueChange={(v) => onNewTimeEntryChange({ ...newTimeEntry, work_type: v as TimeEntryWorkType })}
             >
-              <SelectTrigger className="mt-1">
+              <SelectTrigger id="work_type" className="mt-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

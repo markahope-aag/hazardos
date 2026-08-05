@@ -141,12 +141,12 @@ export function PhotoDetail({ photo, open, onClose }: PhotoDetailProps) {
 
           {/* Category */}
           <div className="space-y-2">
-            <Label>Category</Label>
+            <Label htmlFor="category">Category</Label>
             <Select
               value={photo.category}
               onValueChange={handleCategoryChange}
             >
-              <SelectTrigger className="min-h-[48px]">
+              <SelectTrigger id="category" className="min-h-[48px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -161,8 +161,8 @@ export function PhotoDetail({ photo, open, onClose }: PhotoDetailProps) {
 
           {/* Location */}
           <div className="space-y-2">
-            <Label>Location</Label>
-            <Input
+            <Label htmlFor="location">Location</Label>
+            <Input id="location"
               value={photo.location}
               onChange={(e) => handleLocationChange(e.target.value)}
               placeholder="e.g., Front entrance, Kitchen ceiling"
@@ -172,8 +172,8 @@ export function PhotoDetail({ photo, open, onClose }: PhotoDetailProps) {
 
           {/* Caption */}
           <div className="space-y-2">
-            <Label>Caption</Label>
-            <Input
+            <Label htmlFor="caption">Caption</Label>
+            <Input id="caption"
               value={photo.caption}
               onChange={(e) => handleCaptionChange(e.target.value)}
               placeholder="Brief description of what's shown"

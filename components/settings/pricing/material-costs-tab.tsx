@@ -135,18 +135,18 @@ export function MaterialCostsTab({ data, onDataChange }: PricingTabProps) {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Name *</Label>
-                <Input name="name" defaultValue={editing?.name} placeholder="e.g., Poly Sheeting" required />
+                <Label htmlFor="name">Name *</Label>
+                <Input id="name" name="name" defaultValue={editing?.name} placeholder="e.g., Poly Sheeting" required />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Cost per Unit *</Label>
-                  <Input name="cost_per_unit" type="number" step="0.01" min="0" defaultValue={editing?.cost_per_unit} required />
+                  <Label htmlFor="cost-per-unit">Cost per Unit *</Label>
+                  <Input id="cost-per-unit" name="cost_per_unit" type="number" step="0.01" min="0" defaultValue={editing?.cost_per_unit} required />
                 </div>
                 <div className="space-y-2">
-                  <Label>Unit *</Label>
+                  <Label htmlFor="unit">Unit *</Label>
                   <Select name="unit" defaultValue={editing?.unit || 'each'}>
-                    <SelectTrigger>
+                    <SelectTrigger id="unit">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -158,8 +158,8 @@ export function MaterialCostsTab({ data, onDataChange }: PricingTabProps) {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
-                <Input name="description" defaultValue={editing?.description || ''} placeholder="Optional description" />
+                <Label htmlFor="description">Description</Label>
+                <Input id="description" name="description" defaultValue={editing?.description || ''} placeholder="Optional description" />
               </div>
             </div>
             <DialogFooter>

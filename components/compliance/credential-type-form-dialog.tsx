@@ -161,9 +161,9 @@ export function CredentialTypeFormDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Category</Label>
+              <Label htmlFor="category">Category</Label>
               <Select value={form.category} onValueChange={(v) => set('category', v)}>
-                <SelectTrigger>
+                <SelectTrigger id="category">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -176,9 +176,9 @@ export function CredentialTypeFormDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Applies to</Label>
+              <Label htmlFor="applies-to">Applies to</Label>
               <Select value={form.applies_to} onValueChange={(v) => set('applies_to', v)}>
-                <SelectTrigger>
+                <SelectTrigger id="applies-to">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

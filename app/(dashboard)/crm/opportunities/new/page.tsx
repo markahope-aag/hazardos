@@ -370,8 +370,8 @@ export default function NewOpportunityPage() {
 
               {/* Site Address */}
               <div className="space-y-2 pt-2">
-                <Label>Site / Property Address</Label>
-                <Input
+                <Label htmlFor="site-property-address">Site / Property Address</Label>
+                <Input id="site-property-address"
                   value={formData.service_address_line1}
                   onChange={(e) => setFormData(prev => ({ ...prev, service_address_line1: e.target.value }))}
                   placeholder="Street address"
@@ -402,7 +402,7 @@ export default function NewOpportunityPage() {
             <CardHeader><CardTitle>Opportunity Details</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Hazard Type</Label>
+                <Label htmlFor="hazard-type">Hazard Type</Label>
                 <Select
                   value={formData.hazard_type}
                   onValueChange={(value) =>
@@ -412,7 +412,7 @@ export default function NewOpportunityPage() {
                     }))
                   }
                 >
-                  <SelectTrigger><SelectValue placeholder="Select hazard" /></SelectTrigger>
+                  <SelectTrigger id="hazard-type"><SelectValue placeholder="Select hazard" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="asbestos">Asbestos</SelectItem>
                     <SelectItem value="mold">Mold</SelectItem>
@@ -456,8 +456,8 @@ export default function NewOpportunityPage() {
                 </p>
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea
+                <Label htmlFor="description">Description</Label>
+                <Textarea id="description"
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Brief description of the opportunity"
@@ -492,8 +492,8 @@ export default function NewOpportunityPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Estimated Value ($)</Label>
-                  <Input
+                  <Label htmlFor="estimated-value">Estimated Value ($)</Label>
+                  <Input id="estimated-value"
                     type="number" min="0" step="100"
                     value={formData.estimated_value}
                     onChange={(e) => setFormData(prev => ({ ...prev, estimated_value: e.target.value }))}
@@ -501,8 +501,8 @@ export default function NewOpportunityPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Weighted Value</Label>
-                  <Input
+                  <Label htmlFor="weighted-value">Weighted Value</Label>
+                  <Input id="weighted-value"
                     value={weightedValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}
                     disabled className="bg-muted"
                   />

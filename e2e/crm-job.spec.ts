@@ -8,6 +8,12 @@ import { serviceClient } from '../tests/integration/helpers/stack'
  * an address and a name, and reports each omission as a toast — so a missing
  * field is indistinguishable from a submit that did nothing.
  */
+// Serial on purpose. fullyParallel runs tests WITHIN a file concurrently, and the
+// CONTROL below asserts a row count for this organisation is unchanged — which
+// the create test above invalidates if the two overlap. Observed once as a
+// one-in-several-runs failure before being pinned down.
+test.describe.configure({ mode: 'serial' })
+
 test.describe('CRM job creation', () => {
   const created: string[] = []
 

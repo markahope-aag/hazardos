@@ -101,7 +101,7 @@ function NewSiteSurveyContent() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="contact-combobox">Contact</Label>
-              <CustomerCombobox
+              <CustomerCombobox id="contact-combobox"
                 value={selectedCustomerId}
                 onValueChange={setSelectedCustomerId}
                 onCustomerSelect={handleCustomerSelect}

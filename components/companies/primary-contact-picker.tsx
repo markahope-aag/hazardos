@@ -25,6 +25,8 @@ interface ContactOption {
 }
 
 interface PrimaryContactPickerProps {
+  /** Applied to the trigger so a `<Label htmlFor>` can point at this control. */
+  id?: string
   companyId: string
   value: string | null
   onChange: (contactId: string | null) => void
@@ -38,6 +40,7 @@ interface PrimaryContactPickerProps {
  * re-parenting a contact via the primary-contact field.
  */
 export function PrimaryContactPicker({
+  id,
   companyId,
   value,
   onChange,
@@ -76,6 +79,7 @@ export function PrimaryContactPicker({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
+            id={id}
             type="button"
             variant="outline"
             role="combobox"

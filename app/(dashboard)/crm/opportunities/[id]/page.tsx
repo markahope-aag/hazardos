@@ -735,25 +735,25 @@ export default function OpportunityDetailPage({ params }: Props) {
           <DialogHeader><DialogTitle>Mark as Lost</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label>Lost Reason</Label>
+              <Label htmlFor="lost-reason">Lost Reason</Label>
               <Select value={lostForm.reason} onValueChange={(v) => setLostForm(f => ({ ...f, reason: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select reason" /></SelectTrigger>
+                <SelectTrigger id="lost-reason"><SelectValue placeholder="Select reason" /></SelectTrigger>
                 <SelectContent>
                   {LOSS_REASONS.map((r) => <SelectItem key={r} value={r}>{r.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Lost to Competitor</Label>
-              <Input value={lostForm.competitor} onChange={(e) => setLostForm(f => ({ ...f, competitor: e.target.value }))} placeholder="Competitor name" />
+              <Label htmlFor="lost-to-competitor">Lost to Competitor</Label>
+              <Input id="lost-to-competitor" value={lostForm.competitor} onChange={(e) => setLostForm(f => ({ ...f, competitor: e.target.value }))} placeholder="Competitor name" />
             </div>
             <div>
-              <Label>Notes</Label>
-              <Textarea value={lostForm.notes} onChange={(e) => setLostForm(f => ({ ...f, notes: e.target.value }))} rows={3} placeholder="Additional context..." />
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea id="notes" value={lostForm.notes} onChange={(e) => setLostForm(f => ({ ...f, notes: e.target.value }))} rows={3} placeholder="Additional context..." />
             </div>
             <div>
-              <Label>Schedule Follow-up</Label>
-              <Input type="date" value={lostForm.followup_date} onChange={(e) => setLostForm(f => ({ ...f, followup_date: e.target.value }))} />
+              <Label htmlFor="schedule-follow-up">Schedule Follow-up</Label>
+              <Input id="schedule-follow-up" type="date" value={lostForm.followup_date} onChange={(e) => setLostForm(f => ({ ...f, followup_date: e.target.value }))} />
               <p className="text-xs text-muted-foreground mt-1">Optional — check back later</p>
             </div>
           </div>

@@ -131,11 +131,11 @@ export default function NewApiKeyPage() {
           </div>
 
           <div className="space-y-3">
-            <Label>Scopes</Label>
+            <Label htmlFor="scopes">Scopes</Label>
             <div className="grid grid-cols-2 gap-2">
               {SCOPES.map((s) => (
                 <label key={s.value} className="flex items-center gap-2 text-sm cursor-pointer">
-                  <Checkbox
+                  <Checkbox id="scopes"
                     checked={scopes.includes(s.value)}
                     onCheckedChange={() => toggleScope(s.value)}
                   />
