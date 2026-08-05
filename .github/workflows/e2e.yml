@@ -1,0 +1,104 @@
+name: E2E
+
+# Browser tests against a real app and a real database.
+#
+# The stack is brought up from supabase/migrations, the app is built against it,
+# and Playwright signs in once (fixtures/auth.setup.ts) before the authenticated
+# specs run. Nothing here touches a hosted project.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'e2e/**'
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'supabase/migrations/**'
+      - 'playwright.config.ts'
+      - '.github/workflows/e2e.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'e2e/**'
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'supabase/migrations/**'
+      - 'playwright.config.ts'
+      - '.github/workflows/e2e.yml'
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  e2e:
+    name: Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase stack
+        run: supabase start
+
+      - name: Export stack credentials
+        run: |
+          supabase status -o env | sed -E 's/^API_URL=/SUPABASE_TEST_URL=/;
+                                           s/^ANON_KEY=/SUPABASE_TEST_ANON_KEY=/;
+                                           s/^SERVICE_ROLE_KEY=/SUPABASE_TEST_SERVICE_ROLE_KEY=/;
+                                           s/^DB_URL=/SUPABASE_TEST_DB_URL=/' \
+            | grep -E '^SUPABASE_TEST_' | tr -d '"' >> "$GITHUB_ENV"
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # Must be a production build. `next dev` 308-redirects every /api route to
+      # a trailing slash and then 500s, which happens on neither a built app nor
+      # production, so dev would exercise behaviour that does not exist.
+      #
+      # NEXT_PUBLIC_SUPABASE_URL is baked in at build time and also drives the
+      # CSP's connect-src, so the app can only talk to the stack it was built
+      # against.
+      - name: Build against the local stack
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_TEST_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_TEST_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_TEST_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+        run: npm run build
+
+      # playwright.config.ts starts `npm run start` itself when CI is set.
+      - name: Run Playwright
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_TEST_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_TEST_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_TEST_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Stop stack
+        if: always()
+        run: supabase stop --no-backup
