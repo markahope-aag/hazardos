@@ -41,6 +41,11 @@ export const PROFILES = {
   ahs: {
     label: 'AHS evaluation sandbox — disposable',
     password: 'AhsPreview-2026!',
+    // Madison Asbestos are working in this org right now, learning the app and
+    // reporting fixes. main() WIPES an org's business data before reseeding, so
+    // re-running this profile would delete their work. Requires an explicit
+    // override until they move to a real production org.
+    inUseByClient: true,
     // Plus-aliases on a mailbox we control, so invites, password resets and
     // notification mail land somewhere readable. The client never needs inbox
     // access to sign in: accounts are created pre-confirmed.
@@ -63,6 +68,8 @@ export const PROFILES = {
   },
 }
 
+export const OVERRIDE_FLAG = '--i-know-this-wipes-client-work'
+
 export function resolveProfile(argv) {
   const flag = argv.find((a) => a.startsWith('--profile='))
   const key = flag ? flag.slice('--profile='.length) : 'summit'
@@ -72,5 +79,17 @@ export function resolveProfile(argv) {
     const known = Object.keys(PROFILES).join(', ')
     throw new Error(`unknown profile "${key}" — expected one of: ${known}`)
   }
+
+  // main() wipes the target org's business data before reseeding. For an org a
+  // client is actively working in, that is data loss, so it has to be asked for
+  // explicitly rather than being one shell-history arrow-up away.
+  if (profile.inUseByClient && !argv.includes(OVERRIDE_FLAG)) {
+    throw new Error(
+      `refusing to seed "${key}": a client is working in this organisation and ` +
+        `seeding WIPES its business data first.\n` +
+        `If you really mean it, re-run with ${OVERRIDE_FLAG}.`,
+    )
+  }
+
   return { key, ...profile }
 }
