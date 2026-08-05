@@ -52,14 +52,17 @@ const nextConfig = {
             chunks: 'async',
             priority: 30,
           },
-          // Common vendor libraries
-          vendor: {
-            test: /[\\/]node_modules[\\/]/,
-            name: 'vendors',
-            chunks: 'initial',
-            priority: 10,
-            minChunks: 2,
-          },
+          // NOTE: there was a catch-all `vendor` group here with
+          //   { name: 'vendors', chunks: 'initial', minChunks: 2 }
+          // It collapsed every dependency used by two or more pages into a
+          // single 1.37 MB (498 KB gzipped) chunk that EVERY page had to
+          // download before becoming usable — 66% over the 300 KB budget in
+          // web/performance.md. Naming one chunk defeats per-route splitting:
+          // a module needed by two pages was shipped to all of them.
+          //
+          // Next's built-in splitting is route-aware and does this better, so
+          // the catch-all is gone. The async groups above stay, because they
+          // pull genuinely heavy libraries out of the initial graph entirely.
         },
       }
     }
@@ -71,6 +74,11 @@ const nextConfig = {
     // Enable optimizeCss for better CSS bundling
     optimizeCss: true,
     // Enable optimizePackageImports for better tree shaking
+    // Measured 2026-08-05: adding the Radix primitives, @tanstack/react-query,
+    // date-fns-tz and cmdk here changed transferred JS by 0 KB on /crm/contacts
+    // and /site-surveys/mobile, so they are deliberately NOT listed. Next
+    // already handles them, or they are not barrel-shaped. Re-measure before
+    // adding more.
     optimizePackageImports: [
       'recharts',
       'lucide-react',
