@@ -38,6 +38,13 @@ test.describe('mobile survey wizard offline', () => {
     await expect(page.locator('#address')).toHaveValue(address, { timeout: 45_000 })
   })
 
+  // KNOWN FLAKE (2026-08-05): this test has failed roughly 3 times in ~14 full
+  // suite runs, always under contention with the other projects, and has never
+  // failed in isolation (16/16 with --repeat-each=5) or across four consecutive
+  // full runs. Most likely cause is several workers hitting one `npm start`
+  // instance, so the wizard's first paint occasionally exceeds the timeout; CI
+  // runs with workers:1 and retries twice. If it becomes frequent, look here
+  // first rather than raising timeouts, which would only hide it.
   test('the wizard keeps working with the network cut', async ({ page, context }) => {
     const tenant = seededTenant()
     const address = `12 No Signal Road ${tenant.tag}`
