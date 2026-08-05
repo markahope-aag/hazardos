@@ -13,7 +13,19 @@ export default defineConfig({
     // .next/dev/node_modules, and those ship their own *.test.js files. Without
     // this, vitest collects and runs third-party test suites — 52 phantom file
     // failures for missing devDeps like `tape` and `flush-write-stream`.
-    exclude: ['node_modules/**', '**/node_modules/**', '.next/**', 'e2e/**'],
+    // `tests/integration/**` is excluded deliberately: those specs need a real
+    // Postgres and a running app, and have their own runner
+    // (vitest.integration.config.ts, `npm run test:integration`). Without this
+    // they are collected here too, run under jsdom with no database, and fail —
+    // which silently breaks `npm run test:run`, and with it pre-commit and
+    // check-all.
+    exclude: [
+      'node_modules/**',
+      '**/node_modules/**',
+      '.next/**',
+      'e2e/**',
+      'tests/integration/**',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
