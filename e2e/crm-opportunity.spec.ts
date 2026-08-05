@@ -28,19 +28,19 @@ test.describe('CRM opportunity creation', () => {
 
     // Results only render once the user types — the form deliberately does not
     // open with every contact listed.
-    await page.getByPlaceholder(/start typing a name/i).fill('Fixture')
+    await page.getByLabel(/select contact/i).fill('Fixture')
     await page
       .getByRole('button', { name: /Fixture Contact/i })
       .first()
       .click({ timeout: 30_000 })
 
     // The label has no htmlFor, so getByLabel cannot associate it with the input.
-    await page.getByPlaceholder(/auto-generate/i).fill(name)
+    await page.getByLabel(/opportunity name/i).fill(name)
 
     // Pipeline stage is a required Radix select. The seeded org gets its default
     // stages from an AFTER INSERT trigger on organizations, so there is always
     // at least one to choose.
-    await page.getByText('Select a stage').click()
+    await page.getByLabel(/pipeline stage/i).click()
     await page.getByRole('option').first().click()
 
     await page.getByRole('button', { name: /^create opportunity$/i }).click()

@@ -322,9 +322,10 @@ export default function NewJobPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Select Customer *</Label>
+                  <Label htmlFor="job-customer">Select Customer *</Label>
                   <CustomerCombobox
                     value={formData.customer_id}
+                    id="job-customer"
                     onValueChange={(v) => handleSelectCustomer(v)}
                     placeholder="Search by name, company, or email..."
                     disabled={loadingCustomers}
@@ -359,9 +360,10 @@ export default function NewJobPage() {
                   before it goes on the schedule. The API also enforces
                   this; the UI validation is the faster feedback loop. */}
               <div className="space-y-2">
-                <Label>Assigned Technician *</Label>
+                <Label htmlFor="job-technician">Assigned Technician *</Label>
                 <select
                   value={formData.assigned_to}
+                  id="job-technician"
                   onChange={(e) => setFormData(prev => ({ ...prev, assigned_to: e.target.value }))}
                   required
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -387,10 +389,10 @@ export default function NewJobPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Date *</Label>
+                  <Label htmlFor="job-date">Date *</Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn('w-full justify-start text-left font-normal', !formData.scheduled_start_date && 'text-muted-foreground')}>
+                      <Button id="job-date" variant="outline" className={cn('w-full justify-start text-left font-normal', !formData.scheduled_start_date && 'text-muted-foreground')}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {formData.scheduled_start_date ? format(formData.scheduled_start_date, 'PPP') : 'Pick a date'}
                       </Button>
@@ -463,11 +465,12 @@ export default function NewJobPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Address *</Label>
+                  <Label htmlFor="job-address">Address *</Label>
                   <Input
                     value={formData.job_address}
                     onChange={(e) => setFormData(prev => ({ ...prev, job_address: e.target.value }))}
                     placeholder="123 Main St"
+                    id="job-address"
                   />
                 </div>
 
@@ -514,11 +517,12 @@ export default function NewJobPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Job Name *</Label>
+                <Label htmlFor="job-name">Job Name *</Label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g., Kitchen Renovation - Phase 1"
+                  id="job-name"
                   required
                 />
                 <p className="text-xs text-muted-foreground">

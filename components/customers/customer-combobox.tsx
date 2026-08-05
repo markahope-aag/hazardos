@@ -35,6 +35,8 @@ interface Customer {
 }
 
 interface CustomerComboboxProps {
+  /** Applied to the trigger so a `<Label htmlFor>` can point at this control. */
+  id?: string
   value: string
   onValueChange: (value: string) => void
   onCustomerSelect?: (customer: Customer) => void
@@ -46,6 +48,7 @@ const SELECT_COLUMNS =
   'id, name, company_name, first_name, last_name, email, phone, address_line1, city, state, zip'
 
 export function CustomerCombobox({
+  id,
   value,
   onValueChange,
   onCustomerSelect,
@@ -135,6 +138,7 @@ export function CustomerCombobox({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          id={id}
           variant="outline"
           role="combobox"
           aria-expanded={open}

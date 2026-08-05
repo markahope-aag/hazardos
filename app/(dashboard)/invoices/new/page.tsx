@@ -249,7 +249,7 @@ export default function NewInvoicePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Select Customer *</Label>
+                <Label htmlFor="invoice-customer">Select Customer *</Label>
                 <Select
                   value={formData.customer_id}
                   onValueChange={(value) => {
@@ -264,7 +264,7 @@ export default function NewInvoicePage() {
                   }}
                   disabled={loadingCustomers}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="invoice-customer">
                     <SelectValue placeholder={loadingCustomers ? 'Loading...' : 'Select a customer'} />
                   </SelectTrigger>
                   <SelectContent>

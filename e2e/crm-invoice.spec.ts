@@ -29,7 +29,7 @@ test.describe('CRM invoice creation', () => {
     await page.goto('/invoices/new')
 
     // Customer is the only required field; it is a Radix select with no default.
-    await page.getByText('Select a customer').click()
+    await page.getByLabel(/select customer/i).click()
     await page.getByRole('option', { name: /Fixture Contact/i }).first().click()
 
     await page.getByRole('button', { name: /^create invoice$/i }).click()

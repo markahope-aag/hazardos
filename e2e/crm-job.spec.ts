@@ -22,17 +22,16 @@ test.describe('CRM job creation', () => {
 
     await page.goto('/jobs/new')
 
-    // CustomerCombobox is a popover, not an inline list: the outer control is a
-    // role=combobox button showing the placeholder, and the search box only
-    // exists once it is open.
-    // A native <select> also reports role=combobox, so target the button element.
-    await page.locator('button[role="combobox"]').first().click()
+    // CustomerCombobox is a popover, not an inline list: the search box only
+    // exists once the trigger is open. The trigger now carries an id that the
+    // label points at, so it can be reached by its accessible name.
+    await page.getByLabel(/select customer/i).click()
     await page.getByPlaceholder(/search customers/i).fill('Fixture')
     await page.getByRole('option', { name: /Fixture Contact/i }).first().click({ timeout: 30_000 })
 
     // Technician is a native select, not a Radix one; index 1 skips the
     // placeholder option. The seeded org has a user per role.
-    await page.locator('select').first().selectOption({ index: 1 })
+    await page.getByLabel(/assigned technician/i).selectOption({ index: 1 })
 
     // The date defaults to today, in which case the trigger shows the formatted
     // date rather than "Pick a date". Only open the calendar if it is unset.
@@ -42,8 +41,8 @@ test.describe('CRM job creation', () => {
       await page.getByRole('gridcell').filter({ hasText: /^\d+$/ }).first().click()
     }
 
-    await page.getByPlaceholder('123 Main St').fill('44 Basement Lane')
-    await page.getByPlaceholder(/kitchen renovation/i).fill(jobName)
+    await page.getByLabel(/^address/i).fill('44 Basement Lane')
+    await page.getByLabel(/job name/i).fill(jobName)
 
     await page.getByRole('button', { name: /^create job$/i }).click()
     await expect(page).not.toHaveURL(/jobs\/new/, { timeout: 30_000 })
