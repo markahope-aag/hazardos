@@ -8987,6 +8987,16 @@ export type Database = {
         }
         Returns: string
       }
+      create_estimate_revision: {
+        Args: {
+          p_created_by: string
+          p_estimate_number: string
+          p_organization_id: string
+          p_parent_estimate_id: string
+          p_revision_notes?: string | null
+        }
+        Returns: string
+      }
       create_job_from_proposal: {
         Args: {
           p_created_by: string

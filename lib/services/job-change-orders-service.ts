@@ -8,7 +8,7 @@ export class JobChangeOrdersService {
     const supabase = await createClient()
     const user = await getCurrentUser()
 
-    // Generate change order number
+    // Generate change order number: <job_number>-CO01, -CO02, ...
     const { data: existing } = await supabase
       .from('job_change_orders')
       .select('change_order_number')
@@ -16,9 +16,14 @@ export class JobChangeOrdersService {
       .order('created_at', { ascending: false })
       .limit(1)
 
-    const nextNum = existing?.length
-      ? parseInt(existing[0].change_order_number.split('-').pop() || '0') + 1
-      : 1
+    // Read the counter off the -CO<n> suffix. Splitting on '-' and parsing the
+    // last segment does not work: the segment is "CO01", and parseInt('CO01')
+    // is NaN, so every change order after the first was numbered "-CONaN" and
+    // collided with the one before it.
+    const previousNumber = existing?.length
+      ? Number(/-CO(\d+)$/.exec(existing[0].change_order_number)?.[1] ?? 0)
+      : 0
+    const nextNum = previousNumber + 1
 
     const { data: job } = await supabase
       .from('jobs')

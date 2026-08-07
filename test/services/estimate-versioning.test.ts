@@ -38,174 +38,153 @@ const parentEstimate = {
   created_by: 'user-1',
 }
 
-const parentLineItems = [
-  {
-    id: 'li-1', estimate_id: PARENT_ID,
-    item_type: 'labor', category: 'removal', description: 'Removal labor',
-    quantity: 2, unit: 'day', unit_price: 400, total_price: 800,
-    source_rate_id: null, source_table: null,
-    sort_order: 0, is_optional: false, is_included: true, notes: null,
-  },
-  {
-    id: 'li-2', estimate_id: PARENT_ID,
-    item_type: 'material', category: 'poly', description: 'Polyethylene sheeting',
-    quantity: 5, unit: 'rolls', unit_price: 40, total_price: 200,
-    source_rate_id: null, source_table: null,
-    sort_order: 1, is_optional: false, is_included: true, notes: null,
-  },
-]
+// Line items are no longer copied in TypeScript, so no fixture for them here.
+// The copy is asserted against a real database in
+// tests/integration/estimate-revision-txn.test.ts.
 
-describe('createEstimateRevision', () => {
-  it('copies parent fields, line items, and points back via parent_estimate_id', async () => {
-    const captures = {
-      estimateInsert: undefined as Record<string, unknown> | undefined,
-      lineItemsInsert: undefined as Array<Record<string, unknown>> | undefined,
-    }
+/**
+ * Builds a mock client for the revision path. The copy itself now happens inside
+ * the create_estimate_revision RPC, so what is left to test here is the part the
+ * service still owns: resolving a non-colliding estimate number, and passing the
+ * right arguments through.
+ *
+ * Atomicity is deliberately NOT tested here — a mock has no transaction to roll
+ * back, so any assertion about it would pass without meaning. That lives in
+ * tests/integration/estimate-revision-txn.test.ts against a real Postgres.
+ */
+function mockClient(options: {
+  parent?: Record<string, unknown> | null
+  takenNumbers?: string[]
+  siteAddress?: string | null
+  rpcResult?: { data: unknown; error: { code?: string; message: string } | null }
+}) {
+  const {
+    parent = parentEstimate,
+    takenNumbers = [],
+    siteAddress = '123 Main St',
+    rpcResult = { data: 'new-est-id', error: null },
+  } = options
 
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === 'estimates') {
-          return {
-            select: vi.fn((cols: string) => {
-              if (cols.includes('estimate_number')) {
-                // Loading taken numbers — return empty so withUniqueSuffix uses base
-                return {
-                  eq: vi.fn(() => ({
-                    like: vi.fn().mockResolvedValue({ data: [], error: null }),
-                  })),
-                }
-              }
-              // Loading parent
+  const rpc = vi.fn().mockResolvedValue(rpcResult)
+
+  const supabase = {
+    rpc,
+    from: vi.fn((table: string) => {
+      if (table === 'estimates') {
+        return {
+          select: vi.fn((cols: string) => {
+            if (cols.includes('estimate_number')) {
               return {
                 eq: vi.fn(() => ({
-                  eq: vi.fn(() => ({
-                    single: vi.fn().mockResolvedValue({ data: parentEstimate, error: null }),
-                  })),
-                })),
-              }
-            }),
-            insert: vi.fn((payload: Record<string, unknown>) => {
-              captures.estimateInsert = payload
-              return {
-                select: vi.fn(() => ({
-                  single: vi.fn().mockResolvedValue({
-                    data: { id: 'new-est-id' },
+                  like: vi.fn().mockResolvedValue({
+                    data: takenNumbers.map((n) => ({ estimate_number: n })),
                     error: null,
                   }),
                 })),
               }
-            }),
-          }
-        }
-        if (table === 'site_surveys') {
-          return {
-            select: vi.fn(() => ({
+            }
+            return {
               eq: vi.fn(() => ({
-                single: vi.fn().mockResolvedValue({
-                  data: { site_address: '123 Main St' },
-                  error: null,
-                }),
+                eq: vi.fn(() => ({
+                  single: vi.fn().mockResolvedValue({
+                    data: parent,
+                    error: parent ? null : { message: 'no rows' },
+                  }),
+                })),
               })),
-            })),
-          }
+            }
+          }),
         }
-        if (table === 'estimate_line_items') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                order: vi.fn().mockResolvedValue({ data: parentLineItems, error: null }),
-              })),
+      }
+      if (table === 'site_surveys') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
+                data: siteAddress === null ? null : { site_address: siteAddress },
+                error: null,
+              }),
             })),
-            insert: vi.fn((items: Array<Record<string, unknown>>) => {
-              captures.lineItemsInsert = items
-              return Promise.resolve({ data: null, error: null })
-            }),
-          }
+          })),
         }
-        return {}
-      }),
-    } as unknown as import('@supabase/supabase-js').SupabaseClient
+      }
+      return {}
+    }),
+  } as unknown as import('@supabase/supabase-js').SupabaseClient
+
+  return { supabase, rpc }
+}
+
+describe('createEstimateRevision', () => {
+  it('delegates the copy to the transactional RPC with the resolved arguments', async () => {
+    const { supabase, rpc } = mockClient({})
 
     const result = await createEstimateRevision(supabase, ORG_ID, 'user-2', PARENT_ID, {
       revisionNotes: 'customer asked to drop floor tile scope',
     })
 
     expect(result.id).toBe('new-est-id')
-    expect(captures.estimateInsert).toBeTruthy()
-    expect(captures.estimateInsert!.parent_estimate_id).toBe(PARENT_ID)
-    expect(captures.estimateInsert!.status).toBe('draft')
-    expect(captures.estimateInsert!.revision_notes).toBe('customer asked to drop floor tile scope')
-    expect(captures.estimateInsert!.created_by).toBe('user-2')
-    expect(captures.estimateInsert!.subtotal).toBe(1000)
-    expect(captures.estimateInsert!.estimate_number).toMatch(/^EST-/)
+    expect(rpc).toHaveBeenCalledTimes(1)
 
-    expect(captures.lineItemsInsert).toHaveLength(2)
-    expect(captures.lineItemsInsert![0]).toMatchObject({
-      estimate_id: 'new-est-id',
-      description: 'Removal labor',
-      quantity: 2,
-      sort_order: 0,
+    const [fn, args] = rpc.mock.calls[0]
+    expect(fn).toBe('create_estimate_revision')
+    expect(args).toMatchObject({
+      p_parent_estimate_id: PARENT_ID,
+      p_organization_id: ORG_ID,
+      p_created_by: 'user-2',
+      p_revision_notes: 'customer asked to drop floor tile scope',
     })
-    expect(captures.lineItemsInsert![0]).not.toHaveProperty('id')
+    expect(args.p_estimate_number).toMatch(/^EST-/)
   })
 
-  it('skips line item insert when parent has none', async () => {
-    let lineItemInsertCalled = false
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === 'estimates') {
-          return {
-            select: vi.fn((cols: string) => {
-              if (cols.includes('estimate_number')) {
-                return {
-                  eq: vi.fn(() => ({
-                    like: vi.fn().mockResolvedValue({ data: [], error: null }),
-                  })),
-                }
-              }
-              return {
-                eq: vi.fn(() => ({
-                  eq: vi.fn(() => ({
-                    single: vi.fn().mockResolvedValue({ data: parentEstimate, error: null }),
-                  })),
-                })),
-              }
-            }),
-            insert: vi.fn(() => ({
-              select: vi.fn(() => ({
-                single: vi.fn().mockResolvedValue({ data: { id: 'new' }, error: null }),
-              })),
-            })),
-          }
-        }
-        if (table === 'site_surveys') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                single: vi.fn().mockResolvedValue({ data: { site_address: '1 St' }, error: null }),
-              })),
-            })),
-          }
-        }
-        if (table === 'estimate_line_items') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                order: vi.fn().mockResolvedValue({ data: [], error: null }),
-              })),
-            })),
-            insert: vi.fn(() => {
-              lineItemInsertCalled = true
-              return Promise.resolve({ data: null, error: null })
-            }),
-          }
-        }
-        return {}
-      }),
-    } as unknown as import('@supabase/supabase-js').SupabaseClient
+  it('picks a number that does not collide with existing ones in the chain', async () => {
+    // The whole reason numbering stayed in the service: it needs the survey
+    // address and a scan of what the org has already used.
+    const { supabase, rpc } = mockClient({
+      siteAddress: '123 Main St',
+      takenNumbers: ['EST-123MAINST-05152026', 'EST-123MAINST-05152026-r2'],
+    })
 
     await createEstimateRevision(supabase, ORG_ID, 'u', PARENT_ID, {})
-    expect(lineItemInsertCalled).toBe(false)
+
+    const chosen = rpc.mock.calls[0][1].p_estimate_number as string
+    expect(['EST-123MAINST-05152026', 'EST-123MAINST-05152026-r2']).not.toContain(chosen)
+    expect(chosen).toMatch(/^EST-/)
+  })
+
+  it('defaults revision notes to null when none are given', async () => {
+    const { supabase, rpc } = mockClient({})
+    await createEstimateRevision(supabase, ORG_ID, 'u', PARENT_ID, {})
+    expect(rpc.mock.calls[0][1].p_revision_notes).toBeNull()
+  })
+
+  it('throws NOT_FOUND when the parent estimate is missing', async () => {
+    const { supabase, rpc } = mockClient({ parent: null })
+    await expect(
+      createEstimateRevision(supabase, ORG_ID, 'u', PARENT_ID, {}),
+    ).rejects.toThrow(/not found/i)
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('maps the RPC no_data_found guard to NOT_FOUND', async () => {
+    // The parent can disappear between the read above and the locking read
+    // inside the function; that surfaces as P0002 and must not leak as a raw
+    // Postgres error.
+    const { supabase } = mockClient({
+      rpcResult: { data: null, error: { code: 'P0002', message: 'Parent estimate ... not found' } },
+    })
+    await expect(
+      createEstimateRevision(supabase, ORG_ID, 'u', PARENT_ID, {}),
+    ).rejects.toThrow(/not found/i)
+  })
+
+  it('rethrows any other RPC failure', async () => {
+    const { supabase } = mockClient({
+      rpcResult: { data: null, error: { code: '23505', message: 'duplicate key value' } },
+    })
+    await expect(
+      createEstimateRevision(supabase, ORG_ID, 'u', PARENT_ID, {}),
+    ).rejects.toThrow(/duplicate key/i)
   })
 })
 

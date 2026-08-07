@@ -57,91 +57,31 @@ export async function createEstimateRevision(
   const taken = new Set((existingNumbers || []).map((r) => r.estimate_number as string))
   const newNumber = withUniqueSuffix(base, taken)
 
-  // Insert the new estimate row first (the trigger sets version + root).
-  const insertEstimate = {
-    organization_id: parent.organization_id,
-    site_survey_id: parent.site_survey_id,
-    customer_id: parent.customer_id,
-    estimate_number: newNumber,
-    status: 'draft',
-    parent_estimate_id: parent.id,
-    revision_notes: options.revisionNotes ?? null,
-    project_name: parent.project_name,
-    project_description: parent.project_description,
-    scope_of_work: parent.scope_of_work,
-    estimated_duration_days: parent.estimated_duration_days,
-    estimated_start_date: parent.estimated_start_date,
-    estimated_end_date: parent.estimated_end_date,
-    valid_until: parent.valid_until,
-    subtotal: parent.subtotal,
-    markup_percent: parent.markup_percent,
-    markup_amount: parent.markup_amount,
-    discount_percent: parent.discount_percent,
-    discount_amount: parent.discount_amount,
-    tax_percent: parent.tax_percent,
-    tax_amount: parent.tax_amount,
-    total: parent.total,
-    internal_notes: parent.internal_notes,
-    created_by: userId,
-  }
+  // The estimate row and its copied line items go in together, inside the RPC.
+  // This used to be two client-side inserts with a hand-rolled delete if the
+  // second failed; when that compensating delete failed in turn it left a
+  // revision with a total and no line items behind it.
+  const { data: newEstimateId, error: revisionError } = await supabase.rpc(
+    'create_estimate_revision',
+    {
+      p_parent_estimate_id: parent.id,
+      p_organization_id: organizationId,
+      p_created_by: userId,
+      p_estimate_number: newNumber,
+      p_revision_notes: options.revisionNotes ?? null,
+    },
+  )
 
-  const { data: created, error: createError } = await supabase
-    .from('estimates')
-    .insert(insertEstimate)
-    .select('id')
-    .single()
-
-  if (createError || !created) {
-    throw createError || new Error('Failed to create estimate revision')
-  }
-
-  // Copy line items. The estimate row already exists at this point, so if the
-  // copy fails we must remove it — otherwise a mid-chain failure leaves an
-  // orphan revision with no line items. Compensate by deleting the estimate
-  // (its line items cascade) before rethrowing.
-  try {
-    const { data: parentLineItems, error: lineItemsErr } = await supabase
-      .from('estimate_line_items')
-      .select('*')
-      .eq('estimate_id', parent.id)
-      .order('sort_order', { ascending: true })
-
-    if (lineItemsErr) {
-      throw lineItemsErr
+  if (revisionError || !newEstimateId) {
+    // no_data_found is the RPC's own guard: the parent vanished or belongs to
+    // another org between the read above and the locking read inside.
+    if (revisionError?.code === 'P0002') {
+      throw new SecureError('NOT_FOUND', 'Parent estimate not found')
     }
-
-    if (parentLineItems && parentLineItems.length > 0) {
-      const newLineItems = parentLineItems.map((item) => ({
-        estimate_id: created.id,
-        item_type: item.item_type,
-        category: item.category,
-        description: item.description,
-        quantity: item.quantity,
-        unit: item.unit,
-        unit_price: item.unit_price,
-        total_price: item.total_price,
-        source_rate_id: item.source_rate_id,
-        source_table: item.source_table,
-        sort_order: item.sort_order,
-        is_optional: item.is_optional,
-        is_included: item.is_included,
-        notes: item.notes,
-      }))
-
-      const { error: insertItemsErr } = await supabase
-        .from('estimate_line_items')
-        .insert(newLineItems)
-
-      if (insertItemsErr) {
-        throw insertItemsErr
-      }
-    }
-  } catch (err) {
-    await supabase.from('estimates').delete().eq('id', created.id)
-    throw err
+    throw revisionError || new Error('Failed to create estimate revision')
   }
 
-  return { id: created.id }
+  return { id: newEstimateId as string }
 }
 
 /**
