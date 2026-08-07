@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { LabCocPdf } from '@/lib/pdf/lab-coc-template'
 import type { LabCocGenerateInput } from '@/lib/validations/lab-coc'
@@ -37,6 +37,13 @@ function pageCount(pdf: Buffer): number {
 }
 
 describe('chain-of-custody PDF', () => {
+  // These render a real PDF through @react-pdf/renderer, which takes ~4-5s per
+  // document. That sits right on vitest's 5s default, so the file passes alone
+  // and times out once the full suite competes for CPU. Raising the ceiling is
+  // the fix: the tests are slow, not broken, and stubbing the renderer would
+  // leave the page-count assertions testing nothing.
+  vi.setConfig({ testTimeout: 30_000 })
+
   it('renders a single-page form', async () => {
     const pdf = (await renderToBuffer(LabCocPdf(BASE))) as Buffer
     expect(pdf.subarray(0, 5).toString()).toBe('%PDF-')
@@ -63,8 +70,8 @@ describe('chain-of-custody PDF', () => {
   })
 
   it('renders when the optional contractor and lab details are blank', async () => {
-    // A partially-filled organisation profile must still produce a usable
-    // form — this goes to the lab with the samples regardless.
+    // A partially-filled organization profile must still produce a usable
+    // form. This goes to the lab with the samples regardless.
     const pdf = (await renderToBuffer(
       LabCocPdf({
         ...BASE,

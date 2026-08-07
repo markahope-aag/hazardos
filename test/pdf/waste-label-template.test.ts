@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { WasteLabelPdf, LABELS_PER_SHEET } from '@/lib/pdf/waste-label-template'
 import { wasteLabelGenerateSchema, MAX_LABELS } from '@/lib/validations/waste-label'
@@ -23,6 +23,12 @@ function pageCount(pdf: Buffer): number {
 }
 
 describe('waste label sheet', () => {
+  // Real PDF renders, ~4-5s each, against vitest's 5s default. The file passes
+  // in isolation and times out once the whole suite competes for CPU. Slow, not
+  // broken: stubbing the renderer would leave the page-count assertions below
+  // checking nothing at all.
+  vi.setConfig({ testTimeout: 30_000 })
+
   it('lays out 14 labels per sheet (Avery 5162)', () => {
     // 2 columns x 7 rows. If this changes, the sheet no longer lines up
     // with the die-cuts and every printed label is skewed.
@@ -57,7 +63,7 @@ describe('waste label sheet', () => {
   })
 
   it('omits blank address lines rather than printing empty rows', async () => {
-    // A partially-filled organisation address should still render — this
+    // A partially-filled organization address should still render. This
     // is the common case for orgs that never completed their profile.
     const pdf = await renderToBuffer(
       WasteLabelPdf({
