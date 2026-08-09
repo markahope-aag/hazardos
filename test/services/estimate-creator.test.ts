@@ -47,8 +47,8 @@ const calculation = {
 interface Options {
   surveyRow?: Record<string, unknown> | null
   calc?: typeof calculation
-  estimateError?: { message: string } | null
-  lineItemsError?: { message: string } | null
+  estimateError?: { code?: string; message: string } | null
+  readBackError?: { message: string } | null
   approvalError?: { message: string } | null
   approvalThrows?: boolean
 }
@@ -58,20 +58,28 @@ function setup(options: Options = {}) {
     surveyRow = survey,
     calc = calculation,
     estimateError = null,
-    lineItemsError = null,
+    readBackError = null,
     approvalError = null,
     approvalThrows = false,
   } = options
 
   const captured: {
-    estimate?: Record<string, unknown>
-    lineItems?: Array<Record<string, unknown>>
+    rpcArgs?: Record<string, unknown>
     approval?: Record<string, unknown>
   } = {}
 
   mockCalculate.mockResolvedValue(calc)
 
+  const rpc = vi.fn((_fn: string, args: Record<string, unknown>) => {
+    captured.rpcArgs = args
+    return Promise.resolve({
+      data: estimateError ? null : 'est-new',
+      error: estimateError,
+    })
+  })
+
   const supabase = {
+    rpc,
     from: vi.fn((table: string) => {
       if (table === 'site_surveys') {
         return {
@@ -89,28 +97,17 @@ function setup(options: Options = {}) {
       }
       if (table === 'estimates') {
         return {
+          // Two different reads: the collision scan for the estimate number
+          // (.eq().like()) and the read-back of the created row (.eq().single()).
           select: vi.fn(() => ({
-            eq: vi.fn(() => ({ like: vi.fn().mockResolvedValue({ data: [], error: null }) })),
+            eq: vi.fn(() => ({
+              like: vi.fn().mockResolvedValue({ data: [], error: null }),
+              single: vi.fn().mockResolvedValue({
+                data: readBackError ? null : { id: 'est-new', status: 'pending_approval' },
+                error: readBackError,
+              }),
+            })),
           })),
-          insert: vi.fn((payload: Record<string, unknown>) => {
-            captured.estimate = payload
-            return {
-              select: vi.fn(() => ({
-                single: vi.fn().mockResolvedValue({
-                  data: estimateError ? null : { id: 'est-new', ...payload },
-                  error: estimateError,
-                }),
-              })),
-            }
-          }),
-        }
-      }
-      if (table === 'estimate_line_items') {
-        return {
-          insert: vi.fn((items: Array<Record<string, unknown>>) => {
-            captured.lineItems = items
-            return Promise.resolve({ error: lineItemsError })
-          }),
         }
       }
       return {
@@ -137,7 +134,7 @@ describe('createEstimateFromSurvey: money', () => {
     const { supabase, captured } = setup()
     await createEstimateFromSurvey(supabase, input)
 
-    expect(captured.estimate).toMatchObject({
+    expect(captured.rpcArgs!.p_estimate).toMatchObject({
       subtotal: 1000,
       markup_percent: 15,
       markup_amount: 150,
@@ -166,41 +163,41 @@ describe('createEstimateFromSurvey: money', () => {
     expect(mockCalculate.mock.calls[0][3]).toEqual({ customMarkup: undefined })
   })
 
-  it('copies line items in calculator order and stamps sort_order', async () => {
+  it('hands the calculator line items to the RPC in order', async () => {
+    // sort_order is assigned inside the function with WITH ORDINALITY, so the
+    // order of this array is what ends up on the proposal.
     const { supabase, captured } = setup()
     await createEstimateFromSurvey(supabase, input)
 
-    expect(captured.lineItems).toHaveLength(2)
-    expect(captured.lineItems![0]).toMatchObject({
-      estimate_id: 'est-new',
-      description: 'Removal',
-      total_price: 800,
-      sort_order: 0,
-    })
-    expect(captured.lineItems![1]).toMatchObject({ description: 'Sheeting', sort_order: 1 })
+    const items = captured.rpcArgs!.p_line_items as Array<Record<string, unknown>>
+    expect(items).toHaveLength(2)
+    expect(items[0]).toMatchObject({ description: 'Removal', total_price: 800 })
+    expect(items[1]).toMatchObject({ description: 'Sheeting', total_price: 200 })
   })
 
-  it('skips the line-item insert when the calculator returned none', async () => {
+  it('passes an empty list through when the calculator returned none', async () => {
     const { supabase, captured } = setup({ calc: { ...calculation, line_items: [] } })
     await createEstimateFromSurvey(supabase, input)
-    expect(captured.lineItems).toBeUndefined()
+    expect(captured.rpcArgs!.p_line_items).toEqual([])
   })
 })
 
 describe('createEstimateFromSurvey: status and defaults', () => {
   it('lands in pending_approval, never draft', async () => {
     // At `draft` the estimate is invisible to the approval queue, so the office
-    // manager can miss it entirely. This is the whole reason the status is
-    // hardcoded rather than passed in.
+    // manager can miss it entirely. The status is now hardcoded inside the RPC
+    // rather than sent in the payload, which is stronger: a caller cannot ask
+    // for a different one.
     const { supabase, captured } = setup()
-    await createEstimateFromSurvey(supabase, input)
-    expect(captured.estimate!.status).toBe('pending_approval')
+    const result = await createEstimateFromSurvey(supabase, input)
+    expect(captured.rpcArgs!.p_estimate).not.toHaveProperty('status')
+    expect((result.estimate as Record<string, unknown>).status).toBe('pending_approval')
   })
 
   it('falls back to the survey customer and job name when none are supplied', async () => {
     const { supabase, captured } = setup()
     await createEstimateFromSurvey(supabase, input)
-    expect(captured.estimate).toMatchObject({
+    expect(captured.rpcArgs!.p_estimate).toMatchObject({
       customer_id: 'cust-survey',
       project_name: 'Boiler room TSI',
     })
@@ -213,7 +210,7 @@ describe('createEstimateFromSurvey: status and defaults', () => {
       customerId: 'cust-override',
       projectName: 'Override name',
     })
-    expect(captured.estimate).toMatchObject({
+    expect(captured.rpcArgs!.p_estimate).toMatchObject({
       customer_id: 'cust-override',
       project_name: 'Override name',
     })
@@ -266,17 +263,31 @@ describe('createEstimateFromSurvey: failure handling', () => {
     expect(mockWarn).toHaveBeenCalledTimes(1)
   })
 
-  it('KNOWN GAP: a line-item failure strands the estimate row', async () => {
-    // Documents a real defect rather than asserting it is correct. The estimate
-    // is inserted first and there is no compensating delete, so a line-item
-    // failure leaves an empty estimate sitting in pending_approval, the same
-    // class of problem create_estimate_revision was just fixed for, and worse,
-    // because that path at least attempted a cleanup.
+  it('a write failure creates nothing, rather than stranding an empty estimate', async () => {
+    // This test used to be marked KNOWN GAP and asserted the opposite. The
+    // estimate was inserted first and the line items second with no cleanup
+    // between them, so a line-item failure left an empty estimate in
+    // pending_approval: a total with nothing behind it, sitting in the office
+    // manager's queue as real work.
     //
-    // When this is made transactional, this test should start failing. That is
-    // the point: change it to assert no estimate survives.
-    const { supabase, captured } = setup({ lineItemsError: { message: 'line items denied' } })
+    // Both writes now happen inside create_estimate_from_survey, so a failure
+    // anywhere rolls back the whole thing. The mock can only prove the service
+    // surfaces the error and does not read back a row it did not create; that
+    // the rollback itself works is asserted against a real Postgres in
+    // tests/integration/.
+    const { supabase } = setup({ estimateError: { message: 'line items denied' } })
     await expect(createEstimateFromSurvey(supabase, input)).rejects.toThrow(/line items denied/)
-    expect(captured.estimate).toBeDefined()
+  })
+
+  it('maps the RPC survey guard to NOT_FOUND', async () => {
+    // The survey can be deleted between the read above and the write inside the
+    // function; that surfaces as P0002 and must not leak as a raw Postgres error.
+    const { supabase } = setup({ estimateError: { code: 'P0002', message: 'Site survey ... not found' } })
+    await expect(createEstimateFromSurvey(supabase, input)).rejects.toThrow(/not found/i)
+  })
+
+  it('throws when the estimate cannot be read back after creation', async () => {
+    const { supabase } = setup({ readBackError: { message: 'read denied' } })
+    await expect(createEstimateFromSurvey(supabase, input)).rejects.toThrow(/read denied/)
   })
 })

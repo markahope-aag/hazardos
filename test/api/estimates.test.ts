@@ -368,15 +368,13 @@ describe('Estimates API', () => {
         }
         if (table === 'estimates') {
           return {
-            // New: POST /api/estimates now queries existing estimate_numbers
-            // to dedupe the EST-<street>-<mmddyyyy> label before inserting.
+            // Two reads: the estimate_number collision scan (.eq().like()),
+            // and the read-back after create_estimate_from_survey returns an
+            // id (.eq().single()). The insert itself now happens inside the
+            // RPC, so there is no .insert() here any more.
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 like: vi.fn().mockResolvedValue({ data: [], error: null }),
-              }),
-            }),
-            insert: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
                   data: mockEstimate,
                   error: null,
@@ -385,16 +383,12 @@ describe('Estimates API', () => {
             }),
           } as any
         }
-        if (table === 'estimate_line_items') {
-          return {
-            insert: vi.fn().mockResolvedValue({ data: [], error: null }),
-          } as any
-        }
         return mockSupabaseClient as any
       })
 
+      // create_estimate_from_survey returns the new estimate's id.
       vi.mocked(mockSupabaseClient.rpc).mockResolvedValue({
-        data: 'EST-001',
+        data: mockEstimate.id,
         error: null,
       })
 

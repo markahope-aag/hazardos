@@ -9,7 +9,7 @@ export interface CreateEstimateFromSurveyInput {
   siteSurveyId: string
   organizationId: string
   userId: string
-  // Optional overrides — passed through from the calling API route
+  // Optional overrides, passed through from the calling API route
   customerId?: string | null
   projectName?: string | null
   projectDescription?: string | null
@@ -24,7 +24,7 @@ export interface CreateEstimateFromSurveyInput {
 
 export interface CreateEstimateFromSurveyResult {
   estimate: Record<string, unknown>
-  // The survey we loaded — handy for the caller so it doesn't have to refetch
+  // The survey we loaded, handy for the caller so it doesn't have to refetch
   survey: SiteSurvey
 }
 
@@ -34,17 +34,17 @@ export interface CreateEstimateFromSurveyResult {
  *
  * `draft` is reserved for hand-rolled standalone estimates and mid-edit
  * revisions, where a human is actively typing. A survey-rooted estimate
- * is the calculator's first cut — the office manager's worksheet — and
+ * is the calculator's first cut (the office manager's worksheet) and
  * its natural starting status is `pending_approval` (i.e. "ready to be
  * finished"). Letting it sit at `draft` means it's invisible to the
  * approval queue and the office manager can miss it entirely.
  *
  * The approval_requests row + admin notification are created inline.
- * If those side-effects fail we log and continue — the estimate is
+ * If those side-effects fail we log and continue: the estimate is
  * already in the right status, and the office manager can pick it up
  * via the normal approval queue once whatever broke is fixed.
  *
- * Does NOT mutate the survey's status — that's the caller's job (the
+ * Does NOT mutate the survey's status. That is the caller's job (the
  * manual /api/estimates flow promotes the survey to 'estimated'; the
  * auto-create-on-submit flow leaves it at 'submitted').
  */
@@ -82,64 +82,56 @@ export async function createEstimateFromSurvey(
   )
   const estimateNumber = withUniqueSuffix(estimateBase, taken)
 
-  const { data: estimate, error: createError } = await supabase
-    .from('estimates')
-    .insert({
-      organization_id: input.organizationId,
-      site_survey_id: input.siteSurveyId,
-      customer_id: input.customerId || survey.customer_id,
-      estimate_number: estimateNumber,
-      status: 'pending_approval',
-      project_name: input.projectName || survey.job_name,
-      project_description: input.projectDescription,
-      scope_of_work: input.scopeOfWork,
-      estimated_duration_days: input.estimatedDurationDays,
-      estimated_start_date: input.estimatedStartDate,
-      estimated_end_date: input.estimatedEndDate,
-      valid_until: input.validUntil,
-      subtotal: calculation.subtotal,
-      markup_percent: calculation.markup_percent,
-      markup_amount: calculation.markup_amount,
-      discount_percent: calculation.discount_percent,
-      discount_amount: calculation.discount_amount,
-      tax_percent: calculation.tax_percent,
-      tax_amount: calculation.tax_amount,
-      total: calculation.total,
-      internal_notes: input.internalNotes,
-      created_by: input.userId,
-    })
-    .select()
-    .single()
+  // The estimate and its line items go in together, inside the RPC. Previously
+  // these were two client-side inserts with no cleanup between them, so a
+  // line-item failure left an empty estimate sitting in `pending_approval`:
+  // showing a total, with nothing behind it, in the office manager's queue.
+  const { data: estimateId, error: createError } = await supabase.rpc(
+    'create_estimate_from_survey',
+    {
+      p_organization_id: input.organizationId,
+      p_site_survey_id: input.siteSurveyId,
+      p_created_by: input.userId,
+      p_estimate_number: estimateNumber,
+      p_estimate: {
+        customer_id: input.customerId || survey.customer_id,
+        project_name: input.projectName || survey.job_name,
+        project_description: input.projectDescription,
+        scope_of_work: input.scopeOfWork,
+        estimated_duration_days: input.estimatedDurationDays,
+        estimated_start_date: input.estimatedStartDate,
+        estimated_end_date: input.estimatedEndDate,
+        valid_until: input.validUntil,
+        subtotal: calculation.subtotal,
+        markup_percent: calculation.markup_percent,
+        markup_amount: calculation.markup_amount,
+        discount_percent: calculation.discount_percent,
+        discount_amount: calculation.discount_amount,
+        tax_percent: calculation.tax_percent,
+        tax_amount: calculation.tax_amount,
+        total: calculation.total,
+        internal_notes: input.internalNotes,
+      },
+      p_line_items: calculation.line_items,
+    },
+  )
 
-  if (createError || !estimate) {
+  if (createError || !estimateId) {
+    if (createError?.code === 'P0002') {
+      throw new SecureError('NOT_FOUND', 'Site survey not found')
+    }
     throw createError || new Error('Failed to insert estimate')
   }
 
-  const lineItemsToInsert = calculation.line_items.map((item, index) => ({
-    estimate_id: estimate.id,
-    item_type: item.item_type,
-    category: item.category,
-    description: item.description,
-    quantity: item.quantity,
-    unit: item.unit,
-    unit_price: item.unit_price,
-    total_price: item.total_price,
-    source_rate_id: item.source_rate_id,
-    source_table: item.source_table,
-    sort_order: index,
-    is_optional: item.is_optional,
-    is_included: item.is_included,
-    notes: item.notes,
-  }))
+  // Callers expect the full row back, and the RPC returns only the id.
+  const { data: estimate, error: readError } = await supabase
+    .from('estimates')
+    .select()
+    .eq('id', estimateId)
+    .single()
 
-  if (lineItemsToInsert.length > 0) {
-    const { error: lineItemsError } = await supabase
-      .from('estimate_line_items')
-      .insert(lineItemsToInsert)
-
-    if (lineItemsError) {
-      throw lineItemsError
-    }
+  if (readError || !estimate) {
+    throw readError || new Error('Estimate created but could not be read back')
   }
 
   // Enroll into the approval queue + notify admins. These are
