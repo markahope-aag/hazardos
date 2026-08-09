@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { StripeService } from '@/lib/services/stripe-service'
+import { STRIPE_API_VERSION } from '@/lib/services/stripe-api-version'
 import { createSecureErrorResponse, SecureError } from '@/lib/utils/secure-error-handler'
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
 
@@ -13,7 +14,11 @@ function getStripe(): Stripe {
       throw new Error('STRIPE_SECRET_KEY is not set')
     }
     _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2026-01-28.clover',
+      // Shared with StripeService so the client that creates objects and the
+      // one that reads webhook payloads can never drift apart. See the note
+      // on STRIPE_API_VERSION for why this is pinned rather than tracking the
+      // SDK default.
+      apiVersion: STRIPE_API_VERSION,
     })
   }
   return _stripe

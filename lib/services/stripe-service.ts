@@ -5,6 +5,7 @@ import { EmailService } from '@/lib/services/email/email-service'
 import { assertWriteOk } from '@/lib/utils/db-write'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { STRIPE_API_VERSION } from '@/lib/services/stripe-api-version'
 import type {
   SubscriptionPlan,
   OrganizationSubscription,
@@ -23,7 +24,14 @@ function getStripe(): Stripe {
       throw new SecureError('BAD_REQUEST', 'STRIPE_SECRET_KEY environment variable is not set')
     }
     _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2026-01-28.clover',
+      // Pinned deliberately. The SDK's types track whatever API version it
+      // shipped against (20.4.1 wants 2026-02-25.clover), but the API version
+      // decides request and response shapes, so moving it changes payment
+      // behavior. That is a decision to make and test on purpose, not a side
+      // effect of a lockfile update. Stripe supports pinning an older version
+      // indefinitely; the cast is only needed because the typed field admits
+      // the SDK's default alone.
+      apiVersion: STRIPE_API_VERSION,
     })
   }
   return _stripe
@@ -46,7 +54,7 @@ export class StripeService {
       return org.stripe_customer_id
     }
 
-    // Get org owner email. Enum value is 'tenant_owner', not 'owner' — the old
+    // Get org owner email. Enum value is 'tenant_owner', not 'owner'. The old
     // filter never matched, so the Stripe customer was created with no email
     // and Stripe's own dunning mail had nowhere to go.
     const { data: owner } = await supabase
@@ -266,7 +274,7 @@ export class StripeService {
   static async handleWebhookEvent(event: Stripe.Event): Promise<void> {
     // The whole webhook path runs with no session, so under the cookie client
     // stripe_webhook_events RLS matched nothing (idempotency was a no-op) and
-    // every downstream write was silently dropped while Stripe got 200 — paid
+    // every downstream write was silently dropped while Stripe got 200: paid
     // subscriptions never activated and payment_failed never set past_due. The
     // route verifies the Stripe signature before calling this, so the caller is
     // already trusted; the admin client is required here and in the handlers
@@ -488,7 +496,7 @@ export class StripeService {
   ): Promise<void> {
     const supabase = createAdminClient()
 
-    // Get organization owners/admins. The role is 'tenant_owner', not 'owner' —
+    // Get organization owners/admins. The role is 'tenant_owner', not 'owner':
     // there is no 'owner' in the user_role enum, so this filter previously
     // matched only admins and, for an owner-only org, "No owners found".
     const { data: owners } = await supabase

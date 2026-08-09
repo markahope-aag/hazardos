@@ -14,11 +14,9 @@ export type EventKind = 'job' | 'survey' | 'deadline' | 'external' | 'industry'
 // so a job scheduled for April 19 silently shows up on April 18 (or falls
 // off the visible grid). Parse as local-time to pin the calendar day to
 // the date the user actually picked.
-export function parseLocalDate(value: string): Date {
-  const [datePart] = value.split('T')
-  const [y, m, d] = datePart.split('-').map(Number)
-  return new Date(y, (m || 1) - 1, d || 1)
-}
+// One implementation, shared with the server. See lib/utils/local-date.ts
+// for why a date-only string must not go through `new Date()`.
+export { parseLocalDate } from '@/lib/utils/local-date'
 
 export interface CalendarJob {
   id: string

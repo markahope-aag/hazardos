@@ -11,6 +11,7 @@ import {
 } from '@/lib/services/invoice-pdf-generator'
 import { formatCurrency } from '@/lib/utils'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
+import { parseLocalDate } from '@/lib/utils/local-date'
 import type { Invoice } from '@/types/invoices'
 
 const log = createServiceLogger('InvoiceDeliveryService')
@@ -164,7 +165,12 @@ export class InvoiceDeliveryService {
       .single()
     const companyName = org?.name || 'HazardOS'
 
-    const due = new Date(invoice.due_date)
+    // due_date is a Postgres `date`, so it arrives as 'YYYY-MM-DD'.
+    // `new Date()` would parse that as UTC midnight, which is the previous
+    // evening for every US timezone; the subsequent setHours(10) then lands
+    // the reminder a full day early and toLocaleDateString prints the wrong
+    // due date into the message body.
+    const due = parseLocalDate(invoice.due_date)
     const now = new Date()
 
     const commonVars = {

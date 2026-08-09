@@ -242,6 +242,43 @@ describe('payment reminders: timing', () => {
     expect(captured.insertedReminders).toBeUndefined()
   })
 
+  it('puts the due-date reminder on the due date itself, not the day before', async () => {
+    // Regression test for a real off-by-one. due_date is a Postgres `date`, so
+    // it arrives as 'YYYY-MM-DD', and `new Date('2026-08-08')` parses as UTC
+    // midnight. In every US timezone that Date is the previous evening, so the
+    // following setHours(10) landed the reminder a full day early and
+    // toLocaleDateString printed the wrong due date into the message.
+    //
+    // This is time-of-day sensitive in the broken version: it passes before
+    // 10am local and fails after, which is exactly how it hid.
+    const dueDate = dateIn(10)
+    const { captured } = setup({ dueDate })
+    await InvoiceDeliveryService.send('inv-1', 'email')
+
+    const dueReminder = captured.insertedReminders!.find(
+      (r) => r.reminder_type === 'payment_reminder_due',
+    )!
+    const scheduled = new Date(dueReminder.scheduled_for as string)
+    const asLocalDate = [
+      scheduled.getFullYear(),
+      String(scheduled.getMonth() + 1).padStart(2, '0'),
+      String(scheduled.getDate()).padStart(2, '0'),
+    ].join('-')
+
+    expect(asLocalDate).toBe(dueDate)
+  })
+
+  it('prints the correct due date into the message body', async () => {
+    // Same root cause, different symptom: the customer is told the wrong date.
+    const dueDate = dateIn(10)
+    const { captured } = setup({ dueDate })
+    await InvoiceDeliveryService.send('inv-1', 'email')
+
+    const vars = captured.insertedReminders![0].template_variables as Record<string, string>
+    const [y, m, d] = dueDate.split('-').map(Number)
+    expect(vars.due_date).toBe(new Date(y, m - 1, d).toLocaleDateString())
+  })
+
   it('schedules every reminder at 10am local, not at send time', async () => {
     const { captured } = setup({ dueDate: dateIn(10) })
     await InvoiceDeliveryService.send('inv-1', 'email')
