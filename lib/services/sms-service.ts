@@ -1,4 +1,3 @@
-import twilio from 'twilio';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { assertRowsAffected } from '@/lib/utils/db-write';
@@ -15,6 +14,14 @@ import type {
   SmsSettingsUpdateInput,
   SmsMessageType,
 } from '@/types/sms';
+import {
+  applyBrandPrefix,
+  getAuthTokenForSettings,
+  getTwilioClient,
+  isQuietHours,
+  normalizePhone,
+} from './sms-helpers';
+import { getConversations, getDeliveryLog, getMessages } from './sms-queries';
 
 // Each organization must configure their own Twilio account
 
@@ -92,12 +99,12 @@ export class SmsService {
     }
 
     // Check quiet hours
-    if (settings.quiet_hours_enabled && this.isQuietHours(settings)) {
+    if (settings.quiet_hours_enabled && isQuietHours(settings)) {
       throw new SecureError('BAD_REQUEST', 'Cannot send SMS during quiet hours');
     }
 
     // Normalize phone number
-    const normalizedPhone = this.normalizePhone(input.to);
+    const normalizedPhone = normalizePhone(input.to);
     if (!normalizedPhone) {
       throw new SecureError('VALIDATION_ERROR', 'Invalid phone number', 'to');
     }
@@ -151,7 +158,7 @@ export class SmsService {
       throw new SecureError('BAD_REQUEST', 'SMS settings are not configured for this organization.');
     }
 
-    const normalizedPhone = this.normalizePhone(toPhone);
+    const normalizedPhone = normalizePhone(toPhone);
     if (!normalizedPhone) {
       throw new SecureError('VALIDATION_ERROR', 'Invalid phone number', 'to');
     }
@@ -182,13 +189,13 @@ export class SmsService {
     }
   ): Promise<SmsMessage> {
     // Get Twilio client and phone number
-    const { client, fromNumber } = this.getTwilioClient(settings);
+    const { client, fromNumber } = getTwilioClient(settings);
 
     if (!client || !fromNumber) {
       throw new SecureError('BAD_REQUEST', 'Twilio credentials not configured. Please add your Twilio Account SID, Auth Token, and Phone Number in Settings → SMS.');
     }
 
-    const finalBody = this.applyBrandPrefix(params.body, settings.sms_brand_prefix);
+    const finalBody = applyBrandPrefix(params.body, settings.sms_brand_prefix);
 
     // Create message record. Persist the final (prefixed) body so the
     // in-app conversation thread shows exactly what the customer saw.
@@ -490,106 +497,15 @@ export class SmsService {
 
   // ========== HELPERS ==========
 
-  private static getTwilioClient(settings: OrganizationSmsSettings): {
-    client: ReturnType<typeof twilio> | null;
-    fromNumber: string | null;
-  } {
-    // If org uses platform-level Twilio, fall back to env vars
-    if (settings.use_platform_twilio) {
-      const sid = process.env.TWILIO_ACCOUNT_SID;
-      const token = process.env.TWILIO_AUTH_TOKEN;
-      const phone = process.env.TWILIO_PHONE_NUMBER;
-
-      if (!sid || !token || !phone) {
-        return { client: null, fromNumber: null };
-      }
-
-      return { client: twilio(sid, token), fromNumber: phone };
-    }
-
-    // Organization has their own Twilio credentials configured
-    if (!settings.twilio_account_sid || !settings.twilio_auth_token || !settings.twilio_phone_number) {
-      return { client: null, fromNumber: null };
-    }
-
-    return {
-      client: twilio(settings.twilio_account_sid, settings.twilio_auth_token),
-      fromNumber: settings.twilio_phone_number,
-    };
-  }
-
   /** Get the auth token used for webhook signature validation */
   static getAuthTokenForSettings(settings: OrganizationSmsSettings | null): string | null {
-    if (!settings) return null;
-    if (settings.use_platform_twilio) {
-      return process.env.TWILIO_AUTH_TOKEN || null;
-    }
-    return settings.twilio_auth_token || null;
-  }
-
-  private static normalizePhone(phone: string): string | null {
-    const digits = phone.replace(/\D/g, '');
-
-    // US: 10 digits
-    if (digits.length === 10) {
-      return `+1${digits}`;
-    }
-
-    // US with country code: 11 digits starting with 1
-    if (digits.length === 11 && digits.startsWith('1')) {
-      return `+${digits}`;
-    }
-
-    // Already E.164 format
-    if (phone.startsWith('+') && digits.length >= 10) {
-      return `+${digits}`;
-    }
-
-    return null;
-  }
-
-  /**
-   * Prepend the org's brand prefix to an outbound SMS body, unless the
-   * body already starts with the prefix (in any casing). Returns the
-   * input unchanged if no prefix is configured.
-   */
-  private static applyBrandPrefix(body: string, prefix: string | null | undefined): string {
-    const trimmed = (prefix || '').trim();
-    if (!trimmed) return body;
-    const wrapped = `[${trimmed}] `;
-    const lower = body.toLowerCase();
-    if (lower.startsWith(wrapped.toLowerCase())) return body;
-    // Also catch the un-bracketed form so "Acme: hi" doesn't become
-    // "[Acme] Acme: hi" if the user types the brand name themselves.
-    if (lower.startsWith(`${trimmed.toLowerCase()}:`) || lower.startsWith(`${trimmed.toLowerCase()} `)) {
-      return body;
-    }
-    return wrapped + body;
-  }
-
-  private static isQuietHours(settings: OrganizationSmsSettings): boolean {
-    const now = new Date();
-    // Convert to org timezone
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: settings.timezone,
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
-    const currentTime = formatter.format(now);
-
-    const start = settings.quiet_hours_start;
-    const end = settings.quiet_hours_end;
-
-    // Handle overnight quiet hours (e.g., 21:00 - 08:00)
-    if (start > end) {
-      return currentTime >= start || currentTime < end;
-    }
-
-    return currentTime >= start && currentTime < end;
+    return getAuthTokenForSettings(settings);
   }
 
   // ========== MESSAGE HISTORY ==========
+  //
+  // Implementations live in sms-queries.ts; these stay on the class because the
+  // API routes and the inbox call SmsService.* directly.
 
   static async getMessages(
     organizationId: string,
@@ -600,191 +516,21 @@ export class SmsService {
       limit?: number;
     }
   ): Promise<SmsMessage[]> {
-    const supabase = await createClient();
-
-    let query = supabase
-      .from('sms_messages')
-      .select('*')
-      .eq('organization_id', organizationId)
-      .order('queued_at', { ascending: false });
-
-    if (filters?.customer_id) query = query.eq('customer_id', filters.customer_id);
-    if (filters?.status) query = query.eq('status', filters.status);
-    if (filters?.message_type) query = query.eq('message_type', filters.message_type);
-    if (filters?.limit) query = query.limit(filters.limit);
-
-    const { data, error } = await query;
-    if (error) throwDbError(error, 'fetch SMS messages');
-    return data || [];
+    return getMessages(organizationId, filters);
   }
 
-  /**
-   * Delivery log (SMS11): outbound message history with delivery status and
-   * carrier error reasons, enriched with customer names. Defaults to failed +
-   * undelivered so "what didn't get through?" is one filter away, but any
-   * status (or all) can be requested.
-   */
   static async getDeliveryLog(
     organizationId: string,
     filters?: { status?: string; message_type?: string; limit?: number }
   ): Promise<SmsDeliveryLogEntry[]> {
-    const supabase = await createClient();
-
-    let query = supabase
-      .from('sms_messages')
-      .select('*')
-      .eq('organization_id', organizationId)
-      .eq('direction', 'outbound')
-      .order('queued_at', { ascending: false });
-
-    if (filters?.status) {
-      // 'problems' is a convenience bucket for the default failed+undelivered
-      // view; anything else is treated as an exact status match.
-      if (filters.status === 'problems') {
-        query = query.in('status', ['failed', 'undelivered']);
-      } else {
-        query = query.eq('status', filters.status);
-      }
-    }
-    if (filters?.message_type) query = query.eq('message_type', filters.message_type);
-    query = query.limit(filters?.limit ?? 100);
-
-    const { data, error } = await query;
-    if (error) throwDbError(error, 'fetch SMS delivery log');
-
-    const messages = (data || []) as SmsMessage[];
-
-    const customerIds = [...new Set(
-      messages.map((m) => m.customer_id).filter((id): id is string => !!id),
-    )];
-
-    const customerMap = new Map<string, string | null>();
-    if (customerIds.length > 0) {
-      const { data: customers } = await supabase
-        .from('customers')
-        .select('id, name, company_name, first_name, last_name')
-        .in('id', customerIds);
-      for (const c of customers || []) {
-        customerMap.set(
-          c.id,
-          c.name || c.company_name || [c.first_name, c.last_name].filter(Boolean).join(' ') || null,
-        );
-      }
-    }
-
-    return messages.map((m) => ({
-      ...m,
-      customer_name: m.customer_id ? customerMap.get(m.customer_id) ?? null : null,
-    }));
+    return getDeliveryLog(organizationId, filters);
   }
-
-  // ========== CONVERSATIONS ==========
-  //
-  // The inbox lists one row per customer with the most recent message as a
-  // preview. The "unread" count is approximated as inbound messages newer
-  // than the most recent outbound — there isn't (yet) a read/unread column
-  // because reading is implicit: once staff has replied, the inbound is
-  // "answered", and if staff hasn't replied, the unread flag stays up.
 
   static async getConversations(
     organizationId: string,
     options: { search?: string; limit?: number } = {},
-  ): Promise<Array<{
-    customer_id: string | null
-    customer_name: string | null
-    customer_phone: string | null
-    last_message_body: string
-    last_message_direction: string
-    last_message_at: string
-    unread_inbound: number
-    total_messages: number
-  }>> {
-    const supabase = await createClient()
-
-    // Pull a recent slice, group in code. For the expected scale
-    // (thousands of messages, hundreds of customers) this is plenty fast;
-    // if it gets slow, move to a SQL window function.
-    const { data, error } = await supabase
-      .from('sms_messages')
-      .select('id, customer_id, from_phone, to_phone, body, direction, queued_at, received_at, sent_at')
-      .eq('organization_id', organizationId)
-      .order('queued_at', { ascending: false })
-      .limit(500)
-    if (error) throwDbError(error, 'fetch SMS conversations')
-
-    const threads = new Map<string, typeof data[number][]>()
-    for (const msg of data || []) {
-      // Conversations are keyed by customer_id if we have one, otherwise by
-      // the "other side" phone number so raw inbound messages from unknown
-      // senders still show up instead of disappearing.
-      const key = msg.customer_id
-        ?? (msg.direction === 'inbound' ? msg.from_phone : msg.to_phone)
-        ?? 'unknown'
-      const list = threads.get(key) ?? []
-      list.push(msg)
-      threads.set(key, list)
-    }
-
-    const customerIds = [...new Set(
-      (data || []).map((m) => m.customer_id).filter((id): id is string => !!id),
-    )]
-
-    const customerMap = new Map<string, { name: string | null; phone: string | null }>()
-    if (customerIds.length > 0) {
-      const { data: customers } = await supabase
-        .from('customers')
-        .select('id, name, company_name, phone, mobile_phone, first_name, last_name')
-        .in('id', customerIds)
-      for (const c of customers || []) {
-        customerMap.set(c.id, {
-          name: c.name || c.company_name || [c.first_name, c.last_name].filter(Boolean).join(' ') || null,
-          phone: c.phone || c.mobile_phone || null,
-        })
-      }
-    }
-
-    const conversations = [...threads.entries()].map(([key, msgs]) => {
-      const sorted = [...msgs].sort((a, b) => {
-        const at = a.received_at ?? a.sent_at ?? a.queued_at
-        const bt = b.received_at ?? b.sent_at ?? b.queued_at
-        return String(bt).localeCompare(String(at))
-      })
-      const last = sorted[0]
-      const customer = last.customer_id ? customerMap.get(last.customer_id) : undefined
-
-      // Unread = inbound messages queued after the most recent outbound.
-      let unread = 0
-      for (const m of sorted) {
-        if (m.direction === 'outbound') break
-        unread++
-      }
-
-      return {
-        customer_id: last.customer_id,
-        customer_name: customer?.name ?? null,
-        customer_phone:
-          customer?.phone
-          ?? (last.direction === 'inbound' ? last.from_phone : last.to_phone)
-          ?? (key === 'unknown' ? null : key),
-        last_message_body: last.body,
-        last_message_direction: last.direction,
-        last_message_at: last.received_at ?? last.sent_at ?? last.queued_at,
-        unread_inbound: unread,
-        total_messages: sorted.length,
-      }
-    })
-
-    const searchLower = options.search?.toLowerCase().trim()
-    const filtered = searchLower
-      ? conversations.filter((c) =>
-          (c.customer_name || '').toLowerCase().includes(searchLower)
-          || (c.customer_phone || '').includes(searchLower)
-          || c.last_message_body.toLowerCase().includes(searchLower),
-        )
-      : conversations
-
-    filtered.sort((a, b) => b.last_message_at.localeCompare(a.last_message_at))
-    return options.limit ? filtered.slice(0, options.limit) : filtered
+  ): ReturnType<typeof getConversations> {
+    return getConversations(organizationId, options);
   }
 
   // ========== OPT-IN/OPT-OUT ==========
@@ -822,7 +568,7 @@ export class SmsService {
   static async handleInboundKeyword(phone: string, keyword: string): Promise<void> {
     const supabase = await createClient();
     const normalizedKeyword = keyword.trim().toUpperCase();
-    const normalizedPhone = this.normalizePhone(phone);
+    const normalizedPhone = normalizePhone(phone);
 
     if (!normalizedPhone) return;
 
