@@ -25,10 +25,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { createCipheriv, randomBytes } from 'crypto'
-import { config } from 'dotenv'
-
-config({ path: '.env.local' })
-
+import "../_env.mjs";
 const DRY_RUN = process.argv.includes('--dry-run')
 
 // Mirrors lib/utils/secret-crypto.ts. Duplicated rather than imported because

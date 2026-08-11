@@ -12,10 +12,7 @@
  * at the end (or in the catch). Safe to re-run.
  */
 
-import { config as loadEnv } from 'dotenv'
-loadEnv({ path: '.env.local' })
-loadEnv()
-
+import "../_env.mjs";
 import { createClient } from '@supabase/supabase-js'
 import {
   S3Client,

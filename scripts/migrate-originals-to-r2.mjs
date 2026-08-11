@@ -29,10 +29,7 @@
  *   node scripts/migrate-originals-to-r2.mjs --dry-run # report only
  */
 
-import { config as loadEnv } from 'dotenv'
-loadEnv({ path: '.env.local' })
-loadEnv()
-
+import "../_env.mjs";
 import { createClient } from '@supabase/supabase-js'
 import {
   S3Client,

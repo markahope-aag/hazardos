@@ -1,8 +1,5 @@
 #!/usr/bin/env node
-import { config as loadEnv } from 'dotenv'
-loadEnv({ path: '.env.local' })
-loadEnv() // also load .env if present, without overriding .env.local
-
+import "../_env.mjs";
 import {
   S3Client,
   HeadBucketCommand,

@@ -9,10 +9,7 @@
  * we assert the bytes are gone and the row is soft-deleted.
  */
 
-import { config as loadEnv } from 'dotenv'
-loadEnv({ path: '.env.local' })
-loadEnv()
-
+import "../_env.mjs";
 import { createClient } from '@supabase/supabase-js'
 import {
   S3Client,

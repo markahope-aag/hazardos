@@ -1,8 +1,5 @@
 #!/usr/bin/env node
-import { config as loadEnv } from 'dotenv'
-loadEnv({ path: '.env.local' })
-loadEnv()
-
+import "../_env.mjs";
 const TOKEN = process.env.MAPBOX_ACCESS_TOKEN
 
 function check(label, ok, detail = '') {
