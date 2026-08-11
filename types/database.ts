@@ -8,6 +8,8 @@ export type AssessmentStatus = SiteSurveyStatus
 export type UserRole = 'platform_owner' | 'platform_admin' | 'tenant_owner' | 'admin' | 'estimator' | 'technician' | 'viewer'
 export type OrganizationStatus = 'active' | 'suspended' | 'cancelled' | 'trial'
 export type SubscriptionTier = 'trial' | 'starter' | 'professional' | 'enterprise'
+export type CustomerStatus = 'lead' | 'prospect' | 'customer' | 'inactive'
+export type CustomerSource = 'phone' | 'website' | 'mail' | 'referral' | 'other'
 
 // CRM types
 export type ContactType = 'residential' | 'commercial'
