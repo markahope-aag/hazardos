@@ -63,3 +63,4 @@ e2e/.auth/
 # Playwright run output
 test-results/
 playwright-report/
+bun.lock
