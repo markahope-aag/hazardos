@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { addDays, endOfDay, format, isBefore, startOfDay } from 'date-fns'
 import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -33,9 +32,9 @@ const KIND_META: Record<ActivityKind, { icon: typeof Phone; label: string; class
   todo: { icon: CheckSquare, label: 'To-do', className: 'text-slate-700 bg-slate-100 border-slate-200' },
 }
 
-type Window = 'overdue' | 'today' | 'week' | 'open' | 'completed'
+type DueWindow = 'overdue' | 'today' | 'week' | 'open' | 'completed'
 
-const WINDOW_LABELS: Record<Window, string> = {
+const WINDOW_LABELS: Record<DueWindow, string> = {
   overdue: 'Overdue',
   today: 'Due today',
   week: 'Next 7 days',
@@ -43,7 +42,7 @@ const WINDOW_LABELS: Record<Window, string> = {
   completed: 'Completed',
 }
 
-function windowToQuery(window: Window): Record<string, string> {
+function windowToQuery(window: DueWindow): Record<string, string> {
   const now = new Date()
   switch (window) {
     case 'overdue':
@@ -68,7 +67,7 @@ export function WorkQueue() {
   const { toast } = useToast()
   const { user, organization } = useMultiTenantAuth()
 
-  const [window, setWindow] = useState<Window>('today')
+  const [window, setWindow] = useState<DueWindow>('today')
   const [assignee, setAssignee] = useState<string>('me')
   const [kind, setKind] = useState<string>('all')
   const [items, setItems] = useState<FollowUpQueueItem[]>([])
@@ -153,12 +152,12 @@ export function WorkQueue() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Select value={window} onValueChange={(v) => setWindow(v as Window)}>
+        <Select value={window} onValueChange={(v) => setWindow(v as DueWindow)}>
           <SelectTrigger className="w-[160px]" aria-label="Date window">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {(Object.keys(WINDOW_LABELS) as Window[]).map((w) => (
+            {(Object.keys(WINDOW_LABELS) as DueWindow[]).map((w) => (
               <SelectItem key={w} value={w}>{WINDOW_LABELS[w]}</SelectItem>
             ))}
           </SelectContent>

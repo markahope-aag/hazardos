@@ -2762,6 +2762,174 @@ export type Database = {
           },
         ]
       }
+      email_templates: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          organization_id: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          organization_id: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          organization_id?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_processes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          organization_id: string
+          updated_at: string
+          use_saturdays: boolean
+          use_sundays: boolean
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          organization_id: string
+          updated_at?: string
+          use_saturdays?: boolean
+          use_sundays?: boolean
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          organization_id?: string
+          updated_at?: string
+          use_saturdays?: boolean
+          use_sundays?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_processes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_process_steps: {
+        Row: {
+          activity_type_id: string | null
+          assigned_to: string | null
+          assignee_mode: string
+          created_at: string
+          due_days: number
+          due_hours: number
+          due_minutes: number
+          due_mode: string
+          due_time: string | null
+          email_template_id: string | null
+          id: string
+          kind: string
+          note: string | null
+          organization_id: string
+          process_id: string
+          reminder_minutes: number | null
+          sms_template_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          activity_type_id?: string | null
+          assigned_to?: string | null
+          assignee_mode?: string
+          created_at?: string
+          due_days?: number
+          due_hours?: number
+          due_minutes?: number
+          due_mode?: string
+          due_time?: string | null
+          email_template_id?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          organization_id: string
+          process_id: string
+          reminder_minutes?: number | null
+          sms_template_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          activity_type_id?: string | null
+          assigned_to?: string | null
+          assignee_mode?: string
+          created_at?: string
+          due_days?: number
+          due_hours?: number
+          due_minutes?: number
+          due_mode?: string
+          due_time?: string | null
+          email_template_id?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          organization_id?: string
+          process_id?: string
+          reminder_minutes?: number | null
+          sms_template_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_process_steps_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "activity_processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_types: {
         Row: {
           created_at: string
@@ -2867,6 +3035,8 @@ export type Database = {
           note: string | null
           organization_id: string
           outcome_id: string | null
+          process_id: string | null
+          process_step_id: string | null
           reminder_minutes: number | null
           source: string
           updated_at: string
