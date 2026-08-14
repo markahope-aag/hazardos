@@ -1,7 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/server-auth'
 import { Activity } from '@/lib/services/activity-service'
+import { handleProcessEvent } from '@/lib/services/activity-process-runner'
+import type { ContactSegment } from '@/lib/services/activity-process-rules'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
+import { logger, formatError } from '@/lib/utils/logger'
 import type {
   FollowUp,
   FollowUpEntityRef,
@@ -347,9 +350,77 @@ export class FollowUpsService {
         undefined,
         `Follow-up completed${existing.note ? `: ${existing.note}` : ''}`
       )
+
+      await this.fireCompletionChains(data as FollowUp, user.id)
     }
 
     return data as FollowUp
+  }
+
+  /**
+   * Completing a step is what advances a chain, so this is where the next one
+   * starts.
+   *
+   * Wrapped so a misconfigured chain cannot fail the completion itself. Losing
+   * someone's "I called them back" because an unrelated follow-up chain has a
+   * bad step is a worse outcome than the chain not firing, and it is not
+   * something the person clicking can act on.
+   */
+  private static async fireCompletionChains(followUp: FollowUp, actingUserId: string): Promise<void> {
+    try {
+      const supabase = await createClient()
+
+      // An outcome flagged halts_chain is the whole point of MarketSharp's
+      // "Done (doesn't add activity process)": the work is finished and
+      // nothing further should be scheduled off it.
+      if (followUp.outcome_id) {
+        const { data: outcome } = await supabase
+          .from('activity_outcomes')
+          .select('halts_chain')
+          .eq('id', followUp.outcome_id)
+          .maybeSingle()
+
+        if (outcome?.halts_chain) return
+      }
+
+      // Segment, so a rule can target residential or commercial work without
+      // duplicating the chain. Only contact-shaped entities carry one.
+      let contactType: ContactSegment | null = null
+      if (followUp.entity_type === 'customer' || followUp.entity_type === 'contact') {
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('contact_type')
+          .eq('id', followUp.entity_id)
+          .maybeSingle()
+        const value = customer?.contact_type
+        if (value === 'residential' || value === 'commercial') contactType = value
+      }
+
+      await handleProcessEvent(
+        {
+          type: 'activity_completed',
+          activityTypeId: followUp.activity_type_id,
+          outcomeId: followUp.outcome_id,
+          contactType,
+        },
+        {
+          organizationId: followUp.organization_id,
+          entityType: followUp.entity_type,
+          entityId: followUp.entity_id,
+          firedAt: new Date(),
+          actingUserId,
+        }
+      )
+    } catch (error) {
+      logger.error(
+        {
+          error: formatError(error, 'PROCESS_EVENT_FAILED'),
+          followUpId: followUp.id,
+          entityType: followUp.entity_type,
+        },
+        'Could not evaluate activity process rules after completion'
+      )
+    }
   }
 
   static async delete(id: string): Promise<void> {
