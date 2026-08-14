@@ -2856,6 +2856,74 @@ export type Database = {
           },
         ]
       }
+      activity_process_rules: {
+        Row: {
+          activity_type_id: string | null
+          contact_type: string | null
+          created_at: string
+          created_by: string | null
+          event_type: string
+          id: string
+          is_active: boolean
+          job_status: string | null
+          lab_result: string | null
+          message_channel: string | null
+          name: string | null
+          organization_id: string
+          outcome_id: string | null
+          pipeline_stage_id: string | null
+          process_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          activity_type_id?: string | null
+          contact_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_type: string
+          id?: string
+          is_active?: boolean
+          job_status?: string | null
+          lab_result?: string | null
+          message_channel?: string | null
+          name?: string | null
+          organization_id: string
+          outcome_id?: string | null
+          pipeline_stage_id?: string | null
+          process_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          activity_type_id?: string | null
+          contact_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_type?: string
+          id?: string
+          is_active?: boolean
+          job_status?: string | null
+          lab_result?: string | null
+          message_channel?: string | null
+          name?: string | null
+          organization_id?: string
+          outcome_id?: string | null
+          pipeline_stage_id?: string | null
+          process_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_process_rules_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "activity_processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_process_steps: {
         Row: {
           activity_type_id: string | null
