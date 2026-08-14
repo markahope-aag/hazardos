@@ -15,6 +15,7 @@ import {
   Palette,
   FileBadge,
   UserCircle,
+  Workflow,
   type LucideIcon,
 } from 'lucide-react'
 import { ROLES } from '@/lib/auth/roles'
@@ -57,6 +58,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
   {
     label: 'Workflow',
     items: [
+      { href: '/settings/automations', label: 'Automations', icon: Workflow, description: 'Chains of follow-up work that run themselves', requiredRoles: ADMIN_ONLY },
       { href: '/settings/pricing', label: 'Pricing', icon: DollarSign, requiredRoles: ADMIN_ONLY },
       { href: '/settings/billing', label: 'Billing', icon: CreditCard, requiredRoles: ADMIN_ONLY },
     ],
