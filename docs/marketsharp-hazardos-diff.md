@@ -70,7 +70,7 @@ Status is: **Have** (works today), **Partial** (exists but insufficient),
 
 | MarketSharp | HazardOS today | Status | Gap |
 |---|---|---|---|
-| Activities (116,360) | `follow_ups` table | **Partial** | Table has entity, due date, assignee, completion. It has no type, no reference, no reminder offset, no template link, **and no UI at all**. It appears in a service and types only |
+| Activities (116,360) | `follow_ups` table, service, CRUD API, contact-detail UI | **Partial** | More exists than first assessed: full REST API, shown on contact detail, and a "next action due" column on estimates. What is missing is the **cross-entity queue**: everything assigned to one person, across contacts, jobs and surveys, in a single dated list. Also lacked type, outcome, reminder offset and process link until migration `20260814000002` |
 | ActivityReferences (67) | nothing | **Missing** | Needs a per-org vocabulary table |
 | ActivityResults (25) | nothing | **Missing** | Needs a per-org outcome table, including the "does not advance the chain" flag |
 | Activity processes (27 defined, 13 triggered) | nothing | **Missing** | Needs process and step tables, per-org |
@@ -113,17 +113,25 @@ against the source. `docs/MarketSharp Migration Guide.md` has a field mapping
 already but assumes CSVs, so it needs rewriting against the API.
 
 **P0-4. A work queue Gina can actually work.** *(engine)*
-Ninety percent of her day is a list of activities with due dates. `follow_ups`
-holds the data shape but has no screen. Without one, HazardOS is unusable for
-her on day one regardless of what else ships. This is the single highest-value
-item in the document. Needs: a My Work view filtered by assignee and due date,
-create, reassign, complete, and a result on completion.
+Ninety percent of her day is a list of activities with due dates. Follow-ups
+already have a table, a service, a REST API and per-entity UI on contact detail.
+What does not exist is one view showing everything assigned to a person across
+every entity type, sorted by due date, which is the screen she lives in all day.
+Needs: filter by assignee and date window, show what each item is attached to
+(the API returns `entity_type` and `entity_id` but no display name, so this
+needs resolving), complete with an outcome, and reassign.
 
 **P0-5. Extend `follow_ups` into a real activity.** *(engine plus per-org config)*
-Add type (call, email, text, to-do), a reference to the per-org vocabulary, a
-result, a reminder offset and a link to the process instance that created it.
-Seed a sensible default vocabulary for new organizations; import AHS's 35 live
-references as their rows. Do not import the 32 dead ones.
+**Done**, migration `20260814000002_activity_model.sql`. Adds `kind`, per-org
+`activity_types` and `activity_outcomes` vocabularies with generic seeded
+defaults and a backfill for existing orgs, `reminder_minutes`, `source`
+(manual / process / import), and `external_ref` with a unique partial index so
+an import can run twice without duplicating. Also adds an RLS policy letting a
+technician complete work assigned to them, which the existing write policies
+stopped at estimator.
+
+Still to do here: import AHS's 35 live references as their rows, and do not
+import the 32 dead ones.
 
 **P0-6. Org-scoped email templates.** *(engine plus defaults)*
 Replace the hardcoded copy with a table shaped like `sms_templates`: per-org,

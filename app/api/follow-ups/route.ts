@@ -10,6 +10,11 @@ import {
 /**
  * GET /api/follow-ups
  * List follow-ups for the current org. Defaults to pending only.
+ *
+ * With `include_entity=true` each row also carries the label and link of the
+ * thing it hangs off, which is what the cross-entity work queue needs. The
+ * per-entity panels already know their own context, so they leave it off and
+ * skip the extra lookups.
  */
 export const GET = createApiHandler(
   {
@@ -18,6 +23,10 @@ export const GET = createApiHandler(
     querySchema: followUpListQuerySchema,
   },
   async (_request, _context, _body, query) => {
+    if (query.include_entity) {
+      const { items, total } = await FollowUpsService.queue(query)
+      return NextResponse.json({ follow_ups: items, total })
+    }
     const result = await FollowUpsService.list(query)
     return NextResponse.json(result)
   }

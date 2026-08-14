@@ -2762,8 +2762,97 @@ export type Database = {
           },
         ]
       }
+      activity_types: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_system: boolean
+          kind: string
+          name: string
+          organization_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          kind?: string
+          name: string
+          organization_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          kind?: string
+          name?: string
+          organization_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_types_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_outcomes: {
+        Row: {
+          created_at: string
+          halts_chain: boolean
+          id: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          organization_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          halts_chain?: boolean
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          organization_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          halts_chain?: boolean
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          organization_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_outcomes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follow_ups: {
         Row: {
+          activity_type_id: string | null
           assigned_to: string | null
           completed_at: string | null
           completed_by: string | null
@@ -2772,12 +2861,18 @@ export type Database = {
           due_date: string
           entity_id: string
           entity_type: string
+          external_ref: string | null
           id: string
+          kind: string
           note: string | null
           organization_id: string
+          outcome_id: string | null
+          reminder_minutes: number | null
+          source: string
           updated_at: string
         }
         Insert: {
+          activity_type_id?: string | null
           assigned_to?: string | null
           completed_at?: string | null
           completed_by?: string | null
@@ -2786,12 +2881,18 @@ export type Database = {
           due_date: string
           entity_id: string
           entity_type: string
+          external_ref?: string | null
           id?: string
+          kind?: string
           note?: string | null
           organization_id: string
+          outcome_id?: string | null
+          reminder_minutes?: number | null
+          source?: string
           updated_at?: string
         }
         Update: {
+          activity_type_id?: string | null
           assigned_to?: string | null
           completed_at?: string | null
           completed_by?: string | null
@@ -2800,9 +2901,14 @@ export type Database = {
           due_date?: string
           entity_id?: string
           entity_type?: string
+          external_ref?: string | null
           id?: string
+          kind?: string
           note?: string | null
           organization_id?: string
+          outcome_id?: string | null
+          reminder_minutes?: number | null
+          source?: string
           updated_at?: string
         }
         Relationships: [
