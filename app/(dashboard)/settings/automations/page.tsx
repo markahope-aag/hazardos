@@ -1,4 +1,5 @@
 import { AutomationsList } from './automations-list'
+import { TriggersList } from './triggers-list'
 
 export const metadata = { title: 'Automations' }
 
@@ -23,6 +24,11 @@ export default function AutomationsSettingsPage() {
         </p>
       </div>
       <AutomationsList />
+
+      {/* Triggers live on the same page because one is useless without the
+          other: a chain nobody starts never runs, and a trigger pointing at
+          nothing does nothing. Splitting them across two screens hides that. */}
+      <TriggersList />
     </div>
   )
 }
