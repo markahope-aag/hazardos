@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Users, Building2, Target, Briefcase, Kanban, ArrowLeft, MapPin } from 'lucide-react'
+import { Users, Building2, Target, Briefcase, Kanban, ArrowLeft, MapPin, CalendarDays } from 'lucide-react'
 
 const crmTabs = [
   { href: '/crm/properties', label: 'Properties', icon: MapPin },
@@ -11,6 +11,9 @@ const crmTabs = [
   { href: '/crm/opportunities', label: 'Opportunities', icon: Target },
   { href: '/crm/pipeline', label: 'Pipeline', icon: Kanban },
   { href: '/crm/jobs', label: 'Jobs', icon: Briefcase },
+  // Booking someone starts on a phone call in the CRM, so the schedule
+  // has to be reachable without dropping back to the main nav.
+  { href: '/crm/calendar', label: 'Calendar', icon: CalendarDays },
 ]
 
 export default function CrmLayout({ children }: { children: React.ReactNode }) {

@@ -379,7 +379,7 @@ export class JobsService {
       .from('jobs')
       .select(`
         *,
-        customer:customers!customer_id(id, company_name, name),
+        customer:customers!customer_id(id, company_name, name, phone),
         crew:job_crew(
           is_lead,
           profile:profiles(id, full_name)

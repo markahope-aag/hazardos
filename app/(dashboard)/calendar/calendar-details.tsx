@@ -4,19 +4,73 @@ import { format, isSameDay, parseISO } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { MapPin, FileText, FileSignature, Download, ExternalLink, ClipboardList, AlertTriangle, CalendarIcon } from 'lucide-react'
+import { MapPin, FileText, FileSignature, Download, ExternalLink, ClipboardList, AlertTriangle, CalendarIcon, Phone, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { jobStatusConfig } from '@/types/jobs'
 import Link from 'next/link'
 import { useJobDocuments } from '@/lib/hooks/use-job-documents'
 import { JobDocumentsService } from '@/lib/supabase/job-documents'
 import type { JobDocumentCategory } from '@/types/database'
-import type { CalendarEvent, CalendarJob, CalendarSurvey, ExternalEvent, IndustryEvent, RegulatoryDeadline } from './calendar-types'
-import { parseLocalDate, INDUSTRY_CATEGORY_LABELS } from './calendar-types'
+import type { CalendarEvent, CalendarJob, CalendarSurvey, EventContact, ExternalEvent, IndustryEvent, RegulatoryDeadline } from './calendar-types'
+import { parseLocalDate, INDUSTRY_CATEGORY_LABELS, collectContacts } from './calendar-types'
 /**
  * The detail panels shown when a calendar entry is opened. Leaf components,
  * one per event kind, split out of calendar-view.tsx.
  */
+
+// tel: and sms: want digits. Keep a leading + so international numbers
+// still dial; strip everything else the office typed for readability.
+function dialable(phone: string): string {
+  const trimmed = phone.trim()
+  const digits = trimmed.replace(/\D/g, '')
+  return trimmed.startsWith('+') ? `+${digits}` : digits
+}
+
+/**
+ * Phone numbers on a calendar entry, each labeled with whose it is, with
+ * call and text actions.
+ *
+ * The crew opens this on a phone in a driveway. A bare number with no name
+ * means guessing who answers, and copying it into the dialer by hand.
+ */
+function ContactPhones({ contacts }: { contacts: EventContact[] }) {
+  if (contacts.length === 0) return null
+
+  return (
+    <div>
+      <h4 className="text-sm font-medium text-muted-foreground">
+        {contacts.length > 1 ? 'Phone numbers' : 'Phone'}
+      </h4>
+      <ul className="mt-1 space-y-2">
+        {contacts.map((contact) => (
+          <li
+            key={`${contact.label}-${contact.phone}`}
+            className="flex items-center justify-between gap-2 rounded border border-gray-200 px-3 py-2"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-medium truncate">{contact.label}</p>
+              <p className="text-sm text-muted-foreground">{contact.phone}</p>
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Button asChild size="sm" variant="outline">
+                <a href={`tel:${dialable(contact.phone)}`} aria-label={`Call ${contact.label}`}>
+                  <Phone className="h-3.5 w-3.5" />
+                  <span className="ml-1.5">Call</span>
+                </a>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <a href={`sms:${dialable(contact.phone)}`} aria-label={`Text ${contact.label}`}>
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  <span className="ml-1.5">Text</span>
+                </a>
+              </Button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
 
 export function EventDetail({ event }: { event: CalendarEvent }) {
   if (event.raw.kind === 'job') return <JobDetail job={event.raw.job} />
@@ -126,6 +180,23 @@ function JobDetail({ job }: { job: CalendarJob }) {
           </p>
         </div>
 
+        <ContactPhones
+          contacts={collectContacts([
+            job.contact_onsite_phone
+              ? {
+                  label: job.contact_onsite_name || 'On-site contact',
+                  phone: job.contact_onsite_phone,
+                }
+              : null,
+            job.customer
+              ? {
+                  label: job.customer.company_name || job.customer.name,
+                  phone: job.customer.phone || '',
+                }
+              : null,
+          ])}
+        />
+
         <SelectedJobAttachments jobId={job.id} proposalId={job.proposal_id} />
 
         <div className="pt-4">
@@ -174,6 +245,20 @@ function SurveyDetail({ survey }: { survey: CalendarSurvey }) {
             {survey.site_city && <>, {survey.site_city}</>}
           </p>
         </div>
+        <ContactPhones
+          contacts={collectContacts([
+            { label: survey.customer_name, phone: survey.customer_phone || '' },
+            survey.customer
+              ? {
+                  label:
+                    survey.customer.company_name ||
+                    survey.customer.name ||
+                    survey.customer_name,
+                  phone: survey.customer.phone || '',
+                }
+              : null,
+          ])}
+        />
         {survey.assignee && (
           <div>
             <h4 className="text-sm font-medium text-muted-foreground">Assigned to</h4>

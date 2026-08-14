@@ -10,7 +10,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logger, formatError } from '@/lib/utils/logger'
 import { WeekRow, FilterBar, DayCardContent } from './calendar-grid'
-import { parseLocalDate, isEventFinished, type ViewMode, type EventKind, type CalendarEvent, type CalendarJob, type CalendarSurvey, type ExternalEvent, type IndustryEvent, type RegulatoryDeadline, type TeamMember, DEFAULT_TYPE_FILTER } from './calendar-types'
+import { parseLocalDate, isEventFinished, shortName, crewLabel, type ViewMode, type EventKind, type CalendarEvent, type CalendarJob, type CalendarSurvey, type ExternalEvent, type IndustryEvent, type RegulatoryDeadline, type TeamMember, DEFAULT_TYPE_FILTER } from './calendar-types'
 import { EventDetail } from './calendar-details'
 export function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -104,13 +104,17 @@ export function CalendarView() {
     fetchData()
   }, [fetchData])
 
-  // The "Import event series" button on the page header dispatches
-  // this event after a successful import so the calendar refetches
-  // immediately instead of waiting for the user to navigate.
+  // Buttons that sit above the calendar (import event series, schedule a
+  // survey) dispatch one of these after a successful write so the grid
+  // refetches immediately instead of waiting for the user to navigate.
   useEffect(() => {
     const handler = () => fetchData()
     window.addEventListener('industry-events-imported', handler)
-    return () => window.removeEventListener('industry-events-imported', handler)
+    window.addEventListener('calendar-refresh', handler)
+    return () => {
+      window.removeEventListener('industry-events-imported', handler)
+      window.removeEventListener('calendar-refresh', handler)
+    }
   }, [fetchData])
 
   useEffect(() => {
@@ -131,10 +135,14 @@ export function CalendarView() {
       const assigneeIds = (job.crew || [])
         .map((c) => c.profile?.id)
         .filter((x): x is string => Boolean(x))
+      // Lead with who's going. Color alone can't be read out loud, and the
+      // chip truncates from the right, so the name has to come first to
+      // survive in the month grid.
+      const crew = crewLabel(job.crew)
       out.push({
         id: `job-${job.id}`,
         kind: 'job',
-        title: job.job_number,
+        title: crew ? `${crew} · ${job.job_number}` : job.job_number,
         startDate: start,
         endDate: end,
         startTime: job.scheduled_start_time,
@@ -145,10 +153,13 @@ export function CalendarView() {
 
     for (const survey of surveys) {
       const d = parseLocalDate(survey.scheduled_date)
+      const who = shortName(survey.assignee?.first_name, survey.assignee?.last_name)
       out.push({
         id: `survey-${survey.id}`,
         kind: 'survey',
-        title: `Survey: ${survey.job_name}`,
+        title: who
+          ? `${who} · Survey: ${survey.job_name}`
+          : `Survey: ${survey.job_name}`,
         startDate: d,
         endDate: d,
         startTime: survey.scheduled_time_start,

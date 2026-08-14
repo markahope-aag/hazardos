@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { CustomerCombobox } from '@/components/customers/customer-combobox'
-import { TimeSelect } from '@/components/ui/time-select'
+import { ScheduleTimeSelect } from '@/components/ui/schedule-time-select'
 import { Plus, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { logger, formatError } from '@/lib/utils/logger'
@@ -220,7 +220,7 @@ function CreateSurveyForm({ onSuccess }: { onSuccess: () => void }) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="time-start">Start Time</Label>
-          <TimeSelect
+          <ScheduleTimeSelect
             id="time-start"
             value={scheduledTimeStart}
             onChange={setScheduledTimeStart}
@@ -228,7 +228,7 @@ function CreateSurveyForm({ onSuccess }: { onSuccess: () => void }) {
         </div>
         <div className="space-y-2">
           <Label htmlFor="time-end">End Time</Label>
-          <TimeSelect
+          <ScheduleTimeSelect
             id="time-end"
             value={scheduledTimeEnd}
             onChange={setScheduledTimeEnd}

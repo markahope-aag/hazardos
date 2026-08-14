@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { screen, fireEvent, waitFor } from '@testing-library/react'
+// The scheduling time picker reads the org's business hours through TanStack
+// Query, so the page has to render inside a QueryClientProvider the way it
+// does in the app. Aliased to `render` to keep the call sites below unchanged.
+import { renderWithClient as render } from '@/test/helpers/render-with-client'
 import NewJobPage from '@/app/(dashboard)/jobs/new/page'
 
 // Mock next/navigation

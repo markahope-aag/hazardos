@@ -30,10 +30,13 @@ export interface CalendarJob {
   proposal_id: string | null
   job_address: string
   job_city: string | null
+  contact_onsite_name: string | null
+  contact_onsite_phone: string | null
   customer: {
     id: string
     name: string
     company_name: string | null
+    phone: string | null
   } | null
   crew?: { is_lead: boolean; profile: { id: string; full_name: string | null } | null }[]
 }
@@ -50,6 +53,7 @@ export interface CalendarSurvey {
   site_city: string | null
   hazard_type: string
   customer_name: string
+  customer_phone: string | null
   assigned_to: string | null
   customer: {
     id: string
@@ -57,6 +61,7 @@ export interface CalendarSurvey {
     last_name: string | null
     company_name: string | null
     name: string | null
+    phone: string | null
   } | null
   assignee: {
     id: string
@@ -123,6 +128,66 @@ export interface CalendarEvent {
     | { kind: 'deadline'; deadline: RegulatoryDeadline }
     | { kind: 'external'; event: ExternalEvent }
     | { kind: 'industry'; event: IndustryEvent }
+}
+
+// Who's going, short enough to survive a narrow calendar chip.
+// "Gina Richardson" becomes "Gina R." so the person is still readable when
+// the title truncates, which is the whole point of putting them there: the
+// office needs to say who's coming while the customer is on the phone.
+export function shortName(
+  first: string | null | undefined,
+  last: string | null | undefined,
+): string | null {
+  const firstPart = (first || '').trim()
+  const lastPart = (last || '').trim()
+  if (!firstPart && !lastPart) return null
+  if (!lastPart) return firstPart
+  if (!firstPart) return lastPart
+  return `${firstPart} ${lastPart[0]}.`
+}
+
+// Same, for the single `full_name` column that profiles use on job crew.
+export function shortNameFromFull(full: string | null | undefined): string | null {
+  const parts = (full || '').trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return null
+  if (parts.length === 1) return parts[0]
+  return shortName(parts[0], parts[parts.length - 1])
+}
+
+// Crew lead first, then anyone else, then a count for the rest so a
+// four-person crew doesn't overflow the chip.
+export function crewLabel(crew: CalendarJob['crew']): string | null {
+  const named = (crew || [])
+    .slice()
+    .sort((a, b) => Number(b.is_lead) - Number(a.is_lead))
+    .map((member) => shortNameFromFull(member.profile?.full_name))
+    .filter((name): name is string => Boolean(name))
+
+  if (named.length === 0) return null
+  if (named.length === 1) return named[0]
+  return `${named[0]} +${named.length - 1}`
+}
+
+// A phone number attached to a calendar entry, labeled with whose it is.
+// Field crews get handed a bare number today and have to guess who picks up.
+export interface EventContact {
+  label: string
+  phone: string
+}
+
+// Collapses repeats (the customer record and the survey snapshot usually
+// hold the same number) and drops anything without enough digits to dial.
+export function collectContacts(candidates: (EventContact | null)[]): EventContact[] {
+  const seen = new Set<string>()
+  const out: EventContact[] = []
+  for (const candidate of candidates) {
+    if (!candidate?.phone) continue
+    const digits = candidate.phone.replace(/\D/g, '')
+    if (digits.length < 7 || seen.has(digits)) continue
+    seen.add(digits)
+    out.push(candidate)
+  }
+  return out
 }
 
 export const DEFAULT_TYPE_FILTER: Record<EventKind, boolean> = {

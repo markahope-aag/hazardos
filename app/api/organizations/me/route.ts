@@ -43,6 +43,18 @@ const updateSchema = z.object({
   // via CHECK constraint; we mirror it here so the API rejects bad
   // values with a structured error rather than a Postgres error.
   photo_retention_days: z.number().int().min(90).max(3650).optional(),
+  // Bounds for the scheduling time pickers, stored as HH:MM (the DB column
+  // is a `time`, which accepts the seconds-less form). The DB also enforces
+  // end > start; we check it here so the user gets a readable message
+  // instead of a constraint violation.
+  business_hours_start: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/, 'Use a 24-hour time like 06:00')
+    .optional(),
+  business_hours_end: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/, 'Use a 24-hour time like 19:00')
+    .optional(),
   // Per-org boilerplate text that pre-fills the OPP wizard's four
   // protective-measures sections. Stored as a single JSONB column so
   // adding a fifth section (state variants) doesn't need a migration.
@@ -55,6 +67,19 @@ const updateSchema = z.object({
     })
     .optional(),
 })
+  // The form always submits both bounds together, so an inverted range can
+  // be caught before it reaches the CHECK constraint. A partial update that
+  // sends only one bound falls through to the DB check.
+  .refine(
+    (body) =>
+      !body.business_hours_start ||
+      !body.business_hours_end ||
+      body.business_hours_end > body.business_hours_start,
+    {
+      message: 'Closing time must be later than opening time',
+      path: ['business_hours_end'],
+    },
+  )
 
 // Returns the caller's own organization record.
 export const GET = createApiHandler(
@@ -62,7 +87,7 @@ export const GET = createApiHandler(
   async (_request, context) => {
     const { data, error } = await context.supabase
       .from('organizations')
-      .select('id, name, email, phone, website, license_number, address, city, state, zip, timezone, email_from_name, email_reply_to, email_domain, email_domain_status, email_header_color, email_accent_color, email_logo_url, email_signature, photo_retention_days, opp_defaults')
+      .select('id, name, email, phone, website, license_number, address, city, state, zip, timezone, email_from_name, email_reply_to, email_domain, email_domain_status, email_header_color, email_accent_color, email_logo_url, email_signature, photo_retention_days, opp_defaults, business_hours_start, business_hours_end')
       .eq('id', context.profile.organization_id)
       .single()
     if (error) throwDbError(error, 'load organization')

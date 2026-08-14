@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Calendar } from '@/components/ui/calendar'
-import { TimeSelect } from '@/components/ui/time-select'
+import { ScheduleTimeSelect } from '@/components/ui/schedule-time-select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/use-toast'
@@ -349,7 +349,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
               </div>
               <div>
                 <Label>Start Time</Label>
-                <TimeSelect
+                <ScheduleTimeSelect
                   value={form.scheduled_start_time}
                   onChange={(v) => setForm(prev => ({ ...prev, scheduled_start_time: v }))}
                 />

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import {
   Select,
   SelectContent,
@@ -41,6 +41,15 @@ interface TimeSelectProps {
    * a different HH:MM to anchor an end-time field later in the day, etc.
    */
   defaultScrollAnchor?: string
+  /**
+   * Earliest and latest options to offer, HH:MM inclusive. Omit either to
+   * leave that end unbounded. Use these for appointment times, where a
+   * full 24-hour list is mostly scrolling past hours nobody works. Leave
+   * them off for times that genuinely can fall at night, such as SMS quiet
+   * hours or a building's occupied hours.
+   */
+  minTime?: string
+  maxTime?: string
 }
 
 export function TimeSelect({
@@ -52,9 +61,32 @@ export function TimeSelect({
   disabled,
   'aria-label': ariaLabel,
   defaultScrollAnchor = DEFAULT_SCROLL_ANCHOR,
+  minTime,
+  maxTime,
 }: TimeSelectProps) {
   const normalized = value ? value.slice(0, 5) : ''
   const anchorRef = useRef<HTMLDivElement | null>(null)
+
+  // Bounds hide options; they must never hide the value already on the
+  // record. A survey booked at 5:30 AM before the org narrowed its hours
+  // still has to render as "5:30 AM" rather than an empty trigger, so the
+  // current value is always kept in the list.
+  const options = useMemo(() => {
+    if (!minTime && !maxTime) return TIME_OPTIONS
+    return TIME_OPTIONS.filter(
+      (opt) =>
+        opt.value === normalized ||
+        ((!minTime || opt.value >= minTime) && (!maxTime || opt.value <= maxTime)),
+    )
+  }, [minTime, maxTime, normalized])
+
+  // Anchoring to an option that got filtered out would silently do nothing,
+  // so pull the anchor inside the bounds.
+  const scrollAnchor = useMemo(() => {
+    if (minTime && defaultScrollAnchor < minTime) return minTime
+    if (maxTime && defaultScrollAnchor > maxTime) return maxTime
+    return defaultScrollAnchor
+  }, [defaultScrollAnchor, minTime, maxTime])
 
   // Radix auto-scrolls to the highlighted (selected) item after it opens
   // the popover, which clobbers anything we do inside a ref callback on
@@ -81,11 +113,11 @@ export function TimeSelect({
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent className="max-h-72">
-        {TIME_OPTIONS.map((opt) => (
+        {options.map((opt) => (
           <SelectItem
             key={opt.value}
             value={opt.value}
-            ref={opt.value === defaultScrollAnchor ? anchorRef : undefined}
+            ref={opt.value === scrollAnchor ? anchorRef : undefined}
           >
             {opt.label}
           </SelectItem>

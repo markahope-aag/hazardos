@@ -10,8 +10,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
-import { Loader2, Save, Building, Clock, Camera, Shield } from 'lucide-react'
+import { Loader2, Save, Building, Clock, Camera, Shield, CalendarClock } from 'lucide-react'
 import { DEFAULT_TIMEZONE, US_TIMEZONE_OPTIONS } from '@/lib/timezone'
+import { TimeSelect } from '@/components/ui/time-select'
+import { DEFAULT_BUSINESS_HOURS } from '@/lib/hooks/use-business-hours'
 
 const DEFAULT_PHOTO_RETENTION_DAYS = 1095 // 3 years
 const MIN_PHOTO_RETENTION_DAYS = 90
@@ -28,6 +30,8 @@ interface CompanyForm {
   state: string
   zip: string
   timezone: string
+  business_hours_start: string
+  business_hours_end: string
   photo_retention_days: number
   opp_default_containment: string
   opp_default_ventilation: string
@@ -46,6 +50,8 @@ const EMPTY: CompanyForm = {
   state: '',
   zip: '',
   timezone: DEFAULT_TIMEZONE,
+  business_hours_start: DEFAULT_BUSINESS_HOURS.start,
+  business_hours_end: DEFAULT_BUSINESS_HOURS.end,
   photo_retention_days: DEFAULT_PHOTO_RETENTION_DAYS,
   opp_default_containment: '',
   opp_default_ventilation: '',
@@ -78,6 +84,11 @@ export default function CompanyProfilePage() {
           state: org.state || '',
           zip: org.zip || '',
           timezone: org.timezone || DEFAULT_TIMEZONE,
+          // Postgres returns `time` columns as HH:MM:SS; the picker keys on HH:MM.
+          business_hours_start:
+            (org.business_hours_start || '').slice(0, 5) || DEFAULT_BUSINESS_HOURS.start,
+          business_hours_end:
+            (org.business_hours_end || '').slice(0, 5) || DEFAULT_BUSINESS_HOURS.end,
           photo_retention_days: org.photo_retention_days ?? DEFAULT_PHOTO_RETENTION_DAYS,
           opp_default_containment: oppDefaults.containment || '',
           opp_default_ventilation: oppDefaults.ventilation || '',
@@ -118,6 +129,14 @@ export default function CompanyProfilePage() {
       toast({
         title: 'Photo retention out of range',
         description: `Must be between ${MIN_PHOTO_RETENTION_DAYS} and ${MAX_PHOTO_RETENTION_DAYS} days.`,
+        variant: 'destructive',
+      })
+      return
+    }
+    if (form.business_hours_end <= form.business_hours_start) {
+      toast({
+        title: 'Check your business hours',
+        description: 'Closing time has to be later than opening time.',
         variant: 'destructive',
       })
       return
@@ -328,6 +347,45 @@ export default function CompanyProfilePage() {
                 Currently set to <code className="font-mono">{form.timezone}</code>.
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CalendarClock className="h-5 w-5" />
+              Business hours
+            </CardTitle>
+            <CardDescription>
+              The working day your crews book against. Time pickers for surveys and
+              jobs only offer times inside this range, so scheduling a morning
+              appointment doesn't mean scrolling past the middle of the night.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
+              <div className="space-y-2">
+                <Label htmlFor="business_hours_start">Earliest appointment</Label>
+                <TimeSelect
+                  id="business_hours_start"
+                  value={form.business_hours_start}
+                  onChange={(v) => update('business_hours_start', v)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="business_hours_end">Latest appointment</Label>
+                <TimeSelect
+                  id="business_hours_end"
+                  value={form.business_hours_end}
+                  onChange={(v) => update('business_hours_end', v)}
+                  defaultScrollAnchor="17:00"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              Appointments already booked outside these hours keep their time and stay
+              editable. This only controls what the pickers offer.
+            </p>
           </CardContent>
         </Card>
 

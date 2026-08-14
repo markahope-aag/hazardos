@@ -42,8 +42,9 @@ export const GET = createApiHandler(
         site_city,
         hazard_type,
         customer_name,
+        customer_phone,
         assigned_to,
-        customer:customers!customer_id(id, first_name, last_name, company_name, name),
+        customer:customers!customer_id(id, first_name, last_name, company_name, name, phone),
         assignee:profiles!assigned_to(id, first_name, last_name)
       `)
       .eq('organization_id', context.profile.organization_id)

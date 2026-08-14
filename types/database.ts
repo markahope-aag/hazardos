@@ -8,8 +8,10 @@ export type AssessmentStatus = SiteSurveyStatus
 export type UserRole = 'platform_owner' | 'platform_admin' | 'tenant_owner' | 'admin' | 'estimator' | 'technician' | 'viewer'
 export type OrganizationStatus = 'active' | 'suspended' | 'cancelled' | 'trial'
 export type SubscriptionTier = 'trial' | 'starter' | 'professional' | 'enterprise'
-export type CustomerStatus = 'lead' | 'prospect' | 'customer' | 'inactive'
-export type CustomerSource = 'phone' | 'website' | 'mail' | 'referral' | 'other'
+// CustomerStatus and CustomerSource are declared further down, next to the
+// other customer types, and must match the customer_status / customer_source
+// Postgres enums. An earlier duplicate here had 'lead' instead of 'inquiry'
+// and 'past_customer', which Postgres rejects.
 
 // CRM types
 export type ContactType = 'residential' | 'commercial'
@@ -6249,6 +6251,8 @@ export type Database = {
           billing_address: Json | null
           billing_email: string | null
           billing_managed_externally: boolean
+          business_hours_end: string
+          business_hours_start: string
           city: string | null
           created_at: string | null
           email: string | null
@@ -6294,6 +6298,8 @@ export type Database = {
           billing_address?: Json | null
           billing_email?: string | null
           billing_managed_externally?: boolean
+          business_hours_end?: string
+          business_hours_start?: string
           city?: string | null
           created_at?: string | null
           email?: string | null
@@ -6339,6 +6345,8 @@ export type Database = {
           billing_address?: Json | null
           billing_email?: string | null
           billing_managed_externally?: boolean
+          business_hours_end?: string
+          business_hours_start?: string
           city?: string | null
           created_at?: string | null
           email?: string | null

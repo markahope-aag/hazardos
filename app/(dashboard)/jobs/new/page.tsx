@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Calendar } from '@/components/ui/calendar'
-import { TimeSelect } from '@/components/ui/time-select'
+import { ScheduleTimeSelect } from '@/components/ui/schedule-time-select'
 import {
   Popover,
   PopoverContent,
@@ -410,7 +410,7 @@ export default function NewJobPage() {
 
                 <div className="space-y-2">
                   <Label>Start Time</Label>
-                  <TimeSelect
+                  <ScheduleTimeSelect
                     value={formData.scheduled_start_time}
                     onChange={(v) => setFormData(prev => ({ ...prev, scheduled_start_time: v }))}
                   />
