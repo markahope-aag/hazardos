@@ -93,6 +93,34 @@ Status is: **Have** (works today), **Partial** (exists but insufficient),
 
 Ordered by whether it blocks cutover. Every item names its tier.
 
+**Status as of 2026-08-14, end of day.** The automation engine is functionally
+complete and configurable in the app: write the copy, build a chain, attach
+templates, say what triggers it, turn it on. Work then appears in My Work on the
+right dates, messages send themselves, and everything cancels when a lead
+converts.
+
+Done: P0-1 (decided: app first, data after), P0-4, P0-5, P0-6, P1-1, P1-2, P1-3,
+P1-4, P1-5 in part.
+
+Not done, in the order worth doing them:
+
+1. **`message_failed` is still silent.** It has a rule type, a matcher and a UI
+   entry, but nothing raises it, so a bounce trigger built today never fires.
+   Needs the Resend webhook and the SMS failure path. Offering a trigger that
+   cannot fire is the worst state of the four.
+2. **Vocabulary editor.** Activity types and outcomes are seeded and used
+   everywhere but can only be renamed with SQL.
+3. **The six hardcoded system emails** still live in code. The table and editor
+   now exist to move them onto.
+4. **P0-2 and P0-3**, the extraction and field mapping, which is the whole of
+   the data migration.
+5. **AHS's own configuration**: their 35 live activity references, six live
+   templates, and four highest-volume chains, loaded as their rows.
+
+**Nothing here has been exercised against the live site.** Type-check, lint and
+the full suite are green, but nobody has built a chain in the UI and watched work
+appear. That is the gap to close before AHS see it.
+
 ### P0. Blocks cutover
 
 **P0-1. Decide the cutover model.** *(decision, not code)*
@@ -148,6 +176,15 @@ messages need to become editable rows. Worth drawing that line deliberately
 rather than moving everything.
 
 ### P1. First weeks after cutover
+
+**Done 2026-08-14:** P1-1 (migration `20260814000003`, plus the editor at
+Settings > Workflow > Automations), P1-2 (migration `20260814000004`, plus the
+trigger editor on the same page), P1-3 (`activity-process-runner`, the
+`create_activity_process_work` RPC, and tenant-authored templates), P1-4
+(migrations `20260814000006` and `20260814000007`, canceling both the work and
+its queued messages). P1-5 is half done: four of the five events are raised by
+database triggers into `process_event_queue` and drained by a ten-minute cron,
+but delivery failures are not yet among them.
 
 **P1-1. Process definitions and steps.** *(engine plus per-org config)*
 Two tables: process (name, active, for production, use Saturdays, use Sundays)
