@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { SmsService } from '@/lib/services/sms-service'
 import { EmailService } from '@/lib/services/email/email-service'
 import { assertWriteOk } from '@/lib/utils/db-write'
+import { renderTemplateBody, renderTemplateHtml } from '@/lib/services/template-render'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
 
 const log = createServiceLogger('reminder-sender')
@@ -20,10 +21,14 @@ interface ReminderRow {
   related_type: string | null
   related_id: string
   channel: string
-  template_slug: string
+  template_slug: string | null
   recipient_email: string | null
   recipient_phone: string | null
   template_variables: Record<string, string | null> | null
+  // Set instead of template_slug when the content is the tenant's own copy
+  // rather than one of the built-in system messages.
+  email_template_id: string | null
+  sms_template_id: string | null
 }
 
 interface RenderedContent {
@@ -146,6 +151,74 @@ export interface ReminderSendResult {
   error?: string
 }
 
+/**
+ * Renders content from a template the customer's own staff wrote.
+ *
+ * Loaded by id at send time rather than snapshotted when the message was
+ * queued, so an edit reaches messages already in the queue. That is the
+ * behavior an office manager expects when she fixes a typo in a chain that
+ * runs for a year.
+ *
+ * The organization check is defense in depth. Every path that writes these ids
+ * is org-scoped already, but this runs on the admin client with RLS bypassed,
+ * so a bad id would otherwise render one tenant's copy into another tenant's
+ * message.
+ */
+async function renderTenantTemplate(
+  supabase: ReturnType<typeof createAdminClient>,
+  row: ReminderRow,
+  orgName: string,
+): Promise<RenderedContent | null> {
+  const variables = {
+    ...(row.template_variables ?? {}),
+    // Always available, and cheap: the sender already loaded it.
+    company_name: orgName,
+  }
+
+  if (row.email_template_id) {
+    const { data: template } = await supabase
+      .from('email_templates')
+      .select('subject, body, is_active, organization_id')
+      .eq('id', row.email_template_id)
+      .maybeSingle()
+
+    if (!template || !template.is_active) return null
+    if (template.organization_id !== row.organization_id) {
+      log.error(
+        { rowId: row.id, templateId: row.email_template_id },
+        'Email template belongs to a different organization, refusing to send'
+      )
+      return null
+    }
+
+    const text = renderTemplateBody(template.body, variables)
+    return {
+      subject: renderTemplateBody(template.subject, variables),
+      text,
+      html: renderTemplateHtml(template.body, variables),
+      sms: text,
+    }
+  }
+
+  const { data: template } = await supabase
+    .from('sms_templates')
+    .select('body, is_active, organization_id')
+    .eq('id', row.sms_template_id!)
+    .maybeSingle()
+
+  if (!template || !template.is_active) return null
+  if (template.organization_id !== row.organization_id) {
+    log.error(
+      { rowId: row.id, templateId: row.sms_template_id },
+      'SMS template belongs to a different organization, refusing to send'
+    )
+    return null
+  }
+
+  const text = renderTemplateBody(template.body, variables)
+  return { subject: '', text, html: '', sms: text }
+}
+
 // Sends a single scheduled_reminders row. Idempotent only in the sense that
 // a row already marked `sent` won't be touched; retries on failed rows are
 // safe. Returns the result so the caller can aggregate for reporting.
@@ -154,7 +227,7 @@ export async function sendReminderRow(rowId: string): Promise<ReminderSendResult
 
   const { data: row, error } = await supabase
     .from('scheduled_reminders')
-    .select('id, organization_id, related_type, related_id, channel, template_slug, recipient_email, recipient_phone, template_variables, status')
+    .select('id, organization_id, related_type, related_id, channel, template_slug, recipient_email, recipient_phone, template_variables, status, email_template_id, sms_template_id')
     .eq('id', rowId)
     .single()
 
@@ -177,9 +250,21 @@ export async function sendReminderRow(rowId: string): Promise<ReminderSendResult
     .single()
   const orgName = org?.name || 'HazardOS'
 
-  const content = renderTemplate(reminderRow.template_slug, reminderRow.template_variables, orgName)
+  // Tenant copy takes precedence over the built-in slugs. Both paths render
+  // only from `template_variables`; neither reads a record at send time, which
+  // is what keeps internal notes out of outbound mail (see the note above
+  // renderTemplate).
+  const content =
+    reminderRow.email_template_id || reminderRow.sms_template_id
+      ? await renderTenantTemplate(supabase, reminderRow, orgName)
+      : renderTemplate(reminderRow.template_slug ?? '', reminderRow.template_variables, orgName)
+
   if (!content) {
-    await markStatus(reminderRow.id, 'failed', `Unknown template: ${reminderRow.template_slug}`)
+    const label =
+      reminderRow.email_template_id || reminderRow.sms_template_id
+        ? 'tenant template missing, inactive, or belongs to another organization'
+        : `Unknown template: ${reminderRow.template_slug}`
+    await markStatus(reminderRow.id, 'failed', label)
     return { sent: false, skipped: 'unknown_template' }
   }
 
@@ -242,7 +327,11 @@ export async function sendReminderRow(rowId: string): Promise<ReminderSendResult
             subject: content.subject,
             text: content.text,
             html: content.html,
-            tags: ['reminder', reminderRow.template_slug],
+            // Tenant copy has no slug, so tag it as such rather than dropping
+            // the tag: the distinction between a system message and a
+            // customer's own template is exactly what you want when reading
+            // delivery stats back.
+            tags: ['reminder', reminderRow.template_slug ?? 'tenant-template'],
             // Prefer the underlying job/entity when we have one — the
             // unified feed threads the reminder onto that entity's
             // timeline. Falls back to the customer for generic nudges.

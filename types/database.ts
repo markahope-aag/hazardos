@@ -7789,6 +7789,8 @@ export type Database = {
           error: string | null
           id: string
           organization_id: string
+          email_template_id: string | null
+          sms_template_id: string | null
           recipient_email: string | null
           recipient_phone: string | null
           recipient_type: string
@@ -7807,6 +7809,8 @@ export type Database = {
           error?: string | null
           id?: string
           organization_id: string
+          email_template_id?: string | null
+          sms_template_id?: string | null
           recipient_email?: string | null
           recipient_phone?: string | null
           recipient_type: string
@@ -7825,6 +7829,8 @@ export type Database = {
           error?: string | null
           id?: string
           organization_id?: string
+          email_template_id?: string | null
+          sms_template_id?: string | null
           recipient_email?: string | null
           recipient_phone?: string | null
           recipient_type?: string
