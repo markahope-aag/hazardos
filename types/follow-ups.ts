@@ -57,6 +57,14 @@ export interface FollowUp {
   source: FollowUpSource
   /** Identifier in the system this was imported from, if any. */
   external_ref: string | null
+  /**
+   * Set when queued work was overtaken by events and will never happen, for
+   * example a nurture step on a lead who has since bought. Distinct from
+   * completed: nobody did this, and the reason says why nobody will.
+   */
+  canceled_at: string | null
+  canceled_by: string | null
+  cancel_reason: string | null
 }
 
 export interface FollowUpWithAssignee extends FollowUp {

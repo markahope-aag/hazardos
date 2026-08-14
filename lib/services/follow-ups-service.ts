@@ -20,7 +20,7 @@ import type {
 } from '@/lib/validations/follow-ups'
 
 const SELECT_COLUMNS =
-  'id, organization_id, entity_type, entity_id, due_date, note, assigned_to, completed_at, completed_by, created_by, created_at, updated_at, kind, activity_type_id, outcome_id, reminder_minutes, source, external_ref'
+  'id, organization_id, entity_type, entity_id, due_date, note, assigned_to, completed_at, completed_by, created_by, created_at, updated_at, kind, activity_type_id, outcome_id, reminder_minutes, source, external_ref, canceled_at, canceled_by, cancel_reason'
 
 const SELECT_WITH_ASSIGNEE = `
   ${SELECT_COLUMNS},
@@ -120,7 +120,9 @@ export class FollowUpsService {
       .range(offset, offset + limit - 1)
 
     if (state === 'pending') {
-      query = query.is('completed_at', null)
+      // Canceled work is not pending. It will never be done, and showing it in
+      // a queue would have someone chase a lead who already bought.
+      query = query.is('completed_at', null).is('canceled_at', null)
     } else if (state === 'completed') {
       query = query.not('completed_at', 'is', null)
     }
@@ -223,6 +225,7 @@ export class FollowUpsService {
       .eq('entity_type', entityType)
       .in('entity_id', entityIds)
       .is('completed_at', null)
+      .is('canceled_at', null)
       .order('due_date', { ascending: true })
 
     if (error) throwDbError(error, 'fetch follow-ups for entities')
@@ -420,6 +423,53 @@ export class FollowUpsService {
         },
         'Could not evaluate activity process rules after completion'
       )
+    }
+  }
+
+  /**
+   * Cancels queued work on a record that has been overtaken by events.
+   *
+   * The case this exists for: someone on a twelve-month nurture chain buys.
+   * Every remaining step in that chain is now wrong, and the customer is the
+   * one who finds out if nobody stops it.
+   *
+   * Defaults to sparing anything a person typed. An automated nurture step is
+   * safe to drop; a hand-written "call them back about the crawlspace" is
+   * somebody's intent and outlives the chain that happened to be running.
+   *
+   * Returns how many were canceled, or null if the cleanup itself failed. It
+   * never throws, because this runs as a side effect of saving something else
+   * and must not fail that save.
+   */
+  static async cancelOpenWork(
+    organizationId: string,
+    entityType: FollowUpEntityType,
+    entityId: string,
+    reason: string,
+    options: { onlyAutomated?: boolean } = {}
+  ): Promise<number | null> {
+    try {
+      const supabase = await createClient()
+      const { data, error } = await supabase.rpc('cancel_open_activity_work', {
+        p_organization_id: organizationId,
+        p_entity_type: entityType,
+        p_entity_id: entityId,
+        p_reason: reason,
+        p_only_automated: options.onlyAutomated ?? true,
+      })
+      if (error) throw error
+
+      const count = typeof data === 'number' ? data : 0
+      if (count > 0) {
+        logger.info({ entityType, entityId, reason, count }, 'Canceled queued follow-up work')
+      }
+      return count
+    } catch (error) {
+      logger.error(
+        { error: formatError(error, 'FOLLOW_UP_CANCEL_FAILED'), entityType, entityId, reason },
+        'Could not cancel queued follow-up work'
+      )
+      return null
     }
   }
 

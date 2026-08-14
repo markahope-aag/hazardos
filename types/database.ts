@@ -3090,6 +3090,9 @@ export type Database = {
         Row: {
           activity_type_id: string | null
           assigned_to: string | null
+          cancel_reason: string | null
+          canceled_at: string | null
+          canceled_by: string | null
           completed_at: string | null
           completed_by: string | null
           created_at: string
@@ -3112,6 +3115,9 @@ export type Database = {
         Insert: {
           activity_type_id?: string | null
           assigned_to?: string | null
+          cancel_reason?: string | null
+          canceled_at?: string | null
+          canceled_by?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
@@ -3132,6 +3138,9 @@ export type Database = {
         Update: {
           activity_type_id?: string | null
           assigned_to?: string | null
+          cancel_reason?: string | null
+          canceled_at?: string | null
+          canceled_by?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
@@ -6597,6 +6606,7 @@ export type Database = {
           billing_managed_externally: boolean
           business_hours_end: string
           business_hours_start: string
+          cancel_work_on_conversion: boolean
           city: string | null
           created_at: string | null
           email: string | null
@@ -6644,6 +6654,7 @@ export type Database = {
           billing_managed_externally?: boolean
           business_hours_end?: string
           business_hours_start?: string
+          cancel_work_on_conversion?: boolean
           city?: string | null
           created_at?: string | null
           email?: string | null
@@ -6691,6 +6702,7 @@ export type Database = {
           billing_managed_externally?: boolean
           business_hours_end?: string
           business_hours_start?: string
+          cancel_work_on_conversion?: boolean
           city?: string | null
           created_at?: string | null
           email?: string | null

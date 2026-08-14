@@ -129,14 +129,20 @@ describe('Estimates API', () => {
           } as any
         }
         if (table === 'follow_ups') {
+          // `.is()` is chained more than once (completed_at and canceled_at
+          // both have to be null for work to count as pending), so it returns
+          // a self-referencing builder rather than a fixed one-deep chain.
+          const pendingFilters: {
+            is: ReturnType<typeof vi.fn>
+            order: ReturnType<typeof vi.fn>
+          } = {
+            is: vi.fn(() => pendingFilters),
+            order: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                in: vi.fn().mockReturnValue({
-                  is: vi.fn().mockReturnValue({
-                    order: vi.fn().mockResolvedValue({ data: [], error: null }),
-                  }),
-                }),
+                in: vi.fn().mockReturnValue(pendingFilters),
               }),
             }),
           } as any
