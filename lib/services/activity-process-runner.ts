@@ -33,6 +33,23 @@ export interface ProcessStepRow {
   due_hours: number
   due_minutes: number
   reminder_minutes: number | null
+  email_template_id: string | null
+  sms_template_id: string | null
+}
+
+/**
+ * Who a sending step writes to, and the only facts a template may reference.
+ *
+ * Deliberately a small, flat set of customer-safe values. reminder-sender
+ * renders from these alone and never reads a record at send time, which is
+ * what keeps access codes, staff notes and internal comments out of outbound
+ * mail. Widening this is how that guarantee gets lost, so it should be widened
+ * on purpose or not at all.
+ */
+export interface RecipientContext {
+  email: string | null
+  phone: string | null
+  variables: Record<string, string>
 }
 
 export interface ProcessRow {
@@ -53,6 +70,19 @@ export interface RunContext {
   actingUserId: string | null
 }
 
+/** A message queued alongside a work item, sent by the hourly cron. */
+export interface ReminderPayload {
+  related_type: string
+  related_id: string
+  channel: 'email' | 'sms'
+  scheduled_for: string
+  recipient_email: string | null
+  recipient_phone: string | null
+  email_template_id: string | null
+  sms_template_id: string | null
+  template_variables: Record<string, string>
+}
+
 /** Shape the `create_activity_process_work` RPC expects. */
 export interface WorkItemPayload {
   entity_type: string
@@ -65,6 +95,8 @@ export interface WorkItemPayload {
   reminder_minutes: number | null
   process_id: string
   process_step_id: string
+  /** Present only for sending steps that have a template and a recipient. */
+  reminder?: ReminderPayload
 }
 
 /**
@@ -94,6 +126,7 @@ export function buildProcessWorkRows(
   process: ProcessRow,
   steps: ProcessStepRow[],
   context: RunContext,
+  recipient: RecipientContext | null = null,
 ): WorkItemPayload[] {
   const dayRules: WorkingDayRules = {
     use_saturdays: process.use_saturdays,
@@ -112,7 +145,7 @@ export function buildProcessWorkRows(
       }
       const dueDate = computeStepDueDate(rule, context.firedAt, dayRules)
 
-      return {
+      const row: WorkItemPayload = {
         entity_type: context.entityType,
         entity_id: context.entityId,
         due_date: dueDate.toISOString(),
@@ -124,7 +157,115 @@ export function buildProcessWorkRows(
         process_id: process.id,
         process_step_id: step.id,
       }
+
+      const reminder = buildReminder(step, dueDate, context, recipient)
+      if (reminder) row.reminder = reminder
+
+      return row
     })
+}
+
+/**
+ * The message a sending step queues, or null if it should stay a manual task.
+ *
+ * A step falls back to a plain work item rather than being dropped whenever it
+ * cannot send: no template chosen, no address on file, or a channel mismatch.
+ * The person still sees "send the pre-appointment email" in their queue and
+ * can do it by hand. Silently discarding the step would lose work; failing the
+ * whole chain would lose more.
+ */
+function buildReminder(
+  step: ProcessStepRow,
+  dueDate: Date,
+  context: RunContext,
+  recipient: RecipientContext | null,
+): ReminderPayload | undefined {
+  if (step.kind !== 'email' && step.kind !== 'text') return undefined
+  if (!recipient) return undefined
+
+  const channel = step.kind === 'email' ? 'email' : 'sms'
+  const templateId = channel === 'email' ? step.email_template_id : step.sms_template_id
+  if (!templateId) return undefined
+
+  const address = channel === 'email' ? recipient.email : recipient.phone
+  if (!address) return undefined
+
+  return {
+    related_type: context.entityType,
+    related_id: context.entityId,
+    channel,
+    scheduled_for: dueDate.toISOString(),
+    recipient_email: channel === 'email' ? recipient.email : null,
+    recipient_phone: channel === 'sms' ? recipient.phone : null,
+    email_template_id: channel === 'email' ? templateId : null,
+    sms_template_id: channel === 'sms' ? templateId : null,
+    template_variables: recipient.variables,
+  }
+}
+
+/**
+ * Which column holds the customer on each entity a chain can hang off.
+ * Contacts are the customer, everything else points at one.
+ */
+const CUSTOMER_LOOKUP: Partial<Record<FollowUpEntityType, string>> = {
+  job: 'jobs',
+  opportunity: 'opportunities',
+  estimate: 'estimates',
+  invoice: 'invoices',
+  site_survey: 'site_surveys',
+  proposal: 'proposals',
+}
+
+/**
+ * Finds who a chain's messages go to, and the customer-safe facts a template
+ * may use.
+ *
+ * Returns null when there is nobody to write to, which turns every sending
+ * step in the chain into a manual task rather than failing the chain.
+ */
+async function resolveRecipient(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  context: RunContext,
+): Promise<RecipientContext | null> {
+  let customerId: string | null = null
+
+  if (context.entityType === 'customer' || context.entityType === 'contact') {
+    customerId = context.entityId
+  } else {
+    const table = CUSTOMER_LOOKUP[context.entityType]
+    if (!table) return null
+    const { data } = await supabase
+      .from(table)
+      .select('customer_id')
+      .eq('id', context.entityId)
+      .maybeSingle()
+    customerId = (data as { customer_id?: string } | null)?.customer_id ?? null
+  }
+
+  if (!customerId) return null
+
+  const { data: customer } = await supabase
+    .from('customers')
+    .select('name, first_name, company_name, email, phone, city')
+    .eq('id', customerId)
+    .maybeSingle()
+
+  if (!customer) return null
+
+  // Only these reach a template. Nothing here is an internal note, an access
+  // code or a staff comment, and that is the point.
+  const variables: Record<string, string> = {
+    customer_name: customer.first_name || customer.name || 'there',
+    customer_full_name: customer.name || '',
+    company_name: customer.company_name || '',
+    city: customer.city || '',
+  }
+
+  return {
+    email: customer.email ?? null,
+    phone: customer.phone ?? null,
+    variables,
+  }
 }
 
 /**
@@ -173,7 +314,7 @@ export async function runProcess(
 
   const { data: steps, error: stepsError } = await supabase
     .from('activity_process_steps')
-    .select('id, sort_order, kind, activity_type_id, note, assignee_mode, assigned_to, due_mode, due_days, due_time, due_hours, due_minutes, reminder_minutes')
+    .select('id, sort_order, kind, activity_type_id, note, assignee_mode, assigned_to, due_mode, due_days, due_time, due_hours, due_minutes, reminder_minutes, email_template_id, sms_template_id')
     .eq('process_id', processId)
     .order('sort_order', { ascending: true })
 
@@ -186,10 +327,23 @@ export async function runProcess(
     return { created: 0, skipped: true }
   }
 
+  // Only looked up when the chain actually sends something, so a chain of
+  // pure to-dos costs no extra queries.
+  const sends = (steps as ProcessStepRow[]).some((s) => s.kind === 'email' || s.kind === 'text')
+  const recipient = sends ? await resolveRecipient(supabase, context) : null
+
+  if (sends && !recipient) {
+    logger.warn(
+      { processId, entityType: context.entityType, entityId: context.entityId },
+      'No contact details for this record, sending steps will be created as manual tasks'
+    )
+  }
+
   const rows = buildProcessWorkRows(
     process as ProcessRow,
     steps as ProcessStepRow[],
     context,
+    recipient,
   )
 
   const { data: created, error: rpcError } = await supabase.rpc('create_activity_process_work', {
