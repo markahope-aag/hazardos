@@ -53,6 +53,12 @@ interface Vocabulary {
   activity_types: { id: string; name: string; kind: ActivityKind }[]
 }
 
+interface MessageTemplate {
+  id: string
+  name: string
+  is_active: boolean
+}
+
 interface TeamMember {
   id: string
   first_name: string | null
@@ -95,6 +101,8 @@ export function AutomationEditor({ processId }: { processId: string }) {
   const [steps, setSteps] = useState<Step[]>([])
   const [vocabulary, setVocabulary] = useState<Vocabulary>({ activity_types: [] })
   const [members, setMembers] = useState<TeamMember[]>([])
+  const [emailTemplates, setEmailTemplates] = useState<MessageTemplate[]>([])
+  const [smsTemplates, setSmsTemplates] = useState<MessageTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
 
@@ -127,6 +135,15 @@ export function AutomationEditor({ processId }: { processId: string }) {
       .then((r) => r.json())
       .then((d) => setMembers(d.members ?? []))
       .catch(() => setMembers([]))
+    fetch('/api/email-templates')
+      .then((r) => r.json())
+      .then((d) => setEmailTemplates((d.templates ?? []).filter((t: MessageTemplate) => t.is_active)))
+      .catch(() => setEmailTemplates([]))
+    // This endpoint returns a bare array.
+    fetch('/api/sms/templates')
+      .then((r) => r.json())
+      .then((d) => setSmsTemplates(Array.isArray(d) ? d.filter((t: MessageTemplate) => t.is_active) : []))
+      .catch(() => setSmsTemplates([]))
   }, [])
 
   const patchProcess = async (patch: Partial<Process>) => {
@@ -522,18 +539,50 @@ export function AutomationEditor({ processId }: { processId: string }) {
                         />
                       </div>
 
-                      {(step.kind === 'email' || step.kind === 'text') && (
-                        <p className={cn(
-                          'rounded border px-3 py-2 text-xs',
-                          (step.kind === 'email' ? step.email_template_id : step.sms_template_id)
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-                            : 'border-amber-200 bg-amber-50 text-amber-900'
-                        )}>
-                          {(step.kind === 'email' ? step.email_template_id : step.sms_template_id)
-                            ? 'This step sends automatically.'
-                            : 'No template chosen yet, so this will appear as a task for someone to send by hand.'}
-                        </p>
-                      )}
+                      {(step.kind === 'email' || step.kind === 'text') && (() => {
+                        const isEmail = step.kind === 'email'
+                        const options = isEmail ? emailTemplates : smsTemplates
+                        const current = isEmail ? step.email_template_id : step.sms_template_id
+                        return (
+                          <div className="space-y-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Which message</Label>
+                              <Select
+                                value={current ?? 'none'}
+                                onValueChange={(v) =>
+                                  patchStep(step.id, isEmail
+                                    ? { email_template_id: v === 'none' ? null : v }
+                                    : { sms_template_id: v === 'none' ? null : v })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Pick a template" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">Send it by hand</SelectItem>
+                                  {options.map((t) => (
+                                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <p className={cn(
+                              'rounded border px-3 py-2 text-xs',
+                              current
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                                : 'border-amber-200 bg-amber-50 text-amber-900'
+                            )}>
+                              {current
+                                ? 'This step sends automatically.'
+                                : options.length === 0
+                                  ? isEmail
+                                    ? 'No templates written yet. Until one is attached, this appears as a task for someone to send by hand.'
+                                    : 'No text templates yet. Until one is attached, this appears as a task for someone to send by hand.'
+                                  : 'This will appear as a task for someone to send by hand.'}
+                            </p>
+                          </div>
+                        )
+                      })()}
 
                       <p className="text-xs text-muted-foreground">{describeTiming(step)}</p>
                     </div>

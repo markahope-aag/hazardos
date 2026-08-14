@@ -16,6 +16,7 @@ import {
   FileBadge,
   UserCircle,
   Workflow,
+  FileText,
   type LucideIcon,
 } from 'lucide-react'
 import { ROLES } from '@/lib/auth/roles'
@@ -75,6 +76,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
     label: 'Communications',
     items: [
       { href: '/settings/email', label: 'Email', icon: Mail, requiredRoles: ADMIN_ONLY },
+      { href: '/settings/message-templates', label: 'Message Templates', icon: FileText, description: 'The copy your automations send', requiredRoles: ADMIN_ONLY },
       // Notifications cover personal preferences — everyone gets this.
       { href: '/settings/notifications', label: 'Notifications', icon: Bell },
       { href: '/settings/sms', label: 'SMS', icon: MessageSquare, requiredRoles: ADMIN_ONLY },
