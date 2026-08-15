@@ -16,14 +16,14 @@ on:
     paths:
       - 'supabase/migrations/**'
       - 'tests/integration/**'
-      - 'vitest.integration.config.ts'
+      - 'vitest.integration.config.mts'
       - '.github/workflows/rls-integration.yml'
   pull_request:
     branches: [main]
     paths:
       - 'supabase/migrations/**'
       - 'tests/integration/**'
-      - 'vitest.integration.config.ts'
+      - 'vitest.integration.config.mts'
       - '.github/workflows/rls-integration.yml'
 
 concurrency:

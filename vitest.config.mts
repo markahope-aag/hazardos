@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
-    setupFiles: [path.resolve(__dirname, 'test/setup.ts')],
+    setupFiles: [path.resolve(import.meta.dirname, 'test/setup.ts')],
     globals: true,
     css: true,
     // `.next/**` matters: the dev build vendors dependencies (pino et al) into
@@ -62,7 +62,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './'),
+      '@': path.resolve(import.meta.dirname, './'),
     },
   },
 })

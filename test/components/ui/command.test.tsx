@@ -11,16 +11,12 @@ import {
   CommandSeparator,
 } from '@/components/ui/command'
 
-// Mock cmdk
-vi.mock('cmdk', () => ({
-  Command: ({ children, className, ...props }: any) => (
-    <div data-testid="command" className={className} {...props}>
-      {children}
-    </div>
-  ),
-}))
-
-// Add mock components for Command primitives
+// Mock cmdk. This file used to register TWO vi.mock('cmdk') factories: an
+// incomplete one (Command only) followed by this complete one. Which of a
+// duplicate pair wins is not something to rely on. A dependency bump flipped
+// it to first-wins, the incomplete mock took effect, and every test touching
+// a sub-component (Input/List/Empty/Group/Item/Separator) broke at once. One
+// factory now, defining everything the component file reaches for.
 vi.mock('cmdk', () => {
   const MockCommand = ({ children, className, ...props }: any) => (
     <div data-testid="command" className={className} {...props}>
