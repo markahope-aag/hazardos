@@ -31,6 +31,8 @@ import { formatCurrency } from '@/lib/utils'
 import { getJobPaymentStatus } from '@/lib/utils/job-payment-status'
 import EntityActivityFeed from '@/components/activity/entity-activity-feed'
 import { JobDocumentsHub } from '@/app/(dashboard)/jobs/[id]/job-documents-hub'
+import { JobChangeOrders } from '@/app/(dashboard)/jobs/[id]/job-change-orders'
+import { JobMaterials } from '@/app/(dashboard)/jobs/[id]/job-materials'
 import { eachDayOfInterval, format } from 'date-fns'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -77,7 +79,9 @@ export default function JobDetailPage({ params }: Props) {
           *,
           customer:customers!customer_id(id, name, first_name, last_name, company_name, company_id),
           company:companies!company_id(id, name),
-          crew_lead_profile:profiles!crew_lead_id(id, first_name, last_name, full_name)
+          crew_lead_profile:profiles!crew_lead_id(id, first_name, last_name, full_name),
+          change_orders:job_change_orders(*),
+          material_usage:job_material_usage(*)
         `)
         .eq('id', id).single()
       if (error) throw error
@@ -86,6 +90,8 @@ export default function JobDetailPage({ params }: Props) {
         customer: Array.isArray(data.customer) ? data.customer[0] : data.customer,
         company: Array.isArray(data.company) ? data.company[0] : data.company,
         crew_lead_profile: Array.isArray(data.crew_lead_profile) ? data.crew_lead_profile[0] : data.crew_lead_profile,
+        change_orders: data.change_orders ?? [],
+        material_usage: data.material_usage ?? [],
       }
     },
     enabled: !!id,
@@ -516,6 +522,18 @@ export default function JobDetailPage({ params }: Props) {
                     </div>
                   </CardContent>
                 </Card>
+
+                <JobChangeOrders
+                  jobId={job.id}
+                  changeOrders={job.change_orders ?? []}
+                  onSaved={() => queryClient.invalidateQueries({ queryKey: ['crm-job', id] })}
+                />
+
+                <JobMaterials
+                  jobId={job.id}
+                  materialUsage={job.material_usage ?? []}
+                  onSaved={() => queryClient.invalidateQueries({ queryKey: ['crm-job', id] })}
+                />
               </div>
             )
           })()}

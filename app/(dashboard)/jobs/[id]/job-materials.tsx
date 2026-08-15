@@ -25,6 +25,8 @@ import type { JobMaterialUsage } from '@/types/job-completion'
 interface JobMaterialsProps {
   jobId: string
   materialUsage: JobMaterialUsage[]
+  /** See the matching prop on JobChangeOrders for why this exists. */
+  onSaved?: () => void
 }
 
 const emptyForm = {
@@ -42,7 +44,7 @@ const emptyForm = {
  * material that was never itemized on the estimate to begin with (bought on
  * the fly) rather than forcing a number that doesn't exist.
  */
-export function JobMaterials({ jobId, materialUsage }: JobMaterialsProps) {
+export function JobMaterials({ jobId, materialUsage, onSaved }: JobMaterialsProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
@@ -84,7 +86,7 @@ export function JobMaterials({ jobId, materialUsage }: JobMaterialsProps) {
       toast({ title: 'Material recorded' })
       setForm(emptyForm)
       setOpen(false)
-      router.refresh()
+      if (onSaved) onSaved(); else router.refresh()
     } catch (error) {
       toast({
         title: 'Error',
@@ -104,7 +106,7 @@ export function JobMaterials({ jobId, materialUsage }: JobMaterialsProps) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err?.error?.message || 'Failed to remove material')
       }
-      router.refresh()
+      if (onSaved) onSaved(); else router.refresh()
     } catch (error) {
       toast({
         title: 'Error',

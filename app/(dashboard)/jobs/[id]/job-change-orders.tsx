@@ -25,6 +25,14 @@ import type { JobChangeOrder } from '@/types/jobs'
 interface JobChangeOrdersProps {
   jobId: string
   changeOrders: JobChangeOrder[]
+  /**
+   * Called after a successful add/approve/reject instead of the default
+   * router.refresh(). The main job page is a server component that
+   * refetches on refresh; a client-only page driven by react-query (like
+   * the CRM job page) needs to invalidate its own query instead, since
+   * router.refresh() doesn't touch client-fetched state.
+   */
+  onSaved?: () => void
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -39,7 +47,7 @@ const STATUS_STYLES: Record<string, string> = {
  * what a job actually costs once work starts diverging from what was
  * priced.
  */
-export function JobChangeOrders({ jobId, changeOrders }: JobChangeOrdersProps) {
+export function JobChangeOrders({ jobId, changeOrders, onSaved }: JobChangeOrdersProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
@@ -84,7 +92,7 @@ export function JobChangeOrders({ jobId, changeOrders }: JobChangeOrdersProps) {
       toast({ title: 'Change order recorded', description: 'Pending approval before it affects the job total.' })
       resetForm()
       setOpen(false)
-      router.refresh()
+      if (onSaved) onSaved(); else router.refresh()
     } catch (error) {
       toast({
         title: 'Error',
@@ -109,7 +117,7 @@ export function JobChangeOrders({ jobId, changeOrders }: JobChangeOrdersProps) {
         throw new Error(err?.error?.message || `Failed to ${action} change order`)
       }
       toast({ title: action === 'approve' ? 'Change order approved' : 'Change order rejected' })
-      router.refresh()
+      if (onSaved) onSaved(); else router.refresh()
     } catch (error) {
       toast({
         title: 'Error',
