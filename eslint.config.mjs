@@ -55,7 +55,11 @@ const requireRouteAuthWrapper = {
 
 export default tseslint.config(
   {
-    ignores: [".next/**", "node_modules/**", "public/**", "scripts/**", "coverage/**"],
+    // supabase/.temp holds edge-runtime scaffolding the CLI writes on
+    // `supabase start`. It is gitignored, so it never lands in a commit, but
+    // eslint still walked it and `npm run lint` reported ~190 errors in
+    // generated code for anyone who had run the local stack.
+    ignores: [".next/**", "node_modules/**", "public/**", "scripts/**", "coverage/**", "supabase/.temp/**"],
   },
   ...tseslint.configs.recommended,
   {

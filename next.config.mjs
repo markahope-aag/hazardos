@@ -150,11 +150,20 @@ const nextConfig = {
       // Default fallback - restrict to self
       'default-src': ["'self'"],
 
-      // Scripts - allow self, and unsafe-inline/eval for Next.js hydration
-      // In production, Next.js requires these for client-side rendering
+      // Scripts. The dev and prod arms genuinely differ: React Refresh compiles
+      // modules at runtime, so 'unsafe-eval' is required for hot reload, and a
+      // production bundle has no such need. Dropping it in production closes
+      // the eval/Function() escalation path that turns a script injection into
+      // arbitrary code execution. Verified against a production build.
+      //
+      // 'unsafe-inline' is still here and is the remaining gap. Removing it
+      // needs a per-request nonce generated in proxy.ts rather than a static
+      // header, which also opts every page out of static prerendering. That is
+      // a real performance tradeoff, so it is a deliberate decision to make
+      // rather than a cleanup to slip in. See docs/TECHNICAL-DEBT.md.
       'script-src': isDev
         ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://js.stripe.com', 'https://va.vercel-scripts.com']
-        : ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://js.stripe.com', 'https://va.vercel-scripts.com'],
+        : ["'self'", "'unsafe-inline'", 'https://js.stripe.com', 'https://va.vercel-scripts.com'],
 
       // Styles - allow self and unsafe-inline for Next.js styled-jsx and Tailwind
       'style-src': ["'self'", "'unsafe-inline'"],
