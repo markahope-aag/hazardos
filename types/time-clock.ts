@@ -20,7 +20,7 @@ export interface TimeClockEntry {
   updated_at: string
 
   // Relations, populated where useful
-  job?: { id: string; job_number: string; job_name: string | null } | null
+  job?: { id: string; job_number: string; name: string | null } | null
   profile?: { id: string; first_name: string | null; last_name: string | null; full_name: string | null } | null
 }
 

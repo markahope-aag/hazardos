@@ -5,7 +5,7 @@ import type { ClockInInput, TimeClockEntry, TimeClockEntryStatus } from '@/types
 const ENTRY_COLUMNS = `
   id, organization_id, profile_id, job_id, clock_in, clock_out, status, notes,
   submitted_at, reviewed_by, reviewed_at, review_notes, created_at, updated_at,
-  job:jobs(id, job_number, job_name),
+  job:jobs(id, job_number, name),
   profile:profiles!profile_id(id, first_name, last_name, full_name)
 `
 

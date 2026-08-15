@@ -24,7 +24,7 @@ import type { TimeClockEntry } from '@/types/time-clock'
 interface JobOption {
   id: string
   job_number: string
-  job_name: string | null
+  name: string | null
 }
 
 /** Monday-start week containing `date`, as [start, end] local-date strings (YYYY-MM-DD). */
@@ -102,7 +102,7 @@ export default function TimeClockPage() {
       const supabase = createClient()
       const { data } = await supabase
         .from('jobs')
-        .select('id, job_number, job_name')
+        .select('id, job_number, name')
         .eq('organization_id', organization.id)
         .in('status', ['scheduled', 'in_progress'])
         .order('scheduled_start_date', { ascending: false })
@@ -252,7 +252,7 @@ export default function TimeClockPage() {
                     <SelectItem value="none">General time (no job)</SelectItem>
                     {jobs.map((j) => (
                       <SelectItem key={j.id} value={j.id}>
-                        {j.job_number}{j.job_name ? ` — ${j.job_name}` : ''}
+                        {j.job_number}{j.name ? ` (${j.name})` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
