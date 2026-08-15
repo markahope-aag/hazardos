@@ -15,7 +15,10 @@ import { ROLES, type UserRole } from './roles'
  * Usage:
  *   const { profile, supabase } = await requireRoles(ROLES.TENANT_ADMIN)
  */
-export async function requireRoles(allowed: readonly string[] | UserRole[]) {
+export async function requireRoles(
+  allowed: readonly string[] | UserRole[],
+  fallback = '/settings',
+) {
   const supabase = await createClient()
 
   const user = await getCurrentUser()
@@ -28,7 +31,7 @@ export async function requireRoles(allowed: readonly string[] | UserRole[]) {
     .single()
 
   if (!profile?.organization_id) redirect('/onboard')
-  if (!allowed.includes(profile.role)) redirect('/settings')
+  if (!allowed.includes(profile.role)) redirect(fallback)
 
   return { user, profile, supabase }
 }

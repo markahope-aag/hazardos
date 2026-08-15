@@ -12,6 +12,9 @@ import { ROLES } from '@/lib/auth/roles'
 export const GET = createApiHandlerWithParams(
   {
     rateLimit: 'general',
+    // Same gap as the estimates detail route: no role list meant any
+    // authenticated user, technicians included, could read an invoice total.
+    allowedRoles: ROLES.FINANCIAL_VIEW,
   },
   async (_request, _context, params) => {
     const invoice = await InvoicesService.getById(params.id)

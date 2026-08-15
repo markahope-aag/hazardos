@@ -14,7 +14,7 @@ import { estimateListQuerySchema, createEstimateBodySchema } from '@/lib/validat
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
-    allowedRoles: ROLES.TENANT_READ,
+    allowedRoles: ROLES.FINANCIAL_VIEW,
     querySchema: estimateListQuerySchema,
   },
   async (_request, context, _body, query) => {

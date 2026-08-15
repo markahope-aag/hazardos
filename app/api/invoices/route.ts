@@ -11,7 +11,7 @@ import { invoiceListQuerySchema, createInvoiceSchema } from '@/lib/validations/i
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
-    allowedRoles: ROLES.TENANT_READ,
+    allowedRoles: ROLES.FINANCIAL_VIEW,
     querySchema: invoiceListQuerySchema,
   },
   async (_request, _context, _body, query) => {

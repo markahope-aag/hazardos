@@ -24,7 +24,7 @@ const querySchema = z.object({
 export const GET = createApiHandler(
   {
     rateLimit: 'general',
-    allowedRoles: ROLES.TENANT_READ,
+    allowedRoles: ROLES.FINANCIAL_VIEW,
     querySchema,
   },
   async (_request, context, _body, query) => {

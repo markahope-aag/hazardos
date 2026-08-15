@@ -28,6 +28,10 @@ async function tryRecompute(supabase: SupabaseClient, estimateId: string) {
 export const GET = createApiHandlerWithParams(
   {
     rateLimit: 'general',
+    // Technicians are excluded from money. Without this the handler fell back
+    // to "any authenticated user", so a tech who knew an id could still read
+    // the totals the list endpoint is meant to withhold.
+    allowedRoles: ROLES.FINANCIAL_VIEW,
   },
   async (_request, context, params) => {
     const { data: estimate, error } = await context.supabase
