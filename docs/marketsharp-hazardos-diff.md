@@ -102,19 +102,32 @@ converts.
 Done: P0-1 (decided: app first, data after), P0-4, P0-5, P0-6, P1-1, P1-2, P1-3,
 P1-4, P1-5 in part.
 
+**Done 2026-08-15:**
+
+1. **`message_failed` now fires.** Raised from all three places a message can
+   actually fail: the send-time throw in `reminder-sender`, an email bounce via
+   the Resend webhook, and a failed or undelivered SMS via the Twilio status
+   webhook. All three go through `queueMessageFailedEvent`, which writes to the
+   same `process_event_queue` the other four events already use, so the
+   existing drain cron handles it with no new infrastructure.
+2. **Vocabulary editor** at Settings > Workflow > Activity Types & Outcomes.
+   Add, rename, deactivate, delete. Delete is blocked with the names of the
+   automations still using the row rather than cascading them away silently.
+3. **The six system emails** are seeded per organization as editable rows and
+   resolved by slug, so `job_confirmation` and friends can be reworded without
+   a deploy. Settings > Message Templates grew an SMS tab for the five SMS
+   ones. An org that predates the seed still falls back to the hardcoded copy,
+   so nothing breaks mid-migration.
+
 Not done, in the order worth doing them:
 
-1. **`message_failed` is still silent.** It has a rule type, a matcher and a UI
-   entry, but nothing raises it, so a bounce trigger built today never fires.
-   Needs the Resend webhook and the SMS failure path. Offering a trigger that
-   cannot fire is the worst state of the four.
-2. **Vocabulary editor.** Activity types and outcomes are seeded and used
-   everywhere but can only be renamed with SQL.
-3. **The six hardcoded system emails** still live in code. The table and editor
-   now exist to move them onto.
-4. **P0-2 and P0-3**, the extraction and field mapping, which is the whole of
-   the data migration.
-5. **AHS's own configuration**: their 35 live activity references, six live
+1. **P0-2 and P0-3**, the extraction and field mapping, which is the whole of
+   the data migration. Blocked on five open questions in section 4, not on
+   engineering time: what `Loans` is, whether appointments map to surveys or
+   opportunities, whether to carry 4.5 years of activity history, where
+   proposals actually live, and which of the 13 chains still reflect practice.
+   Also needs the PII handling in section 11 settled first.
+2. **AHS's own configuration**: their 35 live activity references, six live
    templates, and four highest-volume chains, loaded as their rows.
 
 **Nothing here has been exercised against the live site.** Type-check, lint and

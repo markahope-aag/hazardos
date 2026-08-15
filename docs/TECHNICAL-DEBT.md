@@ -91,22 +91,22 @@ Implemented `requiredRoles` on `MainNavItem` in `app/(dashboard)/layout.tsx`. In
 
 ---
 
-## CSP: drop `'unsafe-inline'` / `'unsafe-eval'` from script-src
+## CSP: drop `'unsafe-inline'` from script-src
 
-**What:** `next.config.mjs:121-125` allows `'unsafe-inline'` and `'unsafe-eval'` for `script-src` in both dev and prod. The block comment claims prod is strict but the config is identical for both modes. This weakens the primary XSS defense — any script injection slipped past output-encoding can execute.
+`'unsafe-eval'` is **done** (2026-08-15). Production no longer sends it; dev keeps it because React Refresh compiles modules at runtime. Verified against a real production build served locally and loaded in a browser: zero CSP violations, pages hydrate.
 
-**Why deferred:** Two real constraints:
-1. **Next.js hydration** emits inline `<script>` tags with no `src`. Removing `'unsafe-inline'` requires per-request nonces minted in `proxy.ts` and threaded through every script tag (own and third-party).
-2. **Stripe.js** historically requires `'unsafe-eval'`. Stripe now ships a no-eval bundle, but checkout flows need to be re-tested end-to-end before flipping it.
+The old entry deferred this partly on "Stripe.js historically requires `'unsafe-eval'`, re-test checkout before flipping it." That turned out not to apply here. There is **no client-side Stripe.js in this codebase**: no `loadStripe`, no `@stripe/stripe-js`, no `Elements`. Only the server-side `stripe` package, which runs in Node where CSP does not apply. Billing creates a session server-side and redirects the browser to a Stripe-hosted page on Stripe's own domain, which our CSP does not govern. The `https://js.stripe.com` entry in `script-src` is vestigial and could be removed too.
 
-Not a one-line fix; touches every page render and the Stripe integration.
+**What remains:** `'unsafe-inline'` is still in `script-src`. Next.js hydration emits inline `<script>` tags with no `src`, so removing it needs per-request nonces.
+
+**Why still deferred:** this is a product decision, not a cleanup. A nonce has to be minted per request, which means moving CSP out of the static `next.config.mjs` headers into `proxy.ts`. That **opts every page out of static prerendering**, because a per-request header cannot be baked into a prerendered response. The build currently prerenders a number of routes. Trading that away for the remaining XSS hardening is a real performance cost and wants a deliberate yes.
 
 **Proposed approach:**
 
-1. In `proxy.ts`, generate a `crypto.randomUUID()`-based nonce per request and inject as a request header so server components can read it.
-2. Update CSP middleware to emit `script-src 'self' 'nonce-<value>' https://js.stripe.com https://va.vercel-scripts.com` — drop both `'unsafe-inline'` and (eventually) `'unsafe-eval'`.
-3. Tag every inline script with the nonce. Next.js auto-tags hydration scripts when `nonce` is set on `<NextScript>` (App Router uses a different hook — verify in 16.x).
-4. Confirm Stripe is on the no-eval bundle and run a full payment-flow test before dropping `'unsafe-eval'` in prod.
-5. Roll out behind a config flag so we can toggle per-environment if a third-party tag misbehaves.
+1. Stand up a CSP violation reporting endpoint and run the policy in `Content-Security-Policy-Report-Only` first, so production traffic tells us what breaks before anything is enforced.
+2. In `proxy.ts`, generate a nonce per request and set it on both the request header (so the framework can read it) and the response CSP header.
+3. Emit `script-src 'self' 'nonce-<value>' https://va.vercel-scripts.com` and drop `'unsafe-inline'`.
+4. Measure the prerendering loss against the build output before and after.
+5. Roll out behind a config flag so it can be toggled per environment.
 
-**Risk:** Any inline script that misses the nonce stops loading — typical breakage is silent (a button doesn't react, an analytics tag goes dark). Needs a CSP-violation reporting endpoint live *before* we tighten the policy, so we can see what breaks in production traffic.
+**Risk:** an inline script that misses the nonce stops loading, and the breakage is silent (a button stops reacting, an analytics tag goes dark). Report-Only in step 1 is what makes this safe; do not skip it.
