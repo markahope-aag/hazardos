@@ -6,6 +6,7 @@ import { JobCrew } from './job-crew'
 import { JobNotes } from './job-notes'
 import { JobDocumentsHub } from './job-documents-hub'
 import { JobWorkOrder } from './job-work-order'
+import { JobMaterials } from './job-materials'
 import EntityActivityFeed from '@/components/activity/entity-activity-feed'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
@@ -39,7 +40,7 @@ export default async function JobDetailPage({
     customerRes, proposalRes, estimateRes, surveyRes,
     crewRes, equipmentRes, materialsRes, disposalRes,
     changeOrdersRes, notesRes, workOrderRes, availableCrewRes,
-    completionRes,
+    completionRes, materialUsageRes,
   ] = await Promise.all([
     job.customer_id
       ? supabase.from('customers').select('*').eq('id', job.customer_id).maybeSingle()
@@ -90,6 +91,13 @@ export default async function JobDetailPage({
       .select('status')
       .eq('job_id', id)
       .maybeSingle(),
+    // Estimated-vs-actual material tracking (job_material_usage) — separate
+    // from job_materials, which is the older, unused free-text table.
+    supabase
+      .from('job_material_usage')
+      .select('*')
+      .eq('job_id', id)
+      .order('created_at', { ascending: false }),
   ])
 
   for (const [label, res] of Object.entries({
@@ -98,6 +106,7 @@ export default async function JobDetailPage({
     materials: materialsRes, disposal: disposalRes,
     change_orders: changeOrdersRes, notes: notesRes,
     work_order: workOrderRes, completion: completionRes,
+    material_usage: materialUsageRes,
   })) {
     if (res.error) {
       console.error(`[jobs/[id]] embed '${label}' failed`, { id, error: res.error })
@@ -115,6 +124,7 @@ export default async function JobDetailPage({
     materials: materialsRes.data ?? [],
     disposal: disposalRes.data ?? [],
     change_orders: changeOrdersRes.data ?? [],
+    material_usage: materialUsageRes.data ?? [],
     notes: (notesRes.data ?? []).map((n: { author?: unknown }) => ({
       ...n,
       author: Array.isArray(n.author) ? n.author[0] : n.author,
@@ -139,6 +149,9 @@ export default async function JobDetailPage({
             Crew ({transformedJob.crew?.length || 0})
           </TabsTrigger>
           <TabsTrigger value="work-order">Work Order</TabsTrigger>
+          <TabsTrigger value="materials">
+            Materials ({transformedJob.material_usage?.length || 0})
+          </TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="notes">
             Notes ({transformedJob.notes?.length || 0})
@@ -163,6 +176,10 @@ export default async function JobDetailPage({
             jobId={transformedJob.id}
             initial={transformedJob.work_order ?? null}
           />
+        </TabsContent>
+
+        <TabsContent value="materials" className="mt-4">
+          <JobMaterials jobId={transformedJob.id} materialUsage={transformedJob.material_usage || []} />
         </TabsContent>
 
         <TabsContent value="documents" className="mt-4">
