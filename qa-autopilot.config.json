@@ -11,7 +11,8 @@
     "Fresh sign-up may be bot-blocked in headless automation -> mark N/A, note it",
     "Stripe billing/subscription flows require Stripe test keys in the target env -> Blocked if unconfigured (SE5-SE10, EX8)",
     "QuickBooks integration requires OAuth config in the target env -> Blocked if unconfigured (I12, SE18-SE20)",
-    "Native mobile / PWA install / physical-device checks -> Blocked, no device (X1-X7, EX4)"
+    "Native mobile / PWA install / physical-device checks -> Blocked, no device (X1-X7, EX4)",
+    "AI features (estimate generation, photo analysis, voice transcription) need ANTHROPIC_API_KEY in the target env -> Blocked if unconfigured. It is absent from .env.local and undocumented in the env list, so confirm it is set in Vercel before testing these. They also ran on a retired model until 2026-08-15, so a pass here has never actually been observed."
   ],
 
   "testAccounts": {
