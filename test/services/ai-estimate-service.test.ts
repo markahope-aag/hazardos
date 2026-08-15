@@ -166,7 +166,7 @@ describe('AIEstimateService', () => {
 
       expect(mockMessagesCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-5',
           max_tokens: 4096,
           messages: expect.arrayContaining([
             expect.objectContaining({
@@ -596,7 +596,7 @@ describe('AIEstimateService', () => {
 
       expect(mockMessagesCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'claude-3-5-sonnet-20241022'
+          model: 'claude-sonnet-5'
         })
       )
     })

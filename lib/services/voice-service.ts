@@ -5,7 +5,10 @@ import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler';
 import type { VoiceTranscription } from '@/types/integrations';
 
 const WHISPER_MODEL = 'whisper-1';
-const CLAUDE_MODEL = 'claude-3-5-sonnet-20241022';
+// Retired model (October 2025), so transcription post-processing was 404ing.
+// See the note in ai-estimate-service.ts for why thinking is disabled.
+// Only the Claude half changed here; Whisper still does the transcription.
+const CLAUDE_MODEL = 'claude-sonnet-5';
 
 export interface TranscriptionContext {
   context_type: 'site_survey_note' | 'job_note' | 'customer_note';
@@ -157,6 +160,7 @@ export class VoiceService {
     const response = await claude.messages.create({
       model: CLAUDE_MODEL,
       max_tokens: 2048,
+      thinking: { type: 'disabled' },
       messages: [
         {
           role: 'user',

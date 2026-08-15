@@ -6,7 +6,9 @@ import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler';
 import type { PhotoAnalysis, DetectedHazard } from '@/types/integrations';
 
 const log = createServiceLogger('PhotoAnalysisService');
-const MODEL_VERSION = 'claude-3-5-sonnet-20241022';
+// Retired model (October 2025), so every photo analysis call was 404ing.
+// See the note in ai-estimate-service.ts for why thinking is disabled.
+const MODEL_VERSION = 'claude-sonnet-5';
 
 export interface PhotoAnalysisContext {
   property_type?: string;
@@ -139,6 +141,7 @@ export class PhotoAnalysisService {
     const response = await client.messages.create({
       model: MODEL_VERSION,
       max_tokens: 4096,
+      thinking: { type: 'disabled' },
       messages: [
         {
           role: 'user',
@@ -354,6 +357,7 @@ If you cannot identify any hazards with reasonable confidence, return empty dete
     const response = await client.messages.create({
       model: MODEL_VERSION,
       max_tokens: 1024,
+      thinking: { type: 'disabled' },
       messages: [
         {
           role: 'user',

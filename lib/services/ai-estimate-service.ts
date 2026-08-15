@@ -7,7 +7,16 @@ import type { EstimateSuggestion, SuggestedLineItem } from '@/types/integrations
 
 const log = createServiceLogger('AIEstimateService');
 
-const MODEL_VERSION = 'claude-3-5-sonnet-20241022';
+// claude-3-5-sonnet-20241022 was retired in October 2025 and returns 404, so
+// every AI estimate call had been failing. claude-sonnet-5 is the documented
+// replacement for that exact ID.
+//
+// Thinking is disabled deliberately. On Sonnet 5 it is on by default, and
+// max_tokens caps thinking and response text together. These calls ask for
+// JSON and parse it, so thinking eating the budget truncates the JSON and the
+// parse throws. Turning it on is a quality option, but it needs max_tokens
+// raised to match and the output re-checked first.
+const MODEL_VERSION = 'claude-sonnet-5';
 
 // Pricing data structure (would typically come from database)
 interface PricingData {
@@ -186,6 +195,7 @@ export class AIEstimateService {
     const response = await client.messages.create({
       model: MODEL_VERSION,
       max_tokens: 4096,
+      thinking: { type: 'disabled' },
       messages: [
         {
           role: 'user',
@@ -320,6 +330,7 @@ Include all necessary line items: labor, materials, equipment, disposal, permits
     const response = await client.messages.create({
       model: MODEL_VERSION,
       max_tokens: 2048,
+      thinking: { type: 'disabled' },
       messages: [
         {
           role: 'user',
