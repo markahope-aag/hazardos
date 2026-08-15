@@ -111,6 +111,7 @@ interface ChainEntry {
   estimate_number: string
   revision_notes: string | null
   created_by: string | null
+  is_active: boolean
 }
 
 interface VersionInfo {
@@ -130,6 +131,7 @@ export default function EstimateDetailPage() {
   const [loading, setLoading] = useState(true)
   const [approvalRequest, setApprovalRequest] = useState<ApprovalRequestState | null>(null)
   const [revising, setRevising] = useState(false)
+  const [activatingId, setActivatingId] = useState<string | null>(null)
   const [surveyModalOpen, setSurveyModalOpen] = useState(false)
   const [rejectNotes, setRejectNotes] = useState('')
   const [showRejectForm, setShowRejectForm] = useState(false)
@@ -381,6 +383,27 @@ export default function EstimateDetailPage() {
     }
   }
 
+  const handleSetActive = async (targetId: string) => {
+    setActivatingId(targetId)
+    try {
+      const res = await fetch(`/api/estimates/${targetId}/activate`, { method: 'POST' })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.error?.message || 'Failed to mark as active')
+      }
+      toast({ title: 'Active version updated' })
+      await loadEstimate()
+    } catch (e) {
+      toast({
+        title: 'Error',
+        description: e instanceof Error ? e.message : 'Failed to mark as active.',
+        variant: 'destructive',
+      })
+    } finally {
+      setActivatingId(null)
+    }
+  }
+
   const role = profile?.role
   const isOwnerLike = role === 'tenant_owner' || role === 'platform_owner' || role === 'platform_admin'
   const isAdminLike = isOwnerLike || role === 'admin'
@@ -479,6 +502,11 @@ export default function EstimateDetailPage() {
               <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
                 <GitBranch className="h-3 w-3 mr-1" />
                 Version {versionInfo.version} of {versionInfo.total}
+              </Badge>
+            )}
+            {versionInfo && versionInfo.chain.length > 1 && !estimate.is_active && (
+              <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-200">
+                Not the active version
               </Badge>
             )}
           </div>
@@ -607,21 +635,25 @@ export default function EstimateDetailPage() {
         onOpenChange={setSurveyModalOpen}
       />
 
-      {versionInfo && versionInfo.version < versionInfo.total && (() => {
-        const latest = versionInfo.chain[versionInfo.chain.length - 1]
+      {versionInfo && !estimate.is_active && (() => {
+        const active = versionInfo.chain.find((entry) => entry.is_active)
         return (
           <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-center justify-between">
             <span>
-              You're viewing version {versionInfo.version}. The current version is{' '}
-              {versionInfo.total}.
+              You're viewing version {versionInfo.version}.{' '}
+              {active
+                ? `The active version is ${active.version}.`
+                : 'This is not the active version.'}
             </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push(`/estimates/${latest.id}`)}
-            >
-              View latest →
-            </Button>
+            {active && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push(`/estimates/${active.id}`)}
+              >
+                View active version →
+              </Button>
+            )}
           </div>
         )
       })()}
@@ -925,6 +957,7 @@ export default function EstimateDetailPage() {
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead>Notes</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead>Active</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -950,6 +983,23 @@ export default function EstimateDetailPage() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {new Date(entry.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        {entry.is_active ? (
+                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Active</Badge>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={activatingId === entry.id}
+                            onClick={() => handleSetActive(entry.id)}
+                          >
+                            {activatingId === entry.id ? (
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            ) : null}
+                            Mark active
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   )

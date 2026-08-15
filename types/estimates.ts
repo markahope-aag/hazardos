@@ -49,6 +49,9 @@ export interface Estimate {
   parent_estimate_id: string | null
   estimate_root_id: string
   revision_notes: string | null
+  // Which version in the chain is "the one that counts" for the office —
+  // exactly one true per estimate_root_id. See 20260815000002.
+  is_active: boolean
 
   // Status
   status: EstimateStatus

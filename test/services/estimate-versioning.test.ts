@@ -3,6 +3,7 @@ import {
   createEstimateRevision,
   getEstimateVersionInfo,
   getEstimateChain,
+  setActiveEstimateVersion,
 } from '@/lib/services/estimate-versioning'
 
 const PARENT_ID = 'parent-est-id'
@@ -257,5 +258,39 @@ describe('getEstimateChain', () => {
     expect(chain).toHaveLength(2)
     expect(chain[0].version).toBe(1)
     expect(chain[1].revision_notes).toBe('reduced scope')
+  })
+})
+
+describe('setActiveEstimateVersion', () => {
+  it('calls the RPC with the estimate and organization ids', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: null })
+    const supabase = { rpc } as unknown as import('@supabase/supabase-js').SupabaseClient
+
+    await setActiveEstimateVersion(supabase, ORG_ID, 'e2')
+
+    expect(rpc).toHaveBeenCalledWith('set_active_estimate_version', {
+      p_estimate_id: 'e2',
+      p_organization_id: ORG_ID,
+    })
+  })
+
+  it('maps the RPC no_data_found guard to NOT_FOUND', async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: null,
+      error: { code: 'P0002', message: 'Estimate ... not found' },
+    })
+    const supabase = { rpc } as unknown as import('@supabase/supabase-js').SupabaseClient
+
+    await expect(setActiveEstimateVersion(supabase, ORG_ID, 'missing')).rejects.toThrow(/not found/i)
+  })
+
+  it('rethrows any other RPC failure', async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: null,
+      error: { code: '23505', message: 'duplicate key value' },
+    })
+    const supabase = { rpc } as unknown as import('@supabase/supabase-js').SupabaseClient
+
+    await expect(setActiveEstimateVersion(supabase, ORG_ID, 'e2')).rejects.toThrow(/duplicate key/i)
   })
 })

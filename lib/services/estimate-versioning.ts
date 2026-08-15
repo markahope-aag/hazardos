@@ -130,6 +130,7 @@ export interface EstimateChainEntry {
   estimate_number: string
   revision_notes: string | null
   created_by: string | null
+  is_active: boolean
 }
 
 /**
@@ -151,7 +152,7 @@ export async function getEstimateChain(
 
   const { data, error } = await supabase
     .from('estimates')
-    .select('id, version, status, created_at, total, estimate_number, revision_notes, created_by')
+    .select('id, version, status, created_at, total, estimate_number, revision_notes, created_by, is_active')
     .eq('estimate_root_id', estimate.estimate_root_id)
     .order('version', { ascending: true })
 
@@ -160,4 +161,28 @@ export async function getEstimateChain(
   }
 
   return (data || []) as EstimateChainEntry[]
+}
+
+/**
+ * Marks one version in an estimate's chain as active, unsetting whichever
+ * version had it. Purely a "which one is current for the office to look at"
+ * signal — see the migration comment in 20260815000002 for why nothing that
+ * resolves an estimate_id downstream (jobs, proposals, approvals) reads this.
+ */
+export async function setActiveEstimateVersion(
+  supabase: SupabaseClient,
+  organizationId: string,
+  estimateId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('set_active_estimate_version', {
+    p_estimate_id: estimateId,
+    p_organization_id: organizationId,
+  })
+
+  if (error) {
+    if (error.code === 'P0002') {
+      throw new SecureError('NOT_FOUND', 'Estimate not found')
+    }
+    throw error
+  }
 }
