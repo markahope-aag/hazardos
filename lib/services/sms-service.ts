@@ -4,6 +4,7 @@ import { assertRowsAffected } from '@/lib/utils/db-write';
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler';
 import { requiresMarketingConsent } from '@/lib/utils/sms-consent';
 import { encryptSecret, decryptSecret } from '@/lib/utils/secret-crypto';
+import { queueMessageFailedEvent } from '@/lib/services/message-failed-event';
 import type {
   SmsMessage,
   SmsDeliveryLogEntry,
@@ -647,13 +648,27 @@ export class SmsService {
       updateData.error_message = errorMessage;
     }
 
-    assertRowsAffected(
+    const rows = assertRowsAffected(
       await supabase
         .from('sms_messages')
         .update(updateData)
         .eq('twilio_message_sid', twilioMessageSid)
-        .select('id'),
+        .select('id, organization_id, related_entity_type, related_entity_id'),
       `updateMessageStatus(${twilioMessageSid})`,
     );
+
+    if (mappedStatus === 'failed' || mappedStatus === 'undelivered') {
+      const row = rows[0] as {
+        organization_id: string;
+        related_entity_type: string | null;
+        related_entity_id: string | null;
+      };
+      await queueMessageFailedEvent({
+        organizationId: row.organization_id,
+        entityType: row.related_entity_type,
+        entityId: row.related_entity_id,
+        channel: 'sms',
+      });
+    }
   }
 }

@@ -40,6 +40,8 @@ type TableName =
   | 'jobs'
   | 'customers'
   | 'invoices'
+  | 'email_templates'
+  | 'sms_templates'
 
 // Builder for the Supabase fluent API. Each test seeds the tables it cares
 // about; everything else returns null.
@@ -48,13 +50,15 @@ function makeSupabase(tables: Partial<Record<TableName, Record<string, unknown> 
 
   const chain = (tableName: TableName) => {
     const row = tables[tableName] ?? null
+    // .eq() is chainable an arbitrary number of times (resolveSystemTemplateId
+    // filters on organization_id AND slug) before a terminal call.
+    const eqChain = (): unknown => ({
+      eq: eqChain,
+      single: () => Promise.resolve({ data: row, error: row ? null : { code: 'PGRST116' } }),
+      maybeSingle: () => Promise.resolve({ data: row, error: null }),
+    })
     return {
-      select: () => ({
-        eq: () => ({
-          single: () => Promise.resolve({ data: row, error: row ? null : { code: 'PGRST116' } }),
-          maybeSingle: () => Promise.resolve({ data: row, error: null }),
-        }),
-      }),
+      select: () => eqChain(),
       update: (u: Record<string, unknown>) => {
         updates.push({ table: tableName, ...u })
         // markStatus now chains .select('id') and asserts a row came back, so
@@ -133,6 +137,61 @@ describe('sendReminderRow', () => {
     expect(serialized).toContain('123 Elm St')
     expect(serialized).toContain('JOB-2026-0009')
     expect(serialized).toContain('Acme Abatement')
+  })
+
+  it('renders the org\'s edited copy of a built-in message instead of the hardcoded default', async () => {
+    const supabase = makeSupabase({
+      scheduled_reminders: {
+        id: 'r1b',
+        organization_id: 'org1',
+        related_type: 'job',
+        related_id: 'job1',
+        channel: 'email',
+        template_slug: 'job_confirmation',
+        recipient_email: 'cust@example.com',
+        recipient_phone: null,
+        status: 'pending',
+        template_variables: {
+          customer_name: 'Pat Q',
+          scheduled_date: '2026-05-01',
+          scheduled_time: '08:00',
+          property_address: '123 Elm St',
+          job_number: 'JOB-2026-0009',
+        },
+      },
+      organizations: { name: 'Acme Abatement', email: 'hi@acme.test' },
+      jobs: { customer_id: 'c1' },
+      customers: {
+        email: 'cust@example.com',
+        phone: null,
+        opted_into_email: true,
+        sms_opt_in: true,
+      },
+      // The org edited its default job_confirmation copy — this is the
+      // seeded-by-migration row resolveSystemTemplateId/renderTenantTemplate
+      // should pick up instead of the hardcoded switch in renderTemplate().
+      email_templates: {
+        id: 'et1',
+        subject: 'See you {{scheduled_date_pretty}}{{time_suffix}}!',
+        body: 'Hey {{customer_name}}, this is our custom wording. — {{company_name}}',
+        is_active: true,
+        organization_id: 'org1',
+      },
+    })
+    vi.mocked(createAdminClient).mockReturnValue(supabase as unknown as never)
+    emailSendMock.mockResolvedValue({ auditId: 'a1', providerMessageId: 'msg1' })
+
+    const result = await sendReminderRow('r1b')
+    expect(result).toEqual({ sent: true })
+
+    const email = emailSendMock.mock.calls[0][1]
+    const serialized = JSON.stringify(email)
+    expect(serialized).toContain('this is our custom wording')
+    expect(serialized).toContain('Pat Q')
+    expect(serialized).toContain('Acme Abatement')
+    // The hardcoded default's distinctive phrase must NOT appear — proves
+    // the org's copy won, not a coincidental match.
+    expect(serialized).not.toMatch(/This confirms your appointment/)
   })
 
   it('skips and cancels the row when customer has opted out of email', async () => {

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import crypto from 'node:crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { applyUnifiedRateLimit } from '@/lib/middleware/unified-rate-limit'
+import { queueMessageFailedEvent } from '@/lib/services/message-failed-event'
 
 /**
  * POST /api/webhooks/resend
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
 
   const { data: row } = await supabase
     .from('email_sends')
-    .select('id, open_count, click_count')
+    .select('id, open_count, click_count, organization_id, related_entity_type, related_entity_id')
     .eq('provider_message_id', messageId)
     .single()
 
@@ -160,6 +161,15 @@ export async function POST(request: NextRequest) {
 
   if (Object.keys(updates).length > 0) {
     await supabase.from('email_sends').update(updates).eq('id', row.id)
+  }
+
+  if (event.type === 'email.bounced') {
+    await queueMessageFailedEvent({
+      organizationId: row.organization_id,
+      entityType: row.related_entity_type,
+      entityId: row.related_entity_id,
+      channel: 'email',
+    })
   }
 
   return NextResponse.json({ ok: true })

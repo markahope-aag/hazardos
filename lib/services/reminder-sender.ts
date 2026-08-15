@@ -4,6 +4,7 @@ import { EmailService } from '@/lib/services/email/email-service'
 import { assertWriteOk } from '@/lib/utils/db-write'
 import { renderTemplateBody, renderTemplateHtml } from '@/lib/services/template-render'
 import { createServiceLogger, formatError } from '@/lib/utils/logger'
+import { queueMessageFailedEvent } from '@/lib/services/message-failed-event'
 
 const log = createServiceLogger('reminder-sender')
 
@@ -219,6 +220,56 @@ async function renderTenantTemplate(
   return { subject: '', text, html: '', sms: text }
 }
 
+/**
+ * Finds the org's own copy of one of the six shipped-default messages.
+ *
+ * Returns null for an org that predates the 20260815000001 seed migration
+ * (backfilled for every org that existed then, but a very old fixture in a
+ * test DB might not have run it) or one that turned its copy off — either
+ * way the caller falls back to the hardcoded content in renderTemplate().
+ */
+async function resolveSystemTemplateId(
+  supabase: ReturnType<typeof createAdminClient>,
+  organizationId: string,
+  slug: string,
+  channel: 'email' | 'sms',
+): Promise<string | null> {
+  const table = channel === 'email' ? 'email_templates' : 'sms_templates'
+  const { data } = await supabase
+    .from(table)
+    .select('id, is_active')
+    .eq('organization_id', organizationId)
+    .eq('slug', slug)
+    .maybeSingle()
+
+  return data?.is_active ? data.id : null
+}
+
+/**
+ * Adds the pretty-printed date/time a template can drop in, alongside
+ * whatever job-reminders-service or invoice-delivery-service already put in
+ * template_variables.
+ *
+ * Kept out of the callers: neither service should need to know how a date
+ * gets formatted, any more than a template author should have to write that
+ * logic themselves. `scheduled_date`/`scheduled_time` are the only inputs —
+ * absent on payment reminders, which is fine, since their templates don't
+ * reference the derived keys.
+ */
+function withDerivedVariables(
+  vars: Record<string, string | null> | null
+): Record<string, string | null> {
+  const merged = { ...(vars ?? {}) }
+  if (merged.scheduled_date) {
+    merged.scheduled_date_pretty = new Date(merged.scheduled_date + 'T00:00:00').toLocaleDateString(
+      undefined,
+      { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' },
+    )
+  }
+  merged.time_suffix = merged.scheduled_time ? ` at ${formatTime(merged.scheduled_time)}` : ''
+  return merged
+}
+
 // Sends a single scheduled_reminders row. Idempotent only in the sense that
 // a row already marked `sent` won't be touched; retries on failed rows are
 // safe. Returns the result so the caller can aggregate for reporting.
@@ -250,21 +301,50 @@ export async function sendReminderRow(rowId: string): Promise<ReminderSendResult
     .single()
   const orgName = org?.name || 'HazardOS'
 
-  // Tenant copy takes precedence over the built-in slugs. Both paths render
-  // only from `template_variables`; neither reads a record at send time, which
-  // is what keeps internal notes out of outbound mail (see the note above
-  // renderTemplate).
-  const content =
-    reminderRow.email_template_id || reminderRow.sms_template_id
-      ? await renderTenantTemplate(supabase, reminderRow, orgName)
-      : renderTemplate(reminderRow.template_slug ?? '', reminderRow.template_variables, orgName)
+  // Tenant copy takes precedence when a step was built with one attached.
+  // Otherwise a `template_slug` row resolves to the org's own (editable)
+  // version of that built-in message when one has been seeded — see
+  // resolveSystemTemplate — and only falls back to the hardcoded copy in
+  // renderTemplate() for an org that predates the seed migration. Every path
+  // renders only from `template_variables`; none reads a record at send
+  // time, which is what keeps internal notes out of outbound mail (see the
+  // note above renderTemplate).
+  let content: RenderedContent | null
+  let unknownTemplateLabel = `Unknown template: ${reminderRow.template_slug}`
+
+  if (reminderRow.email_template_id || reminderRow.sms_template_id) {
+    content = await renderTenantTemplate(supabase, reminderRow, orgName)
+    unknownTemplateLabel = 'tenant template missing, inactive, or belongs to another organization'
+  } else {
+    const systemTemplateId =
+      reminderRow.template_slug && (reminderRow.channel === 'email' || reminderRow.channel === 'sms')
+        ? await resolveSystemTemplateId(
+            supabase,
+            reminderRow.organization_id,
+            reminderRow.template_slug,
+            reminderRow.channel,
+          )
+        : null
+
+    if (systemTemplateId) {
+      content = await renderTenantTemplate(
+        supabase,
+        {
+          ...reminderRow,
+          template_variables: withDerivedVariables(reminderRow.template_variables),
+          email_template_id: reminderRow.channel === 'email' ? systemTemplateId : null,
+          sms_template_id: reminderRow.channel === 'sms' ? systemTemplateId : null,
+        },
+        orgName,
+      )
+    } else {
+      content = renderTemplate(reminderRow.template_slug ?? '', reminderRow.template_variables, orgName)
+    }
+  }
 
   if (!content) {
-    const label =
-      reminderRow.email_template_id || reminderRow.sms_template_id
-        ? 'tenant template missing, inactive, or belongs to another organization'
-        : `Unknown template: ${reminderRow.template_slug}`
-    await markStatus(reminderRow.id, 'failed', label)
+    await markStatus(reminderRow.id, 'failed', unknownTemplateLabel)
+    await raiseMessageFailed(reminderRow)
     return { sent: false, skipped: 'unknown_template' }
   }
 
@@ -345,6 +425,7 @@ export async function sendReminderRow(rowId: string): Promise<ReminderSendResult
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         await markStatus(reminderRow.id, 'failed', msg)
+        await raiseMessageFailed(reminderRow)
         return { sent: false, error: msg }
       }
 
@@ -394,8 +475,20 @@ export async function sendReminderRow(rowId: string): Promise<ReminderSendResult
       'reminder send failed',
     )
     await markStatus(reminderRow.id, 'failed', msg)
+    await raiseMessageFailed(reminderRow)
     return { sent: false, error: msg }
   }
+}
+
+/** Raises `message_failed` for a reminder row that just failed to send. */
+async function raiseMessageFailed(row: ReminderRow) {
+  if (row.channel !== 'email' && row.channel !== 'sms') return
+  await queueMessageFailedEvent({
+    organizationId: row.organization_id,
+    entityType: row.related_type,
+    entityId: row.related_id,
+    channel: row.channel,
+  })
 }
 
 async function markStatus(id: string, status: 'sent' | 'failed' | 'cancelled', errorMessage?: string) {

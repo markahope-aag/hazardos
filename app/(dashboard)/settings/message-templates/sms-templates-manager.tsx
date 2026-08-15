@@ -9,28 +9,41 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
 import { logger, formatError } from '@/lib/utils/logger'
 import { renderTemplateBody, extractPlaceholders } from '@/lib/services/template-render'
 import { SYSTEM_TEMPLATE_VARIABLES } from '@/lib/services/system-template-variables'
-import { Plus, Trash2, Loader2, Mail, AlertTriangle } from 'lucide-react'
+import { SMS_TEMPLATE_MESSAGE_TYPES } from '@/lib/validations/sms-templates'
+import { Plus, Trash2, Loader2, MessageSquare, AlertTriangle } from 'lucide-react'
 
-interface EmailTemplate {
+interface SmsTemplate {
   id: string
   name: string
-  subject: string
+  message_type: (typeof SMS_TEMPLATE_MESSAGE_TYPES)[number]
   body: string
   is_active: boolean
   is_system: boolean
   slug: string | null
 }
 
-/**
- * What the sender actually supplies. Kept in step with the runner's
- * RecipientContext: if a placeholder is not in this list it renders as
- * nothing, so the editor has to say which names work rather than letting
- * someone invent one and find out from a customer.
- */
+const MESSAGE_TYPE_LABELS: Record<string, string> = {
+  appointment_reminder: 'Appointment reminder',
+  job_status: 'Job status',
+  lead_notification: 'Lead notification',
+  payment_reminder: 'Payment reminder',
+  estimate_follow_up: 'Estimate follow-up',
+  general: 'General',
+  marketing: 'Marketing',
+}
+
+/** Same generic set the email manager offers a tenant-authored template. */
 const AVAILABLE_VARIABLES = [
   { key: 'customer_name', description: 'First name, or "there" if unknown', sample: 'Chad' },
   { key: 'customer_full_name', description: 'Full name', sample: 'Chad Hughes' },
@@ -38,14 +51,12 @@ const AVAILABLE_VARIABLES = [
   { key: 'city', description: 'The contact\'s city', sample: 'Madison' },
 ] as const
 
-/** Description + preview sample for every variable a *system-slug* row can use. */
 const SYSTEM_VARIABLE_INFO: Record<string, { description: string; sample: string }> = {
   customer_name: { description: 'First name, or "there" if unknown', sample: 'Chad' },
   company_name: { description: 'Your company name', sample: 'Advanced Health & Safety' },
   scheduled_date_pretty: { description: 'The appointment date, formatted', sample: 'Thursday, August 20, 2026' },
   time_suffix: { description: '" at [time]", or blank if no time was set', sample: ' at 2:00 PM' },
   property_address: { description: 'The job site address', sample: '123 Elm St' },
-  job_number: { description: 'The job reference number', sample: 'JOB-2026-0042' },
   invoice_number: { description: 'The invoice number', sample: 'INV-1042' },
   amount: { description: 'The balance due, formatted', sample: '$450.00' },
   due_date: { description: 'The invoice due date, formatted', sample: '8/20/2026' },
@@ -57,23 +68,23 @@ function variablesFor(slug: string | null): { key: string; description: string; 
   return SYSTEM_TEMPLATE_VARIABLES[slug].map((key) => ({ key, ...SYSTEM_VARIABLE_INFO[key] }))
 }
 
-export function EmailTemplatesManager() {
+export function SmsTemplatesManager() {
   const { toast } = useToast()
-  const [templates, setTemplates] = useState<EmailTemplate[]>([])
+  const [templates, setTemplates] = useState<SmsTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [draft, setDraft] = useState<EmailTemplate | null>(null)
+  const [draft, setDraft] = useState<SmsTemplate | null>(null)
   const [saving, setSaving] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/email-templates')
+      const res = await fetch('/api/sms-templates')
       if (!res.ok) throw new Error('Failed to load templates')
       const data = await res.json()
       setTemplates(data.templates ?? [])
     } catch (error) {
-      logger.error({ error: formatError(error, 'EMAIL_TEMPLATES_LOAD') }, 'Failed to load templates')
+      logger.error({ error: formatError(error, 'SMS_TEMPLATES_LOAD') }, 'Failed to load templates')
       toast({ title: 'Could not load templates', variant: 'destructive' })
     } finally {
       setLoading(false)
@@ -92,13 +103,13 @@ export function EmailTemplatesManager() {
   const create = async () => {
     setSaving(true)
     try {
-      const res = await fetch('/api/email-templates', {
+      const res = await fetch('/api/sms-templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: `Untitled template ${templates.length + 1}`,
-          subject: 'A message from {{company_name}}',
-          body: 'Hi {{customer_name}},\n\n\n\nThanks,\n{{company_name}}',
+          message_type: 'general',
+          body: 'Hi {{customer_name}}, this is {{company_name}}. Reply STOP to opt out.',
         }),
       })
       if (!res.ok) {
@@ -123,12 +134,12 @@ export function EmailTemplatesManager() {
     if (!draft) return
     setSaving(true)
     try {
-      const res = await fetch(`/api/email-templates/${draft.id}`, {
+      const res = await fetch(`/api/sms-templates/${draft.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: draft.name,
-          subject: draft.subject,
+          message_type: draft.message_type,
           body: draft.body,
           is_active: draft.is_active,
         }),
@@ -154,7 +165,7 @@ export function EmailTemplatesManager() {
     if (!draft) return
     setSaving(true)
     try {
-      const res = await fetch(`/api/email-templates/${draft.id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/sms-templates/${draft.id}`, { method: 'DELETE' })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err?.error?.message || 'Could not delete')
@@ -184,14 +195,9 @@ export function EmailTemplatesManager() {
   )
   const knownKeys = useMemo(() => new Set(availableVars.map((v) => v.key)), [availableVars])
 
-  // Placeholders nobody will ever fill. A typo here is invisible until a
-  // customer receives a sentence with a hole in it, so it is named here.
   const unknownPlaceholders = useMemo(() => {
     if (!draft) return []
-    return [...new Set([
-      ...extractPlaceholders(draft.subject),
-      ...extractPlaceholders(draft.body),
-    ])].filter((key) => !knownKeys.has(key))
+    return [...new Set(extractPlaceholders(draft.body))].filter((key) => !knownKeys.has(key))
   }, [draft, knownKeys])
 
   return (
@@ -208,11 +214,11 @@ export function EmailTemplatesManager() {
       ) : templates.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center">
-            <Mail className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+            <MessageSquare className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
             <p className="font-medium">No templates yet</p>
             <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
               Until a step has a template attached, it appears in someone&apos;s list as a
-              task to send the email by hand.
+              task to send the text by hand.
             </p>
           </CardContent>
         </Card>
@@ -230,7 +236,7 @@ export function EmailTemplatesManager() {
                 >
                   <span className="block truncate font-medium">{t.name}</span>
                   <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                    {t.subject}
+                    {MESSAGE_TYPE_LABELS[t.message_type] ?? t.message_type}
                   </span>
                   <div className="mt-1 flex gap-1">
                     {t.is_system && (
@@ -256,11 +262,11 @@ export function EmailTemplatesManager() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="tpl-name">Name</Label>
+                  <Label htmlFor="sms-tpl-name">Name</Label>
                   <Input
-                    id="tpl-name"
+                    id="sms-tpl-name"
                     value={draft.name}
-                    maxLength={120}
+                    maxLength={100}
                     onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                   />
                   <p className="text-xs text-muted-foreground">
@@ -269,25 +275,39 @@ export function EmailTemplatesManager() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="tpl-subject">Subject</Label>
-                  <Input
-                    id="tpl-subject"
-                    value={draft.subject}
-                    maxLength={300}
-                    onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
-                  />
+                  <Label htmlFor="sms-tpl-type">Type</Label>
+                  <Select
+                    value={draft.message_type}
+                    onValueChange={(v) => setDraft({ ...draft, message_type: v as SmsTemplate['message_type'] })}
+                    disabled={draft.is_system}
+                  >
+                    <SelectTrigger id="sms-tpl-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SMS_TEMPLATE_MESSAGE_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {MESSAGE_TYPE_LABELS[t]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="tpl-body">Message</Label>
+                  <Label htmlFor="sms-tpl-body">Message</Label>
                   <Textarea
-                    id="tpl-body"
+                    id="sms-tpl-body"
                     value={draft.body}
-                    rows={12}
-                    maxLength={20000}
+                    rows={5}
+                    maxLength={1000}
                     className="font-mono text-sm"
                     onChange={(e) => setDraft({ ...draft, body: e.target.value })}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    {draft.body.length}/1000 — anything past ~160 characters splits into extra
+                    billed segments.
+                  </p>
                 </div>
 
                 <div className="space-y-2 rounded-md border bg-muted/40 p-3">
@@ -329,10 +349,7 @@ export function EmailTemplatesManager() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium leading-none">Preview</p>
                   <div className="rounded-md border bg-background p-4">
-                    <p className="text-sm font-medium">
-                      {renderTemplateBody(draft.subject, sampleVariables)}
-                    </p>
-                    <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">
+                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">
                       {renderTemplateBody(draft.body, sampleVariables)}
                     </p>
                   </div>
@@ -343,13 +360,13 @@ export function EmailTemplatesManager() {
 
                 <div className="flex items-center justify-between gap-4 border-t pt-4">
                   <div>
-                    <Label htmlFor="tpl-active">Available to use</Label>
+                    <Label htmlFor="sms-tpl-active">Available to use</Label>
                     <p className="text-xs text-muted-foreground">
                       Turning this off stops it being sent, including by steps already using it.
                     </p>
                   </div>
                   <Switch
-                    id="tpl-active"
+                    id="sms-tpl-active"
                     checked={draft.is_active}
                     onCheckedChange={(checked) => setDraft({ ...draft, is_active: checked })}
                   />
