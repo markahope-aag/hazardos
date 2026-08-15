@@ -41,6 +41,32 @@ export function generateInvoicePDF(
     doc.line(margin, yPos, pageWidth - margin, yPos)
   }
 
+  /**
+   * A titled block of wrapped text, page-broken per line.
+   *
+   * Payment terms and notes used to check for space once, before the heading,
+   * and then emit the whole wrapped block in a single call. A block longer
+   * than the remaining space ran off the bottom of the page and printed over
+   * the footer, on an invoice a customer receives. The line-items loop above
+   * already checks per row; this does the same.
+   */
+  const drawTextSection = (title: string, body: string) => {
+    addPageIfNeeded(20)
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(DARK_GRAY)
+    doc.text(title, margin, y)
+    y += 6
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(LIGHT_GRAY)
+    for (const line of doc.splitTextToSize(body, contentWidth)) {
+      addPageIfNeeded(10)
+      doc.text(line, margin, y)
+      y += 5
+    }
+    y += 5
+  }
+
   // Header — company identity
   if (organization) {
     doc.setFontSize(24)
@@ -261,31 +287,11 @@ export function generateInvoicePDF(
 
   // Payment terms + notes
   if (invoice.payment_terms) {
-    addPageIfNeeded(20)
-    doc.setFontSize(11)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(DARK_GRAY)
-    doc.text('Payment Terms', margin, y)
-    y += 6
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(LIGHT_GRAY)
-    const termsLines = doc.splitTextToSize(invoice.payment_terms, contentWidth)
-    doc.text(termsLines, margin, y)
-    y += termsLines.length * 5 + 5
+    drawTextSection('Payment Terms', invoice.payment_terms)
   }
 
   if (invoice.notes) {
-    addPageIfNeeded(20)
-    doc.setFontSize(11)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(DARK_GRAY)
-    doc.text('Notes', margin, y)
-    y += 6
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(LIGHT_GRAY)
-    const noteLines = doc.splitTextToSize(invoice.notes, contentWidth)
-    doc.text(noteLines, margin, y)
-    y += noteLines.length * 5 + 5
+    drawTextSection('Notes', invoice.notes)
   }
 
   // Footer

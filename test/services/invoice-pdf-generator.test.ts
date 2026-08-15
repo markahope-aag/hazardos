@@ -470,12 +470,31 @@ describe('generateInvoicePDF: notes, terms, and pagination', () => {
 
   it('adds a page when a long line-item list needs more room than one page holds', () => {
     // addPageIfNeeded is checked per line item, so a long enough items list
-    // does force a second page (unlike a single long notes/terms block,
-    // which is measured and drawn in one shot without a mid-block check).
+    // forces a second page.
     const manyItems = Array.from({ length: 40 }, (_, i) =>
       createLineItem({ id: `li-${i}`, description: `Item ${i}` }),
     )
     const doc = generateInvoicePDF(createInvoice({ line_items: manyItems }), createOrganization())
+    const mockDoc = doc as unknown as MockDoc
+    expect(mockDoc.pages).toBeGreaterThan(1)
+  })
+
+  it('adds a page when notes are longer than the room left on the page', () => {
+    // Regression: notes checked for space once, before the heading, then drew
+    // the whole wrapped block in a single call. A long note ran past the
+    // bottom margin and printed over the footer of a customer's invoice.
+    const longNote = Array.from({ length: 80 }, (_, i) => `Note line ${i}`).join(' ')
+    const doc = generateInvoicePDF(createInvoice({ notes: longNote }), createOrganization())
+    const mockDoc = doc as unknown as MockDoc
+    expect(mockDoc.pages).toBeGreaterThan(1)
+  })
+
+  it('adds a page when payment terms are longer than the room left on the page', () => {
+    const longTerms = Array.from({ length: 80 }, (_, i) => `Term line ${i}`).join(' ')
+    const doc = generateInvoicePDF(
+      createInvoice({ payment_terms: longTerms }),
+      createOrganization(),
+    )
     const mockDoc = doc as unknown as MockDoc
     expect(mockDoc.pages).toBeGreaterThan(1)
   })
