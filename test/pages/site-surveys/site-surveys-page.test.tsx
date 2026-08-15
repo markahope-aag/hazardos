@@ -63,6 +63,13 @@ vi.mock('@/app/(dashboard)/site-surveys/create-survey-modal', () => ({
   CreateSurveyButton: () => <button data-testid="create-survey-button">New Survey</button>,
 }))
 
+// Mock the QuickCreateAppointmentButton component — same reasoning as
+// CreateSurveyButton above: this is a page-level test, not an integration
+// test of the modal itself.
+vi.mock('@/app/(dashboard)/site-surveys/quick-create-appointment-modal', () => ({
+  QuickCreateAppointmentButton: () => <button data-testid="quick-create-appointment-button">Quick Add</button>,
+}))
+
 // Mock the survey status badge
 vi.mock('@/components/surveys/survey-status-badge', () => ({
   SurveyStatusBadge: ({ status }: { status: string }) => <span data-testid="status-badge">{status}</span>,

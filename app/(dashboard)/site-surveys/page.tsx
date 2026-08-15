@@ -26,6 +26,7 @@ import { createClient } from '@/lib/supabase/client'
 import { SurveyStatusBadge, HazardTypeBadge } from '@/components/surveys/survey-status-badge'
 import { SurveyFilters } from './survey-filters'
 import { CreateSurveyButton } from './create-survey-modal'
+import { QuickCreateAppointmentButton } from './quick-create-appointment-modal'
 import { LocationFilter, type LocationFilterValue } from '@/components/locations/location-filter'
 import { logger, formatError } from '@/lib/utils/logger'
 import { useToast } from '@/components/ui/use-toast'
@@ -387,6 +388,7 @@ export default function SiteSurveysPage() {
                   Mobile Survey
                 </Button>
               </Link>
+              <QuickCreateAppointmentButton onCreated={loadSurveys} />
               <CreateSurveyButton onCreated={loadSurveys} />
             </>
           )}
