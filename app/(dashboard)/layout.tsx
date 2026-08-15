@@ -8,7 +8,7 @@ import { AuthProvider, useMultiTenantAuth } from '@/components/providers/auth-pr
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Home, FileText, Calculator, Calendar, DollarSign, LayoutGrid, Briefcase, MessageCircle, ClipboardList, FlaskConical, ShieldCheck, Settings, Menu, TrendingUp, ListChecks, type LucideIcon } from 'lucide-react'
+import { Home, FileText, Calculator, Calendar, DollarSign, LayoutGrid, Briefcase, MessageCircle, ClipboardList, FlaskConical, ShieldCheck, Settings, Menu, TrendingUp, ListChecks, Clock, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import LoginForm from '@/components/auth/login-form'
@@ -35,6 +35,7 @@ const MAIN_NAV_ITEMS: MainNavItem[] = [
   // Sits second because for office staff it is the screen they live in: every
   // dated call, email, text and to-do across all records in one list.
   { href: '/my-work', label: 'My Work', icon: ListChecks, match: (p) => p.startsWith('/my-work') },
+  { href: '/time-clock', label: 'Time Clock', icon: Clock, match: (p) => p.startsWith('/time-clock') },
   { href: '/crm', label: 'CRM', icon: LayoutGrid, match: (p) => p.startsWith('/crm') },
   { href: '/site-surveys', label: 'Surveys', icon: FileText, match: (p) => p.startsWith('/site-surveys') },
   { href: '/lab-reports', label: 'Lab Reports', icon: FlaskConical, match: (p) => p.startsWith('/lab-reports') },
