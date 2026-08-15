@@ -231,9 +231,9 @@ export function TriggersList() {
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>When this happens</Label>
+                <Label htmlFor="trigger-event-type">When this happens</Label>
                 <Select value={eventType} onValueChange={(v) => setEventType(v as EventType)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="trigger-event-type"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {(Object.keys(EVENT_LABELS) as EventType[]).map((e) => (
                       <SelectItem key={e} value={e}>{EVENT_LABELS[e]}</SelectItem>
@@ -245,9 +245,9 @@ export function TriggersList() {
               {eventType === 'activity_completed' && (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Type of work</Label>
+                    <Label htmlFor="trigger-activity-type">Type of work</Label>
                     <Select value={activityTypeId} onValueChange={setActivityTypeId}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger id="trigger-activity-type"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value={ANY}>Any</SelectItem>
                         {activityTypes.map((t) => (
@@ -257,9 +257,9 @@ export function TriggersList() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Result</Label>
+                    <Label htmlFor="trigger-outcome">Result</Label>
                     <Select value={outcomeId} onValueChange={setOutcomeId}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger id="trigger-outcome"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value={ANY}>Any</SelectItem>
                         {outcomes.map((o) => (
@@ -273,9 +273,9 @@ export function TriggersList() {
 
               {eventType === 'opportunity_stage_changed' && (
                 <div className="space-y-2">
-                  <Label>Stage</Label>
+                  <Label htmlFor="trigger-stage">Stage</Label>
                   <Select value={stageId} onValueChange={setStageId}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="trigger-stage"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value={ANY}>Any</SelectItem>
                       {stages.map((s) => (
@@ -288,9 +288,9 @@ export function TriggersList() {
 
               {eventType === 'job_status_changed' && (
                 <div className="space-y-2">
-                  <Label>Status</Label>
+                  <Label htmlFor="trigger-job-status">Status</Label>
                   <Select value={jobStatus} onValueChange={setJobStatus}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="trigger-job-status"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value={ANY}>Any</SelectItem>
                       {Object.entries(jobStatusConfig).map(([value, cfg]) => (
@@ -303,9 +303,9 @@ export function TriggersList() {
 
               {eventType === 'lab_result_received' && (
                 <div className="space-y-2">
-                  <Label>Result</Label>
+                  <Label htmlFor="trigger-lab-result">Result</Label>
                   <Select value={labResult} onValueChange={setLabResult}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="trigger-lab-result"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value={ANY}>Any</SelectItem>
                       <SelectItem value="positive">Positive</SelectItem>
@@ -317,9 +317,9 @@ export function TriggersList() {
 
               {eventType === 'message_failed' && (
                 <div className="space-y-2">
-                  <Label>Channel</Label>
+                  <Label htmlFor="trigger-message-channel">Channel</Label>
                   <Select value={messageChannel} onValueChange={setMessageChannel}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="trigger-message-channel"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value={ANY}>Any</SelectItem>
                       <SelectItem value="email">Email</SelectItem>
@@ -330,9 +330,9 @@ export function TriggersList() {
               )}
 
               <div className="space-y-2">
-                <Label>Only for</Label>
+                <Label htmlFor="trigger-contact-type">Only for</Label>
                 <Select value={contactType} onValueChange={setContactType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="trigger-contact-type"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value={ANY}>Every contact</SelectItem>
                     <SelectItem value="residential">Residential contacts</SelectItem>
@@ -345,9 +345,9 @@ export function TriggersList() {
               </div>
 
               <div className="space-y-2">
-                <Label>Run this automation</Label>
+                <Label htmlFor="trigger-process">Run this automation</Label>
                 <Select value={processId} onValueChange={setProcessId}>
-                  <SelectTrigger><SelectValue placeholder="Choose an automation" /></SelectTrigger>
+                  <SelectTrigger id="trigger-process"><SelectValue placeholder="Choose an automation" /></SelectTrigger>
                   <SelectContent>
                     {processes.map((p) => (
                       <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>

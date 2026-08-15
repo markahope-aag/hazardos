@@ -274,16 +274,18 @@ export default function ProposalPortalPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Signature</Label>
+                <Label htmlFor="signature-canvas">Signature</Label>
                 <Button variant="ghost" size="sm" onClick={clearSignature}>
                   Clear
                 </Button>
               </div>
               <div className="border rounded-lg bg-white">
                 <canvas
+                  id="signature-canvas"
                   ref={canvasRef}
                   width={350}
                   height={150}
+                  aria-label="Signature"
                   className="w-full touch-none cursor-crosshair"
                   onMouseDown={startDrawing}
                   onMouseMove={draw}

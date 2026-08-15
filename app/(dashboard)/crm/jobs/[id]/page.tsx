@@ -182,7 +182,7 @@ export default function JobDetailPage({ params }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild><Link href="/crm/jobs"><ArrowLeft className="h-4 w-4" /></Link></Button>
+          <Button variant="ghost" size="icon" asChild aria-label="Back to jobs"><Link href="/crm/jobs"><ArrowLeft className="h-4 w-4" /></Link></Button>
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">{job.job_number}<Badge className={`border-0 ${sc.color}`}>{sc.label}</Badge></h1>
             <p className="text-sm text-muted-foreground">{job.name}</p>

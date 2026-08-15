@@ -45,7 +45,7 @@ export function ChartErrorBoundary({
         >
           <TrendingDown className="h-5 w-5 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">Chart unavailable</span>
-          <Button variant="ghost" size="sm" onClick={resetError}>
+          <Button variant="ghost" size="sm" onClick={resetError} aria-label="Retry">
             <RefreshCw className="h-3 w-3" />
           </Button>
         </div>

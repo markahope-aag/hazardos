@@ -252,9 +252,9 @@ export function ChainOfCustodyModal({ reportId, open, onOpenChange }: ChainOfCus
               </p>
             </section>
 
-            <section className="space-y-3">
+            <section className="space-y-3" role="group" aria-labelledby="coc-samples-heading">
               <div className="flex items-center justify-between">
-                <Label className="text-base">Samples</Label>
+                <p className="text-base font-medium leading-none" id="coc-samples-heading">Samples</p>
                 <Button
                   type="button"
                   size="sm"

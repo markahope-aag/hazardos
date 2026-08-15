@@ -320,10 +320,11 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Start Date *</Label>
+                <Label htmlFor="job-start-date">Start Date *</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
+                      id="job-start-date"
                       type="button"
                       variant="outline"
                       className={cn(
@@ -348,8 +349,9 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
                 </Popover>
               </div>
               <div>
-                <Label>Start Time</Label>
+                <Label htmlFor="job-start-time">Start Time</Label>
                 <ScheduleTimeSelect
+                  id="job-start-time"
                   value={form.scheduled_start_time}
                   onChange={(v) => setForm(prev => ({ ...prev, scheduled_start_time: v }))}
                 />
@@ -357,10 +359,11 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>End Date</Label>
+                <Label htmlFor="job-end-date">End Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
+                      id="job-end-date"
                       type="button"
                       variant="outline"
                       className={cn(

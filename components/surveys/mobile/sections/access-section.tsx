@@ -47,25 +47,27 @@ export function AccessSection() {
     <div className="space-y-6">
       {/* Access Restrictions */}
       <section className="space-y-4">
-        <div>
-          <Label className="text-base">Are there access restrictions?</Label>
-          <p className="text-sm text-muted-foreground mb-3">
+        <Label className="text-base block">
+          Are there access restrictions?
+          <p className="text-sm text-muted-foreground mb-3 font-normal">
             Security gates, escorts, limited hours, etc.
           </p>
           <YesNoToggle
             value={access.hasRestrictions}
             onChange={(value) => updateAccess({ hasRestrictions: value })}
           />
-        </div>
+        </Label>
 
         {showRestrictionDetails && (
           <div className="space-y-4 p-4 bg-muted rounded-lg animate-in fade-in slide-in-from-top-2">
-            <Label>Select all that apply:</Label>
-            <CheckboxGroup
-              values={access.restrictions}
-              onChange={(values) => updateAccess({ restrictions: values })}
-              options={RESTRICTION_OPTIONS}
-            />
+            <Label className="block">
+              Select all that apply:
+              <CheckboxGroup
+                values={access.restrictions}
+                onChange={(values) => updateAccess({ restrictions: values })}
+                options={RESTRICTION_OPTIONS}
+              />
+            </Label>
 
             <div>
               <Label htmlFor="restrictionNotes">Additional Notes</Label>
@@ -83,42 +85,45 @@ export function AccessSection() {
 
       {/* Parking */}
       <section className="space-y-3">
-        <Label className="text-base">Is parking available?</Label>
-        <p className="text-sm text-muted-foreground mb-3">
-          Space for work vehicles and crew parking
-        </p>
-        <YesNoToggle
-          value={access.parkingAvailable}
-          onChange={(value) => updateAccess({ parkingAvailable: value })}
-        />
+        <Label className="text-base block">
+          Is parking available?
+          <p className="text-sm text-muted-foreground mb-3 font-normal">
+            Space for work vehicles and crew parking
+          </p>
+          <YesNoToggle
+            value={access.parkingAvailable}
+            onChange={(value) => updateAccess({ parkingAvailable: value })}
+          />
+        </Label>
       </section>
 
       {/* Loading Zone */}
       <section className="space-y-3">
-        <Label className="text-base">Is a loading zone available?</Label>
-        <p className="text-sm text-muted-foreground mb-3">
-          Area for equipment delivery and material staging
-        </p>
-        <YesNoToggle
-          value={access.loadingZoneAvailable}
-          onChange={(value) => updateAccess({ loadingZoneAvailable: value })}
-        />
+        <Label className="text-base block">
+          Is a loading zone available?
+          <p className="text-sm text-muted-foreground mb-3 font-normal">
+            Area for equipment delivery and material staging
+          </p>
+          <YesNoToggle
+            value={access.loadingZoneAvailable}
+            onChange={(value) => updateAccess({ loadingZoneAvailable: value })}
+          />
+        </Label>
       </section>
 
       {/* Equipment Access */}
       <section className="space-y-4">
-        <div>
-          <Label className="text-base">Equipment Access</Label>
-          <p className="text-sm text-muted-foreground mb-3">
+        <Label className="text-base block">
+          Equipment Access
+          <p className="text-sm text-muted-foreground mb-3 font-normal">
             How easily can equipment be moved into the work area?
           </p>
-        </div>
-
-        <RadioCardGroup
-          value={access.equipmentAccess}
-          onChange={(value) => updateAccess({ equipmentAccess: value })}
-          options={EQUIPMENT_ACCESS_OPTIONS}
-        />
+          <RadioCardGroup
+            value={access.equipmentAccess}
+            onChange={(value) => updateAccess({ equipmentAccess: value })}
+            options={EQUIPMENT_ACCESS_OPTIONS}
+          />
+        </Label>
 
         {showEquipmentNotes && (
           <div className="space-y-2 p-4 bg-yellow-50 border border-yellow-200 rounded-lg animate-in fade-in slide-in-from-top-2">
@@ -139,30 +144,34 @@ export function AccessSection() {
 
       {/* Elevator */}
       <section className="space-y-3">
-        <Label className="text-base">Is an elevator available?</Label>
-        <p className="text-sm text-muted-foreground mb-3">
-          For multi-story buildings
-        </p>
-        <YesNoNaToggle
-          value={access.elevatorAvailable}
-          onChange={(value) => updateAccess({ elevatorAvailable: value })}
-        />
+        <Label className="text-base block">
+          Is an elevator available?
+          <p className="text-sm text-muted-foreground mb-3 font-normal">
+            For multi-story buildings
+          </p>
+          <YesNoNaToggle
+            value={access.elevatorAvailable}
+            onChange={(value) => updateAccess({ elevatorAvailable: value })}
+          />
+        </Label>
       </section>
 
       {/* Minimum Doorway Width */}
       <section className="space-y-3">
-        <Label className="text-base">Minimum Doorway Width</Label>
-        <p className="text-sm text-muted-foreground mb-3">
-          Narrowest doorway or passage to work area
-        </p>
-        <NumericStepper
-          value={access.minDoorwayWidth}
-          onChange={(value) => { if (value !== null) updateAccess({ minDoorwayWidth: value }) }}
-          min={12}
-          max={120}
-          step={1}
-          suffix="inches"
-        />
+        <Label className="text-base block">
+          Minimum Doorway Width
+          <p className="text-sm text-muted-foreground mb-3 font-normal">
+            Narrowest doorway or passage to work area
+          </p>
+          <NumericStepper
+            value={access.minDoorwayWidth}
+            onChange={(value) => { if (value !== null) updateAccess({ minDoorwayWidth: value }) }}
+            min={12}
+            max={120}
+            step={1}
+            suffix="inches"
+          />
+        </Label>
         {access.minDoorwayWidth < 30 && (
           <p className="text-sm text-yellow-600">
             ⚠️ Equipment may require disassembly

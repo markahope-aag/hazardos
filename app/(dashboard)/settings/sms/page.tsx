@@ -335,15 +335,17 @@ export default function SmsSettingsPage() {
           {settings.quiet_hours_enabled && (
             <div className="grid grid-cols-3 gap-4 pt-4 border-t">
               <div>
-                <Label>Start Time</Label>
+                <Label htmlFor="quiet-hours-start">Start Time</Label>
                 <TimeSelect
+                  id="quiet-hours-start"
                   value={settings.quiet_hours_start ?? ''}
                   onChange={(v) => updateSetting('quiet_hours_start', v)}
                 />
               </div>
               <div>
-                <Label>End Time</Label>
+                <Label htmlFor="quiet-hours-end">End Time</Label>
                 <TimeSelect
+                  id="quiet-hours-end"
                   value={settings.quiet_hours_end ?? ''}
                   onChange={(v) => updateSetting('quiet_hours_end', v)}
                 />
@@ -448,8 +450,9 @@ export default function SmsSettingsPage() {
 
           <div className="grid gap-4">
             <div>
-              <Label>Twilio Account SID <span className="text-red-500">*</span></Label>
+              <Label htmlFor="twilio-account-sid">Twilio Account SID <span className="text-red-500">*</span></Label>
               <Input
+                id="twilio-account-sid"
                 type="text"
                 placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                 value={settings.twilio_account_sid || ''}
@@ -460,8 +463,9 @@ export default function SmsSettingsPage() {
               </p>
             </div>
             <div>
-              <Label>Twilio Auth Token <span className="text-red-500">*</span></Label>
+              <Label htmlFor="twilio-auth-token">Twilio Auth Token <span className="text-red-500">*</span></Label>
               <Input
+                id="twilio-auth-token"
                 type="password"
                 placeholder="Your auth token"
                 value={settings.twilio_auth_token || ''}
@@ -472,8 +476,9 @@ export default function SmsSettingsPage() {
               </p>
             </div>
             <div>
-              <Label>Twilio Phone Number <span className="text-red-500">*</span></Label>
+              <Label htmlFor="twilio-phone-number">Twilio Phone Number <span className="text-red-500">*</span></Label>
               <Input
+                id="twilio-phone-number"
                 type="tel"
                 placeholder="+15551234567"
                 value={settings.twilio_phone_number || ''}

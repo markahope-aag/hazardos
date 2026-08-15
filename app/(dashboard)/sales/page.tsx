@@ -126,7 +126,7 @@ export default async function SalesPage() {
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <tool.icon className="h-6 w-6 text-primary" />
                 </div>
-                <Button variant="ghost" size="sm" asChild>
+                <Button variant="ghost" size="sm" asChild aria-label={`Open ${tool.title}`}>
                   <Link href={tool.href}>
                     <ArrowRight className="h-4 w-4" />
                   </Link>

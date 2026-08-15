@@ -257,8 +257,9 @@ export function JobNotes({ job, notes = [] }: JobNotesProps) {
                     needs several angles to explain. */}
                 {noteForm.note_type === 'photo' && (
                   <div className="space-y-2">
-                    <Label>Photos</Label>
+                    <Label htmlFor="note-photos">Photos</Label>
                     <input
+                      id="note-photos"
                       type="file"
                       accept="image/*"
                       multiple
@@ -276,10 +277,11 @@ export function JobNotes({ job, notes = [] }: JobNotesProps) {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label>
+                  <Label htmlFor="note-content">
                     {noteForm.note_type === 'photo' ? 'Caption / description' : 'Content'}
                   </Label>
                   <Textarea
+                    id="note-content"
                     value={noteForm.content}
                     onChange={(e) => setNoteForm(prev => ({ ...prev, content: e.target.value }))}
                     placeholder={

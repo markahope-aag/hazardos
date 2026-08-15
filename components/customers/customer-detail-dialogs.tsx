@@ -82,8 +82,8 @@ export function LogCallDialog({ customerId, displayName, open, onOpenChange }: L
           <DialogTitle>Log Call</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Direction</Label>
+          <div className="space-y-2" role="group" aria-label="Direction">
+            <p className="text-sm font-medium leading-none">Direction</p>
             <div className="flex gap-4">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input

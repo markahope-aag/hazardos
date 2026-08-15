@@ -55,9 +55,9 @@ export function PipelineFilters({ stages, value, onChange }: PipelineFiltersProp
   return (
     <div className="flex flex-wrap items-end gap-3">
       <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">Sales User</Label>
+        <Label htmlFor="pipeline-sales-user" className="text-xs text-muted-foreground">Sales User</Label>
         <Select value={value.ownerId} onValueChange={(v) => onChange({ ...value, ownerId: v })}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger id="pipeline-sales-user" className="w-[180px]">
             <User className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
             <SelectValue placeholder="Sales user" />
           </SelectTrigger>

@@ -433,10 +433,11 @@ export default function EditOpportunityPage({ params }: { params: Promise<{ id: 
                 />
               </div>
               <div>
-                <Label>Expected Close Date</Label>
+                <Label htmlFor="expected-close-date">Expected Close Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
+                      id="expected-close-date"
                       type="button"
                       variant="outline"
                       className={cn(

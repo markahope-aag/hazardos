@@ -253,19 +253,21 @@ export function PropertySection() {
 
       {/* Building Type */}
       <section className="space-y-3">
-        <Label>Building Type</Label>
-        <RadioCardGroup
-          value={property.buildingType}
-          onChange={(value) => updateProperty({ buildingType: value })}
-          options={BUILDING_TYPE_OPTIONS.map((opt) => ({
-            value: opt.value,
-            label: opt.label,
-            description: opt.description,
-            icon: opt.icon,
-          }))}
-          columns={2}
-          size="sm"
-        />
+        <Label className="block">
+          Building Type
+          <RadioCardGroup
+            value={property.buildingType}
+            onChange={(value) => updateProperty({ buildingType: value })}
+            options={BUILDING_TYPE_OPTIONS.map((opt) => ({
+              value: opt.value,
+              label: opt.label,
+              description: opt.description,
+              icon: opt.icon,
+            }))}
+            columns={2}
+            size="sm"
+          />
+        </Label>
       </section>
 
       {/* Year Built */}
@@ -310,13 +312,15 @@ export function PropertySection() {
 
       {/* Stories */}
       <section className="space-y-3">
-        <Label>Number of Stories</Label>
-        <SegmentedControl
-          value={property.stories}
-          onChange={(value) => updateProperty({ stories: value })}
-          options={STORIES_OPTIONS}
-          size="lg"
-        />
+        <Label className="block">
+          Number of Stories
+          <SegmentedControl
+            value={property.stories}
+            onChange={(value) => updateProperty({ stories: value })}
+            options={STORIES_OPTIONS}
+            size="lg"
+          />
+        </Label>
       </section>
 
       {/* Construction Type */}
@@ -341,13 +345,15 @@ export function PropertySection() {
 
       {/* Occupancy Status */}
       <section className="space-y-3">
-        <Label>Occupancy Status</Label>
-        <SegmentedControl
-          value={property.occupancyStatus}
-          onChange={(value) => updateProperty({ occupancyStatus: value })}
-          options={OCCUPANCY_OPTIONS}
-          size="lg"
-        />
+        <Label className="block">
+          Occupancy Status
+          <SegmentedControl
+            value={property.occupancyStatus}
+            onChange={(value) => updateProperty({ occupancyStatus: value })}
+            options={OCCUPANCY_OPTIONS}
+            size="lg"
+          />
+        </Label>
 
         {/* Show hours if occupied */}
         {property.occupancyStatus === 'occupied' && (

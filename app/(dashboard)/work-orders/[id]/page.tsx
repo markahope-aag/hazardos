@@ -1291,31 +1291,35 @@ function VehiclesSection({
           <div className="space-y-3 mt-3 pt-3 border-t">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Type</Label>
+                <Label htmlFor="vehicle-type" className="text-xs">Type</Label>
                 <Input
+                  id="vehicle-type"
                   placeholder="Truck, trailer, van..."
                   value={form.vehicle_type}
                   onChange={(e) => setForm({ ...form, vehicle_type: e.target.value })}
                 />
               </div>
               <div>
-                <Label className="text-xs">Make/Model</Label>
+                <Label htmlFor="vehicle-make-model" className="text-xs">Make/Model</Label>
                 <Input
+                  id="vehicle-make-model"
                   placeholder="Ford F-250"
                   value={form.make_model}
                   onChange={(e) => setForm({ ...form, make_model: e.target.value })}
                 />
               </div>
               <div>
-                <Label className="text-xs">Plate</Label>
+                <Label htmlFor="vehicle-plate" className="text-xs">Plate</Label>
                 <Input
+                  id="vehicle-plate"
                   value={form.plate}
                   onChange={(e) => setForm({ ...form, plate: e.target.value })}
                 />
               </div>
               <div>
-                <Label className="text-xs">Driver</Label>
+                <Label htmlFor="vehicle-driver" className="text-xs">Driver</Label>
                 <Input
+                  id="vehicle-driver"
                   value={form.driver_name}
                   onChange={(e) => setForm({ ...form, driver_name: e.target.value })}
                 />
@@ -1334,8 +1338,9 @@ function VehiclesSection({
             </div>
             {form.is_rental && (
               <div>
-                <Label className="text-xs">Rental vendor</Label>
+                <Label htmlFor="rental-vendor" className="text-xs">Rental vendor</Label>
                 <Input
+                  id="rental-vendor"
                   value={form.rental_vendor}
                   onChange={(e) => setForm({ ...form, rental_vendor: e.target.value })}
                 />

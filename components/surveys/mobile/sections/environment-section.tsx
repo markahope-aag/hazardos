@@ -78,40 +78,44 @@ export function EnvironmentSection() {
     <div className="space-y-6">
       {/* Temperature */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Thermometer className="w-5 h-5 text-muted-foreground" />
-          <Label className="text-base">Temperature</Label>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Current temperature in work area
-        </p>
-        <NumericStepper
-          value={environment.temperature}
-          onChange={(value) => updateEnvironment({ temperature: value })}
-          min={-20}
-          max={150}
-          step={1}
-          suffix="°F"
-        />
+        <Label className="text-base block">
+          <span className="flex items-center gap-2">
+            <Thermometer className="w-5 h-5 text-muted-foreground" />
+            Temperature
+          </span>
+          <p className="text-sm text-muted-foreground font-normal">
+            Current temperature in work area
+          </p>
+          <NumericStepper
+            value={environment.temperature}
+            onChange={(value) => updateEnvironment({ temperature: value })}
+            min={-20}
+            max={150}
+            step={1}
+            suffix="°F"
+          />
+        </Label>
       </section>
 
       {/* Humidity */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Droplets className="w-5 h-5 text-muted-foreground" />
-          <Label className="text-base">Humidity</Label>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Relative humidity in work area
-        </p>
-        <NumericStepper
-          value={environment.humidity}
-          onChange={(value) => updateEnvironment({ humidity: value })}
-          min={0}
-          max={100}
-          step={5}
-          suffix="% RH"
-        />
+        <Label className="text-base block">
+          <span className="flex items-center gap-2">
+            <Droplets className="w-5 h-5 text-muted-foreground" />
+            Humidity
+          </span>
+          <p className="text-sm text-muted-foreground font-normal">
+            Relative humidity in work area
+          </p>
+          <NumericStepper
+            value={environment.humidity}
+            onChange={(value) => updateEnvironment({ humidity: value })}
+            min={0}
+            max={100}
+            step={5}
+            suffix="% RH"
+          />
+        </Label>
         {hasHighHumidity && (
           <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
@@ -150,19 +154,18 @@ export function EnvironmentSection() {
 
       {/* Moisture Issues */}
       <section className="space-y-4">
-        <div>
-          <Label className="text-base">Moisture Issues</Label>
-          <p className="text-sm text-muted-foreground mb-3">
+        <Label className="text-base block">
+          Moisture Issues
+          <p className="text-sm text-muted-foreground mb-3 font-normal">
             Select all observed moisture-related conditions
           </p>
-        </div>
-
-        <CheckboxGroup
-          values={environment.moistureIssues}
-          onChange={handleMoistureChange}
-          options={MOISTURE_ISSUE_OPTIONS}
-          columns={2}
-        />
+          <CheckboxGroup
+            values={environment.moistureIssues}
+            onChange={handleMoistureChange}
+            options={MOISTURE_ISSUE_OPTIONS}
+            columns={2}
+          />
+        </Label>
 
         {hasMoistureIssues && (
           <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
@@ -183,17 +186,16 @@ export function EnvironmentSection() {
 
       {/* Structural Concerns */}
       <section className="space-y-4">
-        <div>
-          <Label className="text-base">Are there structural concerns?</Label>
-          <p className="text-sm text-muted-foreground mb-3">
+        <Label className="text-base block">
+          Are there structural concerns?
+          <p className="text-sm text-muted-foreground mb-3 font-normal">
             Visible damage or safety issues
           </p>
-        </div>
-
-        <YesNoToggle
-          value={environment.hasStructuralConcerns}
-          onChange={(value) => updateEnvironment({ hasStructuralConcerns: value })}
-        />
+          <YesNoToggle
+            value={environment.hasStructuralConcerns}
+            onChange={(value) => updateEnvironment({ hasStructuralConcerns: value })}
+          />
+        </Label>
 
         {showStructuralDetails && (
           <div className="space-y-4 p-4 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-top-2">
@@ -227,14 +229,16 @@ export function EnvironmentSection() {
 
       {/* Power / water availability */}
       <section className="space-y-3">
-        <Label className="text-base">Is power/water available?</Label>
-        <p className="text-sm text-muted-foreground mb-3">
-          Working power and water on site for the crew to use
-        </p>
-        <YesNoToggle
-          value={environment.powerWaterAvailable}
-          onChange={(value) => updateEnvironment({ powerWaterAvailable: value })}
-        />
+        <Label className="text-base block">
+          Is power/water available?
+          <p className="text-sm text-muted-foreground mb-3 font-normal">
+            Working power and water on site for the crew to use
+          </p>
+          <YesNoToggle
+            value={environment.powerWaterAvailable}
+            onChange={(value) => updateEnvironment({ powerWaterAvailable: value })}
+          />
+        </Label>
       </section>
     </div>
   )

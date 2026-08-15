@@ -315,10 +315,11 @@ export default function NewInvoicePage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Due Date *</Label>
+                  <Label htmlFor="due-date">Due Date *</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
+                        id="due-date"
                         variant="outline"
                         className={cn(
                           'w-full justify-start text-left font-normal',

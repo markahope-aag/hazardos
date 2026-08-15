@@ -512,10 +512,11 @@ export default function NewOpportunityPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Expected Close Date</Label>
+                <Label htmlFor="expected-close-date">Expected Close Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
+                      id="expected-close-date"
                       type="button"
                       variant="outline"
                       className={cn('w-full justify-start text-left font-normal', !formData.expected_close_date && 'text-muted-foreground')}

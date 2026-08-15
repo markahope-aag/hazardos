@@ -403,12 +403,12 @@ export function AutomationEditor({ processId }: { processId: string }) {
                     <div className="min-w-0 flex-1 space-y-3">
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
-                          <Label className="text-xs">What happens</Label>
+                          <Label className="text-xs" htmlFor={`step-kind-${step.id}`}>What happens</Label>
                           <Select
                             value={step.kind}
                             onValueChange={(v) => patchStep(step.id, { kind: v as ActivityKind, activity_type_id: null })}
                           >
-                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectTrigger id={`step-kind-${step.id}`}><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {(Object.keys(KIND_LABEL) as ActivityKind[]).map((k) => (
                                 <SelectItem key={k} value={k}>{KIND_LABEL[k]}</SelectItem>
@@ -418,14 +418,14 @@ export function AutomationEditor({ processId }: { processId: string }) {
                         </div>
 
                         <div className="space-y-1">
-                          <Label className="text-xs">Which one</Label>
+                          <Label className="text-xs" htmlFor={`step-activity-type-${step.id}`}>Which one</Label>
                           <Select
                             value={step.activity_type_id ?? 'none'}
                             onValueChange={(v) =>
                               patchStep(step.id, { activity_type_id: v === 'none' ? null : v })
                             }
                           >
-                            <SelectTrigger><SelectValue placeholder="Pick a type" /></SelectTrigger>
+                            <SelectTrigger id={`step-activity-type-${step.id}`}><SelectValue placeholder="Pick a type" /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">Not specified</SelectItem>
                               {typesForKind.map((t) => (
@@ -436,7 +436,7 @@ export function AutomationEditor({ processId }: { processId: string }) {
                         </div>
 
                         <div className="space-y-1">
-                          <Label className="text-xs">Who does it</Label>
+                          <Label className="text-xs" htmlFor={`step-assignee-${step.id}`}>Who does it</Label>
                           <Select
                             value={step.assignee_mode === 'user' ? step.assigned_to ?? 'unassigned' : step.assignee_mode}
                             onValueChange={(v) => {
@@ -447,7 +447,7 @@ export function AutomationEditor({ processId }: { processId: string }) {
                               }
                             }}
                           >
-                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectTrigger id={`step-assignee-${step.id}`}><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="unassigned">Anyone (unassigned)</SelectItem>
                               <SelectItem value="current_user">Whoever triggered it</SelectItem>
@@ -459,7 +459,7 @@ export function AutomationEditor({ processId }: { processId: string }) {
                         </div>
 
                         <div className="space-y-1">
-                          <Label className="text-xs">When it is due</Label>
+                          <Label className="text-xs" htmlFor={`step-due-mode-${step.id}`}>When it is due</Label>
                           <Select
                             value={step.due_mode}
                             onValueChange={(v) =>
@@ -469,7 +469,7 @@ export function AutomationEditor({ processId }: { processId: string }) {
                               })
                             }
                           >
-                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectTrigger id={`step-due-mode-${step.id}`}><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="immediate">Straight away</SelectItem>
                               <SelectItem value="days_at_time">Days later, at a set time</SelectItem>
@@ -482,8 +482,9 @@ export function AutomationEditor({ processId }: { processId: string }) {
                       {step.due_mode !== 'immediate' && (
                         <div className="grid gap-3 sm:grid-cols-3">
                           <div className="space-y-1">
-                            <Label className="text-xs">Days</Label>
+                            <Label className="text-xs" htmlFor={`step-due-days-${step.id}`}>Days</Label>
                             <Input
+                              id={`step-due-days-${step.id}`}
                               type="number"
                               min={0}
                               max={3650}
@@ -494,8 +495,9 @@ export function AutomationEditor({ processId }: { processId: string }) {
                           </div>
                           {step.due_mode === 'days_at_time' ? (
                             <div className="space-y-1">
-                              <Label className="text-xs">At</Label>
+                              <Label className="text-xs" htmlFor={`step-due-time-${step.id}`}>At</Label>
                               <TimeSelect
+                                id={`step-due-time-${step.id}`}
                                 value={step.due_time ?? '08:00'}
                                 onChange={(v) => patchStep(step.id, { due_time: v })}
                               />
@@ -503,8 +505,9 @@ export function AutomationEditor({ processId }: { processId: string }) {
                           ) : (
                             <>
                               <div className="space-y-1">
-                                <Label className="text-xs">Hours</Label>
+                                <Label className="text-xs" htmlFor={`step-due-hours-${step.id}`}>Hours</Label>
                                 <Input
+                                  id={`step-due-hours-${step.id}`}
                                   type="number"
                                   min={0}
                                   max={23}
@@ -514,8 +517,9 @@ export function AutomationEditor({ processId }: { processId: string }) {
                                 />
                               </div>
                               <div className="space-y-1">
-                                <Label className="text-xs">Minutes</Label>
+                                <Label className="text-xs" htmlFor={`step-due-minutes-${step.id}`}>Minutes</Label>
                                 <Input
+                                  id={`step-due-minutes-${step.id}`}
                                   type="number"
                                   min={0}
                                   max={59}
@@ -530,8 +534,9 @@ export function AutomationEditor({ processId }: { processId: string }) {
                       )}
 
                       <div className="space-y-1">
-                        <Label className="text-xs">Note for whoever picks this up</Label>
+                        <Label className="text-xs" htmlFor={`step-note-${step.id}`}>Note for whoever picks this up</Label>
                         <Input
+                          id={`step-note-${step.id}`}
                           value={step.note ?? ''}
                           placeholder="Optional"
                           onChange={(e) => setSteps((prev) => prev.map((s) => s.id === step.id ? { ...s, note: e.target.value } : s))}
@@ -546,7 +551,7 @@ export function AutomationEditor({ processId }: { processId: string }) {
                         return (
                           <div className="space-y-2">
                             <div className="space-y-1">
-                              <Label className="text-xs">Which message</Label>
+                              <Label className="text-xs" htmlFor={`step-template-${step.id}`}>Which message</Label>
                               <Select
                                 value={current ?? 'none'}
                                 onValueChange={(v) =>
@@ -555,7 +560,7 @@ export function AutomationEditor({ processId }: { processId: string }) {
                                     : { sms_template_id: v === 'none' ? null : v })
                                 }
                               >
-                                <SelectTrigger>
+                                <SelectTrigger id={`step-template-${step.id}`}>
                                   <SelectValue placeholder="Pick a template" />
                                 </SelectTrigger>
                                 <SelectContent>

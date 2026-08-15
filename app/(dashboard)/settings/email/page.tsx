@@ -518,7 +518,7 @@ export default function EmailSettingsPage() {
             </div>
 
             <div>
-              <Label className="block mb-2">Live preview</Label>
+              <p className="block mb-2 text-sm font-medium leading-none">Live preview</p>
               <div className="rounded-md border overflow-hidden bg-muted/30">
                 <iframe
                   title="Email preview"

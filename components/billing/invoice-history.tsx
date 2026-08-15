@@ -83,6 +83,7 @@ export function InvoiceHistory({ invoices }: InvoiceHistoryProps) {
                           variant="ghost"
                           size="sm"
                           asChild
+                          aria-label="Download invoice PDF"
                         >
                           <a href={invoice.invoice_pdf_url} target="_blank" rel="noopener noreferrer">
                             <Download className="h-4 w-4" />
@@ -94,6 +95,7 @@ export function InvoiceHistory({ invoices }: InvoiceHistoryProps) {
                           variant="ghost"
                           size="sm"
                           asChild
+                          aria-label="View hosted invoice"
                         >
                           <a href={invoice.hosted_invoice_url} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="h-4 w-4" />

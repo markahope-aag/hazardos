@@ -305,29 +305,29 @@ export default function FeedbackSurveyPage() {
             <CardDescription>Optional but helpful for us to improve</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div>
-              <Label className="mb-2 block">Quality of Work</Label>
+            <div role="group" aria-label="Quality of Work">
+              <p className="mb-2 block text-sm font-medium leading-none">Quality of Work</p>
               <StarRating
                 value={ratings.quality}
                 onChange={(v) => setRatings({ ...ratings, quality: v })}
               />
             </div>
-            <div>
-              <Label className="mb-2 block">Communication</Label>
+            <div role="group" aria-label="Communication">
+              <p className="mb-2 block text-sm font-medium leading-none">Communication</p>
               <StarRating
                 value={ratings.communication}
                 onChange={(v) => setRatings({ ...ratings, communication: v })}
               />
             </div>
-            <div>
-              <Label className="mb-2 block">Timeliness</Label>
+            <div role="group" aria-label="Timeliness">
+              <p className="mb-2 block text-sm font-medium leading-none">Timeliness</p>
               <StarRating
                 value={ratings.timeliness}
                 onChange={(v) => setRatings({ ...ratings, timeliness: v })}
               />
             </div>
-            <div>
-              <Label className="mb-2 block">Value for Money</Label>
+            <div role="group" aria-label="Value for Money">
+              <p className="mb-2 block text-sm font-medium leading-none">Value for Money</p>
               <StarRating
                 value={ratings.value}
                 onChange={(v) => setRatings({ ...ratings, value: v })}

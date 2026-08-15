@@ -143,7 +143,7 @@ export default function CompanyDetailPage({ params }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild>
+          <Button variant="ghost" size="icon" asChild aria-label="Back to companies">
             <Link href="/crm/companies"><ArrowLeft className="h-4 w-4" /></Link>
           </Button>
           <div>

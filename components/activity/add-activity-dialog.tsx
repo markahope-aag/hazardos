@@ -166,8 +166,8 @@ export function AddActivityDialog({
               </TabsContent>
 
               <TabsContent value="call" className="mt-4 space-y-4">
-                <div className="space-y-2">
-                  <Label>Call Direction</Label>
+                <div className="space-y-2" role="group" aria-label="Call Direction">
+                  <p className="text-sm font-medium leading-none">Call Direction</p>
                   <div className="flex gap-2">
                     <Button
                       type="button"

@@ -409,8 +409,9 @@ export default function NewJobPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Start Time</Label>
+                  <Label htmlFor="job-start-time">Start Time</Label>
                   <ScheduleTimeSelect
+                    id="job-start-time"
                     value={formData.scheduled_start_time}
                     onChange={(v) => setFormData(prev => ({ ...prev, scheduled_start_time: v }))}
                   />
@@ -419,10 +420,10 @@ export default function NewJobPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>End Date</Label>
+                  <Label htmlFor="job-end-date">End Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn('w-full justify-start text-left font-normal', !formData.scheduled_end_date && 'text-muted-foreground')}>
+                      <Button id="job-end-date" variant="outline" className={cn('w-full justify-start text-left font-normal', !formData.scheduled_end_date && 'text-muted-foreground')}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {formData.scheduled_end_date ? format(formData.scheduled_end_date, 'PPP') : 'Pick end date'}
                       </Button>

@@ -112,7 +112,7 @@ export default function NewApiKeyPage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" asChild>
+        <Button variant="ghost" size="icon" asChild aria-label="Back to API keys">
           <Link href="/settings/api"><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
         <h1 className="text-2xl font-bold">Create API Key</h1>

@@ -268,8 +268,12 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label>Crew Members</Label>
-                    <div className="max-h-64 overflow-y-auto rounded-md border divide-y">
+                    <Label id="crew-members-label">Crew Members</Label>
+                    <div
+                      role="group"
+                      aria-labelledby="crew-members-label"
+                      className="max-h-64 overflow-y-auto rounded-md border divide-y"
+                    >
                       {unassignedCrew.length === 0 ? (
                         <p className="p-3 text-sm text-muted-foreground">
                           Everyone on the team is already assigned.

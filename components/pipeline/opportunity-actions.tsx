@@ -326,8 +326,9 @@ export function OpportunityActions({ opportunity, stages }: OpportunityActionsPr
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Competitor (if applicable)</Label>
+              <Label htmlFor="competitor">Competitor (if applicable)</Label>
               <input
+                id="competitor"
                 type="text"
                 value={competitor}
                 onChange={(e) => setCompetitor(e.target.value)}
