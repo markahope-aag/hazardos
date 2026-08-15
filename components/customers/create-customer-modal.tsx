@@ -7,20 +7,24 @@ import {
 import CustomerForm from './customer-form'
 import { useCreateCustomer } from '@/lib/hooks/use-customers'
 import type { CustomerFormData } from '@/lib/validations/customer-form'
+import type { Customer } from '@/types/database'
 
 interface CreateCustomerModalProps {
   open: boolean
   onClose: () => void
   /** Prefill a new contact as commercial for this company (deep link from a company page). */
   initialCompanyName?: string
+  /** Called with the newly created contact once the insert succeeds, before onClose. */
+  onCreated?: (customer: Customer) => void
 }
 
-export default function CreateCustomerModal({ open, onClose, initialCompanyName }: CreateCustomerModalProps) {
+export default function CreateCustomerModal({ open, onClose, initialCompanyName, onCreated }: CreateCustomerModalProps) {
   const createCustomerMutation = useCreateCustomer()
 
   const handleSubmit = async (data: CustomerFormData) => {
     const name = data.name || [data.first_name, data.last_name].filter(Boolean).join(' ')
-    await createCustomerMutation.mutateAsync({ ...data, name })
+    const customer = await createCustomerMutation.mutateAsync({ ...data, name })
+    onCreated?.(customer)
     onClose()
   }
 

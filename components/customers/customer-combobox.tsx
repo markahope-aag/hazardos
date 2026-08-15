@@ -1,12 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Check, ChevronsUpDown } from 'lucide-react'
+import { Check, ChevronsUpDown, UserPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -19,6 +18,7 @@ import {
 } from '@/components/ui/popover'
 import { createClient } from '@/lib/supabase/client'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
+import CreateCustomerModal from './create-customer-modal'
 
 interface Customer {
   id: string
@@ -61,6 +61,7 @@ export function CustomerCombobox({
   const [customers, setCustomers] = useState<Customer[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   // Load selected customer details if value is set
   useEffect(() => {
@@ -134,6 +135,13 @@ export function CustomerCombobox({
     setOpen(false)
   }
 
+  const handleCreated = (customer: Customer) => {
+    setSelectedCustomer(customer)
+    onValueChange(customer.id)
+    onCustomerSelect?.(customer)
+    setShowCreateModal(false)
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -158,9 +166,11 @@ export function CustomerCombobox({
             aria-label="Search customers by name or company"
           />
           <CommandList>
-            <CommandEmpty>
-              {isLoading ? 'Searching...' : 'No customers found.'}
-            </CommandEmpty>
+            {customers.length === 0 && (
+              <div className="py-6 text-center text-sm">
+                {isLoading ? 'Searching...' : 'No customers found.'}
+              </div>
+            )}
             <CommandGroup>
               {customers.map((customer) => {
                 const person = getPersonName(customer)
@@ -203,9 +213,26 @@ export function CustomerCombobox({
                 )
               })}
             </CommandGroup>
+            <CommandGroup>
+              <CommandItem
+                value="__add_new_contact__"
+                onSelect={() => {
+                  setOpen(false)
+                  setShowCreateModal(true)
+                }}
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                Add new contact
+              </CommandItem>
+            </CommandGroup>
           </CommandList>
         </Command>
       </PopoverContent>
+      <CreateCustomerModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreated={handleCreated}
+      />
     </Popover>
   )
 }

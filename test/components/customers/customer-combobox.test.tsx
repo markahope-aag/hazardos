@@ -24,6 +24,16 @@ vi.mock('@/lib/supabase/client', () => ({
   }),
 }))
 
+// The "Add new contact" option renders CreateCustomerModal, which pulls in
+// useCreateCustomer (react-query) even while closed — mock it out so this
+// suite doesn't need a QueryClientProvider wrapper.
+vi.mock('@/lib/hooks/use-customers', () => ({
+  useCreateCustomer: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
+}))
+
 describe('CustomerCombobox Component', () => {
   const defaultProps = {
     value: '',
@@ -32,6 +42,8 @@ describe('CustomerCombobox Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    // cmdk scrolls the highlighted item into view on open; jsdom doesn't implement it.
+    window.HTMLElement.prototype.scrollIntoView = vi.fn()
   })
 
   it('should render without crashing', () => {

@@ -452,7 +452,7 @@ export const DEFAULT_SURVEY_FORM_DATA: SurveyFormData = {
 
 // Photo Requirements by Category
 export const PHOTO_REQUIREMENTS: Record<PhotoCategory, { label: string; required: number }> = {
-  exterior: { label: 'Exterior', required: 1 },
+  exterior: { label: 'Exterior', required: 0 },
   interior: { label: 'Interior', required: 0 },
   hazard_area: { label: 'Hazard Areas', required: 0 },
   utility_access: { label: 'Utility/Access', required: 0 },

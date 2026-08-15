@@ -67,6 +67,7 @@ function CreateSurveyForm({ onSuccess }: { onSuccess: () => void }) {
   const { organization } = useMultiTenantAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [customerId, setCustomerId] = useState<string>('')
+  const [hazardType, setHazardType] = useState<string>('other')
   const [technicianId, setTechnicianId] = useState<string>('')
   const [scheduledDate, setScheduledDate] = useState<string>('')
   const [scheduledTimeStart, setScheduledTimeStart] = useState<string>('')
@@ -151,7 +152,7 @@ function CreateSurveyForm({ onSuccess }: { onSuccess: () => void }) {
           site_state: customer.state || '',
           site_zip: customer.zip || '',
           job_name: `Survey - ${customerName}`,
-          hazard_type: 'other', // Will be determined during survey
+          hazard_type: hazardType,
           appointment_status: 'scheduled',
         })
         .select()
@@ -203,6 +204,22 @@ function CreateSurveyForm({ onSuccess }: { onSuccess: () => void }) {
           value={customerId}
           onValueChange={setCustomerId}
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="hazard-type">Hazard Type *</Label>
+        <Select value={hazardType} onValueChange={setHazardType} required>
+          <SelectTrigger id="hazard-type">
+            <SelectValue placeholder="Select hazard type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="asbestos">Asbestos</SelectItem>
+            <SelectItem value="mold">Mold</SelectItem>
+            <SelectItem value="lead">Lead</SelectItem>
+            <SelectItem value="vermiculite">Vermiculite</SelectItem>
+            <SelectItem value="other">Other</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">

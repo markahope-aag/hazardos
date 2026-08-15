@@ -48,12 +48,8 @@ export function collectLeafSectionErrors(
       break
     }
     case 'environment': {
-      const e = formData.environment
-      if (e.temperature === null) errors.push('Temperature is required')
-      if (e.humidity === null) errors.push('Humidity is required')
-      if (e.hasStructuralConcerns === null)
-        errors.push('Structural concerns question is required')
-      if (e.powerWaterAvailable === null) errors.push('Utility shutoffs question is required')
+      // Deliberately optional: techs frequently skip these on-site and
+      // shouldn't be blocked from submitting the survey over it.
       break
     }
     case 'hazards': {

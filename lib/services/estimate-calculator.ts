@@ -306,7 +306,11 @@ export class EstimateCalculator {
     if (survey.volume_cuft && survey.volume_cuft > 0) {
       return survey.volume_cuft / 8
     }
-    return 100
+    // No measurement entered at all — price the minimum-job floor (crew/day
+    // minimums still apply downstream) instead of silently assuming a
+    // fabricated 100 sqft, which was inflating quotes for small jobs entered
+    // without dimensions (e.g. a quick mold-in-attic estimate).
+    return 0
   }
 }
 
