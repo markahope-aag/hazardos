@@ -7,6 +7,7 @@ import { MapPin, Phone, User, Building, DollarSign, Clock, AlertTriangle } from 
 import type { Job } from '@/types/jobs'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
+import { JobChangeOrders } from './job-change-orders'
 
 interface JobDetailsProps {
   job: Job
@@ -244,6 +245,10 @@ export function JobDetails({ job }: JobDetailsProps) {
           </CardContent>
         </Card>
       )}
+
+      <div className="md:col-span-2">
+        <JobChangeOrders jobId={job.id} changeOrders={job.change_orders || []} />
+      </div>
     </div>
   )
 }

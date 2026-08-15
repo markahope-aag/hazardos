@@ -24,6 +24,10 @@ interface Options {
   jobNumber?: string
   insertError?: { message: string; code?: string } | null
   userId?: string | null
+  // For recomputeJobTotals, run after approve/reject.
+  approvedChangeOrders?: Array<{ amount: number }>
+  contractAmount?: number
+  updatedJobId?: string
 }
 
 function setup(options: Options = {}) {
@@ -32,21 +36,32 @@ function setup(options: Options = {}) {
     jobNumber = 'JOB-2026-001',
     insertError = null,
     userId = 'user-1',
+    approvedChangeOrders = [],
+    contractAmount = 0,
+    updatedJobId = 'job-1',
   } = options
 
-  const captured: { insert?: Record<string, unknown>; update?: Record<string, unknown> } = {}
+  const captured: { insert?: Record<string, unknown>; update?: Record<string, unknown>; jobUpdate?: Record<string, unknown> } = {}
 
   const supabase = {
     from: vi.fn((table: string) => {
       if (table === 'job_change_orders') {
         return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
+          // Two shapes share this table: add()'s numbering lookup
+          // (select -> eq -> order -> limit) and recomputeJobTotals'
+          // approved-sum lookup (select -> eq -> eq, awaited directly — no
+          // further chaining, so the node itself must be thenable).
+          select: vi.fn(() => {
+            const node = {
+              eq: vi.fn(() => node),
               order: vi.fn(() => ({
                 limit: vi.fn().mockResolvedValue({ data: existing, error: null }),
               })),
-            })),
-          })),
+              then: (resolve: (v: { data: unknown; error: null }) => unknown) =>
+                resolve({ data: approvedChangeOrders, error: null }),
+            }
+            return node
+          }),
           insert: vi.fn((payload: Record<string, unknown>) => {
             captured.insert = payload
             return {
@@ -64,7 +79,7 @@ function setup(options: Options = {}) {
               eq: vi.fn(() => ({
                 select: vi.fn(() => ({
                   single: vi.fn().mockResolvedValue({
-                    data: insertError ? null : { id: 'co-1', ...payload },
+                    data: insertError ? null : { id: 'co-1', job_id: updatedJobId, ...payload },
                     error: insertError,
                   }),
                 })),
@@ -73,13 +88,23 @@ function setup(options: Options = {}) {
           }),
         }
       }
-      return {
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({ data: { job_number: jobNumber }, error: null }),
+      if (table === 'jobs') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
+                data: { job_number: jobNumber, contract_amount: contractAmount },
+                error: null,
+              }),
+            })),
           })),
-        })),
+          update: vi.fn((payload: Record<string, unknown>) => {
+            captured.jobUpdate = payload
+            return { eq: vi.fn().mockResolvedValue({ data: null, error: null }) }
+          }),
+        }
       }
+      return {}
     }),
   }
 
@@ -197,5 +222,34 @@ describe('JobChangeOrdersService.approve / reject', () => {
   it('reject throws when the update fails', async () => {
     setup({ insertError: { message: 'update denied' } })
     await expect(JobChangeOrdersService.reject('co-1')).rejects.toThrow()
+  })
+})
+
+describe('JobChangeOrdersService — job totals recompute', () => {
+  // jobs.change_order_amount/final_amount are plain columns, not
+  // trigger-maintained — approve/reject are the only things that keep them
+  // in step with the sum of *approved* change orders.
+  it('approve sums only approved change orders into change_order_amount, adds to contract_amount for final_amount', async () => {
+    const { captured } = setup({
+      approvedChangeOrders: [{ amount: 500 }, { amount: 250 }],
+      contractAmount: 10000,
+    })
+    await JobChangeOrdersService.approve('co-1')
+    expect(captured.jobUpdate).toEqual({ change_order_amount: 750, final_amount: 10750 })
+  })
+
+  it('reject also recomputes, covering reversal of a previously-approved order', async () => {
+    const { captured } = setup({ approvedChangeOrders: [], contractAmount: 10000 })
+    await JobChangeOrdersService.reject('co-1')
+    expect(captured.jobUpdate).toEqual({ change_order_amount: 0, final_amount: 10000 })
+  })
+
+  it('handles a negative (price-decrease) change order in the sum', async () => {
+    const { captured } = setup({
+      approvedChangeOrders: [{ amount: 500 }, { amount: -200 }],
+      contractAmount: 10000,
+    })
+    await JobChangeOrdersService.approve('co-1')
+    expect(captured.jobUpdate).toEqual({ change_order_amount: 300, final_amount: 10300 })
   })
 })

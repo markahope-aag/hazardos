@@ -67,6 +67,7 @@ export class JobChangeOrdersService {
       .single()
 
     if (error) throwDbError(error, 'update change order')
+    await JobChangeOrdersService.recomputeJobTotals(data.job_id)
     return data
   }
 
@@ -81,6 +82,41 @@ export class JobChangeOrdersService {
       .single()
 
     if (error) throwDbError(error, 'update change order')
+    // Recompute even on reject: this also covers reversing a change order
+    // that was previously approved, not just the common pending->rejected path.
+    await JobChangeOrdersService.recomputeJobTotals(data.job_id)
     return data
+  }
+
+  /**
+   * Keeps jobs.change_order_amount/final_amount in step with the sum of
+   * approved change orders. Nothing else does this — the columns are plain
+   * read-write numerics, not generated/trigger-maintained (see
+   * calculate_completion_variance_by_job, which recomputes cost/margin from
+   * time entries and materials, not change orders).
+   */
+  private static async recomputeJobTotals(jobId: string): Promise<void> {
+    const supabase = await createClient()
+
+    const [{ data: approved, error: approvedError }, { data: job, error: jobError }] = await Promise.all([
+      supabase.from('job_change_orders').select('amount').eq('job_id', jobId).eq('status', 'approved'),
+      supabase.from('jobs').select('contract_amount').eq('id', jobId).single(),
+    ])
+
+    if (approvedError) throwDbError(approvedError, 'sum approved change orders')
+    if (jobError) throwDbError(jobError, 'fetch job contract amount')
+
+    const changeOrderAmount = (approved ?? []).reduce((sum, co) => sum + Number(co.amount), 0)
+    const contractAmount = Number(job?.contract_amount ?? 0)
+
+    const { error } = await supabase
+      .from('jobs')
+      .update({
+        change_order_amount: changeOrderAmount,
+        final_amount: contractAmount + changeOrderAmount,
+      })
+      .eq('id', jobId)
+
+    if (error) throwDbError(error, 'update job change order totals')
   }
 }
