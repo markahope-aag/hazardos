@@ -2,10 +2,11 @@ import type { ReactNode } from 'react'
 import { requireRoles } from '@/lib/auth/require-roles'
 import { ROLES } from '@/lib/auth/roles'
 
-// Money is hidden from the field crew (client call, 2026-07-28). The nav
-// already omitted this section for technicians, but the route itself was
-// reachable by typing the URL, so the gate has to live here too.
-export default async function FinancialLayout({ children }: { children: ReactNode }) {
-  await requireRoles(ROLES.FINANCIAL_VIEW, '/')
+// The sales hub is commissions, approvals and analytics, which the main nav has
+// always treated as an admin-level surface. Yesterday's gate used the broader
+// financial preset, which would have handed it to estimators and viewers who
+// never had it in the menu. TENANT_ADMIN matches what the nav already meant.
+export default async function SalesLayout({ children }: { children: ReactNode }) {
+  await requireRoles(ROLES.TENANT_ADMIN, '/')
   return <>{children}</>
 }

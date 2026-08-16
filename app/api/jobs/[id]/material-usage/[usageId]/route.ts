@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { JobCompletionService } from '@/lib/services/job-completion-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateMaterialUsageSchema } from '@/lib/validations/jobs'
+import { ROLES } from '@/lib/auth/roles'
 import { z } from 'zod'
 
 type UpdateMaterialUsageBody = z.infer<typeof updateMaterialUsageSchema>
@@ -14,20 +15,28 @@ type Params = { id: string; usageId: string }
 export const PATCH = createApiHandlerWithParams<UpdateMaterialUsageBody, unknown, Params>(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_FIELD,
     bodySchema: updateMaterialUsageSchema,
   },
-  async (_request, _context, params, body) => {
+  async (_request, context, params, body) => {
+    // Same rule as the create route: a technician may correct what was used on
+    // site, but unit_cost is not theirs to set, so it is dropped rather than
+    // rejected and the existing value is left alone.
+    const canSeeCost = ROLES.FINANCIAL_VIEW.includes(context.profile.role ?? '')
+
     const materialUsage = await JobCompletionService.updateMaterialUsage(params.usageId, {
       material_name: body.material_name,
       material_type: body.material_type,
       quantity_estimated: body.quantity_estimated,
       quantity_used: body.quantity_used,
       unit: body.unit,
-      unit_cost: body.unit_cost,
+      ...(canSeeCost ? { unit_cost: body.unit_cost } : {}),
       notes: body.notes,
     })
 
-    return NextResponse.json(materialUsage)
+    if (canSeeCost) return NextResponse.json(materialUsage)
+    const { unit_cost: _unitCost, total_cost: _totalCost, ...rest } = materialUsage
+    return NextResponse.json(rest)
   }
 )
 
@@ -36,7 +45,7 @@ export const PATCH = createApiHandlerWithParams<UpdateMaterialUsageBody, unknown
  * Delete a material usage record
  */
 export const DELETE = createApiHandlerWithParams<unknown, unknown, Params>(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_FIELD },
   async (_request, _context, params) => {
     await JobCompletionService.deleteMaterialUsage(params.usageId)
     return NextResponse.json({ success: true })

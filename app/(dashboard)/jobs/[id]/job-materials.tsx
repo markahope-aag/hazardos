@@ -18,6 +18,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/use-toast'
+import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
+import { ROLES } from '@/lib/auth/roles'
 import { formatCurrency } from '@/lib/utils'
 import { Package, Plus, Loader2, Trash2 } from 'lucide-react'
 import type { JobMaterialUsage } from '@/types/job-completion'
@@ -52,6 +54,11 @@ export function JobMaterials({ jobId, materialUsage, onSaved }: JobMaterialsProp
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm)
 
+  const { profile } = useMultiTenantAuth()
+  // Technicians record what was used but never see what it cost. The API strips
+  // these fields for the same roles, so hiding them here is about not rendering
+  // an empty column, not about enforcement.
+  const canSeeCost = ROLES.FINANCIAL_VIEW.includes(profile?.role ?? '')
   const totalCost = materialUsage.reduce((sum, m) => sum + (m.total_cost || 0), 0)
 
   const handleAdd = async () => {
@@ -126,7 +133,7 @@ export function JobMaterials({ jobId, materialUsage, onSaved }: JobMaterialsProp
           Materials Used
         </CardTitle>
         <div className="flex items-center gap-3">
-          {materialUsage.length > 0 && (
+          {canSeeCost && materialUsage.length > 0 && (
             <Badge variant="secondary">{formatCurrency(totalCost)} total</Badge>
           )}
           <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) setForm(emptyForm) }}>
@@ -190,17 +197,19 @@ export function JobMaterials({ jobId, materialUsage, onSaved }: JobMaterialsProp
                       maxLength={50}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="mat-unit-cost">Unit Cost</Label>
-                    <Input
-                      id="mat-unit-cost"
-                      type="number"
-                      step="0.01"
-                      value={form.unit_cost}
-                      onChange={(e) => setForm({ ...form, unit_cost: e.target.value })}
-                      placeholder="0.00"
-                    />
-                  </div>
+                  {canSeeCost && (
+                    <div className="space-y-2">
+                      <Label htmlFor="mat-unit-cost">Unit Cost</Label>
+                      <Input
+                        id="mat-unit-cost"
+                        type="number"
+                        step="0.01"
+                        value={form.unit_cost}
+                        onChange={(e) => setForm({ ...form, unit_cost: e.target.value })}
+                        placeholder="0.00"
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="mat-notes">Notes</Label>
@@ -241,7 +250,7 @@ export function JobMaterials({ jobId, materialUsage, onSaved }: JobMaterialsProp
                   <p className="text-sm text-muted-foreground">
                     {m.quantity_used} {m.unit || 'units'} used
                     {m.quantity_estimated !== null && ` (est. ${m.quantity_estimated})`}
-                    {m.unit_cost !== null && ` @ ${formatCurrency(m.unit_cost)}`}
+                    {canSeeCost && m.unit_cost !== null && m.unit_cost !== undefined && ` @ ${formatCurrency(m.unit_cost)}`}
                   </p>
                   {m.variance_percent !== null && (
                     <Badge
@@ -258,7 +267,7 @@ export function JobMaterials({ jobId, materialUsage, onSaved }: JobMaterialsProp
                   {m.notes && <p className="text-xs text-muted-foreground">{m.notes}</p>}
                 </div>
                 <div className="flex items-center gap-3">
-                  {m.total_cost !== null && (
+                  {canSeeCost && m.total_cost !== null && m.total_cost !== undefined && (
                     <span className="font-medium whitespace-nowrap">{formatCurrency(m.total_cost)}</span>
                   )}
                   <Button

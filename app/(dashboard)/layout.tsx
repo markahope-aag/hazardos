@@ -12,7 +12,7 @@ import { Home, FileText, Calculator, Calendar, DollarSign, LayoutGrid, Briefcase
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import LoginForm from '@/components/auth/login-form'
-import { type UserRole, ROLE } from '@/lib/auth/roles'
+import { type UserRole, ROLES } from '@/lib/auth/roles'
 
 // Single source of truth for main-nav order, labels, and active-matching.
 // Order here IS the display order — rearrange this array to reorder nav.
@@ -25,10 +25,20 @@ interface MainNavItem {
   requiredRoles?: UserRole[]
 }
 
-// Roles that can access financial/billing screens
-const INVOICE_ROLES: UserRole[] = [ROLE.PLATFORM_OWNER, ROLE.PLATFORM_ADMIN, ROLE.TENANT_OWNER, ROLE.ADMIN, ROLE.ESTIMATOR]
-// Roles that can access the sales management hub (commissions, approvals, analytics)
-const SALES_ROLES: UserRole[] = [ROLE.PLATFORM_OWNER, ROLE.PLATFORM_ADMIN, ROLE.TENANT_OWNER, ROLE.ADMIN]
+// Both lists come from the shared presets rather than being spelled out again
+// here. They used to be independent copies, and they drifted: the nav hid
+// Invoices and Estimates from `viewer` while the routes allowed them, so the
+// access office read-only staff are meant to have was reachable only by typing
+// the URL. Sourcing from ROLES keeps the menu and the gate telling the same
+// story.
+
+// Financial screens. FINANCIAL_VIEW is everyone except technicians, per the
+// 2026-07-28 client call, and it deliberately includes `viewer` so office staff
+// can answer billing questions.
+const INVOICE_ROLES = ROLES.FINANCIAL_VIEW as UserRole[]
+// The sales hub (commissions, approvals, analytics) is a management surface, so
+// it stays at admin level. The route layout is gated to the same preset.
+const SALES_ROLES = ROLES.TENANT_ADMIN as UserRole[]
 
 const MAIN_NAV_ITEMS: MainNavItem[] = [
   { href: '/', label: 'Dashboard', icon: Home, match: (p) => p === '/' },
