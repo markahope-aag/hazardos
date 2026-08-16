@@ -147,3 +147,37 @@ that to five real problems; the rest are either unreachable or intentional.
 
 - **OPEN · Leaked password protection is disabled · Supabase Auth · needs a dashboard change, not code.**
   Enable it under Auth so Supabase checks new passwords against HaveIBeenPwned.
+
+### Follow-up triage, 2026-08-16 (second linter batch)
+
+- **NOT A DEFECT · `create_organization(org_name, org_slug)` flagged as callable by signed-in users.**
+  The function does not exist. It is absent from a fresh `supabase db dump` of the live
+  database, and PostgREST answers `PGRST202` for it under any argument shape. Onboarding
+  calls `create_organization_for_onboarding(p_org jsonb)` instead, which is present and
+  correctly granted to `authenticated` only. The linter entry is served from its own
+  cache (see `cache_key` on the finding), so it reflects a function dropped at some
+  earlier point. Nothing to do beyond letting the linter cache age out.
+
+- **NOT A DEFECT · `private.platform_admins` has RLS enabled with no policies.**
+  Here that is the secure posture, not an oversight: RLS with no policy denies everyone
+  except the table owner and service_role. On top of that the `private` schema is not
+  exposed through PostgREST at all, confirmed by probing as anon, as a signed-in
+  technician, and as service_role, each answering `PGRST106: Invalid schema: private`.
+  The table is also not reachable under `public` (`PGRST205`). Adding policies here
+  would widen access rather than tighten it, so this one should be left alone.
+
+- **VERIFIED SOUND · The two RPCs that take an organization id.**
+  `cancel_open_activity_work` and `create_activity_process_work` both accept
+  `p_organization_id`, which is the same shape as the two functions that did turn out to
+  be exploitable, so they were probed directly. Anon is refused ("No organization for the
+  current user") and a signed-in technician naming another tenant's id is refused
+  ("Organization mismatch: cannot create work for another tenant"). Org B's row count was
+  unchanged across the attempt. These are properly guarded inside the function body.
+
+- **VERIFIED SOUND · The RLS helper and org-management functions.**
+  `get_user_role`, `get_user_organization_id`, `is_platform_user`,
+  `organization_has_other_members`, `can_create_organization`,
+  `allow_first_org_creation` and `calculate_completion_variance_by_job` all answer
+  `42501` for anon, so their grants survived the baseline squash intact. The concern
+  raised on 2026-08-15 about lost grant state appears limited to the four functions
+  already fixed.
