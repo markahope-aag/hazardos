@@ -9,6 +9,12 @@
   "gate_categories": [
     "SECURITY"
   ],
+  "_known_gaps": [
+    {
+      "finding": "auth_leaked_password_protection",
+      "note": "The CI gate CANNOT see this one. It is an Auth API configuration check, not a database property, and the string does not appear anywhere in splinter.sql, so no amount of running this script will report it. The hosted dashboard is the only place it surfaces. It is currently disabled and needs enabling under Auth > Password settings, which is a console change rather than a migration. Do not assume a green run here means the Auth configuration is sound."
+    }
+  ],
   "ignored_rules": [
     {
       "name": "multiple_permissive_policies",
