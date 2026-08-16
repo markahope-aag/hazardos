@@ -79,10 +79,18 @@ export const updateSmsSettingsSchema = z.object({
   quiet_hours_start: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   quiet_hours_end: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   timezone: z.string().max(50).optional(),
+  sms_provider: z.enum(['twilio', 'ringcentral']).optional(),
   use_platform_twilio: z.boolean().optional(),
   twilio_account_sid: z.string().max(100).optional(),
   twilio_auth_token: z.string().max(100).optional(),
   twilio_phone_number: z.string().max(20).optional(),
+  ringcentral_client_id: z.string().max(200).optional(),
+  ringcentral_client_secret: z.string().max(200).optional(),
+  // RingCentral JWTs are long; 4000 leaves headroom without accepting a paste
+  // of something that clearly is not a token.
+  ringcentral_jwt: z.string().max(4000).optional(),
+  ringcentral_from_number: z.string().max(20).optional(),
+  ringcentral_server_url: z.string().url().max(200).optional(),
   sms_brand_prefix: z.string().trim().max(24).nullable().optional(),
 })
 

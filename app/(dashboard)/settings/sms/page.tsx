@@ -41,6 +41,7 @@ export default function SmsSettingsPage() {
     quiet_hours_start: '21:00',
     quiet_hours_end: '08:00',
     timezone: 'America/Chicago',
+    sms_provider: 'twilio',
     use_platform_twilio: false,
     twilio_account_sid: '',
     twilio_auth_token: '',
@@ -420,20 +421,128 @@ export default function SmsSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Twilio Configuration */}
+      {/* Provider Configuration */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
             <Phone className="h-5 w-5 text-green-500" />
             <div>
-              <CardTitle>Twilio Configuration</CardTitle>
+              <CardTitle>SMS Provider</CardTitle>
               <CardDescription>
-                Configure your Twilio account to enable SMS notifications
+                Choose who carries your messages, then enter that provider&apos;s credentials
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="sms-provider">Provider</Label>
+            <Select
+              value={settings.sms_provider || 'twilio'}
+              onValueChange={(value) => updateSetting('sms_provider', value as 'twilio' | 'ringcentral')}
+            >
+              <SelectTrigger id="sms-provider">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="twilio">Twilio</SelectItem>
+                <SelectItem value="ringcentral">RingCentral</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Switching provider changes where new messages are sent from. Messages already sent
+              keep their original provider in the delivery log.
+            </p>
+          </div>
+
+          {settings.sms_provider === 'ringcentral' ? (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-md text-sm">
+                <Shield className="h-4 w-4 inline mr-2" />
+                Create a REST app in the{' '}
+                <a
+                  href="https://developers.ringcentral.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline font-medium"
+                >
+                  RingCentral Developer Console
+                </a>{' '}
+                with the SMS permission, then generate a JWT credential for the user whose number
+                will send. The sending number must have SMS enabled on the RingCentral side.
+              </div>
+              <div className="grid gap-4">
+                <div>
+                  <Label htmlFor="rc-client-id">Client ID <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="rc-client-id"
+                    type="text"
+                    placeholder="Your RingCentral app client ID"
+                    value={settings.ringcentral_client_id || ''}
+                    onChange={(e) => updateSetting('ringcentral_client_id', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="rc-client-secret">Client Secret <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="rc-client-secret"
+                    type="password"
+                    placeholder="Your RingCentral app client secret"
+                    value={settings.ringcentral_client_secret || ''}
+                    onChange={(e) => updateSetting('ringcentral_client_secret', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="rc-jwt">JWT Credential <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="rc-jwt"
+                    type="password"
+                    placeholder="eyJraWQiOi..."
+                    value={settings.ringcentral_jwt || ''}
+                    onChange={(e) => updateSetting('ringcentral_jwt', e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Generated under Credentials in the Developer Console. Exchanged for a
+                    short-lived access token each time we send.
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="rc-from-number">From Number <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="rc-from-number"
+                    type="tel"
+                    placeholder="+15551234567"
+                    value={settings.ringcentral_from_number || ''}
+                    onChange={(e) => updateSetting('ringcentral_from_number', e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    In E.164 format, and it must be a number assigned to the JWT user with SMS
+                    capability.
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="rc-server-url">Server</Label>
+                  <Select
+                    value={settings.ringcentral_server_url || 'https://platform.ringcentral.com'}
+                    onValueChange={(value) => updateSetting('ringcentral_server_url', value)}
+                  >
+                    <SelectTrigger id="rc-server-url">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="https://platform.ringcentral.com">Production</SelectItem>
+                      <SelectItem value="https://platform.devtest.ringcentral.com">Sandbox</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Sandbox credentials do not work against production, and the resulting error
+                    looks like a bad JWT. Check this first if authentication fails.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+          <>
           <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-md text-sm">
             <Shield className="h-4 w-4 inline mr-2" />
             You&apos;ll need a Twilio account to send SMS messages. Sign up at{' '}
@@ -489,6 +598,8 @@ export default function SmsSettingsPage() {
               </p>
             </div>
           </div>
+          </>
+          )}
         </CardContent>
       </Card>
 

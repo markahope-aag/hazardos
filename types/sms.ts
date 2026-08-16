@@ -12,13 +12,32 @@ export type SmsMessageType =
   | 'marketing'
   | 'general';
 
+export type SmsProviderName = 'twilio' | 'ringcentral';
+
 export interface OrganizationSmsSettings {
   id: string;
   organization_id: string;
+  /**
+   * Which vendor this organization sends through. Defaults to 'twilio' for
+   * every existing row, so adding RingCentral changed nobody's behavior.
+   */
+  sms_provider: SmsProviderName;
   twilio_account_sid: string | null;
   twilio_auth_token: string | null;
   twilio_phone_number: string | null;
   use_platform_twilio: boolean;
+  /**
+   * RingCentral credentials. It has no SID/token pair: an app carries a client
+   * id and secret, and a per-user JWT is exchanged for a short-lived access
+   * token at send time. The three secrets are stored encrypted, like the Twilio
+   * pair; the from number and server URL are not secret.
+   */
+  ringcentral_client_id: string | null;
+  ringcentral_client_secret: string | null;
+  ringcentral_jwt: string | null;
+  ringcentral_from_number: string | null;
+  /** Sandbox and production are different hosts; getting this wrong is the most common setup mistake. */
+  ringcentral_server_url: string;
   sms_enabled: boolean;
   appointment_reminders_enabled: boolean;
   appointment_reminder_hours: number;

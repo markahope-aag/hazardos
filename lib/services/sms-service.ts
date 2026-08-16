@@ -18,16 +18,47 @@ import type {
 import {
   applyBrandPrefix,
   getAuthTokenForSettings,
-  getTwilioClient,
   isQuietHours,
   normalizePhone,
 } from './sms-helpers';
+import { getSmsProvider } from './sms-providers';
 import { getConversations, getDeliveryLog, getMessages } from './sms-queries';
 
-// Each organization must configure their own Twilio account
+// Each organization configures its own provider credentials (Twilio or RingCentral)
 
 export class SmsService {
   // ========== SETTINGS ==========
+
+  /**
+   * Columns held encrypted at rest. Listed once because getSettings,
+   * updateSettings and the decrypt path all have to agree; when it was spelled
+   * out per call site the RingCentral columns were easy to add in one place and
+   * forget in another.
+   */
+  private static readonly ENCRYPTED_COLUMNS = [
+    'twilio_account_sid',
+    'twilio_auth_token',
+    'ringcentral_client_id',
+    'ringcentral_client_secret',
+    'ringcentral_jwt',
+  ] as const;
+
+  /** Conditional spread so the shape matches the row: see the note in getSettings. */
+  private static decryptSecrets<T extends Record<string, unknown>>(row: T): T {
+    const out: Record<string, unknown> = { ...row };
+    for (const col of SmsService.ENCRYPTED_COLUMNS) {
+      if (row[col] !== undefined) out[col] = decryptSecret(row[col] as string | null);
+    }
+    return out as T;
+  }
+
+  private static encryptSecrets(settings: Record<string, unknown>): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    for (const col of SmsService.ENCRYPTED_COLUMNS) {
+      if (settings[col] !== undefined) out[col] = encryptSecret(settings[col] as string | null);
+    }
+    return out;
+  }
 
   static async getSettings(organizationId: string): Promise<OrganizationSmsSettings | null> {
     const supabase = await createClient();
@@ -40,18 +71,10 @@ export class SmsService {
 
     if (error) throwDbError(error, 'fetch SMS settings');
     if (!data) return null;
-    // Conditional spread so the returned shape matches the row exactly — an
+    // Conditional spread so the returned shape matches the row exactly. An
     // unconditional assignment would invent null keys for columns the query
     // didn't return.
-    return {
-      ...data,
-      ...(data.twilio_account_sid !== undefined && {
-        twilio_account_sid: decryptSecret(data.twilio_account_sid),
-      }),
-      ...(data.twilio_auth_token !== undefined && {
-        twilio_auth_token: decryptSecret(data.twilio_auth_token),
-      }),
-    };
+    return SmsService.decryptSecrets(data);
   }
 
   static async updateSettings(
@@ -65,28 +88,14 @@ export class SmsService {
       .upsert({
         organization_id: organizationId,
         ...settings,
-        ...(settings.twilio_account_sid !== undefined && {
-          twilio_account_sid: encryptSecret(settings.twilio_account_sid),
-        }),
-        ...(settings.twilio_auth_token !== undefined && {
-          twilio_auth_token: encryptSecret(settings.twilio_auth_token),
-        }),
+        ...SmsService.encryptSecrets(settings as unknown as Record<string, unknown>),
         updated_at: new Date().toISOString(),
       })
       .select()
       .single();
 
     if (error) throwDbError(error, 'update SMS settings');
-    // Conditional spread — see getSettings.
-    return {
-      ...data,
-      ...(data.twilio_account_sid !== undefined && {
-        twilio_account_sid: decryptSecret(data.twilio_account_sid),
-      }),
-      ...(data.twilio_auth_token !== undefined && {
-        twilio_auth_token: decryptSecret(data.twilio_auth_token),
-      }),
-    };
+    return SmsService.decryptSecrets(data);
   }
 
   // ========== SENDING ==========
@@ -189,11 +198,12 @@ export class SmsService {
       related_entity_id?: string;
     }
   ): Promise<SmsMessage> {
-    // Get Twilio client and phone number
-    const { client, fromNumber } = getTwilioClient(settings);
-
-    if (!client || !fromNumber) {
-      throw new SecureError('BAD_REQUEST', 'Twilio credentials not configured. Please add your Twilio Account SID, Auth Token, and Phone Number in Settings → SMS.');
+    // Which vendor this organization sends through. Checked before the message
+    // row is written so a misconfigured tenant fails fast rather than leaving a
+    // queued record nothing will ever pick up.
+    const provider = getSmsProvider(settings);
+    if (!provider.isConfigured()) {
+      throw new SecureError('BAD_REQUEST', provider.describeMissingConfig());
     }
 
     const finalBody = applyBrandPrefix(params.body, settings.sms_brand_prefix);
@@ -217,38 +227,45 @@ export class SmsService {
 
     if (insertError) throwDbError(insertError, 'create SMS message');
 
-    // Send via Twilio
     try {
-      const twilioMessage = await client.messages.create({
-        body: finalBody,
-        from: fromNumber,
-        to: params.to,
-        statusCallback: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/twilio/status`,
-      });
+      const result = await provider.send({ to: params.to, body: finalBody });
 
-      // Update with Twilio SID
+      // 'sent' means the vendor accepted it, not that it reached the handset.
+      // Twilio confirms delivery through its status webhook; RingCentral
+      // reports Queued on send and settles later in its message store.
       const { data: updated } = await supabase
         .from('sms_messages')
         .update({
-          twilio_message_sid: twilioMessage.sid,
+          provider: provider.name,
+          provider_message_id: result.providerMessageId,
+          // Kept in step for Twilio so the existing status webhook, which looks
+          // messages up by SID, keeps reconciling deliveries.
+          ...(provider.name === 'twilio' && { twilio_message_sid: result.providerMessageId }),
           status: 'sent',
           sent_at: new Date().toISOString(),
-          segments: parseInt(twilioMessage.numSegments || '1', 10),
+          segments: result.segments ?? 1,
         })
         .eq('id', message.id)
         .select()
         .single();
 
-      return updated || { ...message, twilio_message_sid: twilioMessage.sid, status: 'sent' as const };
+      return (
+        updated || {
+          ...message,
+          provider: provider.name,
+          provider_message_id: result.providerMessageId,
+          status: 'sent' as const,
+        }
+      );
     } catch (error: unknown) {
-      const twilioError = error as { code?: string; message?: string };
-      // Update with error
+      const providerError = error as { code?: string | number; message?: string };
       await supabase
         .from('sms_messages')
         .update({
+          provider: provider.name,
           status: 'failed',
-          error_code: twilioError.code || 'UNKNOWN',
-          error_message: twilioError.message || 'Unknown error',
+          error_code: providerError.code !== undefined ? String(providerError.code) : 'UNKNOWN',
+          error_message: providerError.message || 'Unknown error',
           failed_at: new Date().toISOString(),
         })
         .eq('id', message.id);

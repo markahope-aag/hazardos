@@ -123,12 +123,39 @@ describe('SmsSettingsPage', () => {
     })
   })
 
-  it('displays Twilio configuration card', async () => {
+  it('displays the provider configuration card', async () => {
     render(<SmsSettingsPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Twilio Configuration')).toBeInTheDocument()
+      expect(screen.getByText('SMS Provider')).toBeInTheDocument()
     })
+  })
+
+  it('defaults to Twilio and shows the Twilio credential fields', async () => {
+    render(<SmsSettingsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('SMS Provider')).toBeInTheDocument()
+    })
+
+    // Twilio is the default for every existing organization, so its fields are
+    // what should be on screen without touching anything.
+    expect(screen.getByLabelText(/Twilio Account SID/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Twilio Auth Token/i)).toBeInTheDocument()
+    // RingCentral fields stay hidden until the provider is switched.
+    expect(screen.queryByLabelText(/JWT Credential/i)).not.toBeInTheDocument()
+  })
+
+  it('offers RingCentral as an alternative provider', async () => {
+    render(<SmsSettingsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('SMS Provider')).toBeInTheDocument()
+    })
+
+    // The selector is what lets a client run on RingCentral while other
+    // organizations stay on Twilio.
+    expect(screen.getByLabelText(/^Provider$/i)).toBeInTheDocument()
   })
 
   it('displays SMS best practices info', async () => {
