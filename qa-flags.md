@@ -104,3 +104,46 @@ waiting for someone to remember to run a script.
   correctly wired, authenticated and validated, so these are credential gaps rather than
   broken code. The three AI tests could not be pushed past the rate limiter, so the
   state of ANTHROPIC_API_KEY in production remains unconfirmed.
+
+## Supabase database linter, 2026-08-16
+
+The linter reported 3 ERRORs and roughly 60 WARNs. Probing each one narrowed
+that to five real problems; the rest are either unreachable or intentional.
+
+- **HIGH · Reporting views exposed money to technicians · `v_job_costs`, `v_sales_performance`, `v_lead_source_roi` · FIXED in `7d83536`.**
+  Flagged as SECURITY DEFINER views. They wrap materialized views, which cannot
+  carry RLS, so each does its scoping by hand in a WHERE clause that checked
+  organization and nothing else. A technician selecting from `v_job_costs` and
+  `v_lead_source_roi` got rows back, walking around the FINANCIAL_VIEW gate added
+  the day before. Added the role predicate. Technician now reads 0 rows; viewer
+  and admin unchanged.
+
+- **HIGH · Four RPCs executable by anyone, signed in or not · FIXED in `afd52f7` and `b1155d9`.**
+  `refresh_report_views` (forced MV refreshes on demand), `reset_query_performance_stats`
+  (wiped monitoring history), `create_default_message_templates(org_id)` and
+  `generate_lab_report_number(org_id)` (both take the org as a parameter, so the
+  caller picks the target). The anon key ships in the browser, so this was open to
+  anyone. Note the first revoke silently did nothing: Postgres grants EXECUTE to
+  PUBLIC by default, so revoking from anon and authenticated left PUBLIC holding it.
+
+- **INFO · The baseline squash appears to have dropped grant state.**
+  `reporting-service.ts` carries a comment saying `refresh_report_views` is "locked
+  to service_role per the security lockdown migration". It was not. Grants and
+  revokes are easy to lose in a schema dump, so other lockdowns from before the
+  2026-08-03 baseline should be treated as unverified until probed.
+
+- **NOT A DEFECT · ~16 trigger functions listed as RPC-callable.**
+  `update_*_stats`, `queue_*_event`, `guard_*_delete` and the `create_default_*`
+  trigger wrappers return `trigger`, and PostgREST refuses them with PGRST202.
+  Not reachable, so not worth churning.
+
+- **BY DESIGN · Customer portal and RLS helper functions.**
+  `get_proposal_by_token`, `sign_proposal_by_token`, `record_proposal_view`,
+  `get_invoice_for_portal`, `get_feedback_survey_by_token`, `validate_feedback_token`
+  and `submit_feedback` are token-guarded and must stay anon-callable for customers.
+  `get_user_organization_id`, `get_user_role` and `is_platform_user` must stay
+  executable by `authenticated`: RLS policy expressions evaluate as the querying
+  role, so revoking these would break row-level security everywhere.
+
+- **OPEN · Leaked password protection is disabled · Supabase Auth · needs a dashboard change, not code.**
+  Enable it under Auth so Supabase checks new passwords against HaveIBeenPwned.
