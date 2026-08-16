@@ -1,0 +1,392 @@
+{
+  "_comment": [
+    "Database advisor findings we have reviewed and accepted, keyed by the cache_key splinter emits.",
+    "Anything firing in a gated category that is NOT listed here fails CI, so a newly introduced",
+    "SECURITY DEFINER function or exposed table is caught rather than lost in the noise.",
+    "The Supabase dashboard has no dismiss feature, which is why this file exists.",
+    "Every entry needs a reason. If a reason no longer holds, fix the finding instead of keeping it here."
+  ],
+  "gate_categories": [
+    "SECURITY"
+  ],
+  "ignored_rules": [
+    {
+      "name": "multiple_permissive_policies",
+      "reason": "Performance advisory, not a security finding: several permissive policies on one table mean Postgres evaluates each on every query. Real, but a separate optimization workstream and currently 390 findings. Reported by the runner, not gated."
+    },
+    {
+      "name": "auth_rls_initplan",
+      "reason": "Performance advisory: auth.uid() re-evaluated per row instead of once per query. Worth fixing in bulk with the policies above, not a reason to block a deploy."
+    },
+    {
+      "name": "unindexed_foreign_keys",
+      "reason": "Performance advisory about covering indexes. Adding indexes blindly to satisfy a linter costs write throughput, so these get judged against real query plans instead."
+    },
+    {
+      "name": "unused_index",
+      "reason": "Performance advisory. Reports indexes with no recorded scans, which on a young production database mostly means the query has not run yet rather than that the index is useless."
+    },
+    {
+      "name": "duplicate_index",
+      "reason": "Performance advisory, single occurrence. Worth tidying, never worth failing a build."
+    },
+    {
+      "name": "pg_graphql_anon_table_exposed",
+      "reason": "Local-stack artifact, not a production finding. The Supabase CLI installs pg_graphql by default; production does not have the extension at all (checked pg_extension directly on 2026-08-16: no rows). These fire only against the local database CI builds. If GraphQL is ever enabled in production, drop this entry and work through the 111 findings properly, because then they become real."
+    },
+    {
+      "name": "pg_graphql_authenticated_table_exposed",
+      "reason": "Same as the anon variant above: pg_graphql is present in the local CLI stack and absent in production, so these 120 findings do not describe the deployed system. Revisit if GraphQL is ever turned on."
+    }
+  ],
+  "exceptions": [
+    {
+      "cache_key": "anon_security_definer_function_executable_public_cancel_open_activity_work_p_organization_id uuid, p_entity_type text, p_entity_id uuid, p_reason text, p_only_automated boolean",
+      "rule": "anon_security_definer_function_executable",
+      "object": "cancel_open_activity_work",
+      "reason": "Takes an organization id, so it was probed directly on 2026-08-16. Anon is refused (\"No organization for the current user\") and a signed-in user naming another tenant is refused (\"Organization mismatch\"). Guarded inside the function body."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_cancel_work_on_customer_conversion_",
+      "rule": "anon_security_definer_function_executable",
+      "object": "cancel_work_on_customer_conversion",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_create_activity_process_work_p_organization_id uuid, p_rows jsonb",
+      "rule": "anon_security_definer_function_executable",
+      "object": "create_activity_process_work",
+      "reason": "Takes an organization id, so it was probed directly on 2026-08-16. Anon is refused (\"No organization for the current user\") and a signed-in user naming another tenant is refused (\"Organization mismatch\"). Guarded inside the function body."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_create_default_activity_vocabulary_",
+      "rule": "anon_security_definer_function_executable",
+      "object": "create_default_activity_vocabulary",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_create_default_credential_types_",
+      "rule": "anon_security_definer_function_executable",
+      "object": "create_default_credential_types",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_create_default_message_templates_for_new_org_",
+      "rule": "anon_security_definer_function_executable",
+      "object": "create_default_message_templates_for_new_org",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_create_default_pipeline_stages_",
+      "rule": "anon_security_definer_function_executable",
+      "object": "create_default_pipeline_stages",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_create_org_ai_settings_",
+      "rule": "anon_security_definer_function_executable",
+      "object": "create_org_ai_settings",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_enforce_commission_period_lock_",
+      "rule": "anon_security_definer_function_executable",
+      "object": "enforce_commission_period_lock",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_get_feedback_survey_by_token_p_token character varying",
+      "rule": "anon_security_definer_function_executable",
+      "object": "get_feedback_survey_by_token",
+      "reason": "Customer portal entry point, guarded by a single-use token rather than a session. Has to stay reachable without signing in, or proposals, invoices and feedback surveys stop working for customers."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_get_invoice_for_portal_p_token text",
+      "rule": "anon_security_definer_function_executable",
+      "object": "get_invoice_for_portal",
+      "reason": "Customer portal entry point, guarded by a single-use token rather than a session. Has to stay reachable without signing in, or proposals, invoices and feedback surveys stop working for customers."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_get_proposal_by_token_p_token text",
+      "rule": "anon_security_definer_function_executable",
+      "object": "get_proposal_by_token",
+      "reason": "Customer portal entry point, guarded by a single-use token rather than a session. Has to stay reachable without signing in, or proposals, invoices and feedback surveys stop working for customers."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_guard_customer_delete_",
+      "rule": "anon_security_definer_function_executable",
+      "object": "guard_customer_delete",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_guard_site_survey_delete_",
+      "rule": "anon_security_definer_function_executable",
+      "object": "guard_site_survey_delete",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_inherit_creator_default_location_",
+      "rule": "anon_security_definer_function_executable",
+      "object": "inherit_creator_default_location",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_queue_job_status_event_",
+      "rule": "anon_security_definer_function_executable",
+      "object": "queue_job_status_event",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_queue_lab_result_event_",
+      "rule": "anon_security_definer_function_executable",
+      "object": "queue_lab_result_event",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_queue_opportunity_stage_event_",
+      "rule": "anon_security_definer_function_executable",
+      "object": "queue_opportunity_stage_event",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_record_proposal_view_p_token text",
+      "rule": "anon_security_definer_function_executable",
+      "object": "record_proposal_view",
+      "reason": "Customer portal entry point, guarded by a single-use token rather than a session. Has to stay reachable without signing in, or proposals, invoices and feedback surveys stop working for customers."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_set_lab_reports_updated_at_",
+      "rule": "anon_security_definer_function_executable",
+      "object": "set_lab_reports_updated_at",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_sign_proposal_by_token_p_token text, p_signer_name text, p_signer_email text, p_signer_ip text, p_signature_data text",
+      "rule": "anon_security_definer_function_executable",
+      "object": "sign_proposal_by_token",
+      "reason": "Customer portal entry point, guarded by a single-use token rather than a session. Has to stay reachable without signing in, or proposals, invoices and feedback surveys stop working for customers."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_submit_feedback_p_token character varying, p_rating_overall integer, p_rating_quality integer, p_rating_communication integer, p_rating_timeliness integer, p_rating_value integer, p_would_recommend boolean, p_likelihood_to_recommend integer, p_feedback_text text, p_improvement_suggestions text, p_testimonial_text text, p_testimonial_permission boolean, p_ip_address character varying, p_user_agent text",
+      "rule": "anon_security_definer_function_executable",
+      "object": "submit_feedback",
+      "reason": "Customer portal entry point, guarded by a single-use token rather than a session. Has to stay reachable without signing in, or proposals, invoices and feedback surveys stop working for customers."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_update_company_stats_",
+      "rule": "anon_security_definer_function_executable",
+      "object": "update_company_stats",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_update_customer_stats_",
+      "rule": "anon_security_definer_function_executable",
+      "object": "update_customer_stats",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "anon_security_definer_function_executable_public_validate_feedback_token_token_value character varying",
+      "rule": "anon_security_definer_function_executable",
+      "object": "validate_feedback_token",
+      "reason": "Customer portal entry point, guarded by a single-use token rather than a session. Has to stay reachable without signing in, or proposals, invoices and feedback surveys stop working for customers."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_allow_first_org_creation_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "allow_first_org_creation",
+      "reason": "Called from inside RLS policy expressions, which evaluate as the querying role. Revoking EXECUTE here would break row-level security across every table, so this must stay callable by authenticated."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_calculate_completion_variance_by_job_p_job_id uuid",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "calculate_completion_variance_by_job",
+      "reason": "Takes a job id, so it was probed on 2026-08-16. Anon is refused with 42501, a signed-in user gets their own job, and pointing it at another tenant's job is refused with \"job not found in your organization\". Correctly scoped inside the function."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_can_create_organization_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "can_create_organization",
+      "reason": "Called from inside RLS policy expressions, which evaluate as the querying role. Revoking EXECUTE here would break row-level security across every table, so this must stay callable by authenticated."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_cancel_open_activity_work_p_organization_id uuid, p_entity_type text, p_entity_id uuid, p_reason text, p_only_automated boolean",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "cancel_open_activity_work",
+      "reason": "Takes an organization id, so it was probed directly on 2026-08-16. Anon is refused (\"No organization for the current user\") and a signed-in user naming another tenant is refused (\"Organization mismatch\"). Guarded inside the function body."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_cancel_work_on_customer_conversion_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "cancel_work_on_customer_conversion",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_create_activity_process_work_p_organization_id uuid, p_rows jsonb",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "create_activity_process_work",
+      "reason": "Takes an organization id, so it was probed directly on 2026-08-16. Anon is refused (\"No organization for the current user\") and a signed-in user naming another tenant is refused (\"Organization mismatch\"). Guarded inside the function body."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_create_default_activity_vocabulary_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "create_default_activity_vocabulary",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_create_default_credential_types_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "create_default_credential_types",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_create_default_message_templates_for_new_org_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "create_default_message_templates_for_new_org",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_create_default_pipeline_stages_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "create_default_pipeline_stages",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_create_org_ai_settings_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "create_org_ai_settings",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_enforce_commission_period_lock_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "enforce_commission_period_lock",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_generate_lab_report_number_org_id uuid",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "generate_lab_report_number",
+      "reason": "EXECUTE was revoked from PUBLIC, anon and authenticated in migrations 20260816000002 and 20260816000003. Verified refused with 42501. The advisor still lists it because the function remains SECURITY DEFINER, which is intended."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_get_feedback_survey_by_token_p_token character varying",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "get_feedback_survey_by_token",
+      "reason": "Customer portal entry point, guarded by a single-use token rather than a session. Has to stay reachable without signing in, or proposals, invoices and feedback surveys stop working for customers."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_get_invoice_for_portal_p_token text",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "get_invoice_for_portal",
+      "reason": "Customer portal entry point, guarded by a single-use token rather than a session. Has to stay reachable without signing in, or proposals, invoices and feedback surveys stop working for customers."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_get_proposal_by_token_p_token text",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "get_proposal_by_token",
+      "reason": "Customer portal entry point, guarded by a single-use token rather than a session. Has to stay reachable without signing in, or proposals, invoices and feedback surveys stop working for customers."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_get_user_organization_id_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "get_user_organization_id",
+      "reason": "Called from inside RLS policy expressions, which evaluate as the querying role. Revoking EXECUTE here would break row-level security across every table, so this must stay callable by authenticated."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_get_user_role_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "get_user_role",
+      "reason": "Called from inside RLS policy expressions, which evaluate as the querying role. Revoking EXECUTE here would break row-level security across every table, so this must stay callable by authenticated."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_guard_customer_delete_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "guard_customer_delete",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_guard_site_survey_delete_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "guard_site_survey_delete",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_inherit_creator_default_location_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "inherit_creator_default_location",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_is_platform_user_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "is_platform_user",
+      "reason": "Called from inside RLS policy expressions, which evaluate as the querying role. Revoking EXECUTE here would break row-level security across every table, so this must stay callable by authenticated."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_organization_has_other_members_p_org uuid, p_except uuid",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "organization_has_other_members",
+      "reason": "Called from inside RLS policy expressions, which evaluate as the querying role. Revoking EXECUTE here would break row-level security across every table, so this must stay callable by authenticated."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_queue_job_status_event_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "queue_job_status_event",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_queue_lab_result_event_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "queue_lab_result_event",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_queue_opportunity_stage_event_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "queue_opportunity_stage_event",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_record_proposal_view_p_token text",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "record_proposal_view",
+      "reason": "Customer portal entry point, guarded by a single-use token rather than a session. Has to stay reachable without signing in, or proposals, invoices and feedback surveys stop working for customers."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_set_lab_reports_updated_at_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "set_lab_reports_updated_at",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_sign_proposal_by_token_p_token text, p_signer_name text, p_signer_email text, p_signer_ip text, p_signature_data text",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "sign_proposal_by_token",
+      "reason": "Customer portal entry point, guarded by a single-use token rather than a session. Has to stay reachable without signing in, or proposals, invoices and feedback surveys stop working for customers."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_submit_feedback_p_token character varying, p_rating_overall integer, p_rating_quality integer, p_rating_communication integer, p_rating_timeliness integer, p_rating_value integer, p_would_recommend boolean, p_likelihood_to_recommend integer, p_feedback_text text, p_improvement_suggestions text, p_testimonial_text text, p_testimonial_permission boolean, p_ip_address character varying, p_user_agent text",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "submit_feedback",
+      "reason": "Customer portal entry point, guarded by a single-use token rather than a session. Has to stay reachable without signing in, or proposals, invoices and feedback surveys stop working for customers."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_update_company_stats_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "update_company_stats",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_update_customer_stats_",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "update_customer_stats",
+      "reason": "Trigger function returning `trigger`. PostgREST cannot invoke it: probing on 2026-08-16 returned PGRST202 for every one of these. Listed by the advisor but not actually reachable."
+    },
+    {
+      "cache_key": "authenticated_security_definer_function_executable_public_validate_feedback_token_token_value character varying",
+      "rule": "authenticated_security_definer_function_executable",
+      "object": "validate_feedback_token",
+      "reason": "Customer portal entry point, guarded by a single-use token rather than a session. Has to stay reachable without signing in, or proposals, invoices and feedback surveys stop working for customers."
+    }
+  ]
+}

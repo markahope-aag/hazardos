@@ -15,6 +15,8 @@ on:
     branches: [main]
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/lints/**'
+      - 'scripts/db-advisors.mjs'
       - 'tests/integration/**'
       - 'vitest.integration.config.mts'
       - '.github/workflows/rls-integration.yml'
@@ -22,6 +24,8 @@ on:
     branches: [main]
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/lints/**'
+      - 'scripts/db-advisors.mjs'
       - 'tests/integration/**'
       - 'vitest.integration.config.mts'
       - '.github/workflows/rls-integration.yml'
@@ -64,6 +68,15 @@ jobs:
                                            s/^SERVICE_ROLE_KEY=/SUPABASE_TEST_SERVICE_ROLE_KEY=/;
                                            s/^DB_URL=/SUPABASE_TEST_DB_URL=/' \
             | grep -E '^SUPABASE_TEST_' | tr -d '"' >> "$GITHUB_ENV"
+
+      # Supabase's own advisors, run against the database these migrations just
+      # built. The hosted dashboard has no way to dismiss a finding, and most of
+      # ours are correct by design and will never clear, so a permanently red
+      # dashboard is one nobody reads. The gate lives here instead: everything
+      # currently accepted is listed with a reason in
+      # supabase/lints/advisor-exceptions.json, and anything new fails.
+      - name: Database advisors
+        run: npm run db:advisors -- --db-url "$SUPABASE_TEST_DB_URL"
 
       # The API tests drive real HTTP, so the app has to be running. It must be a
       # production build: `next dev` 308-redirects every /api route to a trailing
