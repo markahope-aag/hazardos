@@ -1,3 +1,8 @@
+// Browser-side Sentry setup. This was sentry.client.config.ts until Sentry
+// deprecated that filename: under Turbopack (which this project builds with)
+// the old name is not picked up at all, so the rename is what keeps client
+// error reporting working rather than a tidy-up.
+// See node_modules/@sentry/nextjs/build/cjs/config/webpack.js for the lookup.
 import * as Sentry from '@sentry/nextjs'
 
 Sentry.init({
@@ -78,3 +83,8 @@ Sentry.init({
     return event
   },
 })
+
+// App Router navigation timing. Next.js calls this hook on route transitions
+// and it is only available from this file, so it could not be wired up while
+// the config lived under the old name.
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart
