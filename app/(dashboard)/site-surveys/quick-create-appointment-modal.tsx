@@ -74,7 +74,7 @@ const HAZARD_TYPES = [
 function QuickCreateAppointmentForm({ onSuccess }: { onSuccess: () => void }) {
   const router = useRouter()
   const { toast } = useToast()
-  const { organization, profile } = useMultiTenantAuth()
+  const { organization } = useMultiTenantAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
@@ -110,7 +110,6 @@ function QuickCreateAppointmentForm({ onSuccess }: { onSuccess: () => void }) {
         site_zip: '',
         hazard_type: hazardType,
         status: 'draft',
-        created_by: profile?.id ?? null,
       })
 
       if (error) throw error
