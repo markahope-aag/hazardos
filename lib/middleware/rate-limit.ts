@@ -5,11 +5,22 @@ import { NextRequest, NextResponse } from 'next/server'
 // Create Redis instance
 const redis = Redis.fromEnv()
 
-// Create different rate limiters for different endpoints
+// Every limiter needs its own `prefix`. Without one, @upstash/ratelimit falls
+// back to a single shared namespace, and since the identifier here is just the
+// caller's IP, all six tiers end up incrementing the same counter. The strictest
+// tier then governs everything: five ordinary page requests would exhaust
+// `heavy`, so the AI endpoints answered 429 essentially all the time and never
+// reached the provider. Confirmed against production on 2026-08-16 (heavy was
+// reachable, eight /api/invoices calls succeeded, heavy then returned 429).
+//
+// The in-memory fallback in memory-rate-limit.ts already keyed on
+// `${type}:${ip}`, so it was never affected. These prefixes bring the Redis path
+// in line with it.
 export const rateLimiters = {
   // General API endpoints - 100 requests per minute
   general: new Ratelimit({
     redis,
+    prefix: 'ratelimit:general',
     limiter: Ratelimit.slidingWindow(100, '1 m'),
     analytics: true,
   }),
@@ -17,6 +28,7 @@ export const rateLimiters = {
   // Authentication endpoints - 10 requests per minute (more restrictive)
   auth: new Ratelimit({
     redis,
+    prefix: 'ratelimit:auth',
     limiter: Ratelimit.slidingWindow(10, '1 m'),
     analytics: true,
   }),
@@ -24,6 +36,7 @@ export const rateLimiters = {
   // File upload endpoints - 20 requests per minute
   upload: new Ratelimit({
     redis,
+    prefix: 'ratelimit:upload',
     limiter: Ratelimit.slidingWindow(20, '1 m'),
     analytics: true,
   }),
@@ -31,6 +44,7 @@ export const rateLimiters = {
   // Heavy operations - 5 requests per minute
   heavy: new Ratelimit({
     redis,
+    prefix: 'ratelimit:heavy',
     limiter: Ratelimit.slidingWindow(5, '1 m'),
     analytics: true,
   }),
@@ -38,6 +52,7 @@ export const rateLimiters = {
   // Webhook endpoints - 200 requests per minute (higher for third-party webhooks)
   webhook: new Ratelimit({
     redis,
+    prefix: 'ratelimit:webhook',
     limiter: Ratelimit.slidingWindow(200, '1 m'),
     analytics: true,
   }),
@@ -45,6 +60,7 @@ export const rateLimiters = {
   // Public endpoints - 60 requests per minute (moderate for public access)
   public: new Ratelimit({
     redis,
+    prefix: 'ratelimit:public',
     limiter: Ratelimit.slidingWindow(60, '1 m'),
     analytics: true,
   }),
