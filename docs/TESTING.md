@@ -1,5 +1,16 @@
 # HazardOS Testing Guide
 
+<!-- currency-check:2026-08-17 -->
+> **Currency check, 2026-08-17: older reference.** Kept because the parts that
+> have not changed are still explained well here, but it has not been verified
+> against the current code.
+>
+> **Known missing:** Counts and coverage figures are stale. `npm run test` is the current number.
+>
+> Check anything specific against the code, the migrations or the tests. See
+> [DOCUMENTATION-INDEX.md](./DOCUMENTATION-INDEX.md).
+
+
 **Comprehensive testing documentation for the HazardOS platform**
 
 > **Last Updated**: May 3, 2026  

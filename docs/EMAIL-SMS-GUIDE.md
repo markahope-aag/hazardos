@@ -1,5 +1,16 @@
 # HazardOS Email & SMS Audit and Implementation Guide
 
+<!-- currency-check:2026-08-17 -->
+> **Currency check, 2026-08-17: older reference.** Kept because the parts that
+> have not changed are still explained well here, but it has not been verified
+> against the current code.
+>
+> **Known missing:** Predates tenant-authored templates and RingCentral as a second SMS provider. For how automation chains send, see `AUTOMATIONS.md`.
+>
+> Check anything specific against the code, the migrations or the tests. See
+> [DOCUMENTATION-INDEX.md](./DOCUMENTATION-INDEX.md).
+
+
 ## Part 1: Email Configuration Audit
 
 ### Current State: Implemented (Outbound Only)

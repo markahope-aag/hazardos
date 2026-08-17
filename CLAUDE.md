@@ -4,6 +4,13 @@
 > records where the last session stopped, what needs a human rather than code,
 > and the traps that cost time last round. It lives in the repo on purpose,
 > because `~/.claude/projects` memory does not sync between machines.
+>
+> **Looking for documentation?** `docs/DOCUMENTATION-INDEX.md` says which
+> documents are current. Anything written before August carries a header saying
+> what it is known to be missing, and `docs/archive/` is history rather than
+> guidance. Code, migrations and tests win over prose in every case.
+> `docs/AUTOMATIONS.md` covers the automation engine, which is the one
+> subsystem large enough that reading the code first would waste an afternoon.
 
 ## What is HazardOS?
 

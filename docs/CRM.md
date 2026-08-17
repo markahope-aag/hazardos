@@ -1,5 +1,16 @@
 # HazardOS CRM
 
+<!-- currency-check:2026-08-17 -->
+> **Currency check, 2026-08-17: older reference.** Kept because the parts that
+> have not changed are still explained well here, but it has not been verified
+> against the current code.
+>
+> **Known missing:** Predates CRM properties, the calendar tab and the My Work queue.
+>
+> Check anything specific against the code, the migrations or the tests. See
+> [DOCUMENTATION-INDEX.md](./DOCUMENTATION-INDEX.md).
+
+
 The CRM is the primary hub of HazardOS. It is the first tab in the main navigation and serves as the source of truth for all customer relationships, sales pipeline, and job tracking.
 
 ## Navigation

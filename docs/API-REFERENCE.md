@@ -1,5 +1,16 @@
 # HazardOS API Reference
 
+<!-- currency-check:2026-08-17 -->
+> **Currency check, 2026-08-17: older reference.** Kept because the parts that
+> have not changed are still explained well here, but it has not been verified
+> against the current code.
+>
+> **Known missing:** Mentions none of the routes added since May. Prefer the generated contract at `/docs/api` and `GET /api/openapi`, which is always accurate.
+>
+> Check anything specific against the code, the migrations or the tests. See
+> [DOCUMENTATION-INDEX.md](./DOCUMENTATION-INDEX.md).
+
+
 **Human-readable API documentation for the HazardOS environmental remediation platform**
 
 > **Last Updated**: May 3, 2026  
@@ -17,7 +28,7 @@ The codebase ships **many** Next.js App Router handlers under `app/api/**/route.
 2. Use **`test/api/*.test.ts`** for behavior and regression coverage of specific handlers.
 3. Use this **API-REFERENCE.md** for prose, examples, and domain context.
 
-Historical completion reports ([API-DOCUMENTATION-COMPLETION-REPORT](./API-DOCUMENTATION-COMPLETION-REPORT.md), etc.) describe milestones; they are **not** a guarantee that every new route since publication appears in the sections below.
+Historical completion reports ([API-DOCUMENTATION-COMPLETION-REPORT](./archive/API-DOCUMENTATION-COMPLETION-REPORT.md), etc.) describe milestones; they are **not** a guarantee that every new route since publication appears in the sections below.
 
 ---
 

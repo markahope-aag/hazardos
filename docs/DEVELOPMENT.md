@@ -1132,7 +1132,7 @@ npm run dev
 2. **Check Documentation**: docs/ folder (37 files, 100% current)
 3. **Search Codebase**: Look for similar implementations
 4. **Check Git History**: `git log --grep="keyword"`
-5. **Audit Reference**: [Codebase Audit 2026-04-07](./CODEBASE-AUDIT-2026-04-07.md)
+5. **Audit Reference**: [Codebase Audit 2026-04-07](./archive/CODEBASE-AUDIT-2026-04-07.md)
 6. **Ask Team**: Contact mark.hope@asymmetric.pro
 
 ---
@@ -1150,7 +1150,7 @@ npm run dev
 - [Architecture](./architecture.md)
 - [API Reference](./API-REFERENCE.md)
 - [Features](./FEATURES.md)
-- [Database Schema](./MIGRATION-GUIDE.md)
+- [Database Schema](./archive/MIGRATION-GUIDE.md)
 
 ### Tools
 - [Supabase Dashboard](https://supabase.com/dashboard)

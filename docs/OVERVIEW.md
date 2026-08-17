@@ -1,5 +1,16 @@
 # HazardOS — Overview
 
+<!-- currency-check:2026-08-17 -->
+> **Currency check, 2026-08-17: older reference.** Kept because the parts that
+> have not changed are still explained well here, but it has not been verified
+> against the current code.
+>
+> **Known missing:** Missing the automation engine, My Work, time clock and RingCentral SMS.
+>
+> Check anything specific against the code, the migrations or the tests. See
+> [DOCUMENTATION-INDEX.md](./DOCUMENTATION-INDEX.md).
+
+
 > The Operating System for Environmental Remediation Companies.
 
 HazardOS is a multi-tenant SaaS platform that runs the entire business of a
@@ -133,4 +144,4 @@ Lead / Contact  →  Site Survey  →  Estimate  →  Proposal  →  Job  →  W
 - A mobile survey wizard composed of 35+ hazard-specific form components
 
 For the technical and domain deep dive — architecture decisions, data model,
-and the notable engineering — see [ARCHITECTURE-DEEP-DIVE.md](./ARCHITECTURE-DEEP-DIVE.md).
+and the notable engineering — see [ARCHITECTURE-DEEP-DIVE.md](./archive/ARCHITECTURE-DEEP-DIVE.md).

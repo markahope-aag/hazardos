@@ -1,5 +1,16 @@
 # HazardOS Architecture Decisions
 
+<!-- currency-check:2026-08-17 -->
+> **Currency check, 2026-08-17: older reference.** Kept because the parts that
+> have not changed are still explained well here, but it has not been verified
+> against the current code.
+>
+> **Known missing:** Written February 2026. Kept for the reasoning, not as a description of the current system.
+>
+> Check anything specific against the code, the migrations or the tests. See
+> [DOCUMENTATION-INDEX.md](./DOCUMENTATION-INDEX.md).
+
+
 **Date:** January 31, 2026  
 **Status:** Approved
 

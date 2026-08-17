@@ -1,5 +1,16 @@
 # HazardOS Architecture
 
+<!-- currency-check:2026-08-17 -->
+> **Currency check, 2026-08-17: older reference.** Kept because the parts that
+> have not changed are still explained well here, but it has not been verified
+> against the current code.
+>
+> **Known missing:** Mentions none of: the automation engine, the My Work queue, time clock, work orders, lab reports, change orders, RingCentral SMS, or CRM properties.
+>
+> Check anything specific against the code, the migrations or the tests. See
+> [DOCUMENTATION-INDEX.md](./DOCUMENTATION-INDEX.md).
+
+
 **Comprehensive technical architecture documentation for the HazardOS platform**
 
 > **Last Updated**: April 7, 2026  
@@ -1618,4 +1629,4 @@ The platform is **production-ready** with a solid foundation for continued growt
 **Document Version**: 2.0 (Post-Audit Update)  
 **Last Review**: April 7, 2026  
 **Next Review**: July 1, 2026  
-**Audit Reference**: [Comprehensive Codebase Audit 2026-04-07](./CODEBASE-AUDIT-2026-04-07.md)
+**Audit Reference**: [Comprehensive Codebase Audit 2026-04-07](./archive/CODEBASE-AUDIT-2026-04-07.md)

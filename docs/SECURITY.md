@@ -1,5 +1,16 @@
 # HazardOS Security Documentation
 
+<!-- currency-check:2026-08-17 -->
+> **Currency check, 2026-08-17: older reference.** Kept because the parts that
+> have not changed are still explained well here, but it has not been verified
+> against the current code.
+>
+> **Known missing:** Predates the August security pass. Route authorization is now declarative on every mutating route and gated in CI (`npm run check:route-guards`), and database advisors are gated too (`npm run db:advisors`).
+>
+> Check anything specific against the code, the migrations or the tests. See
+> [DOCUMENTATION-INDEX.md](./DOCUMENTATION-INDEX.md).
+
+
 **Comprehensive security architecture and best practices for the HazardOS platform**
 
 > **Last Updated**: February 1, 2026

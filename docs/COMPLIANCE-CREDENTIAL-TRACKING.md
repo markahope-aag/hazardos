@@ -1,5 +1,16 @@
 # Compliance & Credential Tracking
 
+<!-- currency-check:2026-08-17 -->
+> **Currency check, 2026-08-17: older reference.** Kept because the parts that
+> have not changed are still explained well here, but it has not been verified
+> against the current code.
+>
+> **Known missing:** Not re-verified since July.
+>
+> Check anything specific against the code, the migrations or the tests. See
+> [DOCUMENTATION-INDEX.md](./DOCUMENTATION-INDEX.md).
+
+
 Tracks, per worker, the licenses and clearances a hazardous-materials firm must
 hold — asbestos worker/supervisor licenses, lead (RRP) certifications,
 respirator fit tests, and medical clearances — each with an issuing authority,

@@ -1,5 +1,16 @@
 # HazardOS — Notification System
 
+<!-- currency-check:2026-08-17 -->
+> **Currency check, 2026-08-17: older reference.** Kept because the parts that
+> have not changed are still explained well here, but it has not been verified
+> against the current code.
+>
+> **Known missing:** Predates the automation engine, which is a separate mechanism. See `AUTOMATIONS.md`.
+>
+> Check anything specific against the code, the migrations or the tests. See
+> [DOCUMENTATION-INDEX.md](./DOCUMENTATION-INDEX.md).
+
+
 This document describes **in-app notifications**, **email digests for those events**, **user preferences**, and how they differ from **SMS** and other messaging. Schema source: `supabase/migrations/20260215000003_notifications.sql` and follow-ups such as `20260419000001_fix_notification_prefs_rpc.sql`.
 
 **Last updated:** April 29, 2026
@@ -129,7 +140,7 @@ Handlers use **`createApiHandler`** with rate limiting where configured ([`lib/u
 ## Client UI
 
 - **Bell:** [`components/notifications/notification-bell.tsx`](../components/notifications/notification-bell.tsx) — TanStack Query, polls **`/api/notifications`** and **`/api/notifications/count`** every **30 seconds** when mounted, mark-read actions, navigate to `action_url`.
-- **Settings:** [`app/(dashboard)/settings/notifications/page.tsx`](../app/(dashboard)/settings/notifications/page.tsx) — loads preferences from **`GET /api/notifications/preferences`**, updates with **`PATCH`**.
+- **Settings:** `app/(dashboard)/settings/notifications/page.tsx` loads preferences from **`GET /api/notifications/preferences`** and updates with **`PATCH`**. (Path given as text rather than a link: the parentheses in the route-group name break markdown link syntax.)
 
 ---
 
@@ -145,7 +156,7 @@ Handlers use **`createApiHandler`** with rate limiting where configured ([`lib/u
 |-----|--------|
 | [DATABASE-STRUCTURE.md](./DATABASE-STRUCTURE.md) | Tables index including `notifications` |
 | [EMAIL-SMS-GUIDE.md](./EMAIL-SMS-GUIDE.md) | Resend/Twilio (SMS is separate from in-app notifications) |
-| [ARCHITECTURE-OVERVIEW.md](./ARCHITECTURE-OVERVIEW.md) | App layers |
+| [ARCHITECTURE-OVERVIEW.md](./archive/ARCHITECTURE-OVERVIEW.md) | App layers |
 
 ---
 

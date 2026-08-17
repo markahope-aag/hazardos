@@ -7,14 +7,18 @@
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1.18-38bdf8)](https://tailwindcss.com/)
 [![Vitest](https://img.shields.io/badge/Vitest-4.0.18-729B1B)](https://vitest.dev/)
-[![Test Coverage](https://img.shields.io/badge/Coverage-instrumented~38%25-yellow)](docs/TESTING.md)
+[![Tests](https://img.shields.io/badge/Tests-6%2C271_passing-brightgreen)](docs/TESTING.md)
 [![Security Status](https://img.shields.io/badge/Security-0_Vulnerabilities-brightgreen)](https://github.com/advisories)
-[![Performance](https://img.shields.io/badge/Performance-B--Grade-orange)](docs/PERFORMANCE-OPTIMIZATION-GUIDE.md)
 
 Mobile-first business management platform for asbestos, mold, lead paint, and hazardous material abatement services.
 
-> **✅ SECURITY**: 0 dependency vulnerabilities (resolved 2026-06-30 via `npm audit fix`; was 23, then 14). Re-run `npm audit` before each release.
-> **📊 AUDIT STATUS**: Comprehensive codebase audit completed April 7, 2026. See [Audit Report](docs/CODEBASE-AUDIT-2026-04-07.md).
+> **Latest audit:** [2026-08-16](./docs/CODEBASE-AUDIT-2026-08-16.md). Four of six
+> priorities closed. Two open: splitting two oversized page components, and
+> consolidating onto one PDF library.
+>
+> **Where to start reading:** [`docs/DOCUMENTATION-INDEX.md`](./docs/DOCUMENTATION-INDEX.md).
+> Documents older than August carry a currency header saying what they are known
+> to be missing; the index says which are current.
 
 ## 🚀 Quick Start
 
@@ -37,14 +41,11 @@ Mobile-first business management platform for asbestos, mold, lead paint, and ha
    npm install
    ```
 
-3. **SECURITY CHECK (CRITICAL):**
+3. **Check dependencies:**
    ```bash
-   # Check for vulnerabilities (23 found in audit)
    npm audit
-   
-   # Fix critical vulnerabilities immediately
-   npm audit fix
    ```
+   Currently reports zero vulnerabilities. Worth re-running before a release.
 
 4. **Set up environment variables:**
    ```bash
@@ -59,24 +60,28 @@ Mobile-first business management platform for asbestos, mold, lead paint, and ha
    ```
 
 5. **Set up the database:**
-   
-   **Using Supabase CLI (Recommended)**
+
    ```bash
-   # Apply all migrations (57 files with security fixes)
-   .\supabase.exe db push
-   
-   # Check migration status - should show all applied
-   .\supabase.exe db status
-   
-   # Verify RLS policies are working
-   .\supabase.exe db diff
+   npx supabase db push
    ```
-   
-   **Manual Setup** (if CLI not available)
-   - ⚠️ **Important**: Apply migrations in chronological order
-   - Copy/paste SQL from `supabase/migrations/` files into Supabase Dashboard
-   - Key security migrations: `20260401000006_fix_rls_function_search_path.sql`
-   - See [Migration Guide](./docs/MIGRATION-GUIDE.md) for detailed instructions
+
+   The schema is a **squashed baseline**, not a long migration chain: three
+   `00000000000000*` files rebuild an empty database, and later migrations
+   build on top. Read the migration section of [`CLAUDE.md`](./CLAUDE.md) before
+   changing anything there, particularly before re-baselining, because
+   `supabase db dump` covers the `public` schema only and silently omits the
+   trigger that creates a profile on signup.
+
+   To rebuild locally from empty:
+
+   ```bash
+   npx supabase db reset
+   npm run test:integration   # proves auth and RLS survived the rebuild
+   ```
+
+   Note `supabase start` does **not** re-apply migrations to an existing
+   volume, so use `db reset` rather than wondering why a migration looks
+   missing.
 
 6. **Run the development server:**
    ```bash
@@ -258,7 +263,7 @@ We use proper Supabase CLI migrations for version control:
 - `pricing_settings` - Organization-specific markup and pricing rules
 - `labor_rates`, `equipment_rates`, `material_costs`, `disposal_fees`, `travel_rates` - Pricing tables
 
-See [Migration Guide](./docs/MIGRATION-GUIDE.md) for complete database setup.
+See [Migration Guide](./docs/archive/MIGRATION-GUIDE.md) for complete database setup.
 
 ## 🔧 Development
 
@@ -383,31 +388,31 @@ Required in Vercel:
 
 ### 🚀 Getting Started
 - **[Development Guide](./docs/DEVELOPMENT.md)** - Complete setup and development workflow (Updated post-audit)
-- **[Migration Guide](./docs/MIGRATION-GUIDE.md)** - Database setup and migrations
-- **[Testing Strategy Guide](./docs/TESTING-STRATEGY-GUIDE.md)** - Comprehensive testing documentation (NEW)
+- **[Migration Guide](./docs/archive/MIGRATION-GUIDE.md)** - Database setup and migrations
+- **[Testing Strategy Guide](./docs/archive/TESTING-STRATEGY-GUIDE.md)** - Comprehensive testing documentation (NEW)
 
 ### 📋 Product & Business
-- **[Project Overview](./docs/HazardOS-Project-Overview.md)** - Vision, goals, and business model
-- **[Product Requirements](./docs/HazardOS-PRD.md)** - Detailed feature specifications
+- **[Project Overview](./docs/archive/HazardOS-Project-Overview.md)** - Vision, goals, and business model
+- **[Product Requirements](./docs/archive/HazardOS-PRD.md)** - Detailed feature specifications
 - **[Features Documentation](./docs/FEATURES.md)** - Complete feature reference
 - **[Business Logic](./docs/BUSINESS-LOGIC.md)** - Complex workflows and calculations
 
 ### 🏗️ Technical (Updated Post-Audit)
 - **[API Reference](./docs/API-REFERENCE.md)** - Complete REST API documentation (144 endpoints, 100% coverage)
 - **[Architecture Guide](./docs/architecture.md)** - System architecture and design decisions (Updated April 2026)
-- **[Security Audit Findings](./docs/SECURITY-AUDIT-FINDINGS.md)** - Security vulnerabilities and fixes (NEW)
-- **[Performance Optimization Guide](./docs/PERFORMANCE-OPTIMIZATION-GUIDE.md)** - Performance improvements (NEW)
+- **[Security Audit Findings](./docs/archive/SECURITY-AUDIT-FINDINGS.md)** - Security vulnerabilities and fixes (NEW)
+- **[Performance Optimization Guide](./docs/archive/PERFORMANCE-OPTIMIZATION-GUIDE.md)** - Performance improvements (NEW)
 - **[Multi-Tenant Setup](./docs/MULTI_TENANT_SETUP.md)** - Architecture and configuration
 
 ### 📊 Project Management & Audit
-- **[Comprehensive Codebase Audit](./docs/CODEBASE-AUDIT-2026-04-07.md)** - Complete audit report (NEW)
-- **[Current Status Report](./docs/CURRENT-STATUS-FEB-2026.md)** - Latest project status
-- **[Project Status](./docs/PROJECT-STATUS.md)** - Development roadmap
-- **[Changelog](./docs/CHANGELOG.md)** - Version history and release notes
+- **[Comprehensive Codebase Audit](./docs/archive/CODEBASE-AUDIT-2026-04-07.md)** - Complete audit report (NEW)
+- **[Current Status Report](./docs/archive/CURRENT-STATUS-FEB-2026.md)** - Latest project status
+- **[Project Status](./docs/archive/PROJECT-STATUS.md)** - Development roadmap
+- **[Changelog](./docs/archive/CHANGELOG.md)** - Version history and release notes
 
 ### 🔍 Quick Reference
 - **[Documentation Index](./docs/DOCUMENTATION-INDEX.md)** - Complete documentation overview
-- **[Quick API Reference](./docs/QUICK-API-REFERENCE.md)** - Fast API reference
+- **[Quick API Reference](./docs/archive/QUICK-API-REFERENCE.md)** - Fast API reference
 
 ## 🎯 Target Market
 

@@ -1,6 +1,17 @@
 # HazardOS — Database Structure
 
-This document explains how the PostgreSQL schema is organized for the app. The **authoritative definition** of columns, constraints, and policies is the SQL in **`supabase/migrations/`** (apply with the Supabase CLI per [MIGRATION-GUIDE.md](./MIGRATION-GUIDE.md)).
+<!-- currency-check:2026-08-17 -->
+> **Currency check, 2026-08-17: older reference.** Kept because the parts that
+> have not changed are still explained well here, but it has not been verified
+> against the current code.
+>
+> **Known missing:** Predates the squashed migration baseline and every table added since May, including the automation tables. See `CLAUDE.md` on the baseline.
+>
+> Check anything specific against the code, the migrations or the tests. See
+> [DOCUMENTATION-INDEX.md](./DOCUMENTATION-INDEX.md).
+
+
+This document explains how the PostgreSQL schema is organized for the app. The **authoritative definition** of columns, constraints, and policies is the SQL in **`supabase/migrations/`** (apply with the Supabase CLI per [MIGRATION-GUIDE.md](./archive/MIGRATION-GUIDE.md)).
 
 **TypeScript mirror:** [`types/database.ts`](../types/database.ts) reflects many core tables but is **not guaranteed to list every table or column** in the live database. When they disagree, trust migrations.
 
@@ -221,9 +232,9 @@ Commonly used enums (see migrations and [`types/database.ts`](../types/database.
 
 | Doc | Topic |
 |-----|--------|
-| [MIGRATION-GUIDE.md](./MIGRATION-GUIDE.md) | How to apply migrations |
+| [MIGRATION-GUIDE.md](./archive/MIGRATION-GUIDE.md) | How to apply migrations |
 | [database/README.md](./database/README.md) | Legacy SQL folder + verification scripts |
-| [ARCHITECTURE-OVERVIEW.md](./ARCHITECTURE-OVERVIEW.md) | App architecture and data flow |
+| [ARCHITECTURE-OVERVIEW.md](./archive/ARCHITECTURE-OVERVIEW.md) | App architecture and data flow |
 | [CLAUDE.md](../CLAUDE.md) | RLS helpers, PostgREST join hints, CRM mental model |
 
 ---

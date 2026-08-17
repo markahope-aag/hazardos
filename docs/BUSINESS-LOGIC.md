@@ -1,5 +1,16 @@
 # HazardOS Business Logic Documentation
 
+<!-- currency-check:2026-08-17 -->
+> **Currency check, 2026-08-17: older reference.** Kept because the parts that
+> have not changed are still explained well here, but it has not been verified
+> against the current code.
+>
+> **Known missing:** Covers change orders. Missing the automation engine, My Work, time clock, work orders, lab reports, RingCentral SMS and CRM properties.
+>
+> Check anything specific against the code, the migrations or the tests. See
+> [DOCUMENTATION-INDEX.md](./DOCUMENTATION-INDEX.md).
+
+
 **Comprehensive guide to complex business rules, workflows, and domain logic**
 
 > **Last Updated**: April 19, 2026
@@ -2639,8 +2650,8 @@ This documentation covers the core business logic of HazardOS. Each section expl
 4. **Edge Cases**: Potential issues and solutions
 
 For implementation details and API references, see:
-- [API Documentation](./API.md)
-- [Database Schema](./SCHEMA.md)
+- [API Reference](./API-REFERENCE.md), and the generated contract at `/docs/api`
+- [Database Structure](./DATABASE-STRUCTURE.md)
 - [Features Overview](./FEATURES.md)
 
 ---
