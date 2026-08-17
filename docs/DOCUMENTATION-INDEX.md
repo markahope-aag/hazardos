@@ -2,7 +2,7 @@
 
 **Reviewed 2026-08-17.**
 
-Thirteen documents. Every one describes something that exists in the app now, or
+Eighteen documents. Every one describes something that exists in the app now, or
 work that is actually open. Nothing here is speculative, and there is no archive.
 
 ## The rule
@@ -25,6 +25,7 @@ for the HTTP surface, and the test suite for behavior.
 | [`../README.md`](../README.md) | Setup and quick start |
 | [`NEXT-SESSION.md`](./NEXT-SESSION.md) | Where the last session stopped and what needs a human |
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | How the system is put together, with measured numbers |
+| [`DATA-MODEL.md`](./DATA-MODEL.md) | Orientation for 105 tables, and the names that mean something other than what they say |
 | [`ROADMAP.md`](./ROADMAP.md) | Everything actually open |
 
 ## Using the app
@@ -40,6 +41,8 @@ for the HTTP surface, and the test suite for behavior.
 |---|---|
 | [`AUTOMATIONS.md`](./AUTOMATIONS.md) | Chains, triggers, sending, cancellation. The whole engine |
 | [`DEPLOYMENT.md`](./DEPLOYMENT.md) | Production deployment |
+| [`ENVIRONMENT.md`](./ENVIRONMENT.md) | All 45 environment variables and what breaks without each |
+| [`TENANT-ONBOARDING.md`](./TENANT-ONBOARDING.md) | Standing up a real customer organization, and the traps |
 | [`security/supabase-auth-config.md`](./security/supabase-auth-config.md) | Auth settings, including the leaked-password toggle that is still off |
 
 ## Current state
