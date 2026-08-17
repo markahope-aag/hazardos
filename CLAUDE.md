@@ -1,5 +1,10 @@
 # HazardOS — Project Context for Claude
 
+> **Picking this up after a break?** Read `docs/NEXT-SESSION.md` first. It
+> records where the last session stopped, what needs a human rather than code,
+> and the traps that cost time last round. It lives in the repo on purpose,
+> because `~/.claude/projects` memory does not sync between machines.
+
 ## What is HazardOS?
 
 HazardOS is a multi-tenant SaaS platform for environmental remediation companies. It manages the full lifecycle from lead generation through job completion and payment: CRM, site surveys, estimates, proposals, jobs, invoicing, and analytics.
