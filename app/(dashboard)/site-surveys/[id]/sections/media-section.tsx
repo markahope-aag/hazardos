@@ -149,6 +149,9 @@ export function MediaSection({ surveyId, media, onChange }: MediaSectionProps) {
     return () => {
       cancelled = true
     }
+    // pathsKey is the serialized form of the paths array and is the real
+    // dependency. Depending on the array itself would re-run on every render,
+    // because a new array identity arrives each time even when nothing moved.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathsKey])
 

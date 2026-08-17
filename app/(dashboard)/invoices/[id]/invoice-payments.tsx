@@ -86,6 +86,9 @@ export function InvoicePayments({ invoice, payments }: InvoicePaymentsProps) {
       openDialog()
       router.replace(`/invoices/${invoice.id}`)
     }
+    // openDialog, router and invoice.id are omitted deliberately. autoOpenedRef
+    // makes this fire once for the lifetime of the component, so a re-run from
+    // an identity change would be a no-op anyway.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, canRecordPayment])
 

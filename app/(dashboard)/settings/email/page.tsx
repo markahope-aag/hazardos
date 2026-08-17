@@ -129,6 +129,9 @@ export default function EmailSettingsPage() {
       handleRefreshDomain(true)
     }, 10_000)
     return () => clearInterval(interval)
+    // handleRefreshDomain is omitted on purpose: it is redefined each render,
+    // so depending on it would tear down and recreate the interval constantly
+    // and the poll would never actually wait its ten seconds.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [domain.status])
 

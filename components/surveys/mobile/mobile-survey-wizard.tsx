@@ -225,6 +225,9 @@ export default function MobileSurveyWizard({
     }
 
     initializeSurvey()
+    // Mount-only by design: this seeds the wizard once. Values that arrive
+    // later (organization and customer ids resolve asynchronously) are handled
+    // by the effect immediately below rather than by re-running init.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
