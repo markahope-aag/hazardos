@@ -17,8 +17,9 @@ Mobile-first business management platform for asbestos, mold, lead paint, and ha
 > consolidating onto one PDF library.
 >
 > **Where to start reading:** [`docs/DOCUMENTATION-INDEX.md`](./docs/DOCUMENTATION-INDEX.md).
-> Documents older than August carry a currency header saying what they are known
-> to be missing; the index says which are current.
+> Thirteen documents, each describing something that exists or work that is
+> open. Stale and speculative material was deleted on 2026-08-17; git history
+> has it.
 
 ## 🚀 Quick Start
 
@@ -149,11 +150,11 @@ hazardos/
 │   ├── utils/             # Utility functions
 │   └── validations/       # Zod schemas
 ├── supabase/              # Database migrations
-│   ├── migrations/        # 57 SQL migration files
+│   ├── migrations/        # 3 baseline files + later migrations
 │   └── config.toml        # Supabase configuration
 ├── types/                 # TypeScript type definitions
-├── test/                  # Test files (399 test files)
-├── docs/                  # Project documentation (68 files)
+├── test/                  # Test files (488)
+├── docs/                  # Project documentation (13 files)
 └── public/                # Static assets & PWA files
 ```
 
@@ -174,10 +175,22 @@ hazardos/
 | **Email** | Resend | 6.9.1 | ✅ Current |
 | **Deployment** | Vercel | Latest | ✅ Production |
 
-### ⚠️ Security Status
-- **23 dependency vulnerabilities** (1 critical, 13 high severity)
-- **Action Required**: Run `npm audit fix` immediately
-- **Critical**: jsPDF (RCE), axios (DoS), Next.js (CSRF bypass)
+### Security status
+
+`npm audit` reports **zero vulnerabilities**. Two ratchets run in CI and fail the
+build on anything new:
+
+```bash
+npm run check:route-guards   # a mutating route with no declared guard
+npm run db:advisors          # a new database advisor finding
+```
+
+The route-guard baseline is empty. The advisor baseline holds 58 reviewed
+findings with written reasons in `supabase/lints/advisor-exceptions.json`.
+
+One gap the advisor cannot see: `auth_leaked_password_protection` is an Auth API
+setting rather than a database property, so a green run says nothing about it.
+It is currently **off**, and it is on the [roadmap](./docs/ROADMAP.md).
 
 ## 🏢 Multi-Tenant Architecture
 
@@ -263,7 +276,9 @@ We use proper Supabase CLI migrations for version control:
 - `pricing_settings` - Organization-specific markup and pricing rules
 - `labor_rates`, `equipment_rates`, `material_costs`, `disposal_fees`, `travel_rates` - Pricing tables
 
-See [Migration Guide](./docs/archive/MIGRATION-GUIDE.md) for complete database setup.
+See [Architecture](./docs/ARCHITECTURE.md) for the tenancy model and the
+squashed-baseline schema, and the migration section of [`CLAUDE.md`](./CLAUDE.md)
+before changing anything under `supabase/migrations/`.
 
 ## 🔧 Development
 
@@ -275,7 +290,7 @@ npm run build        # Build for production
 npm run start        # Start production server
 npm run lint         # Run ESLint
 npm run type-check   # Run TypeScript compiler
-npm run test         # Run test suite (399 test files)
+npm run test         # Run test suite (488 files, 6,271 tests)
 npm run test:coverage # Run tests with coverage report
 npm audit           # Check for security vulnerabilities (CRITICAL)
 npm run pre-commit   # Run all quality checks (TS + Lint + Test + Build + Audit)
@@ -317,10 +332,10 @@ npm run build        # Production build test
 ### Testing Standards (Post-Audit)
 
 **Current Testing Status:**
-- **399 test files** with comprehensive coverage strategy
-- **~75% overall coverage** (target: 85%)
-- **API Routes**: 95% coverage ✅
-- **Components**: 8% coverage ⚠️ (needs expansion)
+- **488 test files**, 6,271 tests passing
+- Coverage figures deliberately not quoted here. They were wrong for months and
+  nobody noticed, because a number in a README is nobody's job to update. Run
+  `npm run test:coverage` for the current one.
 - **Services**: 85% coverage ✅
 
 **Test Quality Requirements:**
@@ -384,35 +399,26 @@ Required in Vercel:
 - **Repository**: https://github.com/markahope-aag/hazardos
 - **Supabase**: https://inzwwbbbdookxkkotbxj.supabase.co
 
-## 📚 Documentation (68 Files - 100% Current)
+## 📚 Documentation
 
-### 🚀 Getting Started
-- **[Development Guide](./docs/DEVELOPMENT.md)** - Complete setup and development workflow (Updated post-audit)
-- **[Migration Guide](./docs/archive/MIGRATION-GUIDE.md)** - Database setup and migrations
-- **[Testing Strategy Guide](./docs/archive/TESTING-STRATEGY-GUIDE.md)** - Comprehensive testing documentation (NEW)
+Thirteen documents, each describing something that exists or work that is open.
+[`docs/DOCUMENTATION-INDEX.md`](./docs/DOCUMENTATION-INDEX.md) is the full list.
 
-### 📋 Product & Business
-- **[Project Overview](./docs/archive/HazardOS-Project-Overview.md)** - Vision, goals, and business model
-- **[Product Requirements](./docs/archive/HazardOS-PRD.md)** - Detailed feature specifications
-- **[Features Documentation](./docs/FEATURES.md)** - Complete feature reference
-- **[Business Logic](./docs/BUSINESS-LOGIC.md)** - Complex workflows and calculations
+| Document | What it is |
+|---|---|
+| [Architecture](./docs/ARCHITECTURE.md) | How the system fits together, with measured numbers |
+| [Roadmap](./docs/ROADMAP.md) | Everything actually open |
+| [Automations](./docs/AUTOMATIONS.md) | The chain engine: triggers, scheduling, sending, cancellation |
+| [User Manual](./docs/USER-MANUAL.md) · [Admin Manual](./docs/ADMIN-MANUAL.md) | Using and administering the app |
+| [Deployment](./docs/DEPLOYMENT.md) | Production deployment |
+| [Latest audit](./docs/CODEBASE-AUDIT-2026-08-16.md) · [Technical debt](./docs/TECHNICAL-DEBT.md) | Current state |
+| [Next session](./docs/NEXT-SESSION.md) | Where work stopped and what needs a human |
 
-### 🏗️ Technical (Updated Post-Audit)
-- **[API Reference](./docs/API-REFERENCE.md)** - Complete REST API documentation (144 endpoints, 100% coverage)
-- **[Architecture Guide](./docs/architecture.md)** - System architecture and design decisions (Updated April 2026)
-- **[Security Audit Findings](./docs/archive/SECURITY-AUDIT-FINDINGS.md)** - Security vulnerabilities and fixes (NEW)
-- **[Performance Optimization Guide](./docs/archive/PERFORMANCE-OPTIMIZATION-GUIDE.md)** - Performance improvements (NEW)
-- **[Multi-Tenant Setup](./docs/MULTI_TENANT_SETUP.md)** - Architecture and configuration
+For the HTTP API, use the generated contract at `/docs/api` and
+`GET /api/openapi` rather than prose. It cannot drift.
 
-### 📊 Project Management & Audit
-- **[Comprehensive Codebase Audit](./docs/archive/CODEBASE-AUDIT-2026-04-07.md)** - Complete audit report (NEW)
-- **[Current Status Report](./docs/archive/CURRENT-STATUS-FEB-2026.md)** - Latest project status
-- **[Project Status](./docs/archive/PROJECT-STATUS.md)** - Development roadmap
-- **[Changelog](./docs/archive/CHANGELOG.md)** - Version history and release notes
-
-### 🔍 Quick Reference
-- **[Documentation Index](./docs/DOCUMENTATION-INDEX.md)** - Complete documentation overview
-- **[Quick API Reference](./docs/archive/QUICK-API-REFERENCE.md)** - Fast API reference
+Documentation that described features speculatively, or that had gone stale, was
+deleted on 2026-08-17 rather than archived. Git history has all of it.
 
 ## 🎯 Target Market
 
@@ -457,7 +463,7 @@ Proprietary - Asymmetric Marketing LLC
 ### ✅ Strengths
 - **Mature Architecture**: Excellent multi-tenant design with robust RLS implementation
 - **Modern Tech Stack**: Latest versions of React 19, Next.js 16, TypeScript 5.9
-- **Comprehensive Testing**: 399 test files with 75% overall coverage
+- **Comprehensive Testing**: 488 test files, 6,271 tests passing
 - **Complete Feature Set**: 151 of 166 planned features complete (91%)
 - **Production Ready**: Deployed and serving customers at https://hazardos.app
 

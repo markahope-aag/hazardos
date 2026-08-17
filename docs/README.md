@@ -2,22 +2,28 @@
 
 **Start at [`DOCUMENTATION-INDEX.md`](./DOCUMENTATION-INDEX.md).**
 
-This file used to be a second index. Two indexes is how both end up stale, and
-both did: between them they pointed at a dozen documents that had been moved or
-never existed. There is one index now.
+Thirteen documents. Each describes something that exists in the app now, or work
+that is genuinely open. There is no archive: material that had gone stale or
+described features speculatively was deleted rather than kept with a warning on
+it, because the warning gets skipped and the content gets believed.
 
-## The short version
+Git history has everything that was removed:
 
-- **Current documents** are listed at the top of the index. They were written or
-  verified in August and are believed accurate.
-- **Older reference** documents are kept, but each carries a header stating what
-  it is known to be missing. Check anything specific against the code.
-- **[`archive/`](./archive/)** holds status snapshots, finished workstreams and
-  superseded material. Nothing in there describes the app as it is now.
+```bash
+git log --diff-filter=D --name-only -- docs/
+```
 
-## What is actually authoritative
+## What is authoritative
 
-Code, migrations and tests. Where prose disagrees with them, the prose is wrong.
+Code, migrations and tests. Where prose disagrees with them, the prose is wrong
+and should be fixed or deleted.
 
 For the HTTP surface, `GET /api/openapi` and `/docs/api` are generated from the
 routes and cannot drift.
+
+## Adding to this
+
+Write a document when a subsystem is large enough that reading the code first
+would waste someone's afternoon. [`AUTOMATIONS.md`](./AUTOMATIONS.md) is the
+model. Anything that does not exist yet belongs in
+[`ROADMAP.md`](./ROADMAP.md) as a line, not as a file.
