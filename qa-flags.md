@@ -1,7 +1,21 @@
 # QA Autopilot — Flags (2026-07-20)
 
-## CRITICAL · No browser automation in session
-Run phase (browser-driven UI passes) · Cannot drive the authenticated SPA; ~360 UI test cases remain Blocked. Fix: `claude mcp add playwright -- npx -y @playwright/mcp@latest` then reopen the session (`npx playwright install chromium` on first navigation).
+## RESOLVED (2026-08-17) · Browser automation: use native Chrome, not Playwright
+The original 2026-07-20 flag read "No browser automation in session, ~360 UI test
+cases remain Blocked" and prescribed installing the Playwright MCP. **That fix is
+wrong for this setup and the flag is stale.** Browser-driven passes have been run
+interactively for weeks using Claude Code's **native Chrome integration**
+(`/chrome`), which is built in, needs no MCP, and therefore appears in neither
+`claude mcp list` nor any file in this repo.
+
+Left uncorrected, this line actively misleads: it reads as "no browser exists
+here" to anyone checking the obvious places, and the prescribed Playwright MCP is
+redundant at best. On this Windows setup Playwright's CDP transport is also
+suspect, see the header of `../eydn-app/scripts/shoot.mjs`, which drives Chromium
+through its own CLI because `--remote-debugging-pipe` hangs.
+
+**Start a browser pass with `/chrome`.** Keep the skill's one-browser rule: reuse
+the single session across cases rather than opening one per test.
 
 ## RESOLVED (verified 2026-08-04) · v1 Public API findings from 2026-07-20
 Every HIGH item below was re-tested on 2026-08-04 by the ported suite in
