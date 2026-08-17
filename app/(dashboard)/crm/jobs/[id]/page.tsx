@@ -34,6 +34,7 @@ import { JobDocumentsHub } from '@/app/(dashboard)/jobs/[id]/job-documents-hub'
 import { JobChangeOrders } from '@/app/(dashboard)/jobs/[id]/job-change-orders'
 import { JobMaterials } from '@/app/(dashboard)/jobs/[id]/job-materials'
 import { eachDayOfInterval, format } from 'date-fns'
+import { TabStrip } from '@/components/ui/tab-strip'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   scheduled: { label: 'Scheduled', color: 'bg-blue-100 text-blue-700' },
@@ -343,13 +344,13 @@ export default function JobDetailPage({ params }: Props) {
 
         {/* Right Main Content */}
         <div className="space-y-4">
-          <div className="flex space-x-1 border-b">
-            {tabs.map((tab) => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-              >{tab.label}</button>
-            ))}
-          </div>
+          <TabStrip
+            tabs={tabs}
+            value={activeTab}
+            onChange={setActiveTab}
+            baseId="crm-job"
+            label="Job sections"
+          />
 
           {activeTab === 'overview' && (
             <div className="space-y-6">

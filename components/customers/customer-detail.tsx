@@ -33,6 +33,7 @@ import { useUpdateCustomerStatus } from '@/lib/hooks/use-customers'
 import { CUSTOMER_STATUS_OPTIONS } from '@/lib/validations/customer-form'
 import { createClient } from '@/lib/supabase/client'
 import type { Customer, CustomerStatus } from '@/types/database'
+import { TabStrip } from '@/components/ui/tab-strip'
 
 interface CustomerWithJoins extends Customer {
   account_owner?: {
@@ -234,22 +235,13 @@ export default function CustomerDetail({ customer }: CustomerDetailProps) {
 
         {/* Right Main Content — Tabbed */}
         <div className="space-y-4">
-          <div className="flex space-x-1 border-b">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {tab.label}
-                {tab.count !== undefined && tab.count > 0 ? ` (${tab.count})` : ''}
-              </button>
-            ))}
-          </div>
+          <TabStrip
+            tabs={tabs.map((t) => ({ id: t.id, label: t.count !== undefined && t.count > 0 ? `${t.label} (${t.count})` : t.label }))}
+            value={activeTab}
+            onChange={setActiveTab}
+            baseId="customer"
+            label="Contact sections"
+          />
 
           {activeTab === 'overview' && (
             <CustomerDetailOverview

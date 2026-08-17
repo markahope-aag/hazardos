@@ -218,12 +218,32 @@ describe('CustomerDetail Component', () => {
   it('should render tab navigation', () => {
     render(<CustomerDetail customer={mockCustomer} />)
 
-    expect(screen.getByRole('button', { name: 'Overview' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Activity' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Opportunities' })).toBeInTheDocument()
-    // "Jobs" also appears as a stat label in the sidebar; scope to the
-    // tab button so we're testing the navigation, not the page text.
-    expect(screen.getByRole('button', { name: 'Jobs' })).toBeInTheDocument()
+    // These are queried as tabs rather than buttons on purpose. They used to be
+    // plain buttons, which a screen reader announced as unrelated controls with
+    // no sense of a set or of which one was current. Querying by role here
+    // means the accessible semantics stay covered by a test rather than being
+    // something that can quietly regress.
+    expect(screen.getByRole('tablist', { name: 'Contact sections' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Overview' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Activity' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /^Opportunities/ })).toBeInTheDocument()
+    // "Jobs" also appears as a stat label in the sidebar; scoping to the tab
+    // means we're testing the navigation, not the page text.
+    expect(screen.getByRole('tab', { name: /^Jobs/ })).toBeInTheDocument()
+  })
+
+  it('marks exactly one tab as selected and keeps the rest out of the tab order', () => {
+    render(<CustomerDetail customer={mockCustomer} />)
+
+    const tabs = screen.getAllByRole('tab')
+    const selected = tabs.filter((t) => t.getAttribute('aria-selected') === 'true')
+    expect(selected).toHaveLength(1)
+    expect(selected[0]).toHaveAccessibleName('Overview')
+    // Roving tabindex: a keyboard user reaches the strip once, then uses the
+    // arrow keys, rather than tabbing through every section.
+    for (const tab of tabs) {
+      expect(tab).toHaveAttribute('tabindex', tab === selected[0] ? '0' : '-1')
+    }
   })
 
   it('should handle customer without company name', () => {

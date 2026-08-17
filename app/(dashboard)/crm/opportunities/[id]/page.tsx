@@ -26,6 +26,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import { formatCurrency } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
+import { TabStrip } from '@/components/ui/tab-strip'
 
 const PROPERTY_LABELS: Record<string, string> = {
   residential_single_family: 'Residential (Single Family)',
@@ -460,13 +461,13 @@ export default function OpportunityDetailPage({ params }: Props) {
 
         {/* Right Main Content */}
         <div className="space-y-4">
-          <div className="flex space-x-1 border-b">
-            {tabs.map((tab) => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-              >{tab.label}</button>
-            ))}
-          </div>
+          <TabStrip
+            tabs={tabs}
+            value={activeTab}
+            onChange={setActiveTab}
+            baseId="crm-opportunity"
+            label="Opportunity sections"
+          />
 
           {activeTab === 'overview' && (
             <div className="space-y-6">

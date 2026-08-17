@@ -19,6 +19,7 @@ import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import EntityActivityFeed from '@/components/activity/entity-activity-feed'
 import CompanyJobsList from '@/components/companies/company-jobs-list'
+import { TabStrip } from '@/components/ui/tab-strip'
 
 const TYPE_LABELS: Record<string, string> = {
   residential_property_mgr: 'Residential Property Manager',
@@ -374,21 +375,13 @@ export default function CompanyDetailPage({ params }: Props) {
         {/* Right Main Content */}
         <div className="space-y-4">
           {/* Tab Bar */}
-          <div className="flex space-x-1 border-b">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <TabStrip
+            tabs={tabs}
+            value={activeTab}
+            onChange={setActiveTab}
+            baseId="crm-company"
+            label="Company sections"
+          />
 
           {/* Overview Tab */}
           {activeTab === 'overview' && (
