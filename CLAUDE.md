@@ -222,7 +222,7 @@ Three files make up the baseline, and they are a set:
 
 **If you ever re-baseline, regenerate all three.** Running `supabase db dump`
 alone silently drops the trigger on `auth.users`, so a rebuilt database creates
-no `profiles` row on signup and every new user ends up with no organisation and
+no `profiles` row on signup and every new user ends up with no organization and
 no role. It fails silently, and only an integration test catches it.
 
 Only add to `00000000000002` if the data is **global**. Anything org-scoped
@@ -297,7 +297,8 @@ For any task that requires reading across multiple files, delegate to the **Expl
 Clients can't use `.md`. Whenever you produce a file meant to be shared with a client (report, audit, strategy, proposal, sequence, any deliverable), after writing the `.md`, generate a PDF and treat the **PDF** as the thing you hand over:
 
 ```
-node D:/projects/workspace/scripts/convert-to-pdf/convert-to-pdf.js --src <path/to/file.md>
+# from the repo root; `workspace` is a sibling checkout under the projects dir
+node ../workspace/scripts/convert-to-pdf/convert-to-pdf.js --src <path/to/file.md>
 ```
 
 The styled, print-ready PDF is written next to the `.md`. Never deliver the raw `.md` to a client. Internal notes, docs, and code files don't need conversion.
