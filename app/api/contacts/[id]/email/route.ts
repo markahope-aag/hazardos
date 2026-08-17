@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { EmailService } from '@/lib/services/email/email-service'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * POST /api/contacts/[id]/email
@@ -40,7 +41,7 @@ function htmlToPlainText(html: string): string {
 }
 
 export const POST = createApiHandlerWithParams(
-  { bodySchema },
+  { bodySchema, allowedRoles: ROLES.TENANT_WRITE },
   async (_request, context, params, body) => {
     const { data: contact, error: contactError } = await context.supabase
       .from('customers')

@@ -5,6 +5,7 @@ import { addLineItemSchema, bulkUpdateLineItemsSchema } from '@/lib/validations/
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { recomputeEstimateTotals } from '@/lib/services/estimate-totals'
 import { logger } from '@/lib/utils/logger'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * Recompute the estimate's monetary roll-up after a mutation. Best-
@@ -32,6 +33,7 @@ async function tryRecompute(supabase: SupabaseClient, estimateId: string) {
 export const GET = createApiHandlerWithParams(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, context, params) => {
     // Verify estimate belongs to organization
@@ -67,6 +69,7 @@ export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: addLineItemSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, context, params, body) => {
     // Verify estimate belongs to organization
@@ -135,6 +138,7 @@ export const PUT = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: bulkUpdateLineItemsSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, context, params, body) => {
     // Verify estimate belongs to organization

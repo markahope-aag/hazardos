@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { ROLES } from '@/lib/auth/roles'
 import { JobsService } from '@/lib/services/jobs-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import {
@@ -15,6 +16,7 @@ export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: addJobMaterialSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, _context, params, body) => {
     const material = await JobsService.addMaterial(params.id, body)
@@ -30,6 +32,7 @@ export const PATCH = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: updateJobMaterialSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, _context, _params, body) => {
     const material = await JobsService.updateMaterialUsage(body.material_id, body.quantity_used)
@@ -45,6 +48,7 @@ export const DELETE = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: deleteJobMaterialSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, _context, _params, body) => {
     await JobsService.deleteMaterial(body.material_id)

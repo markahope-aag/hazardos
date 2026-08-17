@@ -3,6 +3,7 @@ import { JobCompletionService } from '@/lib/services/job-completion-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updatePhotoSchema } from '@/lib/validations/jobs'
 import { z } from 'zod'
+import { ROLES } from '@/lib/auth/roles'
 
 type UpdatePhotoBody = z.infer<typeof updatePhotoSchema>
 type Params = { id: string; photoId: string }
@@ -15,6 +16,7 @@ export const PATCH = createApiHandlerWithParams<UpdatePhotoBody, unknown, Params
   {
     rateLimit: 'general',
     bodySchema: updatePhotoSchema,
+    allowedRoles: ROLES.TENANT_FIELD,
   },
   async (_request, _context, params, body) => {
     const photo = await JobCompletionService.updatePhoto(params.photoId, body)
@@ -27,7 +29,7 @@ export const PATCH = createApiHandlerWithParams<UpdatePhotoBody, unknown, Params
  * Delete a photo
  */
 export const DELETE = createApiHandlerWithParams<unknown, unknown, Params>(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_FIELD },
   async (_request, _context, params) => {
     await JobCompletionService.deletePhoto(params.photoId)
     return NextResponse.json({ success: true })

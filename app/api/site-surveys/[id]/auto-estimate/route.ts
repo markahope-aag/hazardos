@@ -3,6 +3,7 @@ import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { createEstimateFromSurvey } from '@/lib/services/estimate-creator'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { z } from 'zod'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * POST /api/site-surveys/[id]/auto-estimate
@@ -22,6 +23,7 @@ export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: z.object({}).optional(),
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, context, params) => {
     const surveyId = params.id

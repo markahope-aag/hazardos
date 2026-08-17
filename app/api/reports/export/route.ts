@@ -4,6 +4,7 @@ import { ReportingService } from '@/lib/services/reporting-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { exportReportSchema } from '@/lib/validations/reports'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * POST /api/reports/export
@@ -13,6 +14,7 @@ export const POST = createApiHandler(
   {
     rateLimit: 'heavy',
     bodySchema: exportReportSchema,
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, _context, body) => {
     const { format, title, data, columns, report_id } = body

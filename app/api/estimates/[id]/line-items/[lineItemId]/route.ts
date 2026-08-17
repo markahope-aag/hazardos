@@ -6,6 +6,7 @@ import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { recomputeEstimateTotals } from '@/lib/services/estimate-totals'
 import { logger } from '@/lib/utils/logger'
 import { z } from 'zod'
+import { ROLES } from '@/lib/auth/roles'
 
 // Best-effort recompute — a stale total beats a 500 that masks a
 // successful primary write. Same rationale as the parent route.
@@ -32,6 +33,7 @@ export const PATCH = createApiHandlerWithParams<UpdateLineItemBody, unknown, Par
   {
     rateLimit: 'general',
     bodySchema: updateLineItemSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, context, params, body) => {
     // Verify estimate belongs to organization
@@ -102,7 +104,7 @@ export const PATCH = createApiHandlerWithParams<UpdateLineItemBody, unknown, Par
  * Delete a line item
  */
 export const DELETE = createApiHandlerWithParams<unknown, unknown, Params>(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_WRITE },
   async (_request, context, params) => {
     // Verify estimate belongs to organization
     const { data: estimate, error: estimateError } = await context.supabase

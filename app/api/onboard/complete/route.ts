@@ -1,3 +1,6 @@
+// route-guard: no role list, runs before the user has an organization or a role. The handler
+// scopes every query to the authenticated user, so a role check would
+// add nothing and would wrongly exclude roles that legitimately have one.
 import { NextResponse } from 'next/server'
 import { StripeService } from '@/lib/services/stripe-service'
 import { createApiHandler } from '@/lib/utils/api-handler'

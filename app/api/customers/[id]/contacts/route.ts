@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { ContactsService } from '@/lib/services/contacts-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { createContactSchema } from '@/lib/validations/customer-api'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * GET /api/customers/[id]/contacts
@@ -10,6 +11,7 @@ import { createContactSchema } from '@/lib/validations/customer-api'
 export const GET = createApiHandlerWithParams(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, _context, params) => {
     const contacts = await ContactsService.list(params.id)
@@ -25,6 +27,7 @@ export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: createContactSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, _context, params, body) => {
     const contact = await ContactsService.create({

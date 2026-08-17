@@ -1,3 +1,6 @@
+// route-guard: no role list, edits only the caller's own profile row. The handler
+// scopes every query to the authenticated user, so a role check would
+// add nothing and would wrongly exclude roles that legitimately have one.
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createApiHandler } from '@/lib/utils/api-handler'

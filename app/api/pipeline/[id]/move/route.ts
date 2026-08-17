@@ -3,6 +3,7 @@ import { PipelineService } from '@/lib/services/pipeline-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { moveOpportunitySchema } from '@/lib/validations/pipeline'
 import { z } from 'zod'
+import { ROLES } from '@/lib/auth/roles'
 
 const moveSchema = moveOpportunitySchema.extend({
   notes: z.string().max(1000).optional(),
@@ -16,6 +17,7 @@ export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: moveSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, _context, params, body) => {
     const opportunity = await PipelineService.moveOpportunity(params.id, body.stage_id, body.notes)

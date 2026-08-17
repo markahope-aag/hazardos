@@ -3,6 +3,7 @@ import { JobCompletionService } from '@/lib/services/job-completion-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateChecklistItemSchema } from '@/lib/validations/jobs'
 import { z } from 'zod'
+import { ROLES } from '@/lib/auth/roles'
 
 type UpdateChecklistItemBody = z.infer<typeof updateChecklistItemSchema>
 type Params = { id: string; itemId: string }
@@ -15,6 +16,7 @@ export const PATCH = createApiHandlerWithParams<UpdateChecklistItemBody, unknown
   {
     rateLimit: 'general',
     bodySchema: updateChecklistItemSchema,
+    allowedRoles: ROLES.TENANT_FIELD,
   },
   async (_request, _context, params, body) => {
     const checklistItem = await JobCompletionService.updateChecklistItem(params.itemId, body)

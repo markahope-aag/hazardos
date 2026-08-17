@@ -4,6 +4,7 @@ import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { oppGenerateSchema } from '@/lib/validations/opp'
 import { OppPdf } from '@/lib/pdf/opp-template'
+import { ROLES } from '@/lib/auth/roles'
 
 const BUCKET = 'job-documents'
 
@@ -15,6 +16,7 @@ export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'heavy',
     bodySchema: oppGenerateSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, context, params, body) => {
     const jobId = params.id

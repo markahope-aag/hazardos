@@ -3,6 +3,7 @@ import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { updateLabReportSchema } from '@/lib/validations/lab-reports'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { ROLES } from '@/lib/auth/roles'
 
 const SELECT_DETAIL = `
   *,
@@ -14,7 +15,7 @@ const SELECT_DETAIL = `
 `
 
 export const GET = createApiHandlerWithParams(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_WRITE },
   async (_request, context, params) => {
     const { data, error } = await context.supabase
       .from('lab_reports')
@@ -33,6 +34,7 @@ export const PATCH = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: updateLabReportSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, context, params, body) => {
     const orgId = context.profile.organization_id
@@ -59,7 +61,7 @@ export const PATCH = createApiHandlerWithParams(
 )
 
 export const DELETE = createApiHandlerWithParams(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_WRITE },
   async (_request, context, params) => {
     const orgId = context.profile.organization_id
 

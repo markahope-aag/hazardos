@@ -4,6 +4,7 @@ import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { runReportSchema } from '@/lib/validations/reports'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { z } from 'zod'
+import { ROLES } from '@/lib/auth/roles'
 
 type RunReportBody = z.infer<typeof runReportSchema>
 type Params = { type: string }
@@ -16,6 +17,7 @@ export const POST = createApiHandlerWithParams<RunReportBody, unknown, Params>(
   {
     rateLimit: 'heavy',
     bodySchema: runReportSchema,
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, _context, params, body) => {
     let data: unknown[]

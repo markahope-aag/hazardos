@@ -6,13 +6,14 @@ import {
   updateJobEquipmentSchema,
   deleteJobEquipmentSchema,
 } from '@/lib/validations/jobs'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * GET /api/jobs/[id]/equipment
  * List equipment logged for a job
  */
 export const GET = createApiHandlerWithParams(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_FIELD },
   async (_request, _context, params) => {
     const equipment = await JobsService.getEquipment(params.id)
     return NextResponse.json(equipment)
@@ -27,6 +28,7 @@ export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: addJobEquipmentSchema,
+    allowedRoles: ROLES.TENANT_FIELD,
   },
   async (_request, _context, params, body) => {
     const equipment = await JobsService.addEquipment(params.id, body)
@@ -42,6 +44,7 @@ export const PATCH = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: updateJobEquipmentSchema,
+    allowedRoles: ROLES.TENANT_FIELD,
   },
   async (_request, _context, _params, body) => {
     const equipment = await JobsService.updateEquipmentStatus(body.equipment_id, body.status)
@@ -57,6 +60,7 @@ export const DELETE = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: deleteJobEquipmentSchema,
+    allowedRoles: ROLES.TENANT_FIELD,
   },
   async (_request, _context, _params, body) => {
     await JobsService.deleteEquipment(body.equipment_id)

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { Activity } from '@/lib/services/activity-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { createManualActivitySchema } from '@/lib/validations/activity'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * POST /api/activity/manual
@@ -11,6 +12,7 @@ export const POST = createApiHandler(
   {
     rateLimit: 'general',
     bodySchema: createManualActivitySchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, _context, body) => {
     const { type, entity_type, entity_id, entity_name, content, call_direction, call_duration } = body

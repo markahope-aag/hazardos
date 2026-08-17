@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { createEstimateRevision } from '@/lib/services/estimate-versioning'
+import { ROLES } from '@/lib/auth/roles'
 
 const reviseBodySchema = z.object({
   revision_notes: z.string().max(2000).optional().nullable(),
@@ -19,6 +20,7 @@ export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: reviseBodySchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, context, params, body) => {
     const created = await createEstimateRevision(

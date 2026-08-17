@@ -3,11 +3,13 @@ import { JobsService } from '@/lib/services/jobs-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { createJobFromProposalSchema } from '@/lib/validations/jobs'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 export const POST = createApiHandler(
   {
     rateLimit: 'general',
     bodySchema: createJobFromProposalSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, context, body, _query) => {
     // Validate date format

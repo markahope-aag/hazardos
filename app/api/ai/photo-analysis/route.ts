@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { PhotoAnalysisService, PhotoAnalysisContext } from '@/lib/services/photo-analysis-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { photoAnalysisSchema } from '@/lib/validations/ai'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * POST /api/ai/photo-analysis
@@ -11,6 +12,7 @@ export const POST = createApiHandler(
   {
     rateLimit: 'heavy',
     bodySchema: photoAnalysisSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, context, body) => {
     // Check if this is multiple images or single image

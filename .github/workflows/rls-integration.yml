@@ -75,6 +75,14 @@ jobs:
       # dashboard is one nobody reads. The gate lives here instead: everything
       # currently accepted is listed with a reason in
       # supabase/lints/advisor-exceptions.json, and anything new fails.
+      # Static check, no database needed, so it runs before the slow steps.
+      # Every mutating API route must declare allowedRoles, use a public or
+      # api-key handler, or carry an explicit `// route-guard:` opt-out. Two real
+      # vulnerabilities in one week came from routes where authorization was
+      # invisible when reading the code.
+      - name: API route guards
+        run: npm run check:route-guards
+
       - name: Database advisors
         run: npm run db:advisors -- --db-url "$SUPABASE_TEST_DB_URL"
 

@@ -3,9 +3,10 @@ import { JobsService } from '@/lib/services/jobs-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateJobSchema } from '@/lib/validations/jobs'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 export const GET = createApiHandlerWithParams(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_WRITE },
   async (_request, _context, params) => {
     const job = await JobsService.getById(params.id)
 
@@ -21,6 +22,7 @@ export const PATCH = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: updateJobSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, _context, params, body) => {
     const job = await JobsService.update(params.id, body)
@@ -35,7 +37,7 @@ export const PATCH = createApiHandlerWithParams(
 )
 
 export const DELETE = createApiHandlerWithParams(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_WRITE },
   async (_request, _context, params) => {
     await JobsService.delete(params.id)
     return NextResponse.json({ success: true })

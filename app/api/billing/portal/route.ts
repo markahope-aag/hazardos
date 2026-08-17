@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { StripeService } from '@/lib/services/stripe-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { createPortalSchema } from '@/lib/validations/billing'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * POST /api/billing/portal
@@ -11,6 +12,7 @@ export const POST = createApiHandler(
   {
     rateLimit: 'general',
     bodySchema: createPortalSchema,
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, body) => {
     const portalUrl = await StripeService.createBillingPortalSession(

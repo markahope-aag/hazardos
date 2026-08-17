@@ -5,11 +5,13 @@ import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { assignCrewSchema, removeCrewSchema } from '@/lib/validations/jobs'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { formatError } from '@/lib/utils/logger'
+import { ROLES } from '@/lib/auth/roles'
 
 export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: assignCrewSchema,
+    allowedRoles: ROLES.TENANT_FIELD,
   },
   async (_request, context, params, body) => {
     // Credential assignment gate: when the org enforces 'block', refuse to
@@ -56,6 +58,7 @@ export const DELETE = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: removeCrewSchema,
+    allowedRoles: ROLES.TENANT_FIELD,
   },
   async (_request, _context, params, body) => {
     await JobsService.removeCrew(params.id, body.profile_id)

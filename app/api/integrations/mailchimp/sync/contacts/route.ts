@@ -3,6 +3,7 @@ import { MailchimpService } from '@/lib/services/mailchimp-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { z } from 'zod'
+import { ROLES } from '@/lib/auth/roles'
 
 const mailchimpSyncContactsSchema = z.object({
   list_id: z.string().min(1, 'list_id is required'),
@@ -17,6 +18,7 @@ export const POST = createApiHandler(
   {
     rateLimit: 'heavy',
     bodySchema: mailchimpSyncContactsSchema,
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, body) => {
     if (!body.list_id) {

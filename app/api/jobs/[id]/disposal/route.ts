@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { ROLES } from '@/lib/auth/roles'
 import { JobsService } from '@/lib/services/jobs-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import {
@@ -15,6 +16,7 @@ export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: addJobDisposalSchema,
+    allowedRoles: ROLES.TENANT_FIELD,
   },
   async (_request, _context, params, body) => {
     const disposal = await JobsService.addDisposal(params.id, body)
@@ -30,6 +32,7 @@ export const PATCH = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: updateJobDisposalSchema,
+    allowedRoles: ROLES.TENANT_FIELD,
   },
   async (_request, _context, _params, body) => {
     const { disposal_id, ...updates } = body
@@ -46,6 +49,7 @@ export const DELETE = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: deleteJobDisposalSchema,
+    allowedRoles: ROLES.TENANT_FIELD,
   },
   async (_request, _context, _params, body) => {
     await JobsService.deleteDisposal(body.disposal_id)

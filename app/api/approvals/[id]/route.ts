@@ -3,6 +3,7 @@ import { ApprovalService } from '@/lib/services/approval-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { z } from 'zod'
+import { ROLES } from '@/lib/auth/roles'
 
 const approvalDecisionSchema = z.object({
   level: z.number().int().min(1).max(2),
@@ -17,6 +18,7 @@ const approvalDecisionSchema = z.object({
 export const GET = createApiHandlerWithParams(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, _context, params) => {
     const approvalRequest = await ApprovalService.getRequest(params.id)
@@ -37,6 +39,7 @@ export const PATCH = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: approvalDecisionSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, _context, params, body) => {
     let result

@@ -3,13 +3,14 @@ import { WebhookService } from '@/lib/services/webhook-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateWebhookSchema } from '@/lib/validations/webhooks'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * GET /api/webhooks/[id]
  * Get a webhook with delivery history
  */
 export const GET = createApiHandlerWithParams(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_ADMIN },
   async (_request, _context, params) => {
     const webhook = await WebhookService.get(params.id)
 
@@ -31,6 +32,7 @@ export const PUT = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: updateWebhookSchema,
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, _context, params, body) => {
     const webhook = await WebhookService.update(params.id, body)
@@ -43,7 +45,7 @@ export const PUT = createApiHandlerWithParams(
  * Delete a webhook
  */
 export const DELETE = createApiHandlerWithParams(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_ADMIN },
   async (_request, _context, params) => {
     await WebhookService.delete(params.id)
     return NextResponse.json({ success: true })

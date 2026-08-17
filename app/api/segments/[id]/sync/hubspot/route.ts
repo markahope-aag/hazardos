@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server'
 import { SegmentationService } from '@/lib/services/segmentation-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * POST /api/segments/[id]/sync/hubspot
  * Sync segment to HubSpot
  */
 export const POST = createApiHandlerWithParams(
-  { rateLimit: 'heavy' },
+  { rateLimit: 'heavy', allowedRoles: ROLES.TENANT_ADMIN },
   async (_request, context, params) => {
     // Check HubSpot is connected
     const { data: integration } = await context.supabase

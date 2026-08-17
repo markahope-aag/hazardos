@@ -3,6 +3,7 @@ import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
 import { buildLabReportFilename, summariseResult } from '@/lib/utils/lab-report-filename'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { ROLES } from '@/lib/auth/roles'
 
 const BUCKET = 'lab-reports'
 const MAX_BYTES = 25 * 1024 * 1024 // 25 MB — lab PDFs are usually small
@@ -17,7 +18,7 @@ const MAX_BYTES = 25 * 1024 * 1024 // 25 MB — lab PDFs are usually small
  * orphans.
  */
 export const POST = createApiHandlerWithParams(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_FIELD },
   async (request, context, params) => {
     const orgId = context.profile.organization_id
 

@@ -3,6 +3,7 @@ import { PipelineService } from '@/lib/services/pipeline-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateOpportunitySchema } from '@/lib/validations/pipeline'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * GET /api/pipeline/[id]
@@ -11,6 +12,7 @@ import { SecureError } from '@/lib/utils/secure-error-handler'
 export const GET = createApiHandlerWithParams(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, _context, params) => {
     const opportunity = await PipelineService.getOpportunity(params.id)
@@ -31,6 +33,7 @@ export const PATCH = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: updateOpportunitySchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, _context, params, body) => {
     const opportunity = await PipelineService.updateOpportunity(params.id, body)
@@ -45,6 +48,7 @@ export const PATCH = createApiHandlerWithParams(
 export const DELETE = createApiHandlerWithParams(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, _context, params) => {
     await PipelineService.deleteOpportunity(params.id)

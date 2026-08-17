@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { HubSpotService } from '@/lib/services/hubspot-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { syncHubSpotContactsSchema } from '@/lib/validations/integrations'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * POST /api/integrations/hubspot/sync/contacts
@@ -11,6 +12,7 @@ export const POST = createApiHandler(
   {
     rateLimit: 'heavy',
     bodySchema: syncHubSpotContactsSchema,
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, body) => {
     if (body?.customer_id) {

@@ -1,0 +1,10 @@
+{
+  "_comment": [
+    "Mutating API routes that predate the declarative-guard rule.",
+    "Anything NOT listed here must declare allowedRoles, use",
+    "createPublicApiHandler or withApiKeyAuth, or carry an explicit",
+    "// route-guard: <reason> opt-out.",
+    "This list should only ever shrink. Do not add to it."
+  ],
+  "routes": []
+}

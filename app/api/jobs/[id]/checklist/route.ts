@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { JobCompletionService } from '@/lib/services/job-completion-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { checklistQuerySchema } from '@/lib/validations/jobs'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * GET /api/jobs/[id]/checklist
@@ -11,6 +12,7 @@ export const GET = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     querySchema: checklistQuerySchema,
+    allowedRoles: ROLES.TENANT_FIELD,
   },
   async (_request, _context, params, _body, query) => {
     const grouped = query.grouped === 'true'
@@ -30,7 +32,7 @@ export const GET = createApiHandlerWithParams(
  * Initialize default checklist for a job
  */
 export const POST = createApiHandlerWithParams(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_FIELD },
   async (_request, _context, params) => {
     const checklist = await JobCompletionService.initializeChecklist(params.id)
     return NextResponse.json(checklist, { status: 201 })

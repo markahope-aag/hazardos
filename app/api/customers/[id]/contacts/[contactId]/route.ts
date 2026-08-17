@@ -3,6 +3,7 @@ import { ContactsService } from '@/lib/services/contacts-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateContactSchema, UpdateContactInput } from '@/lib/validations/customer-api'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 type Params = { id: string; contactId: string }
 
@@ -11,7 +12,7 @@ type Params = { id: string; contactId: string }
  * Get a specific contact
  */
 export const GET = createApiHandlerWithParams<unknown, unknown, Params>(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_WRITE },
   async (_request, _context, params) => {
     const contact = await ContactsService.get(params.contactId)
 
@@ -31,6 +32,7 @@ export const PATCH = createApiHandlerWithParams<UpdateContactInput, unknown, Par
   {
     rateLimit: 'general',
     bodySchema: updateContactSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, _context, params, body) => {
     const contact = await ContactsService.update(params.contactId, {
@@ -54,7 +56,7 @@ export const PATCH = createApiHandlerWithParams<UpdateContactInput, unknown, Par
  * Delete a contact
  */
 export const DELETE = createApiHandlerWithParams<unknown, unknown, Params>(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_WRITE },
   async (_request, _context, params) => {
     await ContactsService.delete(params.contactId)
     return NextResponse.json({ message: 'Contact deleted successfully' })

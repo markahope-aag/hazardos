@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { ROLES } from '@/lib/auth/roles'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { ApprovalService } from '@/lib/services/approval-service'
 import { z } from 'zod'
@@ -12,6 +13,7 @@ export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: reviewSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, _context, params, body) => {
     const result = await ApprovalService.reviewEstimate(params.id, {

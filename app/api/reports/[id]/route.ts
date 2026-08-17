@@ -3,6 +3,7 @@ import { ReportingService } from '@/lib/services/reporting-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateReportSchema } from '@/lib/validations/reports'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * GET /api/reports/[id]
@@ -11,6 +12,7 @@ import { SecureError } from '@/lib/utils/secure-error-handler'
 export const GET = createApiHandlerWithParams(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, _context, params) => {
     const report = await ReportingService.getReport(params.id)
@@ -31,6 +33,7 @@ export const PATCH = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: updateReportSchema,
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, _context, params, body) => {
     const report = await ReportingService.updateReport(params.id, body)
@@ -45,6 +48,7 @@ export const PATCH = createApiHandlerWithParams(
 export const DELETE = createApiHandlerWithParams(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, _context, params) => {
     await ReportingService.deleteReport(params.id)

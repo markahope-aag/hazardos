@@ -5,6 +5,7 @@ import {
   createLabReportSchema,
   listLabReportsQuerySchema,
 } from '@/lib/validations/lab-reports'
+import { ROLES } from '@/lib/auth/roles'
 
 const SELECT_LIST = `
   *,
@@ -25,6 +26,7 @@ export const GET = createApiHandler(
   {
     rateLimit: 'general',
     querySchema: listLabReportsQuerySchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, context, _body, query) => {
     const orgId = context.profile.organization_id
@@ -78,6 +80,7 @@ export const POST = createApiHandler(
   {
     rateLimit: 'general',
     bodySchema: createLabReportSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, context, body) => {
     const orgId = context.profile.organization_id

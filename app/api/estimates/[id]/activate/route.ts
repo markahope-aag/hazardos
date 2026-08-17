@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { ROLES } from '@/lib/auth/roles'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { setActiveEstimateVersion } from '@/lib/services/estimate-versioning'
 
@@ -11,6 +12,7 @@ import { setActiveEstimateVersion } from '@/lib/services/estimate-versioning'
 export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, context, params) => {
     await setActiveEstimateVersion(context.supabase, context.profile.organization_id, params.id)

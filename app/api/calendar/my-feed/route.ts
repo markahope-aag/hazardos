@@ -1,3 +1,6 @@
+// route-guard: no role list, returns and configures the caller's own calendar feed. The handler
+// scopes every query to the authenticated user, so a role check would
+// add nothing and would wrongly exclude roles that legitimately have one.
 import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'

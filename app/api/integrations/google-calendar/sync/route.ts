@@ -3,6 +3,7 @@ import { GoogleCalendarService } from '@/lib/services/google-calendar-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { z } from 'zod'
+import { ROLES } from '@/lib/auth/roles'
 
 const googleCalendarSyncSchema = z.object({
   job_id: z.string().uuid('Invalid job ID'),
@@ -17,6 +18,7 @@ export const POST = createApiHandler(
   {
     rateLimit: 'general',
     bodySchema: googleCalendarSyncSchema,
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, body) => {
     if (!body.job_id) {

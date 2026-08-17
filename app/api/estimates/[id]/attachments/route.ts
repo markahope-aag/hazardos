@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { SecureError, throwDbError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 const putSchema = z.object({
   document_ids: z.array(z.string().uuid()),
@@ -12,7 +13,7 @@ const putSchema = z.object({
  * List the credential documents currently attached to this estimate.
  */
 export const GET = createApiHandlerWithParams(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_WRITE },
   async (_request, context, params) => {
     const orgId = context.profile.organization_id
 
@@ -54,6 +55,7 @@ export const PUT = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: putSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, context, params, body) => {
     const orgId = context.profile.organization_id

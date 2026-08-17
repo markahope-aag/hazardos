@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { throwDbError } from '@/lib/utils/secure-error-handler'
 import { createLabSchema } from '@/lib/validations/lab-reports'
+import { ROLES } from '@/lib/auth/roles'
 
 export const GET = createApiHandler(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_ADMIN },
   async (_request, context) => {
     const { data, error } = await context.supabase
       .from('labs')
@@ -21,6 +22,7 @@ export const POST = createApiHandler(
   {
     rateLimit: 'general',
     bodySchema: createLabSchema,
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, body) => {
     const { data, error } = await context.supabase

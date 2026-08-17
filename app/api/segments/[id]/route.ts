@@ -3,13 +3,14 @@ import { SegmentationService } from '@/lib/services/segmentation-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateSegmentSchema } from '@/lib/validations/segments'
 import { SecureError } from '@/lib/utils/secure-error-handler'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * GET /api/segments/[id]
  * Get a segment
  */
 export const GET = createApiHandlerWithParams(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_ADMIN },
   async (_request, _context, params) => {
     const segment = await SegmentationService.get(params.id)
 
@@ -29,6 +30,7 @@ export const PUT = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: updateSegmentSchema,
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, _context, params, body) => {
     const segment = await SegmentationService.update(params.id, body)
@@ -41,7 +43,7 @@ export const PUT = createApiHandlerWithParams(
  * Delete a segment
  */
 export const DELETE = createApiHandlerWithParams(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_ADMIN },
   async (_request, _context, params) => {
     await SegmentationService.delete(params.id)
     return NextResponse.json({ success: true })

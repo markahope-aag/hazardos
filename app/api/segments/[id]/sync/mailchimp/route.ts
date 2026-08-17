@@ -3,6 +3,7 @@ import { SegmentationService } from '@/lib/services/segmentation-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { z } from 'zod'
+import { ROLES } from '@/lib/auth/roles'
 
 const mailchimpSyncSchema = z.object({
   list_id: z.string().optional(),
@@ -19,6 +20,7 @@ export const POST = createApiHandlerWithParams<MailchimpSyncBody, unknown, Param
   {
     rateLimit: 'heavy',
     bodySchema: mailchimpSyncSchema,
+    allowedRoles: ROLES.TENANT_ADMIN,
   },
   async (_request, context, params, body) => {
     // Get Mailchimp integration settings

@@ -3,6 +3,7 @@ import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import { JobCompletionPhotosService } from '@/lib/services/job-completion-photos-service'
 import { JobCompletionService } from '@/lib/services/job-completion-service'
+import { ROLES } from '@/lib/auth/roles'
 
 const MAX_BYTES = 15 * 1024 * 1024 // 15 MB — photos are compressed client-side
 const PHOTO_TYPES = ['before', 'during', 'after', 'issue', 'documentation'] as const
@@ -18,7 +19,7 @@ const PHOTO_TYPES = ['before', 'during', 'after', 'issue', 'documentation'] as c
  * records a job_completion_photos row.
  */
 export const POST = createApiHandlerWithParams(
-  { rateLimit: 'upload' },
+  { rateLimit: 'upload', allowedRoles: ROLES.TENANT_FIELD },
   async (request, context, params) => {
     const orgId = context.profile.organization_id
 

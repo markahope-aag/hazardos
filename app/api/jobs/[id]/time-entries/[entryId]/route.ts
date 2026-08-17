@@ -3,6 +3,7 @@ import { JobCompletionService } from '@/lib/services/job-completion-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { updateTimeEntrySchema } from '@/lib/validations/jobs'
 import { z } from 'zod'
+import { ROLES } from '@/lib/auth/roles'
 
 type UpdateTimeEntryBody = z.infer<typeof updateTimeEntrySchema>
 type Params = { id: string; entryId: string }
@@ -15,6 +16,7 @@ export const PATCH = createApiHandlerWithParams<UpdateTimeEntryBody, unknown, Pa
   {
     rateLimit: 'general',
     bodySchema: updateTimeEntrySchema,
+    allowedRoles: ROLES.TENANT_FIELD,
   },
   async (_request, _context, params, body) => {
     const timeEntry = await JobCompletionService.updateTimeEntry(params.entryId, body)
@@ -27,7 +29,7 @@ export const PATCH = createApiHandlerWithParams<UpdateTimeEntryBody, unknown, Pa
  * Delete a time entry
  */
 export const DELETE = createApiHandlerWithParams<unknown, unknown, Params>(
-  { rateLimit: 'general' },
+  { rateLimit: 'general', allowedRoles: ROLES.TENANT_FIELD },
   async (_request, _context, params) => {
     await JobCompletionService.deleteTimeEntry(params.entryId)
     return NextResponse.json({ success: true })

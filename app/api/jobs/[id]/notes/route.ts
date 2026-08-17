@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { ROLES } from '@/lib/auth/roles'
 import { JobsService } from '@/lib/services/jobs-service'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { addJobNoteSchema, deleteJobNoteSchema } from '@/lib/validations/jobs'
@@ -11,6 +12,7 @@ export const POST = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: addJobNoteSchema,
+    allowedRoles: ROLES.TENANT_FIELD,
   },
   async (_request, _context, params, body) => {
     const note = await JobsService.addNote(params.id, body)
@@ -26,6 +28,7 @@ export const DELETE = createApiHandlerWithParams(
   {
     rateLimit: 'general',
     bodySchema: deleteJobNoteSchema,
+    allowedRoles: ROLES.TENANT_FIELD,
   },
   async (_request, _context, _params, body) => {
     await JobsService.deleteNote(body.note_id)

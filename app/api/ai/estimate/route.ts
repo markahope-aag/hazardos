@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { AIEstimateService } from '@/lib/services/ai-estimate-service'
 import { createApiHandler } from '@/lib/utils/api-handler'
 import { aiEstimateSchema } from '@/lib/validations/ai'
+import { ROLES } from '@/lib/auth/roles'
 
 /**
  * POST /api/ai/estimate
@@ -11,6 +12,7 @@ export const POST = createApiHandler(
   {
     rateLimit: 'heavy',
     bodySchema: aiEstimateSchema,
+    allowedRoles: ROLES.TENANT_WRITE,
   },
   async (_request, context, body) => {
     const suggestion = await AIEstimateService.suggestEstimate(
