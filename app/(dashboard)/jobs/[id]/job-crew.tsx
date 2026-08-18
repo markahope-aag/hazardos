@@ -17,7 +17,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
@@ -86,15 +88,22 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
   const [selectedMember, setSelectedMember] = useState<CrewMember | null>(null)
 
   // Multi-select crew assignment: users can check off several people,
-  // pick a shared role, and optionally designate one of the selected
-  // members as the lead.
+  // pick a shared role, and name one supervisor. The supervisor list is
+  // not limited to the checked members: crews occasionally put someone in
+  // charge who isn't on the crew sheet, and on mold work they sometimes
+  // name someone who isn't formally a supervisor at all.
+  // `lead_profile_id` keeps its name because it maps to job_crew.is_lead.
   const [assignForm, setAssignForm] = useState<{
     profile_ids: string[]
     role: string
     lead_profile_id: string
   }>({
     profile_ids: [],
-    role: 'worker',
+    // 'crew', not 'worker'. crewRoleSchema accepts lead | crew | supervisor |
+    // trainee, so the old 'worker' default was rejected by the API for every
+    // member the user did not manually re-role, and it matched no SelectItem
+    // so the Role trigger rendered blank. Found by the E2E pass on 2026-08-18.
+    role: 'crew',
     lead_profile_id: '',
   })
 
@@ -104,6 +113,21 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
 
   const assignedProfileIds = crew.map(c => c.profile_id)
   const unassignedCrew = availableCrew.filter(c => !assignedProfileIds.includes(c.id))
+
+  // Supervisor candidates: everyone not already on the job, with the
+  // people checked off for this assignment floated to the top so the
+  // usual pick is the first one in the list.
+  const selectedForSupervisor = unassignedCrew.filter(c =>
+    assignForm.profile_ids.includes(c.id),
+  )
+  const otherForSupervisor = unassignedCrew.filter(
+    c => !assignForm.profile_ids.includes(c.id),
+  )
+  const assignCount =
+    assignForm.lead_profile_id &&
+    !assignForm.profile_ids.includes(assignForm.lead_profile_id)
+      ? assignForm.profile_ids.length + 1
+      : assignForm.profile_ids.length
 
   // Fetch each selected worker's job-compliance check to warn before assigning.
   useEffect(() => {
@@ -147,22 +171,32 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
   }
 
   const handleAssign = async () => {
-    if (assignForm.profile_ids.length === 0) {
+    if (assignForm.profile_ids.length === 0 && !assignForm.lead_profile_id) {
       toast({ title: 'Error', description: 'Select at least one crew member', variant: 'destructive' })
       return
     }
 
     setLoading(true)
+    // A supervisor picked from outside the checked list still has to be
+    // assigned to the job, otherwise the designation lands on nobody.
+    const supervisorId = assignForm.lead_profile_id
+    const profileIds =
+      supervisorId && !assignForm.profile_ids.includes(supervisorId)
+        ? [...assignForm.profile_ids, supervisorId]
+        : assignForm.profile_ids
+
     try {
       const results = await Promise.allSettled(
-        assignForm.profile_ids.map((profileId) =>
+        profileIds.map((profileId) =>
           fetch(`/api/jobs/${job.id}/crew`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               profile_id: profileId,
-              role: assignForm.role,
-              is_lead: assignForm.lead_profile_id === profileId,
+              // Whoever is named supervisor carries the supervisor role,
+              // so the badge on the crew list matches the designation.
+              role: profileId === supervisorId ? 'supervisor' : assignForm.role,
+              is_lead: profileId === supervisorId,
             }),
           }).then(async (res) => {
             if (!res.ok) {
@@ -263,7 +297,9 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
                   <DialogTitle>Assign Crew</DialogTitle>
                   <DialogDescription>
                     Pick one or more team members. All selected members get the
-                    same role; you can designate one of them as the crew lead.
+                    same role. Name a supervisor from anyone on the team and
+                    they get added to the job if they are not already checked
+                    off above.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
@@ -353,44 +389,59 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
                       </SelectContent>
                     </Select>
                   </div>
-                  {assignForm.profile_ids.length > 0 && (
-                    <div className="space-y-2">
-                      <Label htmlFor="crew-lead-optional">Crew Lead (optional)</Label>
-                      <Select
-                        value={assignForm.lead_profile_id}
-                        onValueChange={(value) =>
-                          setAssignForm(prev => ({
-                            ...prev,
-                            lead_profile_id: value === '__none__' ? '' : value,
-                          }))
-                        }
-                      >
-                        <SelectTrigger id="crew-lead-optional">
-                          <SelectValue placeholder="No lead" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">No lead</SelectItem>
-                          {assignForm.profile_ids.map((pid) => {
-                            const m = unassignedCrew.find((x) => x.id === pid)
-                            if (!m) return null
-                            return (
-                              <SelectItem key={pid} value={pid}>
+                  <div className="space-y-2">
+                    <Label htmlFor="job-supervisor">Supervisor (optional)</Label>
+                    <Select
+                      value={assignForm.lead_profile_id}
+                      onValueChange={(value) =>
+                        setAssignForm(prev => ({
+                          ...prev,
+                          lead_profile_id: value === '__none__' ? '' : value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger id="job-supervisor">
+                        <SelectValue placeholder="No supervisor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">No supervisor</SelectItem>
+                        {selectedForSupervisor.length > 0 && (
+                          <SelectGroup>
+                            <SelectLabel>Selected for this job</SelectLabel>
+                            {selectedForSupervisor.map((m) => (
+                              <SelectItem key={m.id} value={m.id}>
                                 {m.full_name}
                               </SelectItem>
-                            )
-                          })}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+                            ))}
+                          </SelectGroup>
+                        )}
+                        {otherForSupervisor.length > 0 && (
+                          <SelectGroup>
+                            <SelectLabel>Anyone else on the team</SelectLabel>
+                            {otherForSupervisor.map((m) => (
+                              <SelectItem key={m.id} value={m.id}>
+                                {m.full_name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setShowAssignDialog(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleAssign} disabled={loading || assignForm.profile_ids.length === 0}>
+                  <Button
+                    onClick={handleAssign}
+                    disabled={
+                      loading ||
+                      (assignForm.profile_ids.length === 0 && !assignForm.lead_profile_id)
+                    }
+                  >
                     {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Assign {assignForm.profile_ids.length > 1 ? `${assignForm.profile_ids.length} Members` : 'Crew'}
+                    Assign {assignCount > 1 ? `${assignCount} Members` : 'Crew'}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -419,7 +470,10 @@ export function JobCrew({ job, crew = [], availableCrew = [] }: JobCrewProps) {
                           {member.profile?.full_name || 'Unknown'}
                         </span>
                         {member.is_lead && (
-                          <Crown className="h-4 w-4 text-yellow-500" />
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700">
+                            <Crown className="h-4 w-4 text-yellow-500" />
+                            Supervisor
+                          </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -54,6 +54,9 @@ export interface WorkOrderSnapshot {
     profile_id: string | null
     name: string
     role: string | null
+    // Shown as "Supervisor" everywhere in the UI and on the PDF. The
+    // field keeps the `is_lead` name because it mirrors job_crew.is_lead
+    // and lives in already-written snapshot JSON.
     is_lead: boolean
     scheduled_start: string | null
     scheduled_end: string | null

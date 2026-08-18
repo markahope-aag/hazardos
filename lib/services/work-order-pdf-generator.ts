@@ -167,7 +167,7 @@ export function generateWorkOrderPDF(
       ensureSpace(6)
       const parts = [c.name]
       if (c.role) parts.push(c.role)
-      if (c.is_lead) parts.push('LEAD')
+      if (c.is_lead) parts.push('SUPERVISOR')
       const times =
         c.scheduled_start || c.scheduled_end
           ? `${c.scheduled_start || ''}${c.scheduled_start && c.scheduled_end ? ' – ' : ''}${c.scheduled_end || ''}`
