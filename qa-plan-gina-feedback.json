@@ -1,0 +1,32 @@
+{
+  "title": "HazardOS — Gina feedback verification (2026-08-18)",
+  "tests": [
+    { "pass": 1, "passName": "Unit", "section": "OPP project description", "testId": "OPP1", "priority": "High", "step": "Estimate scope of work wins over every other source (it is the proposal text)" },
+    { "pass": 1, "passName": "Unit", "section": "OPP project description", "testId": "OPP2", "priority": "Medium", "step": "Estimate project_description used when scope of work is blank/whitespace" },
+    { "pass": 1, "passName": "Unit", "section": "OPP project description", "testId": "OPP3", "priority": "High", "step": "Line items compose into quantity + unit + material prose" },
+    { "pass": 1, "passName": "Unit", "section": "OPP project description", "testId": "OPP4", "priority": "Medium", "step": "numeric(10,2) padding stripped: 225.00 renders as 225" },
+    { "pass": 1, "passName": "Unit", "section": "OPP project description", "testId": "OPP5", "priority": "High", "step": "Line items excluded from the estimate stay out of the description" },
+    { "pass": 1, "passName": "Unit", "section": "OPP project description", "testId": "OPP6", "priority": "High", "step": "Disposal / travel / permit / testing lines excluded from scope text" },
+    { "pass": 1, "passName": "Unit", "section": "OPP project description", "testId": "OPP7", "priority": "Medium", "step": "Default unit 'each' never renders as '3 each of X'" },
+    { "pass": 1, "passName": "Unit", "section": "OPP project description", "testId": "OPP8", "priority": "High", "step": "Survey measurements used when the job has no estimate" },
+    { "pass": 1, "passName": "Unit", "section": "OPP project description", "testId": "OPP9", "priority": "Medium", "step": "Zero-valued survey measurements skipped, not printed as '0 sq ft'" },
+    { "pass": 1, "passName": "Unit", "section": "OPP project description", "testId": "OPP10", "priority": "Medium", "step": "Hazard summary is last resort only; empty string when nothing exists" },
+
+    { "pass": 2, "passName": "Static", "section": "Build integrity", "testId": "ST1", "priority": "High", "step": "npm run type-check passes across all edited files" },
+    { "pass": 2, "passName": "Static", "section": "Build integrity", "testId": "ST2", "priority": "High", "step": "Existing work-order and job detail component tests still pass after Lead -> Supervisor rename" },
+    { "pass": 2, "passName": "Static", "section": "Build integrity", "testId": "ST3", "priority": "Medium", "step": "npm run lint clean on the edited files" },
+
+    { "pass": 3, "passName": "Browser", "section": "OPP wizard", "testId": "UI1", "priority": "High", "step": "Generate OPP on a job with an estimate: description box pre-fills with proposal scope, not 'Hazards: ...'" },
+    { "pass": 3, "passName": "Browser", "section": "OPP wizard", "testId": "UI2", "priority": "Medium", "step": "Source hint under the box names the estimate it came from" },
+    { "pass": 3, "passName": "Browser", "section": "OPP wizard", "testId": "UI3", "priority": "Medium", "step": "Generated OPP PDF shows the quantity/material text in PROJECT DESCRIPTION" },
+    { "pass": 3, "passName": "Browser", "section": "Crew assignment", "testId": "UI4", "priority": "High", "step": "Job > Assign Crew: field reads 'Supervisor (optional)', not 'Crew Lead'" },
+    { "pass": 3, "passName": "Browser", "section": "Crew assignment", "testId": "UI5", "priority": "High", "step": "Supervisor dropdown lists the whole team, grouped selected-first" },
+    { "pass": 3, "passName": "Browser", "section": "Crew assignment", "testId": "UI6", "priority": "High", "step": "Naming an unchecked person as supervisor assigns them to the job with the supervisor role" },
+    { "pass": 3, "passName": "Browser", "section": "Crew assignment", "testId": "UI7", "priority": "Medium", "step": "Crew roster shows a 'Supervisor' label beside the crown, not a bare crown" },
+    { "pass": 3, "passName": "Browser", "section": "Work order", "testId": "UI8", "priority": "High", "step": "Work order crew row: checkbox reads 'Supervisor', badge reads 'Supervisor'" },
+    { "pass": 3, "passName": "Browser", "section": "Work order", "testId": "UI9", "priority": "High", "step": "Work order crew name is a team dropdown; 'Someone else' reveals the free-text box" },
+    { "pass": 3, "passName": "Browser", "section": "Work order", "testId": "UI10", "priority": "Medium", "step": "Saved work order round-trips a picked team member and a typed custom name" },
+    { "pass": 3, "passName": "Browser", "section": "Work order", "testId": "UI11", "priority": "Medium", "step": "Work order PDF prints SUPERVISOR rather than LEAD" },
+    { "pass": 3, "passName": "Browser", "section": "Work order", "testId": "UI12", "priority": "High", "step": "Reproduce Gina's report: generate a work order and capture the error message that appears despite the record being created" }
+  ]
+}
