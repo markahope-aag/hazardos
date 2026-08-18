@@ -2,6 +2,19 @@ import { NextResponse } from 'next/server'
 import { createApiHandlerWithParams } from '@/lib/utils/api-handler'
 import { SecureError } from '@/lib/utils/secure-error-handler'
 import type { OppDefaults } from '@/types/database'
+import {
+  buildOppProjectDescription,
+  type OppDescriptionSource,
+  type OppLineItem,
+  type OppSurveyQuantities,
+} from '@/lib/services/opp-description'
+
+interface EstimateSummary {
+  id: string
+  estimate_number: string | null
+  scope_of_work: string | null
+  project_description: string | null
+}
 
 interface PrefillResponse {
   company: {
@@ -27,6 +40,10 @@ interface PrefillResponse {
     suggested_shift: 'am' | 'pm' | 'night' | null
   }
   description: string
+  // Which record the description came from, so the wizard can tell the
+  // office whether it is looking at proposal text or a generated stub.
+  description_source: OppDescriptionSource
+  description_estimate_number: string | null
   defaults: OppDefaults
 }
 
@@ -52,8 +69,9 @@ export const GET = createApiHandlerWithParams(
         .select(
           `id, name, status, scheduled_start_date, scheduled_end_date,
            scheduled_start_time, containment_level, hazard_types,
-           job_address, job_city, property_id,
-           customer:customers!customer_id(id, name, first_name, last_name, mobile_phone, office_phone, phone, company_name)`,
+           job_address, job_city, property_id, estimate_id, site_survey_id,
+           customer:customers!customer_id(id, name, first_name, last_name, mobile_phone, office_phone, phone, company_name),
+           estimate:estimates(id, estimate_number, scope_of_work, project_description)`,
         )
         .eq('id', jobId)
         .eq('organization_id', profile.organization_id)
@@ -79,6 +97,9 @@ export const GET = createApiHandlerWithParams(
       job_address: string
       job_city: string | null
       property_id: string | null
+      estimate_id: string | null
+      site_survey_id: string | null
+      estimate: EstimateSummary | EstimateSummary[] | null
       customer: {
         name: string | null
         first_name: string | null
@@ -122,16 +143,38 @@ export const GET = createApiHandlerWithParams(
       [me?.first_name, me?.last_name].filter(Boolean).join(' ') ||
       null
 
-    // Seed the description field with whatever we know about the job —
-    // hazards and containment are the most common things the inspector
-    // wants to see at a glance.
-    const descParts: string[] = []
-    if (job.hazard_types?.length) {
-      descParts.push(`Hazards: ${job.hazard_types.join(', ')}.`)
-    }
-    if (job.containment_level) {
-      descParts.push(`Containment level: ${job.containment_level.replace(/_/g, ' ')}.`)
-    }
+    // The DHS form asks for type AND amount of material. The proposal is
+    // where that wording already exists, so pull the estimate's scope of
+    // work first and fall back through line items and survey quantities
+    // before resorting to a hazards-only stub.
+    const estimate = Array.isArray(job.estimate) ? job.estimate[0] : job.estimate
+
+    const [lineItemsRes, surveyRes] = await Promise.all([
+      job.estimate_id
+        ? supabase
+            .from('estimate_line_items')
+            .select('item_type, description, quantity, unit, notes, is_included')
+            .eq('estimate_id', job.estimate_id)
+            .order('sort_order', { ascending: true })
+        : Promise.resolve({ data: null }),
+      job.site_survey_id
+        ? supabase
+            .from('site_surveys')
+            .select('material_type, hazard_subtype, area_sqft, linear_ft, volume_cuft')
+            .eq('id', job.site_survey_id)
+            .eq('organization_id', profile.organization_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ])
+
+    const description = buildOppProjectDescription({
+      estimateScopeOfWork: estimate?.scope_of_work ?? null,
+      estimateProjectDescription: estimate?.project_description ?? null,
+      lineItems: (lineItemsRes.data as OppLineItem[] | null) ?? null,
+      survey: (surveyRes.data as OppSurveyQuantities | null) ?? null,
+      hazardTypes: job.hazard_types,
+      containmentLevel: job.containment_level,
+    })
 
     const oppDefaults = (org.opp_defaults || {}) as OppDefaults
 
@@ -158,7 +201,9 @@ export const GET = createApiHandlerWithParams(
         end_date: job.scheduled_end_date,
         suggested_shift: suggestedShift,
       },
-      description: descParts.join(' '),
+      description: description.text,
+      description_source: description.source,
+      description_estimate_number: estimate?.estimate_number ?? null,
       defaults: oppDefaults,
     }
 
