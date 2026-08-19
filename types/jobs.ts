@@ -417,7 +417,11 @@ export const jobStatusConfig: Record<JobStatus, { label: string; color: string; 
 }
 
 export const crewRoleConfig: Record<CrewRole, { label: string; color: string; bgColor: string }> = {
-  lead: { label: 'Lead', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+  // Displayed as "Foreman", not "Lead". At an abatement company lead is a
+  // hazard type before it is a job title, which is the ambiguity AHS raised.
+  // The stored value stays `lead`: it is the most used role in the data, so
+  // renaming the enum would mean migrating live rows for a display concern.
+  lead: { label: 'Foreman', color: 'text-blue-700', bgColor: 'bg-blue-100' },
   crew: { label: 'Crew', color: 'text-gray-700', bgColor: 'bg-gray-100' },
   supervisor: { label: 'Supervisor', color: 'text-purple-700', bgColor: 'bg-purple-100' },
   trainee: { label: 'Trainee', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
