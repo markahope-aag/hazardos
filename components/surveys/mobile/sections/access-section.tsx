@@ -60,14 +60,15 @@ export function AccessSection() {
 
         {showRestrictionDetails && (
           <div className="space-y-4 p-4 bg-muted rounded-lg animate-in fade-in slide-in-from-top-2">
-            <Label className="block">
+            <span id="restrictions-label" className="block text-sm font-medium">
               Select all that apply:
-              <CheckboxGroup
-                values={access.restrictions}
-                onChange={(values) => updateAccess({ restrictions: values })}
-                options={RESTRICTION_OPTIONS}
-              />
-            </Label>
+            </span>
+            <CheckboxGroup
+              aria-labelledby="restrictions-label"
+              values={access.restrictions}
+              onChange={(values) => updateAccess({ restrictions: values })}
+              options={RESTRICTION_OPTIONS}
+            />
 
             <div>
               <Label htmlFor="restrictionNotes">Additional Notes</Label>
@@ -113,17 +114,18 @@ export function AccessSection() {
 
       {/* Equipment Access */}
       <section className="space-y-4">
-        <Label className="text-base block">
+        <span id="equipment-access-label" className="block text-base font-medium">
           Equipment Access
-          <p className="text-sm text-muted-foreground mb-3 font-normal">
-            How easily can equipment be moved into the work area?
-          </p>
-          <RadioCardGroup
-            value={access.equipmentAccess}
-            onChange={(value) => updateAccess({ equipmentAccess: value })}
-            options={EQUIPMENT_ACCESS_OPTIONS}
-          />
-        </Label>
+        </span>
+        <p className="text-sm text-muted-foreground mb-3">
+          How easily can equipment be moved into the work area?
+        </p>
+        <RadioCardGroup
+          aria-labelledby="equipment-access-label"
+          value={access.equipmentAccess}
+          onChange={(value) => updateAccess({ equipmentAccess: value })}
+          options={EQUIPMENT_ACCESS_OPTIONS}
+        />
 
         {showEquipmentNotes && (
           <div className="space-y-2 p-4 bg-yellow-50 border border-yellow-200 rounded-lg animate-in fade-in slide-in-from-top-2">

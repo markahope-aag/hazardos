@@ -19,6 +19,10 @@ interface RadioCardGroupProps<T extends string> {
   disabled?: boolean
   columns?: 1 | 2
   size?: 'sm' | 'md' | 'lg'
+  /** Points the radiogroup at its visible heading. Callers must not wrap this
+   *  component in a <label>: each option is a <button>, which is labelable, so
+   *  a wrapping label forwards every click to the first option. */
+  'aria-labelledby'?: string
 }
 
 export function RadioCardGroup<T extends string>({
@@ -29,6 +33,7 @@ export function RadioCardGroup<T extends string>({
   disabled = false,
   columns = 1,
   size = 'md',
+  'aria-labelledby': ariaLabelledBy,
 }: RadioCardGroupProps<T>) {
   const sizeClasses = {
     sm: 'min-h-[60px] p-3',
@@ -44,6 +49,7 @@ export function RadioCardGroup<T extends string>({
         className
       )}
       role="radiogroup"
+      aria-labelledby={ariaLabelledBy}
     >
       {options.map((option) => {
         const isSelected = value === option.value

@@ -253,21 +253,28 @@ export function PropertySection() {
 
       {/* Building Type */}
       <section className="space-y-3">
-        <Label className="block">
+        {/* The group must NOT be wrapped in <Label>. RadioCardGroup renders
+            each option as a <button>, and a button is a labelable element, so
+            a wrapping label forwards every click to its FIRST labelable
+            descendant. Tapping any card selected the first one, which is why
+            Gina reported that building type "is not letting me click on one
+            of them". Plain text plus aria-labelledby instead. */}
+        <span id="building-type-label" className="block text-sm font-medium">
           Building Type
-          <RadioCardGroup
-            value={property.buildingType}
-            onChange={(value) => updateProperty({ buildingType: value })}
-            options={BUILDING_TYPE_OPTIONS.map((opt) => ({
-              value: opt.value,
-              label: opt.label,
-              description: opt.description,
-              icon: opt.icon,
-            }))}
-            columns={2}
-            size="sm"
-          />
-        </Label>
+        </span>
+        <RadioCardGroup
+          aria-labelledby="building-type-label"
+          value={property.buildingType}
+          onChange={(value) => updateProperty({ buildingType: value })}
+          options={BUILDING_TYPE_OPTIONS.map((opt) => ({
+            value: opt.value,
+            label: opt.label,
+            description: opt.description,
+            icon: opt.icon,
+          }))}
+          columns={2}
+          size="sm"
+        />
       </section>
 
       {/* Year Built */}
@@ -312,15 +319,20 @@ export function PropertySection() {
 
       {/* Stories */}
       <section className="space-y-3">
-        <Label className="block">
+        {/* Not a <label> wrapper: every option below is a <button>, which is a
+            labelable element, so a wrapping label forwards each click to the
+            FIRST option no matter which one was tapped. That is the bug Gina
+            hit on Building Type. */}
+        <span id="stories-label" className="block text-sm font-medium">
           Number of Stories
-          <SegmentedControl
-            value={property.stories}
-            onChange={(value) => updateProperty({ stories: value })}
-            options={STORIES_OPTIONS}
-            size="lg"
-          />
-        </Label>
+        </span>
+        <SegmentedControl
+          aria-labelledby="stories-label"
+          value={property.stories}
+          onChange={(value) => updateProperty({ stories: value })}
+          options={STORIES_OPTIONS}
+          size="lg"
+        />
       </section>
 
       {/* Construction Type */}
@@ -345,15 +357,16 @@ export function PropertySection() {
 
       {/* Occupancy Status */}
       <section className="space-y-3">
-        <Label className="block">
+        <span id="occupancy-label" className="block text-sm font-medium">
           Occupancy Status
-          <SegmentedControl
-            value={property.occupancyStatus}
-            onChange={(value) => updateProperty({ occupancyStatus: value })}
-            options={OCCUPANCY_OPTIONS}
-            size="lg"
-          />
-        </Label>
+        </span>
+        <SegmentedControl
+          aria-labelledby="occupancy-label"
+          value={property.occupancyStatus}
+          onChange={(value) => updateProperty({ occupancyStatus: value })}
+          options={OCCUPANCY_OPTIONS}
+          size="lg"
+        />
 
         {/* Show hours if occupied */}
         {property.occupancyStatus === 'occupied' && (

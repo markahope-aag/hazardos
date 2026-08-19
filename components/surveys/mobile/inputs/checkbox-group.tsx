@@ -16,6 +16,10 @@ interface CheckboxGroupProps<T extends string> {
   className?: string
   disabled?: boolean
   columns?: 1 | 2
+  /** Points the group at its visible heading. Never wrap this component in
+   *  a <label>: its options are <button>s, so a label forwards every click to
+   *  the first one. */
+  'aria-labelledby'?: string
 }
 
 export function CheckboxGroup<T extends string>({
@@ -25,6 +29,7 @@ export function CheckboxGroup<T extends string>({
   className,
   disabled = false,
   columns = 1,
+  'aria-labelledby': ariaLabelledBy,
 }: CheckboxGroupProps<T>) {
   const handleToggle = (value: T) => {
     if (disabled) return
@@ -44,6 +49,7 @@ export function CheckboxGroup<T extends string>({
         className
       )}
       role="group"
+      aria-labelledby={ariaLabelledBy}
     >
       {options.map((option) => {
         const isChecked = values.includes(option.value)

@@ -14,6 +14,10 @@ interface SegmentedControlProps<T extends string | number> {
   className?: string
   disabled?: boolean
   size?: 'sm' | 'md' | 'lg'
+  /** Points the group at its visible heading. Never wrap this component in
+   *  a <label>: its options are <button>s, so a label forwards every click to
+   *  the first one. */
+  'aria-labelledby'?: string
 }
 
 export function SegmentedControl<T extends string | number>({
@@ -23,6 +27,7 @@ export function SegmentedControl<T extends string | number>({
   className,
   disabled = false,
   size = 'md',
+  'aria-labelledby': ariaLabelledBy,
 }: SegmentedControlProps<T>) {
   const sizeClasses = {
     sm: 'min-h-[44px] text-sm',
@@ -38,6 +43,7 @@ export function SegmentedControl<T extends string | number>({
         className
       )}
       role="radiogroup"
+      aria-labelledby={ariaLabelledBy}
     >
       {options.map((option) => {
         const isSelected = value === option.value
