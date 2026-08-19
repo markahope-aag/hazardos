@@ -52,9 +52,17 @@ approves.
 
 ### On your phone
 
-HazardOS installs to a phone or tablet home screen like an app. Open it in your
-mobile browser and choose **Add to Home Screen** when prompted. This matters for
-field work, because the mobile survey tool is built for one-handed use on site.
+HazardOS installs to a phone or tablet home screen like an app. There is no App
+Store download: it installs from the browser, and updates arrive on their own.
+
+- **iPhone or iPad:** open HazardOS in Safari, tap **Share**, then **Add to Home
+  Screen**. Safari never shows an install banner, so this is the only route.
+- **Android:** open HazardOS in Chrome and take the **Install** banner when it
+  appears. If it doesn't, use the three-dot menu and choose **Install app**.
+
+This matters for field work, because the mobile survey tool is built for
+one-handed use on site and keeps working with no signal. Working from a desk?
+There's nothing to install. Use the browser.
 
 ---
 

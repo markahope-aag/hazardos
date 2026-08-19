@@ -12,6 +12,7 @@ import { Home, FileText, Calculator, Calendar, DollarSign, LayoutGrid, Briefcase
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import LoginForm from '@/components/auth/login-form'
+import { PWAInstallPrompt } from '@/components/pwa/pwa-install-prompt'
 import { type UserRole, ROLES } from '@/lib/auth/roles'
 
 // Single source of truth for main-nav order, labels, and active-matching.
@@ -155,6 +156,24 @@ function DashboardLayoutInner({
           <p className="mt-4 text-gray-600">Setting up your account...</p>
         </div>
       </div>
+    )
+  }
+
+  // The mobile survey wizard is a full-screen, phone-first flow that ships its
+  // own header, footer nav, progress dots and exit dialog. Wrapping it in the
+  // dashboard chrome stacks two headers on a phone, and worse, the header links
+  // and hamburger drawer offer a way out that bypasses the wizard's exit
+  // dialog, leaving a part-filled draft in localStorage to rehydrate later.
+  // That dialog exists specifically to stop that. The nested layout under
+  // site-surveys/mobile intended this, but nested layouts compose rather than
+  // replace, so the exclusion has to happen here. Every auth gate above still
+  // applies; only the chrome is skipped.
+  if (pathname.startsWith('/site-surveys/mobile')) {
+    return (
+      <>
+        {children}
+        <PWAInstallPrompt />
+      </>
     )
   }
 
@@ -305,6 +324,11 @@ function DashboardLayoutInner({
       <main id="main-content" className="container py-6">
         {children}
       </main>
+
+      {/* Offered here rather than only on the mobile survey page: a crew
+          member who lands on the dashboard or their job list would never
+          otherwise be asked. The component decides whether to show itself. */}
+      <PWAInstallPrompt />
     </div>
   )
 }
