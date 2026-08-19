@@ -195,3 +195,72 @@ that to five real problems; the rest are either unreachable or intentional.
   `42501` for anon, so their grants survived the baseline squash intact. The concern
   raised on 2026-08-15 about lost grant state appears limited to the four functions
   already fixed.
+
+## Run 2026-08-18 · Gina feedback verification (OPP description, crew Supervisor)
+
+Tracker: https://docs.google.com/spreadsheets/d/1zI-Puhn7NArM0fLfhvhWIUdzKi5PeyVOiDze_XwC72w/edit
+Scope: the two changes made for Gina Richardson's (AHS office manager) feedback.
+Result: 13 Pass, 12 Blocked, 0 Fail.
+
+- **HIGH · No browser tooling in the session · whole UI pass unverified · enable `/chrome`
+  or add the Playwright MCP, then re-run pass 3 (UI1-UI12).** Every browser-only case is
+  Blocked, not Passed. The static and data-layer checks that could run, did.
+
+- **HIGH · The QA config targets production, which does not contain these changes ·
+  `qa-autopilot.config.json` `appUrl: https://hazardos.app` · point a run at a local dev
+  server, or deploy to a preview URL first.** The work is uncommitted. A browser pass
+  against the configured target would have verified the old build and reported a false
+  Pass. Worth a `testAppUrl` key in the config so this cannot happen silently.
+
+- **HIGH · Auto-assigning a supervisor who was not checked off has never been executed ·
+  `app/(dashboard)/jobs/[id]/job-crew.tsx` handleAssign · run UI6 before this reaches
+  AHS.** The change posts an extra crew assignment. Its credential gate, duplicate
+  handling, and failure path are all untested at runtime.
+
+- **MEDIUM · RESOLVED IN THIS RUN · OPP line-item fallback would have printed labor hours
+  as a quantity of asbestos · `lib/services/opp-description.ts`.** Running the builder over
+  real seeded estimates showed their labor lines are priced in `hour`, equipment in `day`,
+  materials in `lot`. The first implementation would have rendered "Removal and disposal of
+  approximately 11 hour of Asbestos abatement labor" onto a Wisconsin DHS form. Replaced
+  the unit deny-list with an allow-list of material measures (sq ft, linear ft, cubic yards,
+  cu ft, sq yd, plus spelling variants); anything else is dropped and the builder falls
+  through to survey measurements. Covered by three new specs.
+
+- **MEDIUM · Gina's work order error is still unreproduced · unknown · needs her error text
+  or a browser pass.** No code path found that creates a work order and then reports
+  failure. The likeliest candidate is the detail page erroring after a successful POST.
+
+### Browser pass completed 2026-08-18 (same tracker)
+
+Ran against `next dev` on the LOCAL Supabase stack, using the repo's own Playwright
+harness (`e2e/gina-feedback.spec.ts`, 7 tests) rather than a browser MCP. Final
+state: 23 Pass, 2 N/A, 0 Fail, 0 Blocked. Full suite afterwards: 31 passed, 1 failed
+(pre-existing, below), 3 skipped.
+
+- **HIGH · RESOLVED IN THIS RUN · Crew assignment silently dropped every member the
+  user did not manually re-role · `app/(dashboard)/jobs/[id]/job-crew.tsx`.**
+  The assign dialog defaulted to `role: 'worker'`. `crewRoleSchema` accepts only
+  `lead | crew | supervisor | trainee`, so the API rejected each POST, and because
+  `'worker'` matched no `SelectItem` the Role trigger rendered blank, giving the user
+  no reason to touch it. Anyone who accepted the default got a partial-failure toast
+  and no crew assigned. **Pre-existing, not introduced by the Supervisor work** — that
+  change only made it visible, because the named supervisor is posted with a valid
+  role and so was the one row that landed. Default is now `'crew'`. UI6 proves the
+  fix in the database: two rows, one `is_lead`, that row `role='supervisor'`.
+
+- **LOW · The mobile survey spec cannot run against a dev server · `e2e/mobile/survey-offline.spec.ts:48`
+  · change the locator to `getByRole('button', { name: 'Next', exact: true })`.**
+  `/next/i` also matches Next.js's own "Open Next.js Dev Tools" overlay button, so the
+  click is a strict-mode violation. CI is unaffected because it builds and runs
+  `npm run start`, where the overlay does not exist. Left alone: it is unrelated to
+  this change set and green in CI.
+
+- **STILL OPEN · Gina's work order error did not reproduce.** POST /api/work-orders
+  returns 201, the row is created, no error toast, no console errors. Either it is
+  data-specific to AHS, or it is in the deployed build rather than this branch. Needs
+  her error text or a screenshot.
+
+- **Note for future runs · `qa-autopilot.config.json` targets production.** This pass
+  had to be pointed at a local dev server against the local Supabase stack, since the
+  changes under test are uncommitted. The E2E harness seeds its own tenant and refuses
+  to run against a `*.supabase.co` URL, which is what makes that safe.

@@ -282,7 +282,7 @@ export function JobWorkOrder({ jobId, initial }: JobWorkOrderProps) {
                 {c.role && <span className="text-muted-foreground">· {c.role}</span>}
                 {c.is_lead && (
                   <Badge variant="outline" className="text-[10px] h-4 px-1 border-0 bg-blue-100 text-blue-700">
-                    LEAD
+                    SUPERVISOR
                   </Badge>
                 )}
               </li>

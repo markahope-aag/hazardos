@@ -10,6 +10,13 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -43,6 +50,11 @@ import type { WorkOrderMediaItem } from '@/lib/services/work-order-pdf-generator
 import { getSignedSurveyMediaUrls } from '@/lib/services/photo-upload-service'
 import { WorkOrderDocuments } from './work-order-documents'
 
+// Sentinel for the crew picker's "not on the team" option. Crews get a
+// subcontractor or a temp often enough that the name has to stay free
+// text, but typing every regular employee by hand was the complaint.
+const CUSTOM_CREW_VALUE = '__custom__'
+
 const MAX_PDF_PHOTO_EMBEDS = 6
 const PDF_PHOTO_MAX_DIM = 800
 
@@ -70,6 +82,11 @@ async function fetchImageAsDataUrl(url: string): Promise<string | null> {
   } catch {
     return null
   }
+}
+
+interface TeamMember {
+  id: string
+  name: string
 }
 
 interface WorkOrderDetail extends WorkOrder {
@@ -107,6 +124,7 @@ export default function WorkOrderDetailPage({
   // until the user clicks "Save changes", which PATCHes the snapshot.
   const [notes, setNotes] = useState('')
   const [crew, setCrew] = useState<CrewItem[]>([])
+  const [team, setTeam] = useState<TeamMember[]>([])
   const [materials, setMaterials] = useState<MaterialItem[]>([])
   const [equipment, setEquipment] = useState<EquipmentItem[]>([])
   const [extraItems, setExtraItems] = useState<ExtraItem[]>([])
@@ -117,6 +135,36 @@ export default function WorkOrderDetailPage({
   const [emailTo, setEmailTo] = useState('')
   const [emailMessage, setEmailMessage] = useState('')
   const [emailing, setEmailing] = useState(false)
+
+  // Roster for the crew picker. A failure here is not worth a toast: the
+  // name field still accepts free text, so the section degrades to what
+  // it did before rather than blocking the edit.
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/team')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => {
+        if (cancelled || !body?.members) return
+        setTeam(
+          (body.members as Array<{
+            id: string
+            first_name: string | null
+            last_name: string | null
+            email: string | null
+          }>).map((m) => ({
+            id: m.id,
+            name:
+              [m.first_name, m.last_name].filter(Boolean).join(' ') ||
+              m.email ||
+              'Team member',
+          })),
+        )
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -697,16 +745,50 @@ export default function WorkOrderDetailPage({
         renderRow={(c, i) =>
           isEditable ? (
             <div className="flex flex-wrap items-center gap-2 w-full">
-              <Input
-                value={c.name}
-                onChange={(e) => {
+              <Select
+                value={
+                  c.profile_id && team.some((m) => m.id === c.profile_id)
+                    ? c.profile_id
+                    : CUSTOM_CREW_VALUE
+                }
+                onValueChange={(value) => {
                   const next = [...crew]
-                  next[i] = { ...c, name: e.target.value }
+                  const member = team.find((m) => m.id === value)
+                  next[i] = member
+                    ? { ...c, profile_id: member.id, name: member.name }
+                    : { ...c, profile_id: null }
                   setCrew(next)
                 }}
-                placeholder="Name"
-                className="max-w-[200px]"
-              />
+              >
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Choose a person" />
+                </SelectTrigger>
+                <SelectContent>
+                  {team.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={CUSTOM_CREW_VALUE}>
+                    Someone else (type a name)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              {/* Free-text name stays visible for anyone who isn't a
+                  current team member, including a snapshot row whose
+                  person has since been deactivated. */}
+              {(!c.profile_id || !team.some((m) => m.id === c.profile_id)) && (
+                <Input
+                  value={c.name}
+                  onChange={(e) => {
+                    const next = [...crew]
+                    next[i] = { ...c, name: e.target.value }
+                    setCrew(next)
+                  }}
+                  placeholder="Name"
+                  className="max-w-[200px]"
+                />
+              )}
               <Input
                 value={c.role ?? ''}
                 onChange={(e) => {
@@ -727,7 +809,7 @@ export default function WorkOrderDetailPage({
                     setCrew(next)
                   }}
                 />
-                Lead
+                Supervisor
               </label>
             </div>
           ) : (
@@ -736,7 +818,7 @@ export default function WorkOrderDetailPage({
                 <span className="font-medium">{c.name}</span>
                 {c.role && <span className="text-muted-foreground"> · {c.role}</span>}
                 {c.is_lead && (
-                  <Badge variant="outline" className="ml-2 text-xs">Lead</Badge>
+                  <Badge variant="outline" className="ml-2 text-xs">Supervisor</Badge>
                 )}
               </span>
             </div>

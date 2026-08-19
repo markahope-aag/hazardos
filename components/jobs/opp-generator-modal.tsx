@@ -39,6 +39,14 @@ interface PrefillResponse {
     suggested_shift: 'am' | 'pm' | 'night' | null
   }
   description: string
+  description_source:
+    | 'estimate_scope'
+    | 'estimate_project_description'
+    | 'estimate_line_items'
+    | 'survey'
+    | 'job'
+    | 'none'
+  description_estimate_number: string | null
   defaults: {
     containment?: string
     ventilation?: string
@@ -54,6 +62,29 @@ interface Props {
 }
 
 const todayIso = () => new Date().toISOString().slice(0, 10)
+
+/**
+ * Tell the office where the pre-filled description came from. The whole
+ * point of the field is quantities and material type, and only the first
+ * two sources actually carry those, so the weaker ones say so plainly.
+ */
+function describeDescriptionSource(data: PrefillResponse): string | null {
+  const estimate = data.description_estimate_number
+  switch (data.description_source) {
+    case 'estimate_scope':
+      return `Pre-filled from the scope of work on ${estimate || 'the estimate'}, which is what the proposal says. Edit if the field conditions changed.`
+    case 'estimate_project_description':
+      return `Pre-filled from the project description on ${estimate || 'the estimate'}. Check that it names the quantity and the material.`
+    case 'estimate_line_items':
+      return `Built from the line items on ${estimate || 'the estimate'}. Check the quantities and add the room and dimensions.`
+    case 'survey':
+      return 'Built from the site survey measurements. No estimate scope of work was found, so add the room and dimensions.'
+    case 'job':
+      return 'No estimate or survey quantities were found for this job, so this is only the hazard summary. Type in the quantity and material yourself.'
+    default:
+      return 'Nothing to pre-fill from. Enter the quantity, material type, and location.'
+  }
+}
 
 function emptyForm(): OppGenerateInput {
   return {
@@ -89,6 +120,7 @@ export function OppGeneratorModal({ jobId, open, onOpenChange }: Props) {
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState<OppGenerateInput>(emptyForm)
+  const [descriptionHint, setDescriptionHint] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -101,6 +133,7 @@ export function OppGeneratorModal({ jobId, open, onOpenChange }: Props) {
       })
       .then((data) => {
         if (cancelled) return
+        setDescriptionHint(describeDescriptionSource(data))
         const start = data.schedule.start_date || todayIso()
         const end = data.schedule.end_date || start
         setForm({
@@ -349,12 +382,22 @@ export function OppGeneratorModal({ jobId, open, onOpenChange }: Props) {
               <h3 className="font-semibold mb-2 text-sm uppercase tracking-wide text-gray-700">
                 Project Description
               </h3>
+              <p className="text-xs text-gray-500 mb-2">
+                Give the quantity, the material, and where it is. This is the
+                same wording that goes in the proposal. Example: &ldquo;Removal
+                and disposal of approximately 225 sq ft of asbestos containing
+                two layers of sheet vinyl in the lower level kitchen. 15&rsquo;
+                x 15&rsquo;, on a plywood underlayment.&rdquo;
+              </p>
               <Textarea
-                rows={3}
-                placeholder="Type of project, type and amount of asbestos-containing material being removed or disturbed."
+                rows={5}
+                placeholder="Removal and disposal of approximately 225 sq ft of asbestos containing two layers of sheet vinyl in the lower level kitchen. 15' x 15', on a plywood underlayment."
                 value={form.project_description}
                 onChange={(e) => update('project_description', e.target.value)}
               />
+              {descriptionHint && (
+                <p className="text-xs text-gray-500 mt-1.5">{descriptionHint}</p>
+              )}
             </section>
 
             <section>
