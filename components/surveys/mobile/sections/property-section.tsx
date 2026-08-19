@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useSurveyStore } from '@/lib/stores/survey-store'
+import { useOrgDefaultState } from '@/lib/hooks/use-org-default-state'
 import {
   BuildingType,
   ConstructionType,
@@ -83,6 +84,15 @@ export function PropertySection() {
   const { formData, updateProperty } = useSurveyStore()
   const { property } = formData
   const [isGettingLocation, setIsGettingLocation] = useState(false)
+  const orgDefaultState = useOrgDefaultState()
+
+  // Pre-select the organization's own state on a fresh survey. Only when the
+  // field is still empty, so it cannot overwrite a resumed draft, a typed
+  // value, or what Use Location just filled in.
+  useEffect(() => {
+    if (!orgDefaultState || property.state) return
+    updateProperty({ state: orgDefaultState })
+  }, [orgDefaultState, property.state, updateProperty])
 
   const handleGetLocation = async () => {
     if (!navigator.geolocation) {
