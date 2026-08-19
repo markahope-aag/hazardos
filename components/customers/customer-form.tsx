@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/select'
 import { customerSchema, CUSTOMER_STATUS_OPTIONS, CUSTOMER_SOURCE_OPTIONS, CONTACT_TYPE_OPTIONS, CONTACT_ROLE_OPTIONS, CONTACT_CATEGORY_OPTIONS } from '@/lib/validations/customer-form'
 import { useFormAnalytics } from '@/lib/hooks/use-analytics'
+import { useOrgDefaultState } from '@/lib/hooks/use-org-default-state'
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete'
 import { useSearchCompanies } from '@/lib/hooks/use-companies'
 import { useMultiTenantAuth } from '@/lib/hooks/use-multi-tenant-auth'
 import { logger, formatError } from '@/lib/utils/logger'
@@ -38,6 +40,7 @@ export default function CustomerForm({
 }: CustomerFormProps) {
   const formAnalytics = useFormAnalytics('customer', customer ? 'edit_customer' : 'create_customer')
   const { profile } = useMultiTenantAuth()
+  const orgDefaultState = useOrgDefaultState()
 
   // Editing an existing address is admin-only (enforced at the DB too).
   // Creating a brand-new contact always gets full access.
@@ -88,10 +91,32 @@ export default function CustomerForm({
       // contact commercial; otherwise default to residential.
       contact_type: initialCompanyName ? ('commercial' as const) : ('residential' as const),
       company_name: initialCompanyName || '',
+      // Declared so the address fields are part of form state from the start.
+      // The autocomplete and the org state default both write through
+      // setValue, and RHF only tracks fields it knows about.
+      address_line1: '',
+      address_line2: '',
+      city: '',
+      state: '',
+      zip: '',
       status: 'inquiry' as const,
       marketing_consent: false,
     }
   })
+
+  // Seed the state field from the organization's own address. Runs in an
+  // effect rather than in defaultValues because the organization arrives
+  // asynchronously and is usually not there on first render. Guarded on the
+  // field still being empty so it never overwrites what someone typed, and
+  // skipped entirely when editing an existing contact.
+  useEffect(() => {
+    if (customer || !orgDefaultState) return
+    if (watch('state')) return
+    setValue('state', orgDefaultState)
+    // watch() is read for a one-time check, not subscribed to on purpose:
+    // adding it to the deps would re-run this on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customer, orgDefaultState, setValue])
 
   const watchedContactType = watch('contact_type')
   const watchedCompanyName = watch('company_name')
@@ -301,7 +326,22 @@ export default function CustomerForm({
           )}
         </div>
         <FormField label="Street Address" required error={errors.address_line1?.message}>
-          <Input id="address_line1" {...register('address_line1')} readOnly={addressLocked} />
+          {/* Picking a suggestion fills city, state and ZIP as well, which is
+              the MarketSharp behavior Gina asked for. All four stay editable:
+              the lookup is a shortcut, not a gate, and it degrades to a plain
+              text box if the geocoder is unavailable. */}
+          <AddressAutocomplete
+            id="address_line1"
+            value={watch('address_line1') || ''}
+            onChange={(v) => setValue('address_line1', v, { shouldValidate: true })}
+            onSelect={(parts) => {
+              setValue('address_line1', parts.streetAddress, { shouldValidate: true })
+              if (parts.city) setValue('city', parts.city, { shouldValidate: true })
+              if (parts.state) setValue('state', parts.state, { shouldValidate: true })
+              if (parts.zip) setValue('zip', parts.zip, { shouldValidate: true })
+            }}
+            readOnly={addressLocked}
+          />
         </FormField>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <FormField label="City" required error={errors.city?.message}>
