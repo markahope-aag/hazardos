@@ -57,7 +57,7 @@ test.describe('mobile survey wizard offline', () => {
       // Typing and moving between steps is local state, so it must survive with
       // no connection at all.
       await page.locator('#address').fill(address)
-      await page.getByRole('button', { name: /next/i }).click()
+      await page.getByRole('button', { name: 'Next', exact: true }).click()
 
       // Still on the wizard, not an error page or a bounce to login.
       await expect(page).toHaveURL(/site-surveys\/mobile/)
