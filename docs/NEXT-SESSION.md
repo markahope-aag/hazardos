@@ -1,11 +1,83 @@
 # Start here
 
-Written 2026-08-16 at the end of a long session, for whoever picks this up next
-(likely on `asy-hope-work`, which is a different machine, so this lives in the
-repo rather than in local notes).
+Last updated **2026-08-19**, for whoever picks this up next (likely on a
+different machine, so this lives in the repo rather than in local notes).
 
-Everything below is pushed. Tree is clean, `6,398` tests passing, type-check and
-lint clean.
+Everything is pushed and the tree is clean. `6,432` tests passing across 481
+files, type-check and lint clean, production build green, E2E 38 passed at
+`--workers=1`.
+
+**Commit straight to `main`.** No branches, no PRs. This was asked for twice
+and two PRs got opened anyway because the note was not indexed. See
+`~/.claude/projects/D--projects-hazardos/memory/`.
+
+**Judge a test run at `--workers=1`.** Parallel full-suite runs fail a
+different 3 to 5 tests every time and every one passes single-worker. Same for
+the vitest `test/integration/` files while a dev server is running. It is
+contention, not regressions, and it has already been re-diagnosed as a code
+fault more than once.
+
+---
+
+## 2026-08-19: AHS client feedback round
+
+Gina Richardson (AHS office manager) and Brady Mautz are testing during
+cutover week, so this whole day was their reported issues. The live list is
+their Google Doc, "Harzard OS Issues 8-2026". **Fixed items stay on it, struck
+through, at Gina's request.** She opened it one morning, found it empty, and
+questioned whether she had ever written anything down. The Drive tooling here
+cannot write into her doc, so the current version is a separate doc in Mark's
+Drive that gets pasted in.
+
+### The one worth reading about
+
+Two independent faults made most of the mobile survey form unusable, and they
+masked each other.
+
+1. **Pointer capture.** The swipe-between-steps handler called
+   `setPointerCapture` on every `pointerdown` in `<main>`. A captured pointer
+   retargets its events, so `click` fired on `<main>` and never on the control.
+   Building type, the state dropdown, stories, occupancy, the access questions
+   and Use Location were all dead to taps. The footer Next/Back buttons kept
+   working because they sit outside `<main>`, which is exactly why the existing
+   offline spec never caught it: it fills inputs by value and uses the footer.
+2. **`<label>` wrappers.** Five option groups were wrapped in `<Label>`. The
+   options render as `<button>`, which is labelable, so the label forwarded
+   every click to the first option. Tapping any building type selected
+   Single-Family.
+
+Both fixed, both covered by `e2e/mobile/survey-property-controls.spec.ts`.
+
+### Shipped
+
+| Area | What |
+|---|---|
+| OPP | Project description pre-fills from the estimate's scope of work, then project description, line items, survey measurements, hazard stub. Says which source it used. Refuses to put labor hours on a DHS form. |
+| Crew | "Lead" is "Supervisor" everywhere; the Role dropdown's own "Lead" is now "Foreman". Supervisor list covers the whole team and auto-assigns someone not already on the crew. |
+| Crew (bug) | The assign dialog defaulted to `role: 'worker'`, which `crewRoleSchema` rejects, so **every assignment silently failed** unless the user changed the Role dropdown. Pre-existing. |
+| Survey | The two faults above. |
+| Contacts | Address autocomplete via new `GET /api/geocode/search`; picking a suggestion fills city, state, ZIP. |
+| Forms | State defaults from the **organization's** address, not hardcoded WI. AHS get WI, Summit get CO. |
+| PWA | Install prompt now reaches iPhone/iPad (Safari never fires `beforeinstallprompt`) and is offered app-wide rather than only on the survey screen. Gated to handhelds. |
+| Survey chrome | The wizard no longer renders inside the dashboard header, which was routing users around its own Save-and-Exit guard. |
+| Guides | Both manuals revised (the OPP was in neither) and downloadable in-app. `npm run guides` regenerates the PDFs. |
+
+### Needs a human, not code
+
+- **Swipe navigation is unverified.** Chromium touch emulation dispatches no
+  pointer events for `page.mouse`, and CDP touch dispatch does not drive the
+  gesture either. The control test is committed **skipped** and fails
+  identically against pre-fix code, so it is an unprovable gap rather than a
+  regression. Brady has been asked to confirm on a real handset.
+- **Gina's work order error never reproduced.** `POST /api/work-orders` returns
+  201 with the row created and no error toast. Waiting on her screenshot.
+- **Is "Foreman" their word?** Chosen by us, not by them.
+- **The activity chains.** Biggest open item, outstanding since 8/10. Needs
+  twenty minutes on the phone with Gina, not another email.
+- **Job-scheduled text to all three of them** (Gina's newest item). Blocked on
+  one question: every job, or only their own?
+
+---
 
 ---
 
@@ -36,7 +108,7 @@ present or the features stay dark.
 
 ---
 
-## Where the work stopped
+## Where the 2026-08-16 work stopped
 
 Four of the six audit priorities are done (see
 `docs/CODEBASE-AUDIT-2026-08-16.md` for the full findings). Two remain, and I
@@ -75,7 +147,7 @@ output page by page. That check is manual and it is the only real one.
 
 ---
 
-## What shipped today
+## What shipped on 2026-08-16
 
 Security and correctness, all verified against production in both directions
 (hole closed, and every role that should still work does):

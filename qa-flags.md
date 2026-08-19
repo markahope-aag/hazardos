@@ -264,3 +264,41 @@ state: 23 Pass, 2 N/A, 0 Fail, 0 Blocked. Full suite afterwards: 31 passed, 1 fa
   had to be pointed at a local dev server against the local Supabase stack, since the
   changes under test are uncommitted. The E2E harness seeds its own tenant and refuses
   to run against a `*.supabase.co` URL, which is what makes that safe.
+
+### AHS feedback round, 2026-08-19 PM
+
+Gina reported two broken controls on the mobile survey. Both were real, and the
+cause was larger than the report.
+
+- **HIGH · RESOLVED · Pointer capture made every control in the survey wizard
+  untappable · `components/surveys/mobile/mobile-survey-wizard.tsx`.**
+  The swipe handler called `setPointerCapture` on every `pointerdown` in
+  `<main>`. A captured pointer retargets its events, so the browser dispatched
+  `click` to `<main>` and never to the control underneath. Building type, the
+  state dropdown, stories, occupancy, the access questions and the Use Location
+  button were all dead. The footer Next/Back buttons kept working because they
+  sit outside `<main>`, which is why `survey-offline.spec.ts` never caught it:
+  it fills inputs by value and navigates with the footer. Capture now arms on
+  the first mostly-horizontal pointermove past 12px instead.
+
+- **HIGH · RESOLVED · Five option groups wrapped in `<label>` sent every click
+  to the first option · property-section.tsx, access-section.tsx.**
+  The options render as `<button>`, which is labelable, so the wrapping label
+  forwarded every click to its first labelable descendant. Tapping any building
+  type selected Single-Family. Same trap that produced a false E2E failure on
+  the crew dialog earlier the same day.
+
+- **MEDIUM · UNPROVABLE HERE · Swipe navigation has no working automated test ·
+  `e2e/mobile/survey-property-controls.spec.ts` · confirm on a real handset.**
+  Under Chromium touch emulation `page.mouse` dispatches no pointer events to
+  the page, and CDP touch dispatch does not drive the gesture either. The
+  control test is committed skipped. It fails identically against the pre-fix
+  code, so this is a pre-existing coverage gap, not a regression. Brady has
+  been asked to confirm on a phone.
+
+- **MEDIUM · Judge suite runs at `--workers=1`.** Parallel full-suite E2E runs
+  failed a different 3 to 5 tests each time and all passed single-worker (38
+  passed, 4 skipped, 0 failed). The vitest `test/integration/` files behave the
+  same way when a dev server is competing for the local Postgres: a different
+  file fails each run, each passes alone. Contention, not regressions. CI is
+  unaffected because it runs `workers:1`.
