@@ -11,6 +11,11 @@ import { processPhotoQueue, waitForUploads } from '@/lib/services/photo-upload-s
 import { FormErrorBoundary, ErrorBoundary } from '@/components/error-boundaries'
 import { logger, formatError } from '@/lib/utils/logger'
 import { resolveSwipeAction } from '@/lib/utils/swipe'
+
+/** Horizontal travel before the wizard claims the pointer. Must stay well
+ *  below SWIPE_THRESHOLD_PX so capture is armed before a gesture counts as
+ *  a swipe, and above finger jitter on a tap so taps still reach controls. */
+const POINTER_CAPTURE_THRESHOLD_PX = 12
 import { Loader2 } from 'lucide-react'
 
 import { MobileWizardHeader } from './mobile-wizard-header'
@@ -165,7 +170,7 @@ export default function MobileSurveyWizard({
   // see the stale (null) value and the swipe would silently do nothing —
   // a ref is written and read synchronously, so it always reflects the
   // current gesture regardless of swipe speed.
-  const pointerStartRef = useRef<{ x: number; y: number } | null>(null)
+  const pointerStartRef = useRef<{ x: number; y: number; captured: boolean } | null>(null)
 
   // Refs for auto-save timer
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -390,19 +395,39 @@ export default function MobileSurveyWizard({
   // scrolling but hand us horizontal gestures, so a real left/right swipe
   // reaches pointerup instead of being swallowed as a scroll.
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    pointerStartRef.current = { x: e.clientX, y: e.clientY }
-    // Capture the pointer so the whole gesture — most importantly the
-    // closing pointerup — is retargeted to this element even if the finger
-    // or mouse ends up over the fixed footer/header or leaves <main>
-    // entirely. Without this, a horizontal swipe often releases outside
-    // <main>, onPointerUp never fires here, and the swipe is silently
-    // dropped (mouse has no implicit capture; a fast touch flick can clear
-    // the overlaid footer). If the browser reclaims the gesture as a
-    // vertical scroll it fires pointercancel and releases the capture, so
-    // scrolling is unaffected. setPointerCapture throws if the pointer is
-    // already gone, hence the guard.
+    pointerStartRef.current = { x: e.clientX, y: e.clientY, captured: false }
+  }, [])
+
+  // Capture only once the gesture is clearly a horizontal drag, never on
+  // pointerdown.
+  //
+  // A captured pointer retargets its events to the capturing element, and the
+  // browser dispatches `click` to the nearest common ancestor of the down and
+  // up targets. Capturing on pointerdown therefore made every click inside
+  // <main> land on <main> instead of on the control underneath, which killed
+  // every radio card, segmented control, checkbox group and Select in the
+  // wizard. Gina reported it as "building type is not letting me click on one
+  // of them" and the state dropdown refusing to take WI. The footer buttons
+  // kept working because they sit outside <main>, which is why no test caught
+  // it.
+  //
+  // Capture is still needed, just later: a horizontal swipe often releases
+  // over the fixed footer or outside <main>, and without capture that
+  // pointerup never reaches us. Arming it after POINTER_CAPTURE_THRESHOLD_PX
+  // of mostly-horizontal travel keeps swipes reliable while leaving taps
+  // alone. The threshold sits well under SWIPE_THRESHOLD_PX so capture is
+  // always armed before the gesture qualifies as a swipe.
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    const start = pointerStartRef.current
+    if (!start || start.captured) return
+
+    const dx = e.clientX - start.x
+    const dy = e.clientY - start.y
+    if (Math.abs(dx) < POINTER_CAPTURE_THRESHOLD_PX || Math.abs(dx) <= Math.abs(dy)) return
+
     try {
       e.currentTarget.setPointerCapture(e.pointerId)
+      start.captured = true
     } catch {
       // Non-fatal: fall back to un-captured behavior.
     }
@@ -412,6 +437,14 @@ export default function MobileSurveyWizard({
     const start = pointerStartRef.current
     pointerStartRef.current = null
     if (!start) return
+
+    if (start.captured) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId)
+      } catch {
+        // Already released by the browser on pointerup. Nothing to do.
+      }
+    }
 
     const action = resolveSwipeAction(e.clientX - start.x, e.clientY - start.y, {
       canGoBack: !isFirstSection,
@@ -666,6 +699,7 @@ export default function MobileSurveyWizard({
           ref={mainContentRef}
           className={cn('flex-1 touch-pan-y', embedded ? '' : 'overflow-y-auto pb-28')}
           onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerCancel}
         >
