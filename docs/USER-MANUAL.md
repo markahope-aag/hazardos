@@ -7,6 +7,8 @@ If you administer the system (adding people, setting prices, configuring
 messaging), see the **HazardOS Admin Manual** instead. This manual covers doing
 the work, not configuring it.
 
+*Last updated 19 August 2026.*
+
 ---
 
 ## Contents
@@ -378,10 +380,71 @@ A job holds:
 - **Documents**: everything filed against the job
 - **Notes and activity**: the running history
 
+### Assigning crew
+
+**Assign Crew** on the job's Crew tab. Check off everyone who's going, pick the
+role they'll all carry, and name a supervisor.
+
+The supervisor list covers your whole team, not only the people you just checked
+off. The handful of people who normally run work are always in it, and so is
+everyone else, for the occasional job where somebody runs a crew who usually
+doesn't. If you name someone you didn't check off, they're added to the job for
+you rather than the designation landing on nobody.
+
+Whoever you name carries the Supervisor role on the job, so the crew list shows
+who was in charge without anyone having to remember.
+
+If a credential the job requires has lapsed, you'll be warned before you assign,
+and depending on how your administrator set it up the assignment may be refused
+outright.
+
 ### Work orders
 
 **Generate Work Order** produces the document the crew takes to site: scope,
 hazards, containment requirements, site contact, and access notes.
+
+It's created as a draft, and it takes a snapshot of the job as it stands, so
+later edits to the job don't quietly rewrite paperwork a crew is already
+carrying. Before you issue it, you can correct any section:
+
+- **Crew**: pick people from your team, or choose *Someone else* and type a name
+  for a subcontractor or a temp. Tick **Supervisor** for whoever is running it.
+- **Materials and equipment**: taken from the approved estimate's line items.
+- **Vehicles**: what's going, who's driving, and rental details if it's hired.
+- **Extra items**: anything else the crew needs to know about.
+
+**Issue** it once it's final. You can download it as a PDF or email it straight
+to the crew.
+
+### Occupant Protection Plan (OPP)
+
+*The Wisconsin DHS form, required where occupants stay in the building during
+the work.*
+
+Open the job's **Documents** tab and click **Generate OPP**. The wizard fills in
+what it can: your company details, the property, the schedule, and the
+protective-measures wording your administrator set up once in Settings.
+
+**Check the project description before you save.** The form asks for the type
+and the amount of material being removed or disturbed, and that's the part an
+inspector actually reads. HazardOS takes it from the proposal's scope of work,
+so on a job with a proposal behind it you should find your own wording already
+sitting there:
+
+> Removal and disposal of approximately 225 sq feet of asbestos containing two
+> layers of sheet vinyl in the lower level kitchen. 15' x 15', on a plywood
+> underlayment.
+
+Underneath the box, the wizard tells you where that text came from. If the job
+has no proposal behind it, it says so and asks you to type the quantity and the
+material in yourself. Take that seriously. A description with no quantity in it
+is the usual reason this form comes back.
+
+One thing it won't do is put labor hours in that box. Estimates price labor by
+the hour, and hours are not an amount of asbestos.
+
+Save, and the finished PDF is filed against the job under OPP. A blank copy of
+the form is linked there too, if you'd rather complete one by hand.
 
 ### Change orders
 
@@ -460,6 +523,9 @@ assigning someone whose certification has lapsed.
 
 Keep credential records current. An expired certification discovered during an
 inspection is a much more expensive problem than one discovered here.
+
+Occupant Protection Plans are produced from the job itself rather than from
+here. See [Jobs and Work Orders](#10-jobs-and-work-orders).
 
 ---
 

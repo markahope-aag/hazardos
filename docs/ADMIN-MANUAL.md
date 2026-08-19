@@ -7,6 +7,8 @@ For day to day use (booking surveys, building estimates, running jobs), see the
 **HazardOS User Manual**. This manual covers setting the system up and keeping
 it healthy.
 
+*Last updated 19 August 2026.*
+
 ---
 
 ## Contents
@@ -105,7 +107,16 @@ habit in the system.
 ## 3. Company, locations, and branding
 
 **Settings → Company** holds your business details, which appear on customer
-documents.
+documents. It also holds two things the Occupant Protection Plan depends on:
+your **License number**, which prints on the OPP as the DHS company number, and
+your **OPP defaults**.
+
+The defaults are your standing wording for containment, ventilation, work
+practices, and final cleaning. They pre-fill every OPP the office generates.
+Write them once and write them properly, because the alternative is somebody
+retyping four paragraphs of regulatory boilerplate per job and getting it
+slightly different each time. They stay editable on each individual plan, for
+the job that genuinely differs.
 
 **Settings → Locations** covers multi-branch operations. New records can inherit
 the creating user's default location, which keeps regional reporting honest
