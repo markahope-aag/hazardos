@@ -1,6 +1,6 @@
 'use client'
 
-import { LogOut, User, Settings } from 'lucide-react'
+import { LogOut, User, Settings, BookOpen } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useLogout } from '@/lib/hooks/use-logout'
 import {
@@ -69,6 +69,18 @@ export function UserMenu({ user, profile }: UserMenuProps) {
           Settings
         </DropdownMenuItem>
         
+        <DropdownMenuSeparator />
+
+        {/* Rendered as a real anchor rather than a router push: this is a
+            static PDF in /public, not a route. `download` gives it a sensible
+            filename instead of the browser's tab-title guess. */}
+        <DropdownMenuItem asChild>
+          <a href="/guides/hazardos-user-guide.pdf" download="HazardOS User Guide.pdf">
+            <BookOpen className="mr-2 h-4 w-4" />
+            User Guide
+          </a>
+        </DropdownMenuItem>
+
         <DropdownMenuSeparator />
         
         <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-600">

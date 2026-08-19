@@ -10,6 +10,7 @@
     "dev": "next dev",
     "prebuild": "node -e \"require('node:fs').rmSync('.next/dev',{recursive:true,force:true})\"",
     "build": "next build --webpack",
+    "guides": "node ../workspace/scripts/convert-to-pdf/convert-to-pdf.js --src docs/USER-MANUAL.md && node ../workspace/scripts/convert-to-pdf/convert-to-pdf.js --src docs/ADMIN-MANUAL.md && node -e \"const f=require('node:fs');f.mkdirSync('public/guides',{recursive:true});f.copyFileSync('docs/USER-MANUAL.pdf','public/guides/hazardos-user-guide.pdf');f.copyFileSync('docs/ADMIN-MANUAL.pdf','public/guides/hazardos-admin-guide.pdf');console.log('guides refreshed')\"",
     "start": "next start",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
