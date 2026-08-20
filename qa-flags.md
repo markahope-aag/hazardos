@@ -335,3 +335,37 @@ specs, and updated CI to install the engine.
   run seeds an organization; after a day of runs it held 39 orgs and 195
   profiles, and page-level timeouts start appearing that are not code faults.
   `npx supabase db reset` before judging a slow suite.
+
+### WebKit added to the E2E suite, 2026-08-20
+
+Added a `mobile-safari` project (iPhone 14, WebKit) so Safari's real engine is
+exercised. AHS crews are on iPhones and nothing here had ever run on WebKit.
+CI now installs webkit alongside chromium.
+
+- **HIGH · RESOLVED · Survey photo uploads were blocked by CSP in production ·
+  `next.config.mjs`.**
+  Photos upload browser-direct to R2 with a presigned PUT, but `connect-src`
+  listed no R2 host in either the dev or the production CSP. The live header on
+  hazardos.app confirmed it. Every upload was refused by the browser, retried
+  three times and dropped, so survey photos could not reach storage at all.
+  `connect-src` now includes the R2 host, derived from `R2_ACCOUNT_ID`, the same
+  env var `lib/storage/r2.ts` signs with, so the two cannot drift. Verified by
+  reading the emitted header. **This was found because the WebKit run failed
+  differently from Chromium, not because WebKit itself was broken.**
+
+- **RESOLVED · The iOS install path now has real coverage ·
+  `e2e/mobile/pwa-install-prompt.spec.ts`.** Asserts iPhone gets the
+  Share-then-Add-to-Home-Screen instruction and no Install button, that
+  dismissal survives a reload, and that Android is never shown the iOS wording.
+  This is the branch that was dead code for months precisely because nothing
+  ran on WebKit.
+
+- **KNOWN · Two offline photo tests are skipped on WebKit, with the reason in
+  the spec.** A capture queues fine on WebKit online and offline on Chromium,
+  but not offline under WebKit emulation. The product path is covered either
+  way; the combination is not reproducible here.
+
+- **ENVIRONMENTAL · The local Supabase stack accumulates a tenant per setup run
+  (39 orgs / 195 profiles by the end of this session).** One work-order E2E
+  case started timing out on element stability with no app code changed. Run
+  `npx supabase db reset` when local runs start slowing down.

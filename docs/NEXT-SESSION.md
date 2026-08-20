@@ -109,6 +109,36 @@ timeouts appear that are not code faults. `npx supabase db reset`.
 
 ---
 
+## 2026-08-20: WebKit added, and what it found
+
+`playwright.config.ts` now has a **`mobile-safari`** project (iPhone 14,
+WebKit) running the same mobile specs as the Pixel 7 one. CI installs webkit
+too. AHS crews are on iPhones and nothing had ever run on Safari's engine.
+
+**It immediately paid for itself, indirectly.** The WebKit run failed
+differently from Chromium, and chasing the difference surfaced that
+**survey photo uploads were blocked by CSP in production**. Photos upload
+browser-direct to R2 with a presigned PUT, and `connect-src` listed no R2 host
+in either environment. Confirmed against the live header on hazardos.app.
+Every upload was refused, retried three times, and dropped. `connect-src` now
+derives the R2 host from `R2_ACCOUNT_ID`, the same env var the server signs
+with, so the two cannot drift apart.
+
+The iOS install path also has real coverage now
+(`e2e/mobile/pwa-install-prompt.spec.ts`), which is the branch that sat dead
+for months because nothing ran on WebKit.
+
+Two offline photo tests are skipped on WebKit with the reason written into the
+spec: a capture queues fine on WebKit online, and offline on Chromium, but not
+offline under WebKit emulation.
+
+**Local stack hygiene.** Every `setup` run seeds a tenant and nothing removes
+them; this session ended at 39 organizations and 195 profiles. One work-order
+E2E case began timing out on element stability with no app code changed. Run
+`npx supabase db reset` when local runs start dragging.
+
+---
+
 ## Needs you, not code
 
 **1. Leaked password protection is still off.** You said you'd enabled it, and I
