@@ -47,6 +47,19 @@ export default defineConfig({
       use: { ...devices['Pixel 7'], storageState: 'e2e/.auth/user.json' },
       dependencies: ['setup'],
     },
+
+    // The same mobile specs on Safari's actual engine, not an emulation of it.
+    // AHS field crews are on iPhones, and Safari differs in ways that matter:
+    // it never fires `beforeinstallprompt`, so the iOS branch of the install
+    // prompt cannot be exercised anywhere else. iPhone users were silently
+    // getting no install offer at all until 2026-08-19 precisely because
+    // nothing here ran on WebKit.
+    {
+      name: 'mobile-safari',
+      testMatch: /mobile\/.*\.spec\.ts/,
+      use: { ...devices['iPhone 14'], storageState: 'e2e/.auth/user.json' },
+      dependencies: ['setup'],
+    },
   ],
   webServer: process.env.CI
     ? {
