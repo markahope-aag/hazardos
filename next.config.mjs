@@ -141,6 +141,15 @@ const nextConfig = {
       ? [supabaseOrigin, supabaseOrigin.replace(/^http/, 'ws')]
       : [];
 
+    // The R2 host the browser is sent to by a presigned PUT. Derived from the
+    // same env var lib/storage/r2.ts signs with, so the CSP cannot drift from
+    // the endpoint in use. Falls back to the R2 S3 API wildcard when the
+    // account id is not present at build time, which is better than blocking
+    // every photo upload.
+    const r2Sources = process.env.R2_ACCOUNT_ID
+      ? [`https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`]
+      : ['https://*.r2.cloudflarestorage.com'];
+
     // Only meaningful when the app itself is served over https. Left on in
     // production; omitted when the configured app URL is plain http, otherwise
     // every request to http://localhost is upgraded to https and fails.
@@ -174,11 +183,18 @@ const nextConfig = {
       // Fonts - allow self and data URIs (for inline fonts)
       'font-src': ["'self'", 'data:'],
 
+      // Survey photos upload browser-direct to R2 with a presigned PUT, so the
+      // R2 host has to be in connect-src or the browser blocks the upload.
+      // It was missing, which meant photo uploads could not work in
+      // production at all: they queued, retried three times against a CSP
+      // block, and were dropped. Derived from the same env var the server
+      // signs with so the two cannot drift apart.
       // Connect (fetch, XHR, WebSocket) - allow self, Supabase, Stripe, Sentry, and Vercel
       'connect-src': isDev
         ? [
             "'self'",
             ...supabaseSources,
+            ...r2Sources,
             'https://*.supabase.co',
             'wss://*.supabase.co',
             'https://api.stripe.com',
@@ -194,6 +210,7 @@ const nextConfig = {
         : [
             "'self'",
             ...supabaseSources,
+            ...r2Sources,
             'https://*.supabase.co',
             'wss://*.supabase.co',
             'https://api.stripe.com',
