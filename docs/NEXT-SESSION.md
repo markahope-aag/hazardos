@@ -81,6 +81,34 @@ Both fixed, both covered by `e2e/mobile/survey-property-controls.spec.ts`.
 
 ---
 
+## 2026-08-20: Safari coverage, and a production bug it exposed
+
+Added a `mobile-safari` project (iPhone 14 / WebKit) to `playwright.config.ts`,
+running the same mobile specs as the Pixel 7 project. CI now installs
+`chromium webkit`. Nothing had ever run on Safari's engine, which is the blind
+spot that let the PWA install prompt reach no iPhone user for months.
+
+**It immediately paid for itself.** The WebKit run surfaced CSP console errors
+showing that survey photo uploads were blocked. Photos upload browser-direct to
+R2 with a presigned PUT, and the R2 host was in neither the dev nor the
+production `connect-src`. Confirmed against the live header on hazardos.app.
+Every upload would have been refused, retried three times, and dropped. Fixed
+by deriving the host from `R2_ACCOUNT_ID`, the same env var the server signs
+with. **This was equally broken on Chromium and had simply never been noticed,
+because the failure is a console error rather than an exception.**
+
+Also added `e2e/mobile/pwa-install-prompt.spec.ts`, which asserts iPhone gets
+the Share instruction and Android never does. Two offline photo specs are
+skipped on WebKit with the reason inline: the same capture queues fine on
+WebKit online and offline on Chromium, so it is the emulation that does not
+reproduce, not the product.
+
+**Before judging a slow suite, reset the local stack.** Each `setup` run seeds
+an organization; after a day it held 39 orgs and 195 profiles and page-level
+timeouts appear that are not code faults. `npx supabase db reset`.
+
+---
+
 ## Needs you, not code
 
 **1. Leaked password protection is still off.** You said you'd enabled it, and I

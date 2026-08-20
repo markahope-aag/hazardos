@@ -302,3 +302,36 @@ cause was larger than the report.
   same way when a dev server is competing for the local Postgres: a different
   file fails each run, each passes alone. Contention, not regressions. CI is
   unaffected because it runs `workers:1`.
+
+### WebKit added to the E2E suite, 2026-08-20
+
+Nothing in the suite had ever run on Safari's engine. Added `mobile-safari`
+(iPhone 14 / WebKit) alongside the Pixel 7 project, running the same mobile
+specs, and updated CI to install the engine.
+
+- **HIGH · RESOLVED · Survey photo uploads were blocked by CSP in production ·
+  `next.config.mjs`.** Photos upload browser-direct to R2 with a presigned PUT,
+  and the R2 host was in neither the dev nor the production `connect-src`. The
+  live header on hazardos.app confirmed it. Every upload would have been
+  refused by the browser, retried three times, and dropped. The R2 host is now
+  derived from `R2_ACCOUNT_ID`, the same env var `lib/storage/r2.ts` signs
+  with, so the CSP cannot drift from the endpoint in use. Verified by reading
+  the emitted header. **Found only because the WebKit run surfaced the CSP
+  console errors; it was equally broken on Chromium and had gone unnoticed.**
+
+- **RESOLVED · The iOS install path now has real coverage ·
+  `e2e/mobile/pwa-install-prompt.spec.ts`.** Asserts iPhone gets the Share
+  instruction and no Install button, that dismissal survives a reload, and that
+  Android is never shown the iOS wording. This is the class of bug that made
+  iPhone users get no install offer at all until 2026-08-19, and it was
+  invisible while everything ran on Chromium.
+
+- **KNOWN · Two offline photo specs are skipped on WebKit.** The same capture
+  queues fine on WebKit while online and offline on Chromium, so the product
+  path is covered; what does not reproduce is Playwright's WebKit offline
+  emulation. Skipped with the reason inline rather than left red.
+
+- **ENVIRONMENT · The local Supabase stack accumulates tenants.** Each `setup`
+  run seeds an organization; after a day of runs it held 39 orgs and 195
+  profiles, and page-level timeouts start appearing that are not code faults.
+  `npx supabase db reset` before judging a slow suite.
